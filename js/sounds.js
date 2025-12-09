@@ -4,6 +4,15 @@ let Sounds = {
   async loadConfig() {
     const jsonPath = "config/sounds.json";
     logMessage("📄 Loading config from: " + jsonPath);
+	
+	
+	    // Detect the root URL where index.html is running
+    const rootPath = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, "/");
+
+    logMessage("🌐 Root path: " + rootPath);
+    logMessage("📄 Loading config from: " + jsonPath);
+    logMessage("➡️ Full request URL: " + rootPath + jsonPath);
+	
 
     try {
       const response = await fetch(jsonPath);
