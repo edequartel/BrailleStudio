@@ -1,0 +1,93 @@
+// Directly embed your config instead of loading JSON via fetch
+const SoundsConfig = {
+  baseUrl: "https://www.tastenbraille.com/braillestudio",
+
+  languages: {
+    nl: {
+      letters: {
+        a: "/sounds/alfabet/a.mp3",
+        b: "/sounds/alfabet/b.mp3",
+        k: "/sounds/alfabet/k.mp3"
+      },
+      words: {
+        bal: "/sounds/nl/words/bal.mp3",
+        kam: "/sounds/nl/words/kam.mp3"
+      },
+      ui: {
+        click: "/sounds/nl/ui/click.mp3",
+        error: "/sounds/nl/ui/error.mp3"
+      }
+    },
+
+    en: {
+      letters: {
+        a: "/sounds/en/letters/a.mp3",
+        b: "/sounds/en/letters/b.mp3",
+        k: "/sounds/en/letters/k.mp3"
+      },
+      words: {
+        ball: "/sounds/en/words/ball.mp3",
+        comb: "/sounds/en/words/comb.mp3"
+      },
+      ui: {
+        click: "/sounds/en/ui/click.mp3",
+        error: "/sounds/en/ui/error.mp3"
+      }
+    }
+  },
+
+  shared: {
+    correct: "/sounds/shared/correct.mp3"
+  }
+};
+
+let Sounds = {
+  config: SoundsConfig,
+
+  // no async loadConfig anymore, just log that config is ready
+  async loadConfig() {
+    logMessage("✅ Using embedded SoundsConfig (no fetch needed).");
+    logMessage("🔗 baseUrl: " + this.config.baseUrl);
+  },
+
+  getUrl(path) {
+    return this.config.baseUrl + path;
+  },
+
+  play(lang, category, name) {
+    if (!this.config) {
+      logMessage("❌ ERROR: Sounds not loaded.");
+      return;
+    }
+
+    const relativePath = this.config.languages[lang][category][name];
+    const fullUrl = this.getUrl(relativePath);
+
+    logMessage("▶️ Playing file: " + relativePath);
+    logMessage("🌐 Full URL:     " + fullUrl);
+
+    const sound = new Howl({ src: [fullUrl] });
+    sound.play();
+  },
+
+  playShared(name) {
+    if (!this.config) {
+      logMessage("❌ ERROR: Sounds not loaded.");
+      return;
+    }
+
+    const relativePath = this.config.shared[name];
+    const fullUrl = this.getUrl(relativePath);
+
+    logMessage("▶️ Playing shared: " + relativePath);
+    logMessage("🌐 Full URL:       " + fullUrl);
+
+    const sound = new Howl({ src: [fullUrl] });
+    sound.play();
+  }
+};
+
+// Still call this, just for the log message
+(async () => {
+  await Sounds.loadConfig();
+})();
