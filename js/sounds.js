@@ -2,7 +2,7 @@ let Sounds = {
   config: null,
 
   async loadConfig() {
-    const jsonPath = "BrailleServer/config/sounds.json";
+    const jsonPath = "config/sounds.json";
     logMessage("📄 Loading config from: " + jsonPath);
 
     try {
