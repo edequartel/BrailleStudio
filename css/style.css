@@ -7,7 +7,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -178,8 +179,15 @@ button:disabled {
   gap: 6px;
 }
 
+/* Active button state (for toggles) */
+button.active {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
 /* -------------------------------------------------------
-   Log window
+   Legacy log window (#log) – mono block
+   (kept for older pages, now also mobile-friendly)
 ------------------------------------------------------- */
 #log {
   margin-top: 10px;
@@ -190,45 +198,19 @@ button:disabled {
   border: 1px solid #1f2937;
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
   font-size: 0.8rem;
-  height: 260px;
+  max-height: 35vh;
+  min-height: 120px;
+  width: 100%;
   overflow-y: auto;
   white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 /* -------------------------------------------------------
-   Responsive tweaks
+   Fancy log view (.log-box + .log-entry)
 ------------------------------------------------------- */
-@media (max-width: 700px) {
-  .container {
-    margin: 10px;
-    padding: 16px 12px 24px 12px;
-  }
 
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  .button-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  button,
-  .button-row select {
-    width: 100%;
-  }
-
-  #log {
-    height: 210px;
-  }
-}
-
-button.active {
-  outline: 2px solid #22c55e;
-  outline-offset: 2px;
-}
-
-/* Log container */
+/* Log container – desktop + mobile friendly */
 .log-box {
   background: #050816;
   color: #e5e7eb;
@@ -238,9 +220,16 @@ button.active {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid #111827;
-  max-height: 260px;
+
+  /* viewport-based height == good on desktop + mobile */
+  max-height: 35vh;
+  min-height: 120px;
+
   overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Eén logregel */
@@ -260,12 +249,14 @@ button.active {
 .log-time {
   color: #9ca3af;
   min-width: 3.5rem;
+  flex-shrink: 0;
 }
 
 /* Level */
 .log-level {
   font-weight: 600;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* Bron */
@@ -275,12 +266,16 @@ button.active {
   padding: 0 0.35rem;
   border-radius: 999px;
   background: rgba(31, 41, 55, 0.7);
+  flex-shrink: 0;
 }
 
 /* Bericht */
 .log-message {
   flex: 1;
   color: #f9fafb;
+  /* Long JSON / messages should wrap on narrow screens */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Kleuren per level */
@@ -314,4 +309,58 @@ button.active {
 .log-source-sounds .log-source {
   background: rgba(234, 179, 8, 0.2);
   border: 1px solid rgba(234, 179, 8, 0.6);
+}
+
+/* -------------------------------------------------------
+   Responsive tweaks
+------------------------------------------------------- */
+@media (max-width: 700px) {
+  .container {
+    margin: 10px;
+    padding: 16px 12px 24px 12px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button,
+  .button-row select {
+    width: 100%;
+  }
+
+  #log {
+    max-height: 30vh;
+  }
+
+  .log-box {
+    font-size: 0.78rem;
+    padding: 6px 8px;
+    max-height: 30vh;
+  }
+
+  .log-entry {
+    /* Stack meta + message a bit nicer on narrow screens */
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .log-time {
+    min-width: 3.2rem;
+  }
+
+  .log-level,
+  .log-source {
+    font-size: 0.75rem;
+  }
+
+  .log-message {
+    /* message can flow below time/level/source */
+    flex-basis: 100%;
+  }
 }
