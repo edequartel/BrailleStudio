@@ -1,220 +1,447 @@
 <!DOCTYPE html>
 <html lang="nl">
-<head>
-  <meta charset="UTF-8" />
-  <title>BrailleUI Demo – BrailleServer</title>
+  <head>
+    <meta charset="UTF-8" />
+    <title>BrailleUI Demo – BrailleServer</title>
 
-  <!-- Shared styling from your repo -->
-  <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/style.css" />
 
-  <!-- Optional: Howler, only if you want sounds hier -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+    <style>
+      /* Kleine layout-tweaks specifiek voor demo-pagina */
 
-  <!-- Logging framework (NEW) -->
-  <script src="../js/logging.js"></script>
-
-  <!-- Frameworks from BrailleServer -->
-  <script src="../js/braillebridge.js"></script>
-  <script src="../js/brailleui.js"></script>
-  <script src="../js/sounds.js"></script>
-</head>
-<body>
-  <main class="container">
-    <h1>BrailleUI Demo</h1>
-
-    <section class="card">
-      <h2>Verbinding</h2>
-      <p>Status: <span id="connectionStatus">disconnected</span></p>
-    </section>
-
-    <section class="card">
-      <h2>Braille-monitor (1:1 met leesregel)</h2>
-      <p id="brailleMonitor" class="mono-box">(leeg)</p>
-    </section>
-
-    <section class="card">
-      <h2>Regel sturen</h2>
-      <button id="btnHello">Stuur “Hallo braille!”</button><br /><br />
-
-      <label for="customText">Eigen tekst:</label><br />
-      <input id="customText" type="text"
-             placeholder="Typ hier je tekst"
-             style="width: 100%; max-width: 420px; margin-top: 4px;" /><br /><br />
-
-      <button id="btnCustom">Stuur eigen tekst</button>
-      <button id="btnRepeat">Herhaal huidige regel</button>
-      <button id="btnClear">Maak leeg</button>
-    </section>
-
-    <section class="card">
-      <h2>Laatste cursorinformatie</h2>
-      <p id="lastCursor">Nog niets…</p>
-    </section>
-
-    <section class="card">
-      <h2>Logging</h2>
-      <div id="logBox" class="log-box"></div>
-    </section>
-  </main>
-
-  <script>
-    function setConnectionStatus(text, ok) {
-      const el = document.getElementById("connectionStatus");
-      if (!el) return;
-      el.textContent = text;
-      el.style.color = ok ? "green" : "red";
-    }
-
-    function setLastCursor(text) {
-      const el = document.getElementById("lastCursor");
-      if (el) el.textContent = text;
-    }
-
-    // ------------------------------------------------------------
-    // INIT
-    // ------------------------------------------------------------
-    window.addEventListener("DOMContentLoaded", async () => {
-      // 0. Configure logging for this page
-      Logging.setLevel("debug"); // show everything
-      Logging.addSink(
-        Logging.createDomSink("logBox", {
-          maxEntries: 300,
-          newestOnTop: false
-        })
-      );
-
-      Logging.info("BrailleUI-Demo", "Pagina laden…");
-
-      // 1. Sounds (optioneel)
-      try {
-        await Sounds.init("../config/sounds.json");
-        Logging.info("Sounds", "Sounds.init OK");
-      } catch (e) {
-        Logging.error("Sounds", "Sounds.init fout: " + e);
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Arial, sans-serif;
+        background: #f3f4f6;
       }
 
-      // 2. BrailleBridge configureren
-      BrailleBridge.setConfig({
-        baseUrl: "http://localhost:5000",
-        wsUrl: "ws://localhost:5000/ws",
-        displayCells: 40,
-        debug: true
-      });
+      .demo-container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px 24px 28px 24px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      }
 
-      // 3. BrailleUI configureren + monitor koppelen
-      BrailleUI.setOptions({
-        displayCells: 40,
-        debug: true
-      });
-      BrailleUI.attachMonitor("brailleMonitor");
+      h1 {
+        margin-top: 0;
+        margin-bottom: 0.25em;
+        font-size: 1.6rem;
+      }
 
-      // 4. Events van BrailleBridge
-      BrailleBridge.on("connected", () => {
-        setConnectionStatus("verbonden", true);
-        Logging.info("BrailleBridge", "Connected");
-      });
+      h2 {
+        margin-top: 1.7em;
+        margin-bottom: 0.4em;
+        font-size: 1.2rem;
+      }
 
-      BrailleBridge.on("disconnected", info => {
-        setConnectionStatus("verbinding verbroken", false);
-        Logging.warn("BrailleBridge", "Disconnected: " + (info.reason || ""));
-      });
+      .demo-subtitle {
+        margin: 0 0 1.2em 0;
+        color: #6b7280;
+        font-size: 0.95rem;
+      }
 
-      BrailleBridge.on("error", err => {
-        Logging.error("BrailleBridge", "Error: " + JSON.stringify(err));
-      });
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background: #fee2e2;
+        color: #b91c1c;
+      }
 
-      // Optional: ruwe cursorrouting loggen
-      BrailleBridge.on("cursor", evt => {
-        Logging.debug("BrailleBridge", "[RAW cursor] " + JSON.stringify(evt));
-      });
+      .status-pill.connected {
+        background: #dcfce7;
+        color: #166534;
+      }
 
-      // 5. Events van BrailleUI (letter + woord onder de cursor)
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: currentColor;
+      }
 
-      // Letter onder de cursor
-      BrailleUI.on("cursorChar", evt => {
-        const letter = evt.char || "␣"; // spatie symbool
-        const line   = evt.lineIndex;
-        const col    = evt.column;
+      .demo-row {
+        margin-top: 6px;
+        margin-bottom: 12px;
+      }
 
-        setLastCursor(
-          "Regel " + line +
-          ", cel " + col +
-          " → letter: \"" + letter + "\""
-        );
+      .demo-row label {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        color: #4b5563;
+      }
 
-        Logging.debug(
-          "BrailleUI",
-          "cursorChar line=" + line +
-          " col=" + col +
-          " letter=\"" + letter + "\""
-        );
-      });
+      .demo-row input[type="text"] {
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        font-size: 0.95rem;
+      }
 
-      // Woord onder de cursor (als er een woord is)
-      BrailleUI.on("cursorWord", evt => {
-        const word   = evt.word || "(geen woord)";
-        const line   = evt.lineIndex;
-        const col    = evt.column;
-        const letter = BrailleUI.getCharAt(col) || "␣";
+      .demo-actions {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
 
-        setLastCursor(
-          "Regel " + line +
-          ", cel " + col +
-          " → letter: \"" + letter + "\", woord: \"" + word + "\""
-        );
+      .demo-actions button {
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        cursor: pointer;
+        transition: background 0.15s ease, box-shadow 0.15s ease,
+          transform 0.05s ease;
+      }
 
-        Logging.info(
-          "BrailleUI",
-          "cursorWord line=" + line +
-          " col=" + col +
-          " letter=\"" + letter + "\" woord=\"" + word + "\""
-        );
+      .demo-actions button:hover {
+        background: #e5e7eb;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15);
+      }
 
-        // hier kun je eventueel geluid koppelen:
-        // Sounds.playWord("nl", word);
-      });
+      .demo-actions button:active {
+        transform: translateY(1px);
+        box-shadow: none;
+      }
 
-      // 6. Verbinden met BrailleBridge
-      BrailleBridge.connect();
+      .demo-actions button.primary {
+        background: #111827;
+        color: #f9fafb;
+        border-color: #111827;
+      }
 
-      // 7. Buttons aansluiten
-      document.getElementById("btnHello").onclick = async () => {
-        try {
-          await BrailleUI.setText("Hallo braille!");
-          Logging.info("BrailleUI", "setText('Hallo braille!') OK");
-        } catch (e) {
-          Logging.error("BrailleUI", "setText fout: " + e);
+      .demo-actions button.primary:hover {
+        background: #030712;
+      }
+
+      #cursorInfoBox {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New",
+          monospace;
+        font-size: 0.85rem;
+        padding: 8px 10px;
+        background: #f9fafb;
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        min-height: 40px;
+      }
+
+      #logBox {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New",
+          monospace;
+        font-size: 0.8rem;
+        padding: 8px 10px;
+        background: #0b1120;
+        color: #e5e7eb;
+        border-radius: 10px;
+        border: 1px solid #1f2937;
+        min-height: 120px;
+        max-height: 260px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="demo-container">
+      <h1>BrailleUI Demo</h1>
+      <p class="demo-subtitle">
+        Test de verbinding met de lokale BrailleBridge, bekijk de
+        braille-monitor en simuleer duimtoetsen.
+      </p>
+
+      <!-- Verbinding -->
+      <h2>Verbinding</h2>
+      <div class="demo-row">
+        <span id="connectionStatus" class="status-pill">
+          <span class="status-dot"></span>
+          disconnected
+        </span>
+        <button id="btnConnect" style="margin-left: 10px">
+          Verbind met BrailleBridge
+        </button>
+      </div>
+
+      <!-- Braille-monitor -->
+      <h2>Braille-monitor (1:1 met leesregel)</h2>
+      <div class="braille-monitor-label">
+        Toon exact de 40 braillecellen (inclusief spaties).
+      </div>
+      <div id="currentLineBox" class="braille-monitor">(leeg)</div>
+
+      <!-- Thumbkey-buttons -->
+      <div class="thumbkey-buttons" aria-label="Simuleer duimtoetsen">
+        <button type="button" data-thumb="LeftThumb">LeftThumb</button>
+        <button type="button" data-thumb="MiddleLeftThumb">
+          MiddleLeftThumb
+        </button>
+        <button type="button" data-thumb="MiddleRightThumb">
+          MiddleRightThumb
+        </button>
+        <button type="button" data-thumb="RightThumb">RightThumb</button>
+      </div>
+
+      <!-- Regel sturen -->
+      <h2>Regel sturen</h2>
+      <div class="demo-row">
+        <div class="demo-actions">
+          <button id="btnHallo" class="primary" type="button">
+            Stuur “Hallo braille!”
+          </button>
+        </div>
+      </div>
+
+      <div class="demo-row">
+        <label for="customTextInput">Eigen tekst:</label>
+        <input
+          type="text"
+          id="customTextInput"
+          placeholder="Typ een tekst om naar de brailleleesregel te sturen…"
+        />
+        <div class="demo-actions">
+          <button id="btnSendCustom" type="button">Stuur eigen tekst</button>
+          <button id="btnRepeat" type="button">Herhaal huidige regel</button>
+          <button id="btnClear" type="button">Maak leeg</button>
+        </div>
+      </div>
+
+      <!-- Cursorinformatie -->
+      <h2>Laatste cursorinformatie</h2>
+      <div id="cursorInfoBox">Nog niets…</div>
+
+      <!-- Logging -->
+      <h2>Logging</h2>
+      <div id="logBox"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/braillebridge.js"></script>
+    <script src="../js/brailleui.js"></script>
+
+    <script>
+      (function () {
+        "use strict";
+
+        const bridge = window.BrailleBridge;
+        const ui = window.BrailleUI;
+
+        // -----------------------------------------------------
+        // Helpers
+        // -----------------------------------------------------
+        const connectionStatusEl = document.getElementById("connectionStatus");
+        const btnConnect = document.getElementById("btnConnect");
+        const logBox = document.getElementById("logBox");
+        const cursorInfoBox = document.getElementById("cursorInfoBox");
+        const customTextInput = document.getElementById("customTextInput");
+
+        function setStatus(connected) {
+          if (!connectionStatusEl) return;
+          connectionStatusEl.classList.toggle("connected", !!connected);
+          connectionStatusEl.textContent = connected
+            ? "connected"
+            : "disconnected";
+
+          const dot = document.createElement("span");
+          dot.className = "status-dot";
+          connectionStatusEl.prepend(dot);
         }
-      };
 
-      document.getElementById("btnCustom").onclick = async () => {
-        const text = document.getElementById("customText").value || "(leeg)";
-        try {
-          await BrailleUI.setText(text);
-          Logging.info("BrailleUI", `setText(custom) OK: "${text}"`);
-        } catch (e) {
-          Logging.error("BrailleUI", "setText(custom) fout: " + e);
+        function logMessage(msg) {
+          if (!logBox) return;
+          const now = new Date();
+          const ts = now.toISOString().split("T")[1].substring(0, 8);
+          logBox.textContent += "[" + ts + "] " + msg + "\n";
+          logBox.scrollTop = logBox.scrollHeight;
         }
-      };
 
-      document.getElementById("btnRepeat").onclick = async () => {
-        try {
-          await BrailleUI.repeatLine();
-          Logging.info("BrailleUI", "repeatLine OK");
-        } catch (e) {
-          Logging.error("BrailleUI", "repeatLine fout: " + e);
-        }
-      };
+        // Simuleer een duimtoets door direct het 'thumbkey' event van
+        // BrailleBridge te emitten. Dit is puur aan de JS-kant.
+        function simulateThumbKey(name) {
+          if (!bridge || typeof bridge.emit !== "function") {
+            logMessage("⚠️ Kan thumbkey niet simuleren: geen bridge.emit()");
+            return;
+          }
 
-      document.getElementById("btnClear").onclick = async () => {
-        try {
-          await BrailleUI.clear();
-          Logging.info("BrailleUI", "clear OK");
-        } catch (e) {
-          Logging.error("BrailleUI", "clear fout: " + e);
+          const evt = {
+            raw: { Kind: 2, IsPress: true, Name: name },
+            kindRaw: "thumbkey",
+            kind: "thumbkey",
+            press: true,
+            name,
+            nameLower: String(name).toLowerCase(),
+          };
+
+          logMessage("🖱️ Simulated thumbkey: " + name);
+          bridge.emit("thumbkey", evt);
         }
-      };
-    });
-  </script>
-</body>
+
+        // -----------------------------------------------------
+        // BrailleBridge configureren
+        // -----------------------------------------------------
+        bridge.setConfig({
+          debug: false,
+          baseUrl: "http://localhost:5000",
+          wsUrl: "ws://localhost:5000/ws",
+          displayCells: 40,
+        });
+
+        // Logging van bridge
+        bridge.on("connected", () => {
+          setStatus(true);
+          logMessage("✅ WebSocket connected");
+        });
+
+        bridge.on("disconnected", (evt) => {
+          setStatus(false);
+          logMessage(
+            "❌ WebSocket disconnected (code=" +
+              evt.code +
+              ", reason=" +
+              evt.reason +
+              ")"
+          );
+        });
+
+        bridge.on("error", (err) => {
+          logMessage("💥 Bridge error: " + JSON.stringify(err));
+        });
+
+        bridge.on("http", (evt) => {
+          logMessage(
+            "🌐 HTTP " + evt.path + " → " + evt.status + " (ok=" + evt.ok + ")"
+          );
+        });
+
+        bridge.on("thumbkey", (evt) => {
+          logMessage("🔵 thumbkey: " + evt.name);
+        });
+
+        bridge.on("cursor", (evt) => {
+          // Dit pakt BrailleUI ook al op via autoAttachCursor,
+          // maar we loggen hier nog extra informatie.
+          logMessage("🎯 cursor index: " + evt.index);
+        });
+
+        // -----------------------------------------------------
+        // BrailleUI koppelen
+        // -----------------------------------------------------
+        ui.setOptions({
+          displayCells: 40,
+          debug: false,
+        });
+
+        ui.attachMonitor("currentLineBox");
+
+        // Cursor-info vanuit BrailleUI
+        ui.on("cursorChar", (evt) => {
+          const text =
+            "Index: " +
+            evt.index +
+            "\n" +
+            "Char:  " +
+            (evt.char || " ") +
+            "\n" +
+            "Lijn:  " +
+            evt.lineIndex;
+          cursorInfoBox.textContent = text;
+        });
+
+        ui.on("cursorWord", (evt) => {
+          logMessage(
+            "🟢 cursorWord: '" +
+              evt.word +
+              "' (start=" +
+              evt.start +
+              ", end=" +
+              evt.end +
+              ")"
+          );
+        });
+
+        ui.on("lineChanged", (evt) => {
+          logMessage("🔁 lineChanged: '" + evt.line + "'");
+        });
+
+        // -----------------------------------------------------
+        // UI events
+        // -----------------------------------------------------
+        btnConnect.addEventListener("click", () => {
+          logMessage("🔌 Connecting WebSocket...");
+          bridge.connect();
+        });
+
+        document
+          .getElementById("btnHallo")
+          .addEventListener("click", async () => {
+            try {
+              await ui.setText("Hallo braille!");
+              logMessage("➡️ Stuurde: 'Hallo braille!'");
+            } catch (err) {
+              logMessage("💥 Fout bij setText: " + err);
+            }
+          });
+
+        document
+          .getElementById("btnSendCustom")
+          .addEventListener("click", async () => {
+            const value = customTextInput.value || "";
+            try {
+              await ui.setText(value);
+              logMessage("➡️ Stuurde eigen tekst: '" + value + "'");
+            } catch (err) {
+              logMessage("💥 Fout bij setText: " + err);
+            }
+          });
+
+        document
+          .getElementById("btnRepeat")
+          .addEventListener("click", async () => {
+            try {
+              await ui.repeatLine();
+              logMessage("🔁 repeatLine()");
+            } catch (err) {
+              logMessage("💥 Fout bij repeatLine: " + err);
+            }
+          });
+
+        document
+          .getElementById("btnClear")
+          .addEventListener("click", async () => {
+            try {
+              await ui.clear();
+              logMessage("🧹 clear()");
+            } catch (err) {
+              logMessage("💥 Fout bij clear: " + err);
+            }
+          });
+
+        // Thumbkey-buttons
+        document
+          .querySelectorAll(".thumbkey-buttons button")
+          .forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const name = btn.getAttribute("data-thumb");
+              simulateThumbKey(name);
+            });
+          });
+
+        // Option: automatisch verbinden bij laden
+        // bridge.connect();
+      })();
+    </script>
+  </body>
 </html>
