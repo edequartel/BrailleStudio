@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>BrailleServer – style.css showcase</title>
+
+  <!-- Correct relative path from /pages/ to /css/style.css -->
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>BrailleServer UI – style.css demo</h1>
+    <p class="small">
+      Deze pagina toont de UI-elementen die gestyled worden door <code>style.css</code>.
+      Handig om visueel te controleren of alle componenten correct worden weergegeven.
+    </p>
+
+    <!-- STATUS BOXES -->
+    <h2>Status boxen</h2>
+    <div id="connectionStatus" class="status">
+      🔌 Verbinding: <strong>Verbonden met BrailleBridge</strong>
+    </div>
+
+    <div id="currentLineBox" class="status" style="margin-top: 12px;">
+      CURRENT LINE: <span>⠃⠗⠁⠊⠇⠇⠑ ⠊⠎ ⠉⠕⠕⠇</span>
+    </div>
+
+    <div id="lastChoice" class="status" style="margin-top: 12px;">
+      ✅ Laatste keuze: <strong>RightThumb</strong> bij letter <strong>B</strong>
+    </div>
+
+    <!-- BUTTON ROW -->
+    <h2>Knoppenrij & controls</h2>
+    <p class="small">
+      Deze knoppen gebruiken de stijlen van <code>.button-row</code>, <code>button</code>,
+      en <code>select</code>.
+    </p>
+
+    <div class="button-row">
+      <button type="button">Verbind met BrailleBridge</button>
+      <button type="button" class="active">Start logging</button>
+      <button type="button" class="secondary">Wis display</button>
+
+      <label>
+        Profiel:
+        <select>
+          <option>Standaard</option>
+          <option>Leerling – letters</option>
+          <option>Leerling – woorden</option>
+          <option>Debug</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- LEGACY LOG BLOCK -->
+    <h2>Legacy logvenster (<code>#log</code>)</h2>
+    <pre id="log">
+[10:15:02] INFO    BrailleBridge started on http://localhost:5000
+[10:15:03] DEBUG   WS connected (clientId=browser-01)
+[10:15:04] INFO    Display text: "Hallo braille!"
+[10:15:06] INPUT   ThumbKey: RightThumb (device=FOCUS40)
+[10:15:07] INFO    Clearing display...
+    </pre>
+
+    <!-- NEW LOG VIEW -->
+    <h2>Nieuwe logweergave (<code>.log-box</code>)</h2>
+
+    <div class="log-box">
+      <div class="log-entry log-level-info log-source-braillebridge">
+        <span class="log-time">10:15</span>
+        <span class="log-level">INFO</span>
+        <span class="log-source">BrailleBridge</span>
+        <span class="log-message">
+          HTTP server gestart op <code>http://localhost:5000</code>.
+        </span>
+      </div>
+
+      <div class="log-entry log-level-debug log-source-brailleui">
+        <span class="log-time">10:15</span>
+        <span class="log-level">DEBUG</span>
+        <span class="log-source">BrailleUI</span>
+        <span class="log-message">
+          Nieuwe braillelijn: <code>⠃⠗⠁⠊⠇⠇⠑</code>
+        </span>
+      </div>
+
+      <div class="log-entry log-level-info log-source-sounds">
+        <span class="log-time">10:16</span>
+        <span class="log-level">INFO</span>
+        <span class="log-source">Sounds</span>
+        <span class="log-message">
+          Audio geladen: <code>sounds/alfabet/b.mp3</code>.
+        </span>
+      </div>
+
+      <div class="log-entry log-level-warn log-source-braillebridge">
+        <span class="log-time">10:17</span>
+        <span class="log-level">WARN</span>
+        <span class="log-source">BrailleBridge</span>
+        <span class="log-message">
+          Onderbreking in WS-verbinding (reconnect in 2s).
+        </span>
+      </div>
+
+      <div class="log-entry log-level-error log-source-braillebridge">
+        <span class="log-time">10:18</span>
+        <span class="log-level">ERROR</span>
+        <span class="log-source">BrailleBridge</span>
+        <span class="log-message">
+          Geen brailledisplay gevonden. Controleer USB-kabel en driver.
+        </span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

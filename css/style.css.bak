@@ -7,7 +7,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -178,8 +179,15 @@ button:disabled {
   gap: 6px;
 }
 
+/* Active button state (for toggles) */
+button.active {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
 /* -------------------------------------------------------
-   Log window
+   Legacy log window (#log) – mono block
+   (kept for older pages, now also mobile-friendly)
 ------------------------------------------------------- */
 #log {
   margin-top: 10px;
@@ -190,45 +198,19 @@ button:disabled {
   border: 1px solid #1f2937;
   font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
   font-size: 0.8rem;
-  height: 260px;
+  max-height: 35vh;
+  min-height: 120px;
+  width: 100%;
   overflow-y: auto;
   white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 /* -------------------------------------------------------
-   Responsive tweaks
+   Fancy log view (.log-box + .log-entry)
 ------------------------------------------------------- */
-@media (max-width: 700px) {
-  .container {
-    margin: 10px;
-    padding: 16px 12px 24px 12px;
-  }
 
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  .button-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  button,
-  .button-row select {
-    width: 100%;
-  }
-
-  #log {
-    height: 210px;
-  }
-}
-
-button.active {
-  outline: 2px solid #22c55e;
-  outline-offset: 2px;
-}
-
-/* Log container */
+/* Log container – desktop + mobile friendly */
 .log-box {
   background: #050816;
   color: #e5e7eb;
@@ -238,9 +220,31 @@ button.active {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid #111827;
-  max-height: 260px;
+
+  /* viewport-based height == good on desktop + mobile */
+  max-height: 35vh;
+  min-height: 120px;
+
   overflow-y: auto;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.log-box .log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.log-box .log-list li {
+  padding: 4px 2px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+}
+
+.log-box .log-list li:last-child {
+  border-bottom: none;
 }
 
 /* Eén logregel */
@@ -260,12 +264,14 @@ button.active {
 .log-time {
   color: #9ca3af;
   min-width: 3.5rem;
+  flex-shrink: 0;
 }
 
 /* Level */
 .log-level {
   font-weight: 600;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* Bron */
@@ -275,12 +281,16 @@ button.active {
   padding: 0 0.35rem;
   border-radius: 999px;
   background: rgba(31, 41, 55, 0.7);
+  flex-shrink: 0;
 }
 
 /* Bericht */
 .log-message {
   flex: 1;
   color: #f9fafb;
+  /* Long JSON / messages should wrap on narrow screens */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 /* Kleuren per level */
@@ -314,4 +324,498 @@ button.active {
 .log-source-sounds .log-source {
   background: rgba(234, 179, 8, 0.2);
   border: 1px solid rgba(234, 179, 8, 0.6);
+}
+
+/* -------------------------------------------------------
+   Responsive tweaks
+------------------------------------------------------- */
+@media (max-width: 700px) {
+  .container {
+    margin: 10px;
+    padding: 16px 12px 24px 12px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button,
+  .button-row select {
+    width: 100%;
+  }
+
+  #log {
+    max-height: 30vh;
+  }
+
+  .log-box {
+    font-size: 0.78rem;
+    padding: 6px 8px;
+    max-height: 30vh;
+  }
+
+  .log-entry {
+    /* Stack meta + message a bit nicer on narrow screens */
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .log-time {
+    min-width: 3.2rem;
+  }
+
+  .log-level,
+  .log-source {
+    font-size: 0.75rem;
+  }
+
+  .log-message {
+    /* message can flow below time/level/source */
+    flex-basis: 100%;
+  }
+}
+
+/* -------------------------------------------------------
+   Braille-monitor (1:1 met leesregel) — HIGH CONTRAST
+------------------------------------------------------- */
+
+.braille-monitor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New",
+    monospace;
+
+  /* Much larger and more readable */
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+
+  /* Keep exact braille cell alignment */
+  white-space: pre;
+  font-variant-ligatures: none;
+
+  /* High contrast */
+  background: #000000;        /* pure black */
+  color: #ffffff;             /* pure white */
+
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 2px solid #444;     /* subtle outline */
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+/* Eventuele status-tekst boven/onder de monitor */
+.braille-monitor-label {
+  font-size: 1rem;
+  color: #444;                /* darker for contrast */
+  margin-bottom: 6px;
+}
+
+/* -------------------------------------------------------
+   Thumbkey-buttons
+------------------------------------------------------- */
+
+.thumbkey-buttons {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.thumbkey-buttons button {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Arial, sans-serif;
+
+  font-size: 1rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+
+  border: 1px solid #888;
+  background: #ffffff;
+  color: #111;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease, box-shadow 0.15s ease,
+    transform 0.05s ease;
+}
+
+.thumbkey-buttons button:hover {
+  background: #f0f0f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.thumbkey-buttons button:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+/* -------------------------------------------------------
+   Game: Dier Match page (pages/game-dier-match.html)
+------------------------------------------------------- */
+body.game-page--dier-match {
+  background:
+    radial-gradient(circle at 12% 25%, rgba(59, 130, 246, 0.25), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.2), transparent 60%),
+    linear-gradient(120deg, #020617, #0f172a 55%, #111827);
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+body.game-page--dier-match .container {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 22px;
+  box-shadow: 0 25px 60px rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(6px);
+  position: relative;
+  overflow: hidden;
+}
+
+body.game-page--dier-match .container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, rgba(236, 72, 153, 0.2), rgba(37, 99, 235, 0.08));
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+body.game-page--dier-match .container > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.game-page--dier-match h1 {
+  color: #f9fafb;
+  text-shadow: 0 6px 20px rgba(2, 6, 23, 0.65);
+  letter-spacing: 0.02em;
+}
+
+body.game-page--dier-match p,
+body.game-page--dier-match li {
+  color: #cbd5f5;
+}
+
+body.game-page--dier-match ul {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  padding: 14px 20px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+body.game-page--dier-match ul li + li {
+  margin-top: 6px;
+}
+
+body.game-page--dier-match ul strong {
+  color: #fef3c7;
+}
+
+body.game-page--dier-match #connectionStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(248, 250, 252, 0.15);
+  background: linear-gradient(120deg, rgba(148, 163, 184, 0.2), rgba(59, 130, 246, 0.18));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45);
+  font-weight: 600;
+}
+
+body.game-page--dier-match #connectionStatus::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #f87171;
+  box-shadow: 0 0 14px currentColor;
+}
+
+body.game-page--dier-match #connectionStatus[data-state="connected"] {
+  border-color: rgba(34, 197, 94, 0.6);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(16, 185, 129, 0.45));
+  color: #ecfdf5;
+}
+
+body.game-page--dier-match #connectionStatus[data-state="connected"]::before {
+  background: #4ade80;
+}
+
+body.game-page--dier-match #connectionStatus[data-state="disconnected"] {
+  border-color: rgba(248, 113, 113, 0.5);
+  background: linear-gradient(135deg, rgba(248, 113, 113, 0.25), rgba(239, 68, 68, 0.35));
+  color: #fee2e2;
+}
+
+body.game-page--dier-match #connectionStatus[data-state="disconnected"]::before {
+  background: #f87171;
+  animation: statusPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+body.game-page--dier-match #roundInfo,
+body.game-page--dier-match #lastAnswerBox {
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.55);
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.8));
+  color: #e0e7ff;
+  padding: 14px 18px;
+  box-shadow: 0 16px 32px rgba(2, 6, 23, 0.55);
+}
+
+body.game-page--dier-match #lastAnswerBox {
+  border-color: rgba(14, 165, 233, 0.55);
+  background: linear-gradient(145deg, rgba(8, 47, 73, 0.95), rgba(55, 65, 81, 0.85));
+}
+
+body.game-page--dier-match .braille-monitor-label {
+  color: #c7d2fe;
+}
+
+body.game-page--dier-match .braille-monitor {
+  border-color: rgba(248, 250, 252, 0.25);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.5),
+    inset 0 0 25px rgba(99, 102, 241, 0.35);
+}
+
+body.game-page--dier-match .button-row {
+  gap: 14px;
+  justify-content: space-between;
+}
+
+body.game-page--dier-match .button-row button {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(236, 72, 153, 0.9));
+  color: #fdf4ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 12px 28px rgba(76, 29, 149, 0.45);
+}
+
+body.game-page--dier-match .button-row button:nth-child(even) {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.95), rgba(59, 130, 246, 0.9));
+}
+
+body.game-page--dier-match .button-row button:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 18px 30px rgba(14, 165, 233, 0.5);
+}
+
+body.game-page--dier-match .button-row button:active {
+  transform: translateY(1px);
+}
+
+body.game-page--dier-match #logContainer {
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  border-radius: 20px;
+  padding: 18px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  box-shadow: 0 18px 35px rgba(2, 6, 23, 0.6);
+}
+
+body.game-page--dier-match #logContainer.visible {
+  max-height: 60vh;
+  opacity: 1;
+  margin-top: 18px;
+}
+
+body.game-page--dier-match #logContainer h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #bfdbfe;
+  margin-top: 0;
+}
+
+body.game-page--dier-match #logContainer h2::before {
+  content: "#";
+  font-weight: 700;
+  color: #60a5fa;
+}
+
+body.game-page--dier-match #logContainer .log-box {
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(2, 6, 23, 0.9);
+  box-shadow: inset 0 0 25px rgba(14, 165, 233, 0.12);
+}
+
+body.game-page--dier-match #logContainer .log-entry {
+  border-bottom-color: rgba(59, 130, 246, 0.25);
+}
+
+/* -------------------------------------------------------
+   BrailleUI Demo page
+------------------------------------------------------- */
+body.demo-page--brailleui {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.25), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.25), transparent 50%),
+    linear-gradient(135deg, #fdf2f8, #eff6ff);
+  color: #0f172a;
+}
+
+body.demo-page--brailleui .demo-container {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 28px;
+  padding: 32px 36px 40px;
+  box-shadow:
+    0 25px 60px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+body.demo-page--brailleui .demo-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(236, 72, 153, 0.15), rgba(14, 165, 233, 0.12));
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+body.demo-page--brailleui .demo-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.demo-page--brailleui h1 {
+  font-size: 2rem;
+  color: #0f172a;
+  margin-bottom: 0.2em;
+}
+
+body.demo-page--brailleui .demo-subtitle {
+  color: #64748b;
+  font-size: 1.05rem;
+  margin-top: 0;
+}
+
+body.demo-page--brailleui .status-pill {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: #0f172a;
+  padding-right: 16px;
+  padding-left: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
+}
+
+body.demo-page--brailleui .status-pill .status-dot {
+  width: 10px;
+  height: 10px;
+}
+
+body.demo-page--brailleui .status-pill.connected {
+  background: rgba(187, 247, 208, 0.85);
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #166534;
+}
+
+body.demo-page--brailleui .demo-row {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+body.demo-page--brailleui .demo-row:last-of-type {
+  border-bottom: none;
+}
+
+body.demo-page--brailleui .demo-row label {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+body.demo-page--brailleui .demo-row input[type="text"] {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  padding: 10px 12px;
+  font-size: 1rem;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+body.demo-page--brailleui .demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+body.demo-page--brailleui .demo-actions button {
+  border-radius: 14px;
+  padding: 8px 16px;
+  border: none;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+  transition: transform 0.1s ease, box-shadow 0.12s ease;
+}
+
+body.demo-page--brailleui .demo-actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(79, 70, 229, 0.45);
+}
+
+body.demo-page--brailleui .demo-actions button.primary {
+  background: linear-gradient(135deg, #111827, #1f2937);
+  color: #e2e8f0;
+}
+
+body.demo-page--brailleui #cursorInfoBox {
+  background: rgba(248, 250, 252, 0.9);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+body.demo-page--brailleui #logBox {
+  background: #0b1120;
+  color: #dbeafe;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  box-shadow: inset 0 0 20px rgba(15, 23, 42, 0.8);
+}
+
+body.demo-page--brailleui .thumbkey-buttons button {
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  background: rgba(248, 250, 252, 0.9);
+  padding: 10px 18px;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
 }

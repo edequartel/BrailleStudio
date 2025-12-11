@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>PAGE TITLE – BrailleServer</title>
+
+  <link rel="stylesheet" href="../css/style.css" />
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+
+  <!-- Core frameworks -->
+  <script src="../js/logging.js"></script>
+  <script src="../js/ui.js"></script>
+  <script src="../js/braillebridge.js"></script>
+  <script src="../js/brailleui.js"></script>
+  <script src="../js/sounds.js"></script>
+</head>
+<body>
+  <main class="container">
+    <h1>PAGE TITLE</h1>
+
+    <section class="card">
+      <h2>Verbinding</h2>
+      <p>Status: <span id="connectionStatus">disconnected</span></p>
+    </section>
+
+    <section class="card">
+      <h2>Braille-monitor</h2>
+      <p id="brailleMonitor" class="mono-box">(leeg)</p>
+    </section>
+
+    <!-- page-specific sections here (buttons, instructions, etc.) -->
+
+    <section class="card">
+      <h2>Logging</h2>
+      <div id="logBox" class="log-box"></div>
+    </section>
+  </main>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", async () => {
+      // 1. Logging (same everywhere)
+      UI.initLogging({ logElementId: "logBox", level: "debug" });
+      Logging.info("Page", "Pagina geladen");
+
+      // 2. Sounds (if needed)
+      try {
+        await Sounds.init("../config/sounds.json");
+        Logging.info("Sounds", "Sounds.init OK");
+      } catch (e) {
+        Logging.error("Sounds", "Sounds.init fout: " + e);
+      }
+
+      // 3. BrailleBridge & BrailleUI (same everywhere)
+      BrailleBridge.setConfig({
+        baseUrl: "http://localhost:5000",
+        wsUrl: "ws://localhost:5000/ws",
+        displayCells: 40,
+        debug: true
+      });
+
+      BrailleUI.setOptions({ displayCells: 40, debug: true });
+      UI.attachBrailleMonitor("brailleMonitor");
+
+      BrailleBridge.on("connected", () => {
+        UI.setConnectionStatus("connectionStatus", "verbonden", true);
+        Logging.info("BrailleBridge", "Connected");
+      });
+
+      BrailleBridge.on("disconnected", info => {
+        UI.setConnectionStatus("connectionStatus", "verbinding verbroken", false);
+        Logging.warn("BrailleBridge", "Disconnected: " + (info.reason || ""));
+      });
+
+      BrailleBridge.on("error", err => {
+        Logging.error("BrailleBridge", "Error: " + JSON.stringify(err));
+      });
+
+      // 4. Page-specific event handlers (games, etc.) here
+
+      BrailleBridge.connect();
+    });
+  </script>
+</body>
+</html>
