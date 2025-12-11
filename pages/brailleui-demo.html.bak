@@ -7,8 +7,11 @@
   <!-- Shared styling from your repo -->
   <link rel="stylesheet" href="../css/style.css" />
 
-  <!-- Optional: Howler, only if you want sounds here -->
+  <!-- Optional: Howler, only if you want sounds hier -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+
+  <!-- Logging framework (NEW) -->
+  <script src="../js/logging.js"></script>
 
   <!-- Frameworks from BrailleServer -->
   <script src="../js/braillebridge.js"></script>
@@ -55,25 +58,6 @@
   </main>
 
   <script>
-    // ------------------------------------------------------------
-    // Simpele logging helper
-    // ------------------------------------------------------------
-    function pageLog(msg) {
-      const el = document.getElementById("logBox");
-      if (!el) return;
-      const time = new Date().toISOString().substring(11, 19);
-      el.textContent += `[${time}] ${msg}\n`;
-      el.scrollTop = el.scrollHeight;
-      console.log(msg);
-    }
-
-    // Optioneel: globale logger-hub
-    window.BrailleLog = {
-      log(source, message) {
-        pageLog(`[${source}] ${message}`);
-      }
-    };
-
     function setConnectionStatus(text, ok) {
       const el = document.getElementById("connectionStatus");
       if (!el) return;
@@ -90,12 +74,18 @@
     // INIT
     // ------------------------------------------------------------
     window.addEventListener("DOMContentLoaded", async () => {
+      // 0. Configure logging for this page
+      Logging.setLevel("debug"); // show everything
+      Logging.addSink(Logging.createDomSink("logBox"));
+
+      Logging.info("BrailleUI-Demo", "Pagina laden…");
+
       // 1. Sounds (optioneel)
       try {
         await Sounds.init("../config/sounds.json");
-        pageLog("Sounds.init OK");
+        Logging.info("Sounds", "Sounds.init OK");
       } catch (e) {
-        pageLog("Sounds.init fout: " + e);
+        Logging.error("Sounds", "Sounds.init fout: " + e);
       }
 
       // 2. BrailleBridge configureren
@@ -116,40 +106,64 @@
       // 4. Events van BrailleBridge
       BrailleBridge.on("connected", () => {
         setConnectionStatus("verbonden", true);
-        pageLog("BrailleBridge connected.");
+        Logging.info("BrailleBridge", "Connected");
       });
 
       BrailleBridge.on("disconnected", info => {
         setConnectionStatus("verbinding verbroken", false);
-        pageLog("BrailleBridge disconnected (" + (info.reason || "") + ")");
+        Logging.warn("BrailleBridge", "Disconnected: " + (info.reason || ""));
       });
 
       BrailleBridge.on("error", err => {
-        pageLog("BrailleBridge error: " + JSON.stringify(err));
+        Logging.error("BrailleBridge", "Error: " + JSON.stringify(err));
       });
 
       // Optional: ruwe cursorrouting loggen
       BrailleBridge.on("cursor", evt => {
-        pageLog("[RAW cursor] " + JSON.stringify(evt));
+        Logging.debug("BrailleBridge", "[RAW cursor] " + JSON.stringify(evt));
       });
 
-      // 5. Events van BrailleUI (rijkere info)
+      // 5. Events van BrailleUI (letter + woord onder de cursor)
+
+      // Letter onder de cursor
       BrailleUI.on("cursorChar", evt => {
-        pageLog("cursorChar line=" + evt.lineIndex +
-                " col=" + evt.column +
-                " char=" + (evt.char || " "));
+        const letter = evt.char || "␣"; // spatie symbool
+        const line   = evt.lineIndex;
+        const col    = evt.column;
+
+        setLastCursor(
+          "Regel " + line +
+          ", cel " + col +
+          " → letter: \"" + letter + "\""
+        );
+
+        Logging.debug(
+          "BrailleUI",
+          "cursorChar line=" + line +
+          " col=" + col +
+          " letter=\"" + letter + "\""
+        );
       });
 
+      // Woord onder de cursor (als er een woord is)
       BrailleUI.on("cursorWord", evt => {
-        const word = evt.word || "(geen woord)";
+        const word   = evt.word || "(geen woord)";
+        const line   = evt.lineIndex;
+        const col    = evt.column;
+        const letter = BrailleUI.getCharAt(col) || "␣";
+
         setLastCursor(
-          "Regel " + evt.lineIndex +
-          ", cel " + evt.column +
-          " → woord: " + word
+          "Regel " + line +
+          ", cel " + col +
+          " → letter: \"" + letter + "\", woord: \"" + word + "\""
         );
-        pageLog("cursorWord line=" + evt.lineIndex +
-                " col=" + evt.column +
-                " word=" + word);
+
+        Logging.info(
+          "BrailleUI",
+          "cursorWord line=" + line +
+          " col=" + col +
+          " letter=\"" + letter + "\" woord=\"" + word + "\""
+        );
 
         // hier kun je eventueel geluid koppelen:
         // Sounds.playWord("nl", word);
@@ -162,9 +176,9 @@
       document.getElementById("btnHello").onclick = async () => {
         try {
           await BrailleUI.setText("Hallo braille!");
-          pageLog("BrailleUI.setText('Hallo braille!') OK");
+          Logging.info("BrailleUI", "setText('Hallo braille!') OK");
         } catch (e) {
-          pageLog("setText fout: " + e);
+          Logging.error("BrailleUI", "setText fout: " + e);
         }
       };
 
@@ -172,27 +186,27 @@
         const text = document.getElementById("customText").value || "(leeg)";
         try {
           await BrailleUI.setText(text);
-          pageLog("BrailleUI.setText(custom) OK");
+          Logging.info("BrailleUI", "setText(custom) OK: \"" + text + "\"");
         } catch (e) {
-          pageLog("setText(custom) fout: " + e);
+          Logging.error("BrailleUI", "setText(custom) fout: " + e);
         }
       };
 
       document.getElementById("btnRepeat").onclick = async () => {
         try {
           await BrailleUI.repeatLine();
-          pageLog("BrailleUI.repeatLine OK");
+          Logging.info("BrailleUI", "repeatLine OK");
         } catch (e) {
-          pageLog("repeatLine fout: " + e);
+          Logging.error("BrailleUI", "repeatLine fout: " + e);
         }
       };
 
       document.getElementById("btnClear").onclick = async () => {
         try {
           await BrailleUI.clear();
-          pageLog("BrailleUI.clear OK");
+          Logging.info("BrailleUI", "clear OK");
         } catch (e) {
-          pageLog("clear fout: " + e);
+          Logging.error("BrailleUI", "clear fout: " + e);
         }
       };
     });

@@ -227,3 +227,91 @@ button.active {
   outline: 2px solid #22c55e;
   outline-offset: 2px;
 }
+
+/* Log container */
+.log-box {
+  background: #050816;
+  color: #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #111827;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Eén logregel */
+.log-entry {
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+/* Tijd */
+.log-time {
+  color: #9ca3af;
+  min-width: 3.5rem;
+}
+
+/* Level */
+.log-level {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Bron */
+.log-source {
+  font-weight: 500;
+  color: #e5e7eb;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgba(31, 41, 55, 0.7);
+}
+
+/* Bericht */
+.log-message {
+  flex: 1;
+  color: #f9fafb;
+}
+
+/* Kleuren per level */
+.log-level-debug .log-level {
+  color: #9ca3af;
+}
+
+.log-level-info .log-level {
+  color: #60a5fa;
+}
+
+.log-level-warn .log-level {
+  color: #fbbf24;
+}
+
+.log-level-error .log-level {
+  color: #f87171;
+}
+
+/* Optioneel: verschillende bronnen een kleurtje geven */
+.log-source-braillebridge .log-source {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+}
+
+.log-source-brailleui .log-source {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.6);
+}
+
+.log-source-sounds .log-source {
+  background: rgba(234, 179, 8, 0.2);
+  border: 1px solid rgba(234, 179, 8, 0.6);
+}

@@ -222,3 +222,8 @@ button:disabled {
     height: 210px;
   }
 }
+
+button.active {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
