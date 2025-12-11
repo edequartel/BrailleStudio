@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>BrailleUI Demo – BrailleServer</title>
-
     <link rel="stylesheet" href="../css/style.css" />
-
- 
   </head>
 
   <body class="demo-page demo-page--brailleui">
@@ -78,7 +75,9 @@
 
       <!-- Logging -->
       <h2>Logging</h2>
-      <div id="logBox"></div>
+      <div id="logBox" class="log-box" aria-live="polite">
+        <ul id="logList" class="log-list"></ul>
+      </div>
     </div>
 
     <!-- Scripts -->
@@ -98,6 +97,7 @@
         const connectionStatusEl = document.getElementById("connectionStatus");
         const btnConnect = document.getElementById("btnConnect");
         const logBox = document.getElementById("logBox");
+        const logList = document.getElementById("logList");
         const cursorInfoBox = document.getElementById("cursorInfoBox");
         const customTextInput = document.getElementById("customTextInput");
 
@@ -114,11 +114,22 @@
         }
 
         function logMessage(msg) {
-          if (!logBox) return;
+          if (!logBox || !logList) return;
           const now = new Date();
           const ts = now.toISOString().split("T")[1].substring(0, 8);
-          logBox.textContent += "[" + ts + "] " + msg + "\n";
-          logBox.scrollTop = logBox.scrollHeight;
+          const li = document.createElement("li");
+          li.textContent = "[" + ts + "] " + msg;
+          if (logList.firstChild) {
+            logList.insertBefore(li, logList.firstChild);
+          } else {
+            logList.appendChild(li);
+          }
+
+          while (logList.childElementCount > 200) {
+            logList.removeChild(logList.lastElementChild);
+          }
+
+          logBox.scrollTop = 0;
         }
 
         // Simuleer een duimtoets door direct het 'thumbkey' event van

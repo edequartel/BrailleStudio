@@ -55,6 +55,15 @@
   <h2>Laatste antwoord</h2>
   <div class="status" id="lastAnswerBox">Nog geen antwoord.</div>
 
+  <h2>Thumbkey-simulator</h2>
+  <p class="small">
+    Test de duimtoetsen zonder je leesregel: klik op een knop om hetzelfde effect als de hardware te simuleren.
+  </p>
+  <div class="thumbkey-buttons" aria-label="Simuleer duimtoetsen">
+    <button type="button" data-thumb="LeftThumb">LeftThumb (NIET hetzelfde)</button>
+    <button type="button" data-thumb="RightThumb">RightThumb (WEL hetzelfde)</button>
+  </div>
+
   <div id="logContainer" hidden>
     <h2>Log</h2>
     <div id="logBox" class="log-box" aria-live="polite"></div>
@@ -206,6 +215,11 @@
     }
   }
 
+  function simulateThumbKey(name) {
+    pageLog("Simulated thumbkey via UI: " + name, "info", "UI");
+    handleThumbKey(name);
+  }
+
   window.addEventListener("DOMContentLoaded", async () => {
     if (window.Logging) {
       Logging.setLevel("debug");
@@ -271,6 +285,14 @@
       }
     };
     document.getElementById("btnToggleLog").onclick = toggleLog;
+    document.querySelectorAll(".thumbkey-buttons button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const thumb = btn.getAttribute("data-thumb");
+        if (thumb) {
+          simulateThumbKey(thumb);
+        }
+      });
+    });
 
     // optioneel eerste ronde pas na enige actie;
     // maar als autoplay ok is, kun je deze direct laten starten:
