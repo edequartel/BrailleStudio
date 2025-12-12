@@ -1,0 +1,10 @@
+[
+  {
+    "file": "style-demo.html",
+    "title": "Style Showcase",
+    "description": "Visuele testpagina voor css/style.css (statusboxen, buttons, logs).",
+    "tags": ["demo", "ui"],
+    "badge": "Demo",
+    "order": 10
+  }
+]
