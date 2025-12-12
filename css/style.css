@@ -837,3 +837,54 @@ body.demo-page--brailleui .thumbkey-buttons button {
   border: 1px solid #1e293b;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.9);
 }
+
+.braille-monitor-component {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Container that holds individual cells */
+.braille-monitor-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Individual clickable cells */
+.monitor-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.85);
+  color: #e5e7eb;
+  border: 1px solid rgba(30, 64, 175, 0.8);
+  font-family: inherit; /* you already use monospace via .mono-box */
+}
+
+.monitor-cell:hover {
+  background: rgba(30, 64, 175, 0.85);
+}
+
+.monitor-cell:active {
+  background: rgba(22, 101, 52, 0.9);
+}
+
+/* Thumbkeys already existed */
+.thumb-row {
+  margin-top: 10px;
+}
+
+.thumb-key {
+  min-width: 90px;
+}
+
+.thumb-key.active {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+  filter: brightness(1.1);
+}
