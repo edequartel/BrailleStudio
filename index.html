@@ -2,85 +2,40 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>BrailleServer – Pages</title>
+  <title>BrailleServer – Pagina-overzicht</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="container">
     <h1>BrailleServer</h1>
-    <p>Overzicht van alle HTML-pagina’s in <code>/pages</code>.</p>
 
-    <ul id="pageList"></ul>
+    <p>
+      Overzicht van beschikbare HTML-pagina’s in <code>/pages</code>.
+    </p>
 
-    <p id="status" class="small"></p>
+    <ul>
+      <li><a href="pages/braille-sound-game.html">Braille Sound Game</a></li>
+      <li><a href="pages/braillebridge-demo.html">BrailleBridge Demo</a></li>
+      <li><a href="pages/brailleui-demo.html">BrailleUI Demo</a></li>
+      <li><a href="pages/brailleui-demo-monitor.html">BrailleUI Demo – Monitor</a></li>
+      <li><a href="pages/brailleui-demo-monitor-cursor.html">BrailleUI Demo – Monitor + Cursor</a></li>
+
+      <li><a href="pages/game-dier-match.html">Game – Dier Match</a></li>
+      <li><a href="pages/game-letter-yes-no.html">Game – Letter Yes / No</a></li>
+      <li><a href="pages/game-woorden-kiezen.html">Game – Woorden Kiezen</a></li>
+
+      <li><a href="pages/lied-bal.html">Lied – Bal</a></li>
+      <li><a href="pages/play_ball.html">Play Ball</a></li>
+
+      <li><a href="pages/showcase.html">Showcase</a></li>
+      <li><a href="pages/skeleton.html">Skeleton</a></li>
+      <li><a href="pages/sounds-demo.html">Sounds Demo</a></li>
+      <li><a href="pages/words.html">Words</a></li>
+    </ul>
+
+    <p class="small">
+      Dit overzicht is statisch. Voeg bij nieuwe pagina’s handmatig een regel toe.
+    </p>
   </div>
-
-  <script>
-    const owner = "edequartel";
-    const repo = "BrailleServer";
-    const pagesDir = "pages";
-
-    const listEl = document.getElementById("pageList");
-    const statusEl = document.getElementById("status");
-
-    function addItem(file) {
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.href = `${pagesDir}/${file}`;
-      a.textContent = file;
-      li.appendChild(a);
-      listEl.appendChild(li);
-    }
-
-    async function loadFromJson() {
-      try {
-        const res = await fetch(`${pagesDir}/pages.json`, { cache: "no-store" });
-        if (!res.ok) return false;
-
-        const data = await res.json();
-        if (!Array.isArray(data)) return false;
-
-        data.forEach(item => {
-          if (item.file && item.file.endsWith(".html")) {
-            addItem(item.file);
-          }
-        });
-
-        statusEl.textContent = "Bron: pages/pages.json";
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    async function loadFromGitHub() {
-      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${pagesDir}`;
-      const res = await fetch(apiUrl);
-      if (!res.ok) throw new Error("GitHub API error");
-
-      const data = await res.json();
-      data
-        .filter(f => f.type === "file" && f.name.endsWith(".html"))
-        .forEach(f => addItem(f.name));
-
-      statusEl.textContent = "Bron: GitHub Contents API";
-    }
-
-    (async function init() {
-      const fromJson = await loadFromJson();
-      if (fromJson) return;
-
-      if (location.protocol.startsWith("http")) {
-        try {
-          await loadFromGitHub();
-        } catch {
-          statusEl.textContent = "Kon pagina’s niet laden.";
-        }
-      } else {
-        statusEl.textContent =
-          "Lokale file:// modus: voeg pages/pages.json toe om pagina’s te tonen.";
-      }
-    })();
-  </script>
 </body>
 </html>
