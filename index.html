@@ -2,39 +2,195 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>BrailleServer – Pagina-overzicht</title>
+  <title>BrailleServer – Overzicht</title>
   <link rel="stylesheet" href="css/style.css" />
+
+  <style>
+    /* Extra layout bovenop style.css (geen JS nodig) */
+
+    .section {
+      margin-top: 28px;
+    }
+
+    .section h2 {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 6px;
+    }
+
+    .card-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 1.05rem;
+    }
+
+    .card p {
+      margin: 0 0 10px 0;
+      color: #475569;
+      font-size: 0.95rem;
+    }
+
+    .card a {
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-bottom: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #1e293b;
+    }
+  </style>
 </head>
+
 <body>
   <div class="container">
     <h1>BrailleServer</h1>
 
     <p>
-      Overzicht van beschikbare HTML-pagina’s in <code>/pages</code>.
+      Startpagina voor demo’s, spellen en testpagina’s die samenwerken met
+      <strong>BrailleBridge</strong> en de leesregel.
     </p>
 
-    <ul>
-      <li><a href="pages/braille-sound-game.html">Braille Sound Game</a></li>
-      <li><a href="pages/braillebridge-demo.html">BrailleBridge Demo</a></li>
-      <li><a href="pages/brailleui-demo.html">BrailleUI Demo</a></li>
-      <li><a href="pages/brailleui-demo-monitor.html">BrailleUI Demo – Monitor</a></li>
-      <li><a href="pages/brailleui-demo-monitor-cursor.html">BrailleUI Demo – Monitor + Cursor</a></li>
+    <!-- DEMO'S -->
+    <div class="section">
+      <h2>Demo’s</h2>
 
-      <li><a href="pages/game-dier-match.html">Game – Dier Match</a></li>
-      <li><a href="pages/game-letter-yes-no.html">Game – Letter Yes / No</a></li>
-      <li><a href="pages/game-woorden-kiezen.html">Game – Woorden Kiezen</a></li>
+      <div class="card-list">
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>BrailleBridge Demo</h3>
+          <p>Basisdemo van de HTTP- en WebSocket-koppeling met BrailleBridge.</p>
+          <a href="pages/braillebridge-demo.html">Open demo</a>
+        </div>
 
-      <li><a href="pages/lied-bal.html">Lied – Bal</a></li>
-      <li><a href="pages/play_ball.html">Play Ball</a></li>
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>BrailleUI Demo</h3>
+          <p>Interactieve BrailleUI-test met invoer via leesregel.</p>
+          <a href="pages/brailleui-demo.html">Open demo</a>
+        </div>
 
-      <li><a href="pages/showcase.html">Showcase</a></li>
-      <li><a href="pages/skeleton.html">Skeleton</a></li>
-      <li><a href="pages/sounds-demo.html">Sounds Demo</a></li>
-      <li><a href="pages/words.html">Words</a></li>
-    </ul>
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>BrailleUI Monitor</h3>
+          <p>Visuele weergave van braillecellen en cursor routing.</p>
+          <a href="pages/brailleui-demo-monitor.html">Open monitor</a>
+        </div>
 
-    <p class="small">
-      Dit overzicht is statisch. Voeg bij nieuwe pagina’s handmatig een regel toe.
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>Monitor + Cursor</h3>
+          <p>Uitgebreide monitor met cursor-routing feedback.</p>
+          <a href="pages/brailleui-demo-monitor-cursor.html">Open monitor</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>Sounds Demo</h3>
+          <p>Testpagina voor audio-afspelen via Howler en Braille-interactie.</p>
+          <a href="pages/sounds-demo.html">Open sounds demo</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Demo</span>
+          <h3>Showcase</h3>
+          <p>Verzamelpagina voor visuele en functionele tests.</p>
+          <a href="pages/showcase.html">Open showcase</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAMES -->
+    <div class="section">
+      <h2>Spellen</h2>
+
+      <div class="card-list">
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Braille Sound Game</h3>
+          <p>Luister naar een geluid en reageer via de leesregel.</p>
+          <a href="pages/braille-sound-game.html">Start spel</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Dier Match</h3>
+          <p>Koppel dierengeluiden aan het juiste braillewoord.</p>
+          <a href="pages/game-dier-match.html">Start spel</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Letter Yes / No</h3>
+          <p>Kies met duimtoetsen of een letter klopt.</p>
+          <a href="pages/game-letter-yes-no.html">Start spel</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Woorden kiezen</h3>
+          <p>Selecteer het juiste woord via braille-invoer.</p>
+          <a href="pages/game-woorden-kiezen.html">Start spel</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Lied – Bal</h3>
+          <p>Liedje en woordherkenning rond “bal”.</p>
+          <a href="pages/lied-bal.html">Open lied</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Game</span>
+          <h3>Play Ball</h3>
+          <p>Eenvoudig spel rondom het woord “bal”.</p>
+          <a href="pages/play_ball.html">Start spel</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- OVERIG -->
+    <div class="section">
+      <h2>Overig</h2>
+
+      <div class="card-list">
+        <div class="card">
+          <span class="badge">Overig</span>
+          <h3>Words</h3>
+          <p>Testpagina voor woorden en braille-uitvoer.</p>
+          <a href="pages/words.html">Open pagina</a>
+        </div>
+
+        <div class="card">
+          <span class="badge">Overig</span>
+          <h3>Skeleton</h3>
+          <p>Basis HTML-sjabloon voor nieuwe pagina’s.</p>
+          <a href="pages/skeleton.html">Open skeleton</a>
+        </div>
+      </div>
+    </div>
+
+    <p class="small" style="margin-top: 24px;">
+      Deze index is volledig statisch en bewust JavaScript-vrij.
     </p>
   </div>
 </body>
