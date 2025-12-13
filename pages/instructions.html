@@ -5,60 +5,28 @@
   <title>Audio-only instructies</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Howler.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
 
   <style>
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      padding: 1rem;
-    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 1rem; }
+    h1 { font-size: 1.2rem; }
 
-    h1 {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
+    .box { border: 1px solid #ccc; border-radius: 8px; padding: .75rem; margin-bottom: 1rem; }
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; }
 
-    .box {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .row {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    button {
-      font-size: 1rem;
-      padding: 0.6rem 1rem;
-      min-width: 9rem;
-    }
-
-    .title {
-      font-weight: 700;
-    }
-
-    .meta {
-      font-size: 0.9rem;
-      color: #444;
-    }
+    button { font-size: 1rem; padding: .6rem 1rem; min-width: 9rem; }
 
     .log {
       font-family: ui-monospace, Menlo, Consolas, monospace;
       background: #111;
       color: #0f0;
-      padding: 0.5rem;
-      height: 200px;
+      padding: .5rem;
+      height: 220px;
       overflow-y: auto;
       white-space: pre-wrap;
       border-radius: 6px;
-      font-size: 0.85rem;
-      display: none; /* hidden by default */
+      font-size: .85rem;
+      display: none;
     }
   </style>
 </head>
@@ -76,22 +44,18 @@
 </div>
 
 <div class="box">
-  <div class="title" id="instrTitle">--</div>
-  <div class="meta" id="instrIndex">--</div>
+  <strong id="instrTitle">--</strong>
+  <div id="instrIndex"></div>
 </div>
 
 <div class="box">
-  <div class="title">Log</div>
+  <strong>Log</strong>
   <div id="log" class="log"></div>
 </div>
 
-<!-- JS engine (one level up) -->
 <script src="../js/instructionplayer.js"></script>
 
 <script>
-  /* ==========================
-     Logging toggle (DEFAULT OFF)
-  ========================== */
   let loggingEnabled = false;
 
   const logEl = document.getElementById("log");
@@ -99,7 +63,6 @@
 
   function log(message, data) {
     if (!loggingEnabled) return;
-
     const time = new Date().toLocaleTimeString();
     const line = document.createElement("div");
     line.textContent =
@@ -113,15 +76,9 @@
     loggingEnabled = !loggingEnabled;
     logToggleBtn.textContent = loggingEnabled ? "Logging uit" : "Logging aan";
     logEl.style.display = loggingEnabled ? "block" : "none";
-
-    if (loggingEnabled) {
-      log("LOGGING ENABLED");
-    }
+    if (loggingEnabled) log("LOGGING ENABLED");
   };
 
-  /* ==========================
-     Load JSON
-  ========================== */
   async function loadConfig() {
     const url = "../config/instructions.json";
     log("FETCH JSON", url);
@@ -129,67 +86,50 @@
     const res = await fetch(url);
     log("FETCH STATUS", res.status);
 
-    if (!res.ok) {
-      throw new Error("Cannot load instructions.json");
-    }
-
-    const json = await res.json();
-    log("JSON LOADED", { instructions: json.instructions?.length });
-    return json;
+    if (!res.ok) throw new Error("Cannot load instructions.json");
+    return res.json();
   }
 
-  /* ==========================
-     Main
-  ========================== */
   (async () => {
     try {
       const config = await loadConfig();
-      const player = new InstructionPlayer(config);
 
-      const instructions = config.instructions || [];
+      const player = new InstructionPlayer(config, {
+        log: (m, d) => log(m, d)
+      });
+
+      const list = config.instructions || [];
       let index = 0;
 
       const titleEl = document.getElementById("instrTitle");
-      const indexEl = document.getElementById("instrIndex");
+      const idxEl = document.getElementById("instrIndex");
 
       function render() {
-        const instr = instructions[index];
+        const instr = list[index];
         titleEl.textContent = instr.title || instr.id;
-        indexEl.textContent = `Instructie ${index + 1} van ${instructions.length}`;
+        idxEl.textContent = `Instructie ${index + 1} van ${list.length}`;
         log("RENDER", { index, id: instr.id });
       }
 
       async function playCurrent() {
-        const instr = instructions[index];
+        const instr = list[index];
         log("PLAY", { id: instr.id });
-
-        try {
-          await player.runInstructionById(instr.id, {});
-          log("DONE", { id: instr.id });
-        } catch (e) {
-          log("PLAY ERROR", { message: e.message });
-        }
+        await player.runInstructionById(instr.id, {});
+        log("DONE", { id: instr.id });
       }
 
       document.getElementById("prevBtn").onclick = () => {
-        if (index > 0) {
-          index--;
-          render();
-        }
+        if (index > 0) { index--; render(); }
       };
 
       document.getElementById("nextBtn").onclick = () => {
-        if (index < instructions.length - 1) {
-          index++;
-          render();
-        }
+        if (index < list.length - 1) { index++; render(); }
       };
 
       document.getElementById("playBtn").onclick = playCurrent;
 
       render();
     } catch (e) {
-      // even fatal errors only log when enabled
       log("FATAL ERROR", { message: e.message });
     }
   })();
