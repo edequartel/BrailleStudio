@@ -1,0 +1,172 @@
+{
+  "version": "1.1",
+  "audioBase": "sounds/nl/instructions/",
+  "snippets": {
+    "kijk_naar_leesregel": "kijk-naar-de-leesregel.mp3",
+    "komt_er": "komt-er.mp3",
+    "de_letter": "de-letter.mp3",
+    "vraagteken": "vraagteken.mp3",
+    "is_het_een": "is-het-een.mp3",
+    "is_het_geen": "is-het-geen.mp3",
+    "druk_dan": "druk-dan.mp3",
+    "rechts": "rechts.mp3",
+    "links": "links.mp3",
+    "volgende": "volgende.mp3"
+  },
+
+  "varAudioMap": {
+    "<a>": "letter-a.mp3",
+    "<b>": "letter-b.mp3",
+    "<c>": "letter-c.mp3",
+    "<d>": "letter-d.mp3",
+    "<e>": "letter-e.mp3",
+    "<f>": "letter-f.mp3",
+    "<g>": "letter-g.mp3",
+    "<h>": "letter-h.mp3",
+    "<i>": "letter-i.mp3",
+    "<j>": "letter-j.mp3",
+    "<k>": "letter-k.mp3",
+    "<l>": "letter-l.mp3",
+    "<m>": "letter-m.mp3",
+    "<n>": "letter-n.mp3",
+    "<o>": "letter-o.mp3",
+    "<p>": "letter-p.mp3",
+    "<q>": "letter-q.mp3",
+    "<r>": "letter-r.mp3",
+    "<s>": "letter-s.mp3",
+    "<t>": "letter-t.mp3",
+    "<u>": "letter-u.mp3",
+    "<v>": "letter-v.mp3",
+    "<w>": "letter-w.mp3",
+    "<x>": "letter-x.mp3",
+    "<y>": "letter-y.mp3",
+    "<z>": "letter-z.mp3"
+  },
+
+  "instructions": [
+    {
+      "id": "instr_detect_a",
+      "title": "Detecteer letter a",
+      "vars": { "TARGET": "<a>" },
+      "instructionText": "Kijk naar de leesregel. Is er een a? Druk rechts. Anders links.",
+      "script": [
+        { "type": "audio", "name": "kijk_naar_leesregel" },
+        { "type": "set", "var": "present", "expr": "includes(display, vars.TARGET)" },
+        {
+          "type": "choice",
+          "expr": "vars.present === true",
+          "then": [
+            { "type": "audio", "name": "is_het_een" },
+            { "type": "audioVar", "var": "TARGET" },
+            { "type": "audio", "name": "rechts" }
+          ],
+          "else": [
+            { "type": "audio", "name": "is_het_geen" },
+            { "type": "audioVar", "var": "TARGET" },
+            { "type": "audio", "name": "links" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instr_detect_b",
+      "title": "Detecteer letter b",
+      "vars": { "TARGET": "<b>" },
+      "instructionText": "Kijk naar de leesregel. Zie je een b? Rechts. Anders links.",
+      "script": [
+        { "type": "audio", "name": "kijk_naar_leesregel" },
+        { "type": "set", "var": "present", "expr": "includes(display, vars.TARGET)" },
+        {
+          "type": "choice",
+          "expr": "vars.present === true",
+          "then": [
+            { "type": "audioVar", "var": "TARGET" },
+            { "type": "audio", "name": "rechts" }
+          ],
+          "else": [
+            { "type": "audio", "name": "links" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "instr_detect_c",
+      "title": "Detecteer letter c",
+      "vars": { "TARGET": "<c>" },
+      "instructionText": "Controleer of de letter c voorkomt.",
+      "script": [
+        { "type": "audio", "name": "komt_er" },
+        { "type": "audioVar", "var": "TARGET" },
+        { "type": "audio", "name": "vraagteken" }
+      ]
+    },
+    {
+      "id": "instr_detect_d",
+      "title": "Detecteer letter d",
+      "vars": { "TARGET": "<d>" },
+      "instructionText": "Let op de leesregel. Is het een d?",
+      "script": [
+        { "type": "audio", "name": "de_letter" },
+        { "type": "audioVar", "var": "TARGET" }
+      ]
+    },
+    {
+      "id": "instr_detect_e",
+      "title": "Detecteer letter e",
+      "vars": { "TARGET": "<e>" },
+      "instructionText": "Luister en controleer of e voorkomt.",
+      "script": [
+        { "type": "audioVar", "var": "TARGET" },
+        { "type": "audio", "name": "vraagteken" }
+      ]
+    },
+    {
+      "id": "instr_detect_f",
+      "title": "Detecteer letter f",
+      "vars": { "TARGET": "<f>" },
+      "instructionText": "Komt de letter f voor?",
+      "script": [
+        { "type": "audio", "name": "komt_er" },
+        { "type": "audioVar", "var": "TARGET" }
+      ]
+    },
+    {
+      "id": "instr_detect_g",
+      "title": "Detecteer letter g",
+      "vars": { "TARGET": "<g>" },
+      "instructionText": "Zoek naar de letter g.",
+      "script": [
+        { "type": "audioVar", "var": "TARGET" }
+      ]
+    },
+    {
+      "id": "instr_detect_h",
+      "title": "Detecteer letter h",
+      "vars": { "TARGET": "<h>" },
+      "instructionText": "Let op: staat h op de leesregel?",
+      "script": [
+        { "type": "audioVar", "var": "TARGET" },
+        { "type": "audio", "name": "vraagteken" }
+      ]
+    },
+    {
+      "id": "instr_detect_i",
+      "title": "Detecteer letter i",
+      "vars": { "TARGET": "<i>" },
+      "instructionText": "Controleer de letter i.",
+      "script": [
+        { "type": "audioVar", "var": "TARGET" }
+      ]
+    },
+    {
+      "id": "instr_detect_j",
+      "title": "Detecteer letter j",
+      "vars": { "TARGET": "<j>" },
+      "instructionText": "Is de letter j aanwezig?",
+      "script": [
+        { "type": "audioVar", "var": "TARGET" },
+        { "type": "audio", "name": "volgende" }
+      ]
+    }
+  ]
+}
