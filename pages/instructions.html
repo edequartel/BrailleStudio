@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Audio Instructions – Next/Prev</title>
+  <title>Audio-only instructies</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Howler.js -->
@@ -13,30 +13,53 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       padding: 1rem;
     }
-    h1 { font-size: 1.2rem; margin: 0 0 1rem; }
+
+    h1 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
 
     .box {
       border: 1px solid #ccc;
       border-radius: 8px;
-      padding: .75rem;
+      padding: 0.75rem;
       margin-bottom: 1rem;
     }
 
     .row {
       display: flex;
-      gap: .5rem;
+      gap: 0.5rem;
       flex-wrap: wrap;
       align-items: center;
     }
 
     button {
       font-size: 1rem;
-      padding: .6rem 1rem;
+      padding: 0.6rem 1rem;
       min-width: 9rem;
     }
 
-    .title { font-weight: 800; margin-top: .25rem; }
-    .meta { font-size: .9rem; color: #444; margin-top: .25rem; }
+    .title {
+      font-weight: 700;
+    }
+
+    .meta {
+      font-size: 0.9rem;
+      color: #444;
+    }
+
+    .log {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      background: #111;
+      color: #0f0;
+      padding: 0.5rem;
+      height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: none; /* hidden by default */
+    }
   </style>
 </head>
 <body>
@@ -48,89 +71,127 @@
     <button id="prevBtn">Vorige</button>
     <button id="playBtn">Speel audio</button>
     <button id="nextBtn">Volgende</button>
+    <button id="logToggleBtn">Logging aan</button>
   </div>
+</div>
 
+<div class="box">
   <div class="title" id="instrTitle">--</div>
   <div class="meta" id="instrIndex">--</div>
 </div>
 
 <div class="box">
-  <div class="title">Instructietekst</div>
-  <div id="instructionText">--</div>
+  <div class="title">Log</div>
+  <div id="log" class="log"></div>
 </div>
 
-<!-- Engine -->
-<script src="./js/instructionplayer.js"></script>
+<!-- JS engine (one level up) -->
+<script src="../js/instructionplayer.js"></script>
 
 <script>
-  async function loadConfig() {
-    const res = await fetch("./config/instructions.json");
-    if (!res.ok) throw new Error("Kan ./config/instructions.json niet laden");
-    return res.json();
+  /* ==========================
+     Logging toggle (DEFAULT OFF)
+  ========================== */
+  let loggingEnabled = false;
+
+  const logEl = document.getElementById("log");
+  const logToggleBtn = document.getElementById("logToggleBtn");
+
+  function log(message, data) {
+    if (!loggingEnabled) return;
+
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement("div");
+    line.textContent =
+      `[${time}] ${message}` + (data ? " " + JSON.stringify(data) : "");
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+    console.log(message, data || "");
   }
 
+  logToggleBtn.onclick = () => {
+    loggingEnabled = !loggingEnabled;
+    logToggleBtn.textContent = loggingEnabled ? "Logging uit" : "Logging aan";
+    logEl.style.display = loggingEnabled ? "block" : "none";
+
+    if (loggingEnabled) {
+      log("LOGGING ENABLED");
+    }
+  };
+
+  /* ==========================
+     Load JSON
+  ========================== */
+  async function loadConfig() {
+    const url = "../config/instructions.json";
+    log("FETCH JSON", url);
+
+    const res = await fetch(url);
+    log("FETCH STATUS", res.status);
+
+    if (!res.ok) {
+      throw new Error("Cannot load instructions.json");
+    }
+
+    const json = await res.json();
+    log("JSON LOADED", { instructions: json.instructions?.length });
+    return json;
+  }
+
+  /* ==========================
+     Main
+  ========================== */
   (async () => {
-    const config = await loadConfig();
-    const player = new InstructionPlayer(config); // no log
+    try {
+      const config = await loadConfig();
+      const player = new InstructionPlayer(config);
 
-    const list = config.instructions || [];
-    if (list.length === 0) {
-      document.getElementById("instrTitle").textContent = "Geen instructies gevonden";
-      return;
-    }
+      const instructions = config.instructions || [];
+      let index = 0;
 
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const playBtn = document.getElementById("playBtn");
+      const titleEl = document.getElementById("instrTitle");
+      const indexEl = document.getElementById("instrIndex");
 
-    const titleEl = document.getElementById("instrTitle");
-    const idxEl = document.getElementById("instrIndex");
-    const textEl = document.getElementById("instructionText");
-
-    let currentIndex = 0;
-
-    function render() {
-      const instr = list[currentIndex];
-      titleEl.textContent = instr.title || instr.id;
-      idxEl.textContent = `Instructie ${currentIndex + 1} van ${list.length}`;
-      textEl.textContent = instr.instructionText || "";
-
-      prevBtn.disabled = currentIndex === 0;
-      nextBtn.disabled = currentIndex === list.length - 1;
-    }
-
-    async function playCurrent() {
-      const instr = list[currentIndex];
-
-      // Audio-only: no display context needed.
-      // If your scripts use `display` in expressions, you can still pass it via context later.
-      await player.runInstructionById(instr.id, {});
-    }
-
-    prevBtn.addEventListener("click", () => {
-      if (currentIndex > 0) {
-        currentIndex--;
-        render();
+      function render() {
+        const instr = instructions[index];
+        titleEl.textContent = instr.title || instr.id;
+        indexEl.textContent = `Instructie ${index + 1} van ${instructions.length}`;
+        log("RENDER", { index, id: instr.id });
       }
-    });
 
-    nextBtn.addEventListener("click", () => {
-      if (currentIndex < list.length - 1) {
-        currentIndex++;
-        render();
+      async function playCurrent() {
+        const instr = instructions[index];
+        log("PLAY", { id: instr.id });
+
+        try {
+          await player.runInstructionById(instr.id, {});
+          log("DONE", { id: instr.id });
+        } catch (e) {
+          log("PLAY ERROR", { message: e.message });
+        }
       }
-    });
 
-    playBtn.addEventListener("click", playCurrent);
+      document.getElementById("prevBtn").onclick = () => {
+        if (index > 0) {
+          index--;
+          render();
+        }
+      };
 
-    // Optional keyboard (desktop)
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowLeft") prevBtn.click();
-      if (e.key === "ArrowRight") nextBtn.click();
-      if (e.key === "Enter") playBtn.click();
-    });
+      document.getElementById("nextBtn").onclick = () => {
+        if (index < instructions.length - 1) {
+          index++;
+          render();
+        }
+      };
 
-    render();
+      document.getElementById("playBtn").onclick = playCurrent;
+
+      render();
+    } catch (e) {
+      // even fatal errors only log when enabled
+      log("FATAL ERROR", { message: e.message });
+    }
   })();
 </script>
 
