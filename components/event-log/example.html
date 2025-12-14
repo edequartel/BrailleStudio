@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Event log example</title>
+
+  <!-- Event log component -->
+  <link rel="stylesheet" href="../components/event-log/event-log.css">
+  <script src="../components/event-log/event-log.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 1rem;
+      background: #f5f7fb;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Event log – HTML example</h1>
+
+  <div class="layout">
+    <!-- Other UI / braille monitor would be here -->
+
+    <!-- Event log container -->
+    <div id="log"></div>
+  </div>
+
+  <script>
+    // Create the logger
+    const log = new EventLog(document.getElementById("log"));
+
+    // Example log messages
+    log.log("Page loaded", "system");
+
+    setTimeout(() => {
+      log.log("Left thumb pressed", "key");
+    }, 500);
+
+    setTimeout(() => {
+      log.log("Routing button 8", "routing");
+    }, 1000);
+
+    setTimeout(() => {
+      log.log("Playing audio: letter-a.mp3", "audio");
+    }, 1500);
+  </script>
+
+</body>
+</html>
