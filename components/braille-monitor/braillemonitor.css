@@ -138,3 +138,13 @@
 .monitor-cell__braille {
   line-height: 1;
 }
+
+/* Rounded thumbkey buttons */
+.thumb-key {
+  border-radius: 14px;   /* round corners */
+}
+
+/* Optional: pill-shaped buttons */
+.thumb-key.pill {
+  border-radius: 999px;
+}
