@@ -122,3 +122,19 @@
     color: #aab3c5;
   }
 }
+
+/* Optional but recommended for Unicode braille layout */
+.monitor-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.monitor-cell__char {
+  line-height: 1;
+}
+
+.monitor-cell__braille {
+  line-height: 1;
+}
