@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>QR Link Button – Example</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    .qr-link-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 14px;
+      border: 1px solid #cfd6e4;
+      background: #ffffff;
+      color: #101828;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .qr-link-button:hover {
+      background: #f7f9fc;
+    }
+
+    .qr-box {
+      width: 140px;
+      height: 140px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .qr-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .qr-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .qr-url {
+      font-size: 0.9rem;
+      color: #475467;
+      max-width: 40ch;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .qr-caption {
+      font-size: 0.85rem;
+      color: #344054;
+    }
+  </style>
+</head>
+<body>
+
+  <a
+    class="qr-link-button"
+    href="https://edequartel.github.io/BrailleServer/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <div class="qr-box">
+      <!-- QR code generated via Google Charts -->
+      <img
+        src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://edequartel.github.io/BrailleServer/"
+        width="140"
+        height="140"
+        alt="QR code"
+      />
+    </div>
+
+    <div class="qr-text">
+      <div class="qr-title">Open BrailleServer</div>
+      <div class="qr-url">https://edequartel.github.io/BrailleServer/</div>
+      <divs class="qr-caption">Scan or click to open</div>
+  </a>
+  
+  <a
+    class="qr-link-button"
+    href="https://edequartel.github.io/BrailleServer/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <div class="qr-box">
+      <!-- QR code generated via Google Charts -->
+      <img
+        src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://edequartel.github.io/BrailleServer/"
+        width="140"
+        height="140"
+        alt="QR code"
+      />
+    </div>
+  </a>
+
+</body>
+</html>
