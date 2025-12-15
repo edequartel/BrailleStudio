@@ -5,11 +5,10 @@
   <title>QR Link Button Demo</title>
 
   <!-- CSS -->
-  <link rel="stylesheet" href="qr-link-button.css" />
+  <link rel="stylesheet" href="../components/qr-link-button/qr-link-button.css" />
 
   <!-- CSS load diagnostic -->
   <style>
-    /* If this turns green, CSS loaded correctly */
     body::before {
       content: "CSS NOT LOADED";
       display: block;
@@ -21,19 +20,15 @@
       font-weight: 700;
     }
 
-    /* This selector only exists if qr-link-button.css is loaded */
     .qr-link-button {
       outline: 3px dashed limegreen;
     }
-
-    .qr-link-button:not(:defined) ~ body::before {}
   </style>
 </head>
 <body>
 
   <h1>QR Link Button – Diagnostics</h1>
 
-  <!-- JS diagnostics -->
   <pre id="diag"
        style="padding:0.75rem;
               border:1px solid #ccc;
@@ -52,9 +47,8 @@ Diagnostics:
   </button>
 
   <!-- JS -->
-  <script src="qr-link-button.js"></script>
+  <script src="../components/qr-link-button/qr-link-button.js"></script>
 
-  <!-- Diagnostic logic -->
   <script>
     const diag = (msg) => {
       const el = document.getElementById("diag");
@@ -65,7 +59,6 @@ Diagnostics:
     window.addEventListener("DOMContentLoaded", () => {
       diag("DOM loaded");
 
-      /* 1. Check CSS */
       const btn = document.querySelector(".qr-link-button");
       const styles = window.getComputedStyle(btn);
 
@@ -75,7 +68,6 @@ Diagnostics:
         diag("CSS: NOT loaded (border-radius missing)");
       }
 
-      /* 2. Check JS */
       diag("typeof QRLinkButton = " + typeof window.QRLinkButton);
 
       if (typeof window.QRLinkButton === "function") {
@@ -83,12 +75,6 @@ Diagnostics:
       } else {
         diag("JS: NOT loaded");
       }
-
-      /* 3. Network hint */
-      diag("If CSS/JS are missing:");
-      diag("- Check file location");
-      diag("- Check filename case (macOS/Linux!)");
-      diag("- Check relative path from this HTML file");
     });
   </script>
 
