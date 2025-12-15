@@ -2,81 +2,43 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8" />
-  <title>QR Link Button Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR Code Link Button Demo</title>
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="../components/qr-link-button/qr-link-button.css" />
-
-  <!-- CSS load diagnostic -->
-  <style>
-    body::before {
-      content: "CSS NOT LOADED";
-      display: block;
-      padding: 0.5rem;
-      margin-bottom: 0.75rem;
-      border-radius: 6px;
-      background: #ffecec;
-      color: #7a1414;
-      font-weight: 700;
-    }
-
-    .qr-link-button {
-      outline: 3px dashed limegreen;
-    }
-  </style>
+  <link rel="stylesheet" href="./qrcode-link-button.css" />
 </head>
 <body>
 
-  <h1>QR Link Button – Diagnostics</h1>
+  <h1>QR Code Link Button</h1>
 
-  <pre id="diag"
-       style="padding:0.75rem;
-              border:1px solid #ccc;
-              border-radius:8px;
-              margin-bottom:1rem;
-              white-space:pre-wrap;">
-Diagnostics:
-  </pre>
-
+  <!-- BUTTON: class MUST match JS -->
   <button
-    class="qr-link-button"
+    class="qrcode-link-button"
     data-url="https://www.example.com"
+    type="button"
   >
-    <span class="qr-link-button__icon" aria-hidden="true">🔗</span>
-    <span class="qr-link-button__text">Open example.com</span>
+    <span class="qrcode-link-button__icon" aria-hidden="true">🔗</span>
+    <span class="qrcode-link-button__text">Show QR code</span>
   </button>
 
-  <!-- JS -->
-  <script src="../components/qr-link-button/qr-link-button.js"></script>
+  <!-- QR MODAL -->
+  <div
+    class="qrcode-modal qrcode-modal--hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="qrcode-title"
+  >
+    <div class="qrcode-modal__panel">
+      <h2 id="qrcode-title">Scan QR code</h2>
 
-  <script>
-    const diag = (msg) => {
-      const el = document.getElementById("diag");
-      el.textContent += msg + "\n";
-      console.log("[QRLinkButton]", msg);
-    };
+      <!-- JS injects <img> here -->
+      <div id="qrcode"></div>
 
-    window.addEventListener("DOMContentLoaded", () => {
-      diag("DOM loaded");
+      <button id="qrcodeClose" type="button">Close</button>
+    </div>
+  </div>
 
-      const btn = document.querySelector(".qr-link-button");
-      const styles = window.getComputedStyle(btn);
-
-      if (styles.borderRadius !== "0px") {
-        diag("CSS: loaded (border-radius detected)");
-      } else {
-        diag("CSS: NOT loaded (border-radius missing)");
-      }
-
-      diag("typeof QRLinkButton = " + typeof window.QRLinkButton);
-
-      if (typeof window.QRLinkButton === "function") {
-        diag("JS: loaded successfully");
-      } else {
-        diag("JS: NOT loaded");
-      }
-    });
-  </script>
+  <script src="./qrcode-link-button.js"></script>
 
 </body>
 </html>

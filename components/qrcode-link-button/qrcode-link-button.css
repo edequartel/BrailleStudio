@@ -1,66 +1,40 @@
-/* -------------------------------------------------------
-   QR Link Button
-------------------------------------------------------- */
-
-.qr-link-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  padding: 0.55rem 0.8rem;
-  border-radius: 12px;
-
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-
-  border: 1px solid var(--border, #d7deea);
-  background: var(--panel, #ffffff);
-  color: var(--fg, #111827);
-
-  cursor: pointer;
-  user-select: none;
-
-  box-shadow:
-    0 1px 1px rgba(16, 24, 40, 0.06),
-    0 6px 16px rgba(16, 24, 40, 0.06);
-}
-
-.qr-link-button:hover {
-  transform: translateY(-1px);
-}
-
-.qr-link-button:active {
-  transform: translateY(0);
-  box-shadow:
-    0 1px 1px rgba(16, 24, 40, 0.06),
-    0 3px 10px rgba(16, 24, 40, 0.06);
-}
-
-.qr-link-button:focus-visible {
-  outline: 3px solid rgba(79, 107, 237, 0.35);
-  outline-offset: 2px;
-}
-
-/* Icon */
-.qr-link-button__icon {
-  font-size: 1.05rem;
-}
-
 /* -----------------------------
-   Dark mode
+   QR code modal
 ----------------------------- */
 
-html[data-theme="dark"] .qr-link-button {
-  border-color: #2a2f3a;
-  background: #161a23;
-  color: #e5e7eb;
-
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.35),
-    0 8px 22px rgba(0, 0, 0, 0.30);
+.qrcode-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
 }
 
-html[data-theme="dark"] .qr-link-button:focus-visible {
-  outline-color: rgba(122, 162, 255, 0.35);
+.qrcode-modal--hidden {
+  display: none;
+}
+
+.qrcode-modal__panel {
+  background: var(--panel, #ffffff);
+  color: var(--fg, #111827);
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  min-width: 260px;
+  text-align: center;
+}
+
+.qrcode-modal__panel h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+#qrcode {
+  margin: 1rem 0;
+}
+
+/* Dark mode */
+html[data-theme="dark"] .qrcode-modal__panel {
+  background: #161a23;
+  color: #e5e7eb;
 }
