@@ -38,6 +38,7 @@
   let currentActivityIndex = 0;
   let runToken = 0;
   let running = false;
+  let activeActivityModule = null;
 
   // ------------------------------------------------------------
   // DOM helper
@@ -245,7 +246,6 @@
         log("[words] Activity selected", { id: a.id, index: i });
         cancelRun();
         setActiveActivity(i);
-        startSelectedActivity({ autoStarted: true });
       });
       activityButtonsEl.appendChild(btn);
     }
@@ -254,16 +254,28 @@
   function cancelRun() {
     runToken += 1;
     running = false;
-    const mock = getMockActivity();
-    if (mock?.isRunning?.()) mock.stop({ reason: "cancelRun" });
+    stopActiveActivity({ reason: "cancelRun" });
     setRunnerUi({ isRunning: false });
     setActivityStatus("idle");
   }
 
-  function getMockActivity() {
-    const mock = window.MockActivity;
-    if (mock && typeof mock.start === "function" && typeof mock.stop === "function") return mock;
-    return null;
+  function getActivityModule(activityKey) {
+    const acts = window.Activities;
+    if (!acts || typeof acts !== "object") return null;
+    const mod = acts[activityKey];
+    if (!mod || typeof mod !== "object") return null;
+    if (typeof mod.start !== "function" || typeof mod.stop !== "function") return null;
+    return mod;
+  }
+
+  function stopActiveActivity(payload) {
+    try {
+      if (activeActivityModule && typeof activeActivityModule.stop === "function") {
+        activeActivityModule.stop(payload);
+      }
+    } finally {
+      activeActivityModule = null;
+    }
   }
 
   function canonicalActivityId(activityId) {
@@ -283,8 +295,7 @@
       if (!doneBtn) return resolve();
 
       const onDone = () => {
-        const mock = getMockActivity();
-        if (mock?.isRunning?.()) mock.stop({ reason: "doneClick" });
+        stopActiveActivity({ reason: "doneClick" });
         doneBtn.removeEventListener("click", onDone);
         resolve();
       };
@@ -347,13 +358,21 @@
     const activityKey = canonicalActivityId(cur.activity.id);
     const handler = handlers[activityKey] || handlers.default;
 
-    const mock = getMockActivity();
-    if (mock && !autoStarted) {
-      mock.start({
-        recordId: cur.item?.id ?? null,
+    const activityModule = getActivityModule(activityKey);
+    if (activityModule) {
+      activeActivityModule = activityModule;
+      activityModule.start({
+        activityKey,
         activityId: cur.activity?.id ?? null,
-        activityKey
+        activityCaption: cur.activity?.caption ?? null,
+        record: cur.item ?? null,
+        recordIndex: currentIndex,
+        activityIndex: currentActivityIndex,
+        autoStarted: Boolean(autoStarted)
       });
+    } else {
+      activeActivityModule = null;
+      log("[words] No activity module found", { activityKey });
     }
 
     running = true;
@@ -369,7 +388,7 @@
       setRunnerUi({ isRunning: false });
       setActivityStatus("done");
 
-      if (mock?.isRunning?.()) mock.stop({ reason: "finally" });
+      stopActiveActivity({ reason: "finally" });
 
       const autoRun = $("auto-run");
       if (autoRun && autoRun.checked) {
