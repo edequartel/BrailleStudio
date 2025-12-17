@@ -79,8 +79,12 @@
       .map(a => {
         const id = String(a.id ?? "").trim();
         const caption = String(a.caption ?? "").trim();
+        const instruction = String(a.instruction ?? "").trim();
         if (!id && !caption) return null;
-        return caption ? `${id} — ${caption}` : id;
+        if (caption && instruction) return `${id} — ${caption} — ${instruction}`;
+        if (caption) return `${id} — ${caption}`;
+        if (instruction) return `${id} — ${instruction}`;
+        return id;
       })
       .filter(Boolean);
 
@@ -109,6 +113,7 @@
         .map(a => ({
           id: String(a.id ?? "").trim(),
           caption: String(a.caption ?? "").trim(),
+          instruction: String(a.instruction ?? "").trim(),
           index: a.index
         }))
         .filter(a => a.id);
@@ -236,8 +241,13 @@
     activityIdEl.textContent = canonical && canonical !== id ? `Activity: ${rawId} (${canonical})` : `Activity: ${rawId}`;
 
     const { caption, detail } = formatActivityDetail(active.id, item);
-    if (activityCaptionEl) activityCaptionEl.textContent = caption || "Details";
-    if (activityDetailEl) activityDetailEl.textContent = detail ?? "–";
+    const instruction = String(active.instruction ?? "").trim();
+    const mergedDetail = instruction
+      ? `Instructie: ${instruction}${detail && detail !== "–" ? `\n\n${detail}` : ""}`
+      : (detail ?? "–");
+
+    if (activityCaptionEl) activityCaptionEl.textContent = active.caption || caption || "Details";
+    if (activityDetailEl) activityDetailEl.textContent = mergedDetail;
 
     activityButtonsEl.innerHTML = "";
     for (let i = 0; i < activities.length; i++) {
