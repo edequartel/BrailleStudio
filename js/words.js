@@ -423,26 +423,6 @@
 
     wordEl.textContent = item.word || "–";
 
-    const lettersEl = $("field-letters");
-    if (lettersEl) {
-      lettersEl.textContent = Array.isArray(item.letters) && item.letters.length ? item.letters.join(" ") : "–";
-    }
-
-    const wordsEl = $("field-words");
-    if (wordsEl) {
-      wordsEl.textContent = Array.isArray(item.words) && item.words.length ? item.words.join(", ") : "–";
-    }
-
-    const storyEl = $("field-story");
-    if (storyEl) {
-      storyEl.textContent = Array.isArray(item.story) && item.story.length ? item.story.join("\n") : "–";
-    }
-
-    const soundsEl = $("field-sounds");
-    if (soundsEl) {
-      soundsEl.textContent = Array.isArray(item.sounds) && item.sounds.length ? item.sounds.join("\n") : "–";
-    }
-
     const iconEl = $("field-icon");
     if (iconEl) {
       iconEl.textContent = "Icon: " + (item.icon || "–");
