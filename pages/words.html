@@ -127,6 +127,9 @@
       border-radius: 12px;
       overflow: hidden;
     }
+    .log-panel.hidden {
+      display: none;
+    }
 
     .log-header {
       display: flex;
@@ -204,10 +207,11 @@
       <button id="next-btn" type="button">Volgende</button>
       <button id="prev-activity-btn" class="secondary" type="button">◀</button>
       <button id="next-activity-btn" type="button">▶</button>
+      <button id="toggle-log-btn" class="secondary" type="button">Log</button>
     </div>
 
     <!-- Visible logging UI -->
-    <section class="log-panel" aria-label="Log">
+    <section id="log-panel" class="log-panel hidden" aria-label="Log">
       <div class="log-header">
         <span>Log</span>
         <span class="log-controls">
@@ -243,6 +247,14 @@
           const el = document.getElementById("log");
           if (el) el.textContent = "";
         });
+
+        const toggle = document.getElementById("toggle-log-btn");
+        const panel = document.getElementById("log-panel");
+        if (toggle && panel) {
+          toggle.addEventListener("click", () => {
+            panel.classList.toggle("hidden");
+          });
+        }
       });
 
       // Immediate proof that the page logs
