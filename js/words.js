@@ -125,6 +125,8 @@
     const activityCaptionEl = $("activity-caption");
     const activityDetailEl = $("activity-detail");
     const activityButtonsEl = $("activity-buttons");
+    const prevActivityBtn = $("prev-activity-btn");
+    const nextActivityBtn = $("next-activity-btn");
 
     if (!activityIndexEl || !activityIdEl || !activityCaptionEl || !activityDetailEl || !activityButtonsEl) {
       log("[words] Missing activity DOM elements; cannot render activity.");
@@ -137,8 +139,14 @@
       activityCaptionEl.textContent = "Details";
       activityDetailEl.textContent = "–";
       activityButtonsEl.innerHTML = "";
+      if (prevActivityBtn) prevActivityBtn.disabled = true;
+      if (nextActivityBtn) nextActivityBtn.disabled = true;
       return;
     }
+
+    const canCycle = activities.length > 1;
+    if (prevActivityBtn) prevActivityBtn.disabled = !canCycle;
+    if (nextActivityBtn) nextActivityBtn.disabled = !canCycle;
 
     const active = activities[currentActivityIndex] ?? activities[0];
     if (!active) return;
@@ -232,7 +240,7 @@
     if (!records.length) return;
     const item = records[currentIndex];
     const activities = getActivities(item);
-    if (!activities.length) return;
+    if (activities.length < 2) return;
     currentActivityIndex = (currentActivityIndex + 1) % activities.length;
     log("[words] Next activity", { currentActivityIndex });
     renderActivity(item, activities);
@@ -242,7 +250,7 @@
     if (!records.length) return;
     const item = records[currentIndex];
     const activities = getActivities(item);
-    if (!activities.length) return;
+    if (activities.length < 2) return;
     currentActivityIndex = (currentActivityIndex - 1 + activities.length) % activities.length;
     log("[words] Prev activity", { currentActivityIndex });
     renderActivity(item, activities);
