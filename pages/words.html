@@ -202,16 +202,22 @@
       </span>
     </div>
 
-    <p class="field-label">Alle velden</p>
-    <p class="field-value" id="field-all">–</p>
-
     <div class="buttons">
       <button id="prev-btn" class="secondary" type="button">Vorige</button>
       <button id="next-btn" type="button">Volgende</button>
       <button id="prev-activity-btn" class="secondary" type="button">◀</button>
       <button id="next-activity-btn" type="button">▶</button>
+      <button id="toggle-fields-btn" class="secondary" type="button">Velden</button>
       <button id="toggle-log-btn" class="secondary" type="button">Log</button>
     </div>
+
+    <!-- Default hidden: show all fields -->
+    <section id="fields-panel" class="log-panel hidden" aria-label="Alle velden">
+      <div class="log-header">
+        <span>Alle velden</span>
+      </div>
+      <div id="field-all" class="log-body">–</div>
+    </section>
 
     <!-- Visible logging UI -->
     <section id="log-panel" class="log-panel hidden" aria-label="Log">

@@ -544,6 +544,8 @@
     const prevActivityBtn = $("prev-activity-btn");
     const startActivityBtn = $("start-activity-btn");
     const doneActivityBtn = $("done-activity-btn");
+    const toggleFieldsBtn = $("toggle-fields-btn");
+    const fieldsPanel = $("fields-panel");
 
     if (nextBtn) nextBtn.addEventListener("click", next);
     if (prevBtn) prevBtn.addEventListener("click", prev);
@@ -551,6 +553,21 @@
     if (prevActivityBtn) prevActivityBtn.addEventListener("click", prevActivity);
     if (startActivityBtn) startActivityBtn.addEventListener("click", () => startSelectedActivity({ autoStarted: false }));
     // doneActivityBtn is handled by waitForDone() per run.
+
+    function setFieldsPanelVisible(visible) {
+      if (!toggleFieldsBtn || !fieldsPanel) return;
+      fieldsPanel.classList.toggle("hidden", !visible);
+      toggleFieldsBtn.textContent = visible ? "Verberg velden" : "Velden";
+      toggleFieldsBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+    }
+
+    if (toggleFieldsBtn && fieldsPanel) {
+      setFieldsPanelVisible(false);
+      toggleFieldsBtn.addEventListener("click", () => {
+        const isHidden = fieldsPanel.classList.contains("hidden");
+        setFieldsPanelVisible(isHidden);
+      });
+    }
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowRight") nextActivity();
