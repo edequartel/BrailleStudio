@@ -42,9 +42,9 @@
   // ------------------------------------------------------------
   // DOM helper
   // ------------------------------------------------------------
-  function $(id, { optional = false } = {}) {
+  function $(id) {
     const el = document.getElementById(id);
-    if (!el && !optional) log(`[words] Missing element #${id}`);
+    if (!el) log(`[words] Missing element #${id}`);
     return el;
   }
 
@@ -54,14 +54,14 @@
   }
 
   function setActivityStatus(text) {
-    const el = $("activity-status", { optional: true });
+    const el = $("activity-status");
     if (el) el.textContent = "Status: " + text;
   }
 
   function setRunnerUi({ isRunning }) {
     const startBtn = $("start-activity-btn");
     const doneBtn = $("done-activity-btn");
-    const autoRun = $("auto-run", { optional: true });
+    const autoRun = $("auto-run");
 
     if (startBtn) startBtn.disabled = Boolean(isRunning);
     if (doneBtn) doneBtn.disabled = !isRunning;
@@ -371,9 +371,8 @@
 
       if (mock?.isRunning?.()) mock.stop({ reason: "finally" });
 
-      const autoRun = $("auto-run", { optional: true });
-      const shouldAutoRun = autoRun ? autoRun.checked : true;
-      if (shouldAutoRun) {
+      const autoRun = $("auto-run");
+      if (autoRun && autoRun.checked) {
         advanceToNextActivityOrWord({ autoStart: true });
       }
     }
