@@ -16,12 +16,100 @@
     }
   }
 
+  const DEFAULT_LANG = "nl";
+
   function create() {
     let intervalId = null;
     let session = null;
+    let playToken = 0;
+    let currentHowl = null;
 
     function isRunning() {
       return Boolean(intervalId);
+    }
+
+    async function ensureSoundsReady() {
+      if (typeof Howl === "undefined") {
+        throw new Error("Howler.js not loaded");
+      }
+      if (typeof Sounds === "undefined" || !Sounds || typeof Sounds.init !== "function") {
+        throw new Error("Sounds.js not loaded");
+      }
+
+      await Sounds.init("../config/sounds.json", (line) => log("[Sounds]", line));
+    }
+
+    function stopCurrentHowl() {
+      if (!currentHowl) return;
+      try {
+        currentHowl.stop();
+      } catch (err) {
+        // ignore
+      } finally {
+        currentHowl = null;
+      }
+    }
+
+    function playHowl(howl, token) {
+      return new Promise((resolve, reject) => {
+        if (!howl) return resolve();
+        if (token !== playToken) return resolve();
+
+        const onEnd = () => resolve();
+        const onLoadError = (id, err) => reject(new Error(String(err || "loaderror")));
+        const onPlayError = (id, err) => reject(new Error(String(err || "playerror")));
+
+        howl.once("end", onEnd);
+        howl.once("loaderror", onLoadError);
+        howl.once("playerror", onPlayError);
+
+        try {
+          howl.stop();
+          howl.play();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function normalizeStoryKey(fileName) {
+      const raw = String(fileName || "").trim();
+      if (!raw) return "";
+      const base = raw.split(/[\\/]/).pop() || raw;
+      return base.replace(/\.[^/.]+$/, "").trim().toLowerCase();
+    }
+
+    async function playStory(ctx) {
+      const token = playToken;
+      const record = ctx?.record || {};
+      const storyFiles = Array.isArray(record.story) ? record.story : [];
+      const lang = ctx?.lang || DEFAULT_LANG;
+
+      log("[activity:story] audio sequence", { lang, count: storyFiles.length });
+      if (!storyFiles.length) {
+        log("[activity:story] no story files to play", { recordId: record?.id, word: record?.word });
+        return;
+      }
+
+      await ensureSoundsReady();
+      log("[activity:story] Sounds ready");
+
+      for (const fileName of storyFiles) {
+        if (token !== playToken) return;
+        const key = normalizeStoryKey(fileName);
+        if (!key) continue;
+
+        const url = Sounds._buildUrl(lang, "stories", key);
+        currentHowl = Sounds._getHowl(url);
+        log("[activity:story] play", { key, url, fileName: String(fileName) });
+
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await playHowl(currentHowl, token);
+        } finally {
+          stopCurrentHowl();
+        }
+      }
     }
 
     function start(ctx) {
@@ -42,12 +130,20 @@
         tick += 1;
         log("[activity:story] tick", { sessionId: session.id, tick });
       }, 750);
+
+      playToken += 1;
+      playStory(ctx).catch((err) => {
+        log("[activity:story] audio error", { message: err?.message || String(err) });
+      });
     }
 
     function stop(payload) {
-      if (!isRunning()) return;
-      window.clearInterval(intervalId);
-      intervalId = null;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = null;
+      }
+      playToken += 1;
+      stopCurrentHowl();
       log("[activity:story] stop", { sessionId: session?.id, payload });
       session = null;
     }
@@ -58,4 +154,3 @@
   window.Activities = window.Activities || {};
   if (!window.Activities.story) window.Activities.story = create();
 })();
-
