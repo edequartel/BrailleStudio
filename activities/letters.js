@@ -32,11 +32,11 @@
       if (typeof Howl === "undefined") {
         throw new Error("Howler.js not loaded");
       }
-      if (!window.Sounds || typeof window.Sounds.init !== "function") {
+      if (typeof Sounds === "undefined" || !Sounds || typeof Sounds.init !== "function") {
         throw new Error("Sounds.js not loaded");
       }
 
-      await window.Sounds.init("../config/sounds.json", (line) => log("[Sounds]", line));
+      await Sounds.init("../config/sounds.json", (line) => log("[Sounds]", line));
     }
 
     function stopCurrentHowl() {
@@ -78,20 +78,22 @@
       const letters = Array.isArray(record.letters) ? record.letters : [];
       const lang = ctx?.lang || DEFAULT_LANG;
 
+      log("[activity:letters] audio sequence", { lang, count: letters.length });
       if (!letters.length) {
         log("[activity:letters] no letters to play", { recordId: record?.id, word: record?.word });
         return;
       }
 
       await ensureSoundsReady();
+      log("[activity:letters] Sounds ready");
 
       for (const letter of letters) {
         if (token !== playToken) return;
         const key = String(letter || "").trim().toLowerCase();
         if (!key) continue;
 
-        const url = window.Sounds._buildUrl(lang, "letters", key);
-        currentHowl = window.Sounds._getHowl(url);
+        const url = Sounds._buildUrl(lang, "letters", key);
+        currentHowl = Sounds._getHowl(url);
         log("[activity:letters] play", { key, url });
         try {
           // eslint-disable-next-line no-await-in-loop
