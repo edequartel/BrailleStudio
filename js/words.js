@@ -202,6 +202,8 @@
     const activityButtonsEl = $("activity-buttons");
     const activityCaptionEl = document.getElementById("activity-caption");
     const activityDetailEl = document.getElementById("activity-detail");
+    const activityInstructionEl = document.getElementById("activity-instruction");
+    const activityInstructionLabelEl = document.getElementById("activity-instruction-label");
     const prevActivityBtn = $("prev-activity-btn");
     const nextActivityBtn = $("next-activity-btn");
 
@@ -215,6 +217,9 @@
       activityIdEl.textContent = "Activity: –";
       if (activityCaptionEl) activityCaptionEl.textContent = "Details";
       if (activityDetailEl) activityDetailEl.textContent = "–";
+      if (activityInstructionEl) activityInstructionEl.textContent = "–";
+      if (activityInstructionEl) activityInstructionEl.style.display = "";
+      if (activityInstructionLabelEl) activityInstructionLabelEl.style.display = "";
       activityButtonsEl.innerHTML = "";
       if (prevActivityBtn) prevActivityBtn.disabled = true;
       if (nextActivityBtn) nextActivityBtn.disabled = true;
@@ -242,12 +247,12 @@
 
     const { caption, detail } = formatActivityDetail(active.id, item);
     const instruction = String(active.instruction ?? "").trim();
-    const mergedDetail = instruction
-      ? `Instructie: ${instruction}${detail && detail !== "–" ? `\n\n${detail}` : ""}`
-      : (detail ?? "–");
 
     if (activityCaptionEl) activityCaptionEl.textContent = active.caption || caption || "Details";
-    if (activityDetailEl) activityDetailEl.textContent = mergedDetail;
+    if (activityDetailEl) activityDetailEl.textContent = detail ?? "–";
+    if (activityInstructionEl) activityInstructionEl.textContent = instruction || "–";
+    if (activityInstructionEl) activityInstructionEl.style.display = "";
+    if (activityInstructionLabelEl) activityInstructionLabelEl.style.display = "";
 
     activityButtonsEl.innerHTML = "";
     for (let i = 0; i < activities.length; i++) {
