@@ -225,8 +225,16 @@
   function cancelRun() {
     runToken += 1;
     running = false;
+    const mock = getMockActivity();
+    if (mock?.isRunning?.()) mock.stop({ reason: "cancelRun" });
     setRunnerUi({ isRunning: false });
     setActivityStatus("idle");
+  }
+
+  function getMockActivity() {
+    const mock = window.MockActivity;
+    if (mock && typeof mock.start === "function" && typeof mock.stop === "function") return mock;
+    return null;
   }
 
   function canonicalActivityId(activityId) {
@@ -246,6 +254,8 @@
       if (!doneBtn) return resolve();
 
       const onDone = () => {
+        const mock = getMockActivity();
+        if (mock?.isRunning?.()) mock.stop({ reason: "doneClick" });
         doneBtn.removeEventListener("click", onDone);
         resolve();
       };
@@ -308,6 +318,15 @@
     const activityKey = canonicalActivityId(cur.activity.id);
     const handler = handlers[activityKey] || handlers.default;
 
+    const mock = getMockActivity();
+    if (mock && !autoStarted) {
+      mock.start({
+        recordId: cur.item?.id ?? null,
+        activityId: cur.activity?.id ?? null,
+        activityKey
+      });
+    }
+
     running = true;
     setRunnerUi({ isRunning: true });
     setActivityStatus(autoStarted ? "running (auto)" : "running");
@@ -320,6 +339,8 @@
       running = false;
       setRunnerUi({ isRunning: false });
       setActivityStatus("done");
+
+      if (mock?.isRunning?.()) mock.stop({ reason: "finally" });
 
       const autoRun = $("auto-run");
       if (autoRun && autoRun.checked) {
