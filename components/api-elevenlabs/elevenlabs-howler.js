@@ -23,20 +23,21 @@
   let currentAbort = null;
 
   function setStatus(msg) {
-    els.status.textContent = msg;
+    if (els.status) els.status.textContent = msg;
   }
 
   function log(msg) {
+    if (!els.log) return;
     const ts = new Date().toISOString().slice(11, 19);
     els.log.textContent += `[${ts}] ${msg}\n`;
     els.log.scrollTop = els.log.scrollHeight;
   }
 
-  function cleanupAudio() {
+  function cleanupAudio({ abortFetch = true } = {}) {
     try {
-      if (currentAbort) currentAbort.abort();
+      if (abortFetch && currentAbort) currentAbort.abort();
     } catch {}
-    currentAbort = null;
+    if (abortFetch) currentAbort = null;
 
     try {
       if (currentHowl) {
@@ -47,32 +48,52 @@
     currentHowl = null;
 
     if (currentObjectUrl) {
-      URL.revokeObjectURL(currentObjectUrl);
+      try { URL.revokeObjectURL(currentObjectUrl); } catch {}
       currentObjectUrl = null;
     }
   }
 
+  function browserCanUseMSE() {
+    try {
+      return ("MediaSource" in window) && MediaSource.isTypeSupported("audio/mpeg");
+    } catch {
+      return false;
+    }
+  }
+
   function getEndpoint(voiceId, outputFormat) {
-    // ElevenLabs Stream speech endpoint  [oai_citation:1‡ElevenLabs](https://elevenlabs.io/docs/api-reference/text-to-speech/stream?utm_source=chatgpt.com)
-    // Docs show: POST /v1/text-to-speech/{voice_id}/stream
     const base = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}/stream`;
     if (!outputFormat) return base;
-    // output_format is documented as a query param in some versions of the API docs (keep optional)
     const url = new URL(base);
     url.searchParams.set("output_format", outputFormat);
     return url.toString();
   }
 
-  function buildBody(text, modelId) {
-    const body = {
-      text,
-      // voice_settings are optional; keep conservative defaults
-      voice_settings: {
+  // IMPORTANT:
+  // - eleven_v3 rejects legacy "stability" values like 0.6 and expects ttd_stability in {0.0, 0.5, 1.0}.
+  // - For non-v3 models, stability/similarity_boost are fine.
+  function buildBody(text, modelIdRaw) {
+    const modelId = (modelIdRaw || "").trim();
+
+    // Minimal baseline
+    const body = { text };
+
+    if (modelId) body.model_id = modelId;
+
+    // Voice settings per model
+    if (modelId === "eleven_v3") {
+      // Allowed: 0.0, 0.5, 1.0
+      body.voice_settings = {
+        ttd_stability: 0.5, // Natural
+      };
+      // Note: do NOT send "stability" or "similarity_boost" here for v3.
+    } else {
+      body.voice_settings = {
         stability: 0.6,
         similarity_boost: 0.8,
-      },
-    };
-    if (modelId && modelId.trim()) body.model_id = modelId.trim();
+      };
+    }
+
     return body;
   }
 
@@ -82,7 +103,7 @@
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "xi-api-key": apiKey,              // required auth header  [oai_citation:2‡ElevenLabs](https://elevenlabs.io/docs/api-reference/text-to-speech/convert?utm_source=chatgpt.com)
+        "xi-api-key": apiKey,
         "Content-Type": "application/json",
         "Accept": "audio/mpeg",
       },
@@ -108,6 +129,7 @@
 
     const res = await fetchStream(params);
     const arrayBuffer = await res.arrayBuffer();
+
     const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
     const url = URL.createObjectURL(blob);
     currentObjectUrl = url;
@@ -139,8 +161,7 @@
       throw new Error("MediaSource not available in this browser.");
     }
 
-    // Best-effort: MP3 via MSE is not universally supported (Safari often fails).
-    const mime = 'audio/mpeg';
+    const mime = "audio/mpeg";
     if (!MediaSource.isTypeSupported(mime)) {
       throw new Error(`MediaSource does not support: ${mime}`);
     }
@@ -155,19 +176,14 @@
     const howl = new Howl({
       src: [url],
       html5: true,
-      // format hint
       format: ["mp3"],
       onplay: () => log("Howler: play (MediaSource)"),
       onend: () => {
         log("Howler: end");
         setStatus("Idle");
       },
-      onloaderror: (_id, err) => {
-        log(`Howler load error (MediaSource): ${err}`);
-      },
-      onplayerror: (_id, err) => {
-        log(`Howler play error (MediaSource): ${err}`);
-      },
+      onloaderror: (_id, err) => log(`Howler load error (MediaSource): ${err}`),
+      onplayerror: (_id, err) => log(`Howler play error (MediaSource): ${err}`),
     });
 
     currentHowl = howl;
@@ -188,9 +204,11 @@
       new Promise((resolve, reject) => {
         const onUpdateEnd = () => {
           sb.removeEventListener("updateend", onUpdateEnd);
+          sb.removeEventListener("error", onError);
           resolve();
         };
         const onError = () => {
+          sb.removeEventListener("updateend", onUpdateEnd);
           sb.removeEventListener("error", onError);
           reject(new Error("SourceBuffer error while appending"));
         };
@@ -214,7 +232,6 @@
         }
       }
 
-      // finalize
       await new Promise((r) => {
         if (!sb.updating) return r();
         sb.addEventListener("updateend", r, { once: true });
@@ -223,19 +240,17 @@
       ms.endOfStream();
       log("Stream complete.");
     } catch (e) {
-      // ensure we stop to avoid hanging audio elements
       try { ms.endOfStream(); } catch {}
       throw e;
     }
   }
 
   async function onPlay() {
-    const apiKey = els.apiKey.value.trim();
-    const voiceId = els.voiceId.value.trim();
-    const text = els.text.value.trim();
-    const modelId = els.modelId.value.trim();
-    const outputFormat = els.outputFormat.value.trim();
-    const tryMSE = els.chkTryMSE.checked;
+    const apiKey = (els.apiKey?.value || "").trim();
+    const voiceId = (els.voiceId?.value || "").trim();
+    let text = (els.text?.value || "").trim();
+    const modelId = (els.modelId?.value || "").trim();
+    const outputFormat = (els.outputFormat?.value || "").trim();
 
     if (!apiKey || !voiceId || !text) {
       log("Missing required fields: API key, Voice ID, and Text are required.");
@@ -243,37 +258,61 @@
       return;
     }
 
-    cleanupAudio();
+    // Stop anything currently playing and abort any current fetch
+    cleanupAudio({ abortFetch: true });
 
-    const ac = new AbortController();
-    currentAbort = ac;
+    // Create controller for this play
+    currentAbort = new AbortController();
 
-    els.btnPlay.disabled = true;
-    els.btnStop.disabled = false;
+    els.btnPlay && (els.btnPlay.disabled = true);
+    els.btnStop && (els.btnStop.disabled = false);
 
-    const params = { apiKey, voiceId, text, modelId, outputFormat, signal: ac.signal };
+    const baseParams = {
+      apiKey,
+      voiceId,
+      text,
+      modelId,
+      outputFormat,
+      signal: currentAbort.signal,
+    };
+
+    const tryMSE = !!(els.chkTryMSE?.checked && browserCanUseMSE());
 
     try {
       if (tryMSE) {
         try {
-          await playViaMediaSource(params);
+          await playViaMediaSource(baseParams);
           return;
         } catch (e) {
           log(`MediaSource streaming failed; falling back. Reason: ${e.message}`);
-          cleanupAudio(); // clear partial MSE artifacts before fallback
+
+          // IMPORTANT: do not abort here. But after a failed fetch, some browsers treat the signal as "bad".
+          // Create a fresh AbortController for fallback to avoid: "signal is aborted without reason"
+          cleanupAudio({ abortFetch: false });
+
+          currentAbort = new AbortController();
+          baseParams.signal = currentAbort.signal;
+        }
+      } else {
+        if (els.chkTryMSE?.checked && !browserCanUseMSE()) {
+          log("MediaSource not available/unsupported here; using fallback directly.");
         }
       }
 
-      await playViaBlobBuffering(params);
+      await playViaBlobBuffering(baseParams);
     } catch (e) {
-      log(`ERROR: ${e.message}`);
-      setStatus("Error");
+      const msg = e?.message || String(e);
+      if (/aborted/i.test(msg) || (e?.name && String(e.name).toLowerCase().includes("abort"))) {
+        log("Fetch aborted (likely Stop pressed).");
+        setStatus("Idle");
+      } else {
+        log(`ERROR: ${msg}`);
+        setStatus("Error");
+      }
     } finally {
-      els.btnPlay.disabled = false;
-      els.btnStop.disabled = false;
-      if (setStatus && els.status.textContent === "Playing…") {
-        // keep status until onend, else return to idle
-      } else if (els.status.textContent !== "Playing…") {
+      els.btnPlay && (els.btnPlay.disabled = false);
+      els.btnStop && (els.btnStop.disabled = false);
+      if (els.status && (els.status.textContent === "Downloading…" || els.status.textContent === "Streaming…")) {
         setStatus("Idle");
       }
     }
@@ -281,24 +320,30 @@
 
   function onStop() {
     log("Stop pressed.");
-    cleanupAudio();
+    cleanupAudio({ abortFetch: true });
     setStatus("Idle");
-    els.btnPlay.disabled = false;
-    els.btnStop.disabled = true;
+    els.btnPlay && (els.btnPlay.disabled = false);
+    els.btnStop && (els.btnStop.disabled = true);
   }
 
   function onClear() {
-    els.log.textContent = "";
+    if (els.log) els.log.textContent = "";
     log("Log cleared.");
   }
 
   // Wire up
-  els.btnPlay.addEventListener("click", onPlay);
-  els.btnStop.addEventListener("click", onStop);
-  els.btnClear.addEventListener("click", onClear);
+  els.btnPlay?.addEventListener("click", onPlay);
+  els.btnStop?.addEventListener("click", onStop);
+  els.btnClear?.addEventListener("click", onClear);
 
   // Init
-  els.btnStop.disabled = true;
+  if (els.btnStop) els.btnStop.disabled = true;
+
+  // If MSE isn't possible, auto-uncheck
+  if (els.chkTryMSE && !browserCanUseMSE()) {
+    els.chkTryMSE.checked = false;
+  }
+
   setStatus("Idle");
   log("Ready.");
 })();
