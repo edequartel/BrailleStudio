@@ -143,8 +143,8 @@
 
       const thumbDefs = [
         { key: "leftthumb", label: "⟵ Left" },
-        { key: "middleleftthumb", label: "⟵ Mid-Left" },
-        { key: "middlerightthumb", label: "Mid-Right ⟶" },
+        { key: "middleleftthumb", label: "Mid-L" },
+        { key: "middlerightthumb", label: "Mid-R" },
         { key: "rightthumb", label: "Right ⟶" }
       ];
 
@@ -163,10 +163,12 @@
       if (opts.showInfo) {
         const info = document.createElement("p");
         info.className = "small";
-        info.textContent =
+        info.textContent = "";
+        <!--
           "Deze monitor toont 1-op-1 de tekst op de brailleleesregel. " +
           "Klik op een cel om een cursorrouting te simuleren. " +
           "De knoppen bootsen de duimtoetsen na en lichten op bij echte duimtoetsen.";
+          -->
         wrapper.appendChild(info);
       }
 
