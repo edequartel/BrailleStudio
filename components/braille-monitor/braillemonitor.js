@@ -142,10 +142,10 @@
       thumbRow.className = "button-row thumb-row";
 
       const thumbDefs = [
-        { key: "leftthumb", label: "⟵ Left" },
-        { key: "middleleftthumb", label: "⟵ Mid-Left" },
-        { key: "middlerightthumb", label: "Mid-Right ⟶" },
-        { key: "rightthumb", label: "Right ⟶" }
+        { key: "leftthumb", label: "." },
+        { key: "middleleftthumb", label: ".." },
+        { key: "middlerightthumb", label: ".." },
+        { key: "rightthumb", label: "." }
       ];
 
       thumbDefs.forEach((def) => {
@@ -163,10 +163,12 @@
       if (opts.showInfo) {
         const info = document.createElement("p");
         info.className = "small";
-        info.textContent =
+        info.textContent = "";
+        <!--
           "Deze monitor toont 1-op-1 de tekst op de brailleleesregel. " +
           "Klik op een cel om een cursorrouting te simuleren. " +
           "De knoppen bootsen de duimtoetsen na en lichten op bij echte duimtoetsen.";
+          -->
         wrapper.appendChild(info);
       }
 
@@ -187,9 +189,9 @@
         return currentText.substring(start, end + 1).trim();
       }
 
-      // -------------------------------------------------------------------
-      // UPDATED: Render two lines per cell: braille above, print below
-      // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  // UPDATED: Render two lines per cell: print above, braille below
+  // -------------------------------------------------------------------
       function rebuildCells() {
         monitorP.innerHTML = "";
 
@@ -209,16 +211,15 @@
           cell.setAttribute("role", "option");
           cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
 
-          const brailleLine = document.createElement("span");
-          brailleLine.className = "monitor-cell__braille";
-          brailleLine.textContent = brailleChar;
-
           const printLine = document.createElement("span");
           printLine.className = "monitor-cell__print";
           printLine.textContent = printChar;
 
-          cell.appendChild(brailleLine);
           cell.appendChild(printLine);
+          const brailleLine = document.createElement("span");
+          brailleLine.className = "monitor-cell__braille";
+          brailleLine.textContent = brailleChar;
+          cell.appendChild(brailleLine);
 
           monitorP.appendChild(cell);
         }

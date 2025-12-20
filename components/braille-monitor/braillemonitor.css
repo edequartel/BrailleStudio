@@ -13,7 +13,7 @@
   padding: 0.6rem 0.7rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Cascadia Code", "Fira Code", monospace;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 
   /* Two-line cell needs tighter line-height */
   line-height: 1.05;
@@ -29,6 +29,7 @@
   flex-direction: column;     /* ABOVE, not next to */
   align-items: center;
   justify-content: center;
+  gap: 0.18rem;
 
   min-width: 1.2ch;           /* a bit wider for braille glyphs */
   padding: 0.12rem 0.18rem;
@@ -50,14 +51,19 @@
 
 /* Braille line (top) and print line (bottom) */
 .monitor-cell__braille {
+  display: block;
   line-height: 1;
-  font-size: 0.95em;
+  font-size: 1.05em;
   opacity: 0.85;
+  font-family: "Apple Braille", "Noto Sans Symbols2", "Segoe UI Symbol",
+    "DejaVu Sans", "Arial Unicode MS", ui-monospace, SFMono-Regular, Menlo,
+    Monaco, Consolas, "Cascadia Code", "Fira Code", monospace;
 }
 
 .monitor-cell__print {
+  display: block;
   line-height: 1;
-  font-size: 0.95em;
+  font-size: 1.05em;
 }
 
 /* Option B: Flex, but force equal-width buttons */
@@ -153,4 +159,33 @@
 /* Optional: pill-shaped buttons */
 .thumb-key.pill {
   border-radius: 999px;
+}
+
+/* Thumb key row: spread buttons with clear spacing */
+.button-row.thumb-row {
+  display: flex;
+  align-items: center;
+
+  /* Option A: equal distribution across the row */
+  justify-content: center;
+
+  /* Add explicit spacing too (applies when buttons wrap or when there is spare room) */
+  gap: 0.75rem;
+
+  /* Optional: keep some breathing room at the edges */
+  padding: 0.25rem 0.5rem;
+
+  /* Optional: allow wrap on small screens */
+  flex-wrap: wrap;
+}
+
+/* Optional: give buttons consistent width so spacing looks intentional */
+.button-row.thumb-row .thumb-key {
+  min-width: 3.25rem;
+}
+
+/* Optional: if you want the row to be narrower than the monitor and centered */
+.braille-monitor-component .button-row.thumb-row {
+  max-width: 520px;     /* pick a value you like */
+  margin: 0.5rem auto 0;
 }
