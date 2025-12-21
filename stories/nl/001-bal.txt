@@ -1,32 +1,39 @@
-[stilte]
-Ik ben Sam. Ik ben zes jaar.
-Vandaag speel ik buiten met mijn bal.
-
 [pauze]
-De bal is rood en rond.
-Ik gooi de bal omhoog.
-De bal valt weer neer.
-
+Sam staat in de tuin.
+Hij heeft een bal.
+De bal is rood.
 [lach]
-Mijn hond Bo ziet de bal.
-Bo rent snel naar de bal.
-Hij pakt de bal met zijn bek.
 
+Bo de hond ziet de bal.
+Bo rent snel.
+Sam gooit de bal.
+De bal rolt ver.
+Bo rent erachteraan.
+[lach]
+
+Tala staat bij het hek.
+"Gooi naar mij," zegt Tala.
+Sam gooit de bal hoog.
+De bal komt bij Tala.
+Tala vangt de bal.
 [pauze]
-"Bo, laat los," zeg ik zacht.
-Bo laat de bal vallen.
-De bal rolt door het gras.
 
-[blij]
-Ik trap de bal naar papa.
-Papa trapt de bal terug.
-Wij lachen samen.
+Dan komt Roberto erbij.
+Roberto trapt de bal zacht.
+De bal rolt terug naar Sam.
+Bo blaft blij.
+[lach]
 
+Sam gooit de bal nog een keer.
+Bo springt.
+De bal valt in het gras.
+Bo pakt de bal.
+Hij brengt de bal terug.
 [pauze]
-O nee, de bal rolt onder de struik.
-Ik buk en pak de bal weer.
 
-[tevreden]
-De bal is weer van mij.
-Ik speel nog even door.
-Spelen met de bal is leuk.
+Sam zegt: "Goed zo, Bo."
+Iedereen lacht.
+Ze spelen samen met de bal.
+De zon schijnt.
+[lach]
+[pauze]
