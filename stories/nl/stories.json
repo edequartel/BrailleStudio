@@ -6,14 +6,14 @@
       "file": "000-bal.txt"
     },
     {
-      "id": "story-02",
-      "title": "De kam",
-      "file": "story-02.txt"
+      "id": "bal-02",
+      "title": "De bal",
+      "file": "001-bal.txt"
     },
     {
-      "id": "story-03",
-      "title": "Het bos",
-      "file": "story-03.txt"
+      "id": "kam-03",
+      "title": "De kam",
+      "file": "000-kam.txt"
     }
   ]
 }

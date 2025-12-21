@@ -39,6 +39,7 @@ Typical response contains whether the bridge is running, if a braille display is
 WebSocket
 
 WebSocket address
+
 ws://localhost:5000/ws
 
 This WebSocket is used to send braille key events from BrailleBridge to the client (browser or app). The client connects once and receives events as they occur.
