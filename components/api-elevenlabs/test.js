@@ -395,43 +395,6 @@
     }
   }
 
-  function isProbablyIOS() {
-    const ua = navigator.userAgent || "";
-    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  }
-
-  async function saveAudioBlobToFiles(blob, filename) {
-    // Best UX on iOS: Share Sheet -> "Save to Files"
-    try {
-      const file = new File([blob], filename, { type: blob.type || "audio/mpeg" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: filename,
-          text: "Audio file",
-        });
-        return { method: "share" };
-      }
-    } catch {
-      // continue to fallback
-    }
-
-    // Fallback: classic download link
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename || "elevenlabs.mp3";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => {
-      try { URL.revokeObjectURL(url); } catch {}
-    }, 0);
-
-    return { method: "anchor" };
-  }
-
   async function onPlay() {
     const apiKey = (els.apiKey?.value || "").trim();
     const voiceId = (els.voiceId?.value || "").trim();
@@ -524,37 +487,23 @@
     log("Log cleared.");
   }
 
-  async function onDownload() {
+  function onDownload() {
     if (!lastAudioBlob) {
       log("No audio available to download yet.");
       return;
     }
 
-    const filename = lastAudioFilename || "elevenlabs.mp3";
-
-    try {
-      setStatus("Preparing download…");
-
-      const { method } = await saveAudioBlobToFiles(lastAudioBlob, filename);
-
-      if (method === "share") {
-        log(`Opened Share Sheet for: ${filename} (use "Save to Files").`);
-        setStatus("Idle");
-        return;
-      }
-
-      // Anchor fallback
-      if (isProbablyIOS()) {
-        log(`Download link triggered for: ${filename}. If iOS does not save it automatically, use the Share button in the opened audio view to "Save to Files".`);
-      } else {
-        log(`Download started: ${filename}`);
-      }
-
-      setStatus("Idle");
-    } catch (e) {
-      log(`Download failed: ${e?.message || e}`);
-      setStatus("Error");
-    }
+    const url = URL.createObjectURL(lastAudioBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = lastAudioFilename || "elevenlabs.mp3";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => {
+      try { URL.revokeObjectURL(url); } catch {}
+    }, 0);
+    log(`Download started: ${a.download}`);
   }
 
   // Wire up
