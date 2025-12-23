@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrailleStudio – Minimal</title>
+
+  <!-- BrailleMonitor CSS (existing component) -->
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
+
+  <style>
+    :root {
+      --bg: #fff;
+      --fg: #111;
+      --muted: #666;
+      --line: #e8e8e8;
+      --chip: #f4f4f5;
+      --btn-bg: #111;
+      --btn-fg: #fff;
+    }
+
+    body[data-theme="dark"] {
+      --bg: #0b0f19;
+      --fg: #e5e7eb;
+      --muted: #9ca3af;
+      --line: #202636;
+      --chip: #151a26;
+      --btn-bg: #e5e7eb;
+      --btn-fg: #0b0f19;
+      color-scheme: dark;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.35;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 18px 16px 28px;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0.2px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      border: 1px solid transparent;
+      background: var(--btn-bg);
+      color: var(--btn-fg);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 650;
+      font-size: 0.92rem;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--fg);
+    }
+
+    .sep {
+      height: 1px;
+      background: var(--line);
+      margin: 12px 0;
+    }
+
+    /* BrailleMonitor container: no extra chrome, just spacing */
+    #brailleMonitorComponent {
+      margin: 12px 0 14px;
+    }
+
+    .label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 10px 0 6px;
+    }
+
+    .box {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: transparent;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      white-space: pre-wrap;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #activity-buttons button {
+      background: var(--chip);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      font-weight: 650;
+    }
+
+    .nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .nav button {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--fg);
+      font-weight: 650;
+    }
+
+    .nav button.primary {
+      background: var(--btn-bg);
+      color: var(--btn-fg);
+      border-color: transparent;
+    }
+
+    /* Minimal log: hidden by default */
+    #log {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: transparent;
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body data-theme="light">
+  <div class="wrap">
+    <header>
+      <h1>BrailleStudio</h1>
+      <div class="top-actions">
+        <button id="theme-toggle" class="secondary">Donker</button>
+        <button id="toggle-log" class="secondary">Log</button>
+      </div>
+    </header>
+
+    <div class="sep"></div>
+
+    <!-- Braille monitor -->
+    <div id="brailleMonitorComponent"></div>
+
+    <div class="label">Woord</div>
+    <div id="field-word" class="box">–</div>
+
+    <div class="label">Woord (braille)</div>
+    <div id="field-word-braille" class="box">–</div>
+
+    <div class="label">Activiteiten</div>
+    <div id="activity-buttons" class="chips"></div>
+
+    <div class="label">Instructie</div>
+    <div id="activity-instruction" class="box">–</div>
+
+    <div class="nav">
+      <button id="prev-btn">Vorige</button>
+      <button id="next-btn" class="primary">Volgende</button>
+      <button id="prev-activity-btn">◀</button>
+      <button id="next-activity-btn">▶</button>
+    </div>
+
+    <div id="log">Log start…</div>
+  </div>
+
+  <script>
+    // Theme toggle (minimal)
+    const themeBtn = document.getElementById("theme-toggle");
+    const THEME_KEY = "bs_theme";
+
+    function applyTheme(t) {
+      document.body.setAttribute("data-theme", t);
+      themeBtn.textContent = (t === "dark") ? "Licht" : "Donker";
+    }
+
+    applyTheme(localStorage.getItem(THEME_KEY) || "light");
+
+    themeBtn.addEventListener("click", () => {
+      const next = (document.body.getAttribute("data-theme") === "light") ? "dark" : "light";
+      applyTheme(next);
+      localStorage.setItem(THEME_KEY, next);
+    });
+
+    // Minimal logger (optional)
+    window.logMessage = (msg) => {
+      const el = document.getElementById("log");
+      el.textContent += "\n" + msg;
+    };
+
+    document.getElementById("toggle-log").addEventListener("click", () => {
+      const el = document.getElementById("log");
+      el.style.display = (el.style.display === "none" || !el.style.display) ? "block" : "none";
+    });
+
+    logMessage("[minimal] page loaded");
+  </script>
+
+  <!-- Existing logic (unchanged) -->
+  <script src="../js/braillebridge.js"></script>
+  <script src="../components/braille-monitor/braillemonitor.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
+  <script src="../js/sounds.js"></script>
+
+  <script src="../activities/tts.js"></script>
+  <script src="../activities/letters.js"></script>
+  <script src="../activities/words.js"></script>
+  <script src="../activities/story.js"></script>
+  <script src="../activities/sounds.js"></script>
+
+  <script src="../js/words.js"></script>
+</body>
+</html>
