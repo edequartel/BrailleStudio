@@ -237,5 +237,38 @@
   <script src="../activities/sounds.js"></script>
 
   <script src="../js/words.js"></script>
+  
+  <script>
+  // Visible status line (always shows)
+  (function () {
+    const bar = document.createElement("div");
+    bar.id = "statusbar";
+    bar.style.cssText =
+      "position:sticky;bottom:0;margin-top:14px;padding:8px 10px;" +
+      "border:1px solid #ccc;border-radius:10px;font:12px ui-monospace,monospace;" +
+      "background:#fff;color:#111;z-index:9999";
+    document.querySelector(".wrap")?.appendChild(bar) || document.body.appendChild(bar);
+
+    const ok = (label, v) => `${label}:${v ? "OK" : "MISSING"}`;
+    const lines = [];
+
+    lines.push(ok("braillebridge.js", typeof window.BrailleBridge !== "undefined" || typeof window.braillebridge !== "undefined"));
+    lines.push(ok("braillemonitor.js", typeof window.BrailleMonitor !== "undefined" || customElements.get("braille-monitor")));
+    lines.push(ok("howler", typeof window.Howl !== "undefined"));
+    lines.push(ok("sounds.js", typeof window.Sounds !== "undefined"));
+    lines.push(ok("words.js", typeof window.Words !== "undefined"));
+
+    bar.textContent = lines.join("  |  ");
+
+    window.addEventListener("error", (e) => {
+      bar.textContent = "JS ERROR: " + (e?.message || "unknown");
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      bar.textContent = "PROMISE ERROR: " + (e?.reason?.message || e?.reason || "unknown");
+    });
+  })();
+</script>
+  
+  
 </body>
 </html>
