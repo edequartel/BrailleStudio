@@ -91,19 +91,19 @@
       box-shadow: var(--shadow);
     }
 
-    /* Theme toggle (re-used, now in bottom buttons row) */
+    /* Theme toggle (bottom row) */
     .theme-toggle {
       display: inline-flex;
       align-items: center;
       gap: 10px;
       border-radius: 999px;
-      padding: 8px 16px; /* match button sizing */
+      padding: 8px 16px;
       background: transparent;
       border: 1px solid var(--chip-border);
       color: var(--fg);
       cursor: pointer;
       font-weight: 700;
-      font-size: 0.95rem; /* match button sizing */
+      font-size: 0.95rem;
     }
 
     .theme-dot {
@@ -112,17 +112,6 @@
       border-radius: 999px;
       background: var(--fg);
       opacity: 0.9;
-    }
-
-    h1 {
-      font-size: 1.6rem;
-      margin: 0 0 8px 0;
-    }
-
-    .subtitle {
-      margin: 0 0 16px 0;
-      color: var(--muted);
-      font-size: 0.95rem;
     }
 
     .meta-bar {
@@ -153,13 +142,6 @@
       font-size: 0.92rem;
       white-space: pre-wrap;
       word-break: break-word;
-    }
-
-    .field-braille {
-      margin-top: 6px;
-      color: var(--fg);
-      letter-spacing: 0.02em;
-      opacity: 0.9;
     }
 
     .short-flag {
@@ -197,22 +179,6 @@
     button.secondary {
       background: var(--btn2-bg);
       color: var(--btn2-fg);
-    }
-
-    .chip {
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--chip-border);
-      background: var(--chip-bg);
-      color: var(--chip-fg);
-      font-weight: 800;
-      font-size: 0.9rem;
-    }
-
-    .chip.active {
-      background: var(--btn-bg);
-      color: var(--btn-fg);
-      border-color: var(--btn-bg);
     }
 
     /* Visible log panel */
@@ -260,45 +226,65 @@
     }
 
     .braille-panel { margin-bottom: 16px; }
-    .braille-panel .field-label { margin-top: 0; }
-
-    .braille-panel .hint {
-      margin: 6px 0 0 0;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
 
     /* ----------------------------
-       Word header above braille
+       Word header requested:
+       emoji left | word ... braille (right-aligned)
     ---------------------------- */
     .word-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: 44px 1fr;
       align-items: center;
-      gap: 16px;
+      column-gap: 12px;
       margin-bottom: 12px;
     }
 
     .word-emoji {
-      font-size: 2.4rem;
+      width: 44px;
+      text-align: left;
+      font-size: 2rem;
       line-height: 1;
     }
 
+    .word-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      column-gap: 16px;
+      min-width: 0;
+    }
+
     .word-text {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .word-braille {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New", monospace;
+      font-size: 1.25rem;
+      letter-spacing: 0.18em;
+      text-align: right;
+      white-space: nowrap;
+      opacity: 0.95;
     }
   </style>
 </head>
 
 <body>
   <main class="container" aria-live="polite">
-    <!-- Theme toggle REMOVED from top -->
-
     <div class="braille-panel">
-      <!-- Word + emoji ABOVE braille monitor -->
+      <!-- Emoji left, word + braille on same line (braille right aligned) -->
       <div class="word-header">
         <span id="field-emoji" class="word-emoji" aria-hidden="true">–</span>
-        <span id="field-word" class="word-text">–</span>
+
+        <div class="word-line">
+          <span id="field-word" class="word-text">–</span>
+          <span id="field-word-braille" class="word-braille">–</span>
+        </div>
       </div>
 
       <!-- Braille monitor -->
@@ -311,15 +297,7 @@
       <span id="data-status">Data: –</span>
     </div>
 
-    <!-- Keep only braille text here (word moved above) -->
-    <p class="field-value field-braille" id="field-word-braille">–</p>
 
-    <div class="meta-bar">
-      <span id="field-icon">Icon: –</span>
-      <span id="short-flag" class="short-flag" style="display:none;">Kort verhaal: ja</span>
-    </div>
-
-    <p class="field-label">Activiteiten</p>
     <div class="meta-bar" style="margin-top: 8px;">
       <span id="activity-index">0 / 0</span>
       <span id="activity-id">Activity: –</span>
@@ -349,14 +327,12 @@
       <button id="toggle-fields-btn" class="secondary" type="button" aria-controls="fields-panel" aria-expanded="false">Velden</button>
       <button id="toggle-log-btn" class="secondary" type="button">Log</button>
 
-      <!-- Theme toggle MOVED here -->
       <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">
         <span class="theme-dot" aria-hidden="true"></span>
         <span id="themeLabel">Theme: light</span>
       </button>
     </div>
 
-    <!-- Default hidden: show all fields -->
     <section id="fields-panel" class="log-panel hidden" aria-label="Alle velden">
       <div class="log-header">
         <span>Alle velden</span>
@@ -364,7 +340,6 @@
       <div id="field-all" class="log-body">–</div>
     </section>
 
-    <!-- Visible logging UI -->
     <section id="log-panel" class="log-panel hidden" aria-label="Log">
       <div class="log-header">
         <span>Log</span>
@@ -391,7 +366,6 @@
       function getInitialTheme() {
         const saved = localStorage.getItem(THEME_KEY);
         if (saved === "light" || saved === "dark") return saved;
-        // fallback to OS preference
         return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
           ? "dark"
           : "light";
@@ -412,7 +386,7 @@
         }
       });
 
-      // ---------- Fallback logMessage so you ALWAYS see logs even if logging.js fails ----------
+      // ---------- Fallback logMessage ----------
       function appendToPanel(line) {
         const el = document.getElementById("log");
         if (!el) return;
@@ -448,27 +422,19 @@
     })();
   </script>
 
-  <!-- Load your logging.js (optional, but keep it) -->
   <script src="../js/logging.js"></script>
-
-  <!-- BrailleBridge + monitor component -->
   <script src="../js/braillebridge.js"></script>
   <script src="../components/braille-monitor/braillemonitor.js"></script>
 
-  <!-- Howler.js (required for Sounds + activities audio) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-
-  <!-- Sounds wrapper (reads ../config/sounds.json) -->
   <script src="../js/sounds.js"></script>
 
-  <!-- Mock activities -->
   <script src="../activities/tts.js"></script>
   <script src="../activities/letters.js"></script>
   <script src="../activities/words.js"></script>
   <script src="../activities/story.js"></script>
   <script src="../activities/sounds.js"></script>
 
-  <!-- Then the app logic -->
   <script src="../js/words.js"></script>
 </body>
 </html>
