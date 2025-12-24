@@ -27,9 +27,6 @@
     let donePromise = null;
     let doneResolve = null;
 
-    // playback state
-    let isPaused = false;
-
     function isRunning() {
       return Boolean(intervalId);
     }
@@ -54,7 +51,6 @@
       } finally {
         currentHowl = null;
         currentUrl = null;
-        isPaused = false;
       }
     }
 
@@ -88,7 +84,6 @@
         howl.once("playerror", onPlayError);
 
         try {
-          isPaused = false;
           howl.stop();
           howl.play();
         } catch (err) {
@@ -127,12 +122,11 @@
       await ensureSoundsReady();
       log("[activity:story] Sounds ready");
 
-      const filesToPlay =
-        parsedIndex === -1
-          ? storyFiles
-          : parsedIndex >= 0 && parsedIndex < storyFiles.length
-            ? [storyFiles[parsedIndex]]
-            : [];
+      const filesToPlay = parsedIndex === -1
+        ? storyFiles
+        : (parsedIndex >= 0 && parsedIndex < storyFiles.length)
+          ? [storyFiles[parsedIndex]]
+          : [];
 
       if (!filesToPlay.length) {
         log("[activity:story] index out of range; nothing played", { index: parsedIndex, count: storyFiles.length });
@@ -147,8 +141,6 @@
         const url = Sounds._buildUrl(lang, "stories", key);
         currentUrl = url;
         currentHowl = Sounds._getHowl(url);
-        isPaused = false;
-
         log("[activity:story] play start", { key, url, fileName: String(fileName) });
 
         try {
@@ -165,150 +157,13 @@
       stop({ reason: "audioEnd" });
     }
 
-    // ----------------------------
-    // Thumb key controls
-    // Right thumb: play/resume
-    // Left thumb: pause
-    // ----------------------------
-
-    function pausePlayback(source) {
-      if (!currentHowl) {
-        log("[activity:story] pause ignored (no currentHowl)", { source });
-        return;
-      }
-      try {
-        if (currentHowl.playing()) {
-          currentHowl.pause();
-          isPaused = true;
-          log("[activity:story] paused", { source, url: currentUrl });
-        } else {
-          // already not playing (maybe already paused or stopped)
-          isPaused = true;
-          log("[activity:story] pause (already not playing)", { source, url: currentUrl });
-        }
-      } catch (err) {
-        log("[activity:story] pause error", { source, message: err?.message || String(err) });
-      }
-    }
-
-    function resumePlayback(source) {
-      // If we have a paused howl, resume it.
-      if (currentHowl) {
-        try {
-          if (!currentHowl.playing() && isPaused) {
-            currentHowl.play(); // resumes from pause position in Howler
-            isPaused = false;
-            log("[activity:story] resumed", { source, url: currentUrl });
-            return;
-          }
-          if (currentHowl.playing()) {
-            log("[activity:story] resume ignored (already playing)", { source, url: currentUrl });
-            return;
-          }
-        } catch (err) {
-          log("[activity:story] resume error", { source, message: err?.message || String(err) });
-          return;
-        }
-      }
-
-      // If activity is running but nothing is currently loaded/playing, restart the story from the current ctx.
-      if (isRunning() && session?.ctx) {
-        log("[activity:story] resume triggers restart of story sequence", { source });
-        playToken += 1;
-        playStory(session.ctx).catch((err) => {
-          log("[activity:story] audio error", { message: err?.message || String(err) });
-          resolveDone({ ok: false, error: err?.message || String(err) });
-        });
-        return;
-      }
-
-      log("[activity:story] resume ignored (not running)", { source });
-    }
-
-    function normalizeKeyName(x) {
-      return String(x || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "")
-        .replace(/[_-]/g, "");
-    }
-
-    function extractKeyNameFromEvent(ev) {
-      // supports several event shapes:
-      // - CustomEvent.detail.key / detail.name / detail.keyName
-      // - { key, code }-like objects
-      // - direct string
-      if (!ev) return "";
-      if (typeof ev === "string") return ev;
-
-      const d = ev.detail || {};
-      return (
-        d.keyName ||
-        d.key ||
-        d.name ||
-        ev.keyName ||
-        ev.key ||
-        ev.code ||
-        ""
-      );
-    }
-
-    function handleThumbKeys(ev, sourceLabel) {
-      const raw = extractKeyNameFromEvent(ev);
-      const k = normalizeKeyName(raw);
-      if (!k) return;
-
-      // Accept a few likely spellings coming from BrailleBridge keymaps
-      const isRightThumb =
-        k === "rightthumb" ||
-        k === "rt" ||
-        k === "thumbright" ||
-        k === "rightthumbkey";
-
-      const isLeftThumb =
-        k === "leftthumb" ||
-        k === "lt" ||
-        k === "thumbleft" ||
-        k === "leftthumbkey";
-
-      if (isRightThumb) {
-        resumePlayback(sourceLabel || raw);
-      } else if (isLeftThumb) {
-        pausePlayback(sourceLabel || raw);
-      }
-    }
-
-    // Register listeners once per activity instance
-    (function attachKeyListenersOnce() {
-      if (window.__storyThumbKeysAttached) return;
-      window.__storyThumbKeysAttached = true;
-
-      // Preferred: whatever your websocket bridge emits as CustomEvent
-      window.addEventListener("braillebridge:key", (ev) => handleThumbKeys(ev, "braillebridge:key"));
-      window.addEventListener("braille-key", (ev) => handleThumbKeys(ev, "braille-key"));
-      window.addEventListener("braillebridgeKey", (ev) => handleThumbKeys(ev, "braillebridgeKey"));
-
-      // Optional dev fallback: keyboard testing
-      window.addEventListener("keydown", (ev) => {
-        // Space = pause, Enter = play/resume
-        if (ev.code === "Space") handleThumbKeys({ detail: { keyName: "LeftThumb" } }, "keydown:Space");
-        if (ev.code === "Enter") handleThumbKeys({ detail: { keyName: "RightThumb" } }, "keydown:Enter");
-      });
-
-      log("[activity:story] thumb key listeners attached");
-    })();
-
     function start(ctx) {
       stop({ reason: "restart" });
       ensureDonePromise();
-
-      isPaused = false;
-
       session = {
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         ctx
       };
-
       log("[activity:story] start", {
         sessionId: session.id,
         recordId: ctx?.record?.id,
