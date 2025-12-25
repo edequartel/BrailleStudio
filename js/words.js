@@ -31,6 +31,7 @@
   let currentActivityIndex = 0;
   let runToken = 0;
   let running = false;
+
   let activeActivityModule = null;
   let activeActivityDonePromise = null;
 
@@ -80,6 +81,9 @@
     if (el) el.textContent = "Status: " + text;
   }
 
+  // ------------------------------------------------------------
+  // Activity button state styling hooks
+  // ------------------------------------------------------------
   function updateActivityButtonStates() {
     const wrap = $("activity-buttons");
     if (!wrap) return;
@@ -99,15 +103,20 @@
     }
   }
 
+  // ------------------------------------------------------------
+  // SINGLE toggle run button UI
+  // ------------------------------------------------------------
   function setRunnerUi({ isRunning }) {
-    const startBtn = $("start-activity-btn");
-    const doneBtn = $("done-activity-btn");
+    const runBtn = $("run-activity-btn");
     const autoRun = $("auto-run");
 
-    // If you later switch to a single toggle button, update here.
-    if (startBtn) startBtn.disabled = Boolean(isRunning);
-    if (doneBtn) doneBtn.disabled = !isRunning;
     if (autoRun) autoRun.disabled = Boolean(isRunning);
+
+    if (runBtn) {
+      runBtn.textContent = isRunning ? "Stop" : "Start";
+      runBtn.setAttribute("aria-pressed", isRunning ? "true" : "false");
+      runBtn.classList.toggle("is-running", Boolean(isRunning));
+    }
 
     updateActivityButtonStates();
   }
@@ -177,6 +186,20 @@
     }
 
     log("[words] Braille line updated", { len: next.length, reason: meta.reason || "unspecified" });
+  }
+
+  function getBrailleTextForCurrent() {
+    const item = records[currentIndex];
+    if (!item) return "";
+
+    const cur = getCurrentActivity();
+    if (cur && cur.activity) {
+      const { detail } = formatActivityDetail(cur.activity.id, item);
+      const detailText = compactSingleLine(detail);
+      if (detailText && detailText !== "–") return detailText;
+    }
+
+    return item.word != null ? String(item.word) : "";
   }
 
   function computeWordAt(text, index) {
@@ -287,6 +310,17 @@
     }
   }
 
+  function canonicalActivityId(activityId) {
+    const rawId = String(activityId ?? "");
+    const id = rawId.trim().toLowerCase();
+    return id.startsWith("tts") ? "tts"
+      : id.startsWith("letters") ? "letters"
+      : id.startsWith("words") ? "words"
+      : id.startsWith("story") ? "story"
+      : id.startsWith("sounds") ? "sounds"
+      : id;
+  }
+
   function setActiveActivity(index) {
     const item = records[currentIndex];
     if (!item) return;
@@ -299,6 +333,7 @@
 
     const nextIndex = Math.max(0, Math.min(index, activities.length - 1));
     currentActivityIndex = nextIndex;
+
     renderActivity(item, activities);
     updateActivityButtonStates();
   }
@@ -314,20 +349,6 @@
     if (!active) return null;
 
     return { item, activities, activity: active };
-  }
-
-  function getBrailleTextForCurrent() {
-    const item = records[currentIndex];
-    if (!item) return "";
-
-    const cur = getCurrentActivity();
-    if (cur && cur.activity) {
-      const { detail } = formatActivityDetail(cur.activity.id, item);
-      const detailText = compactSingleLine(detail);
-      if (detailText && detailText !== "–") return detailText;
-    }
-
-    return item.word != null ? String(item.word) : "";
   }
 
   function renderActivity(item, activities) {
@@ -354,23 +375,12 @@
     if (!active) return;
 
     activityIndexEl.textContent = `${currentActivityIndex + 1} / ${activities.length}`;
+    activityIdEl.textContent = `Activity: ${String(active.id ?? "–")}`;
 
-    const rawId = String(active.id ?? "");
-    const id = rawId.trim().toLowerCase();
-    const canonical =
-      id.startsWith("tts") ? "tts" :
-      id.startsWith("letters") ? "letters" :
-      id.startsWith("words") ? "words" :
-      id.startsWith("story") ? "story" :
-      id.startsWith("sounds") ? "sounds" :
-      id;
-
-    activityIdEl.textContent = canonical && canonical !== id
-      ? `Activity: ${rawId} (${canonical})`
-      : `Activity: ${rawId}`;
-
+    const { caption } = formatActivityDetail(active.id, item);
     const instruction = String(active.instruction ?? "").trim();
-    if (activityInstructionEl) activityInstructionEl.textContent = instruction || "–";
+
+    if (activityInstructionEl) activityInstructionEl.textContent = instruction || caption || "–";
 
     activityButtonsEl.innerHTML = "";
     for (let i = 0; i < activities.length; i++) {
@@ -383,7 +393,6 @@
       btn.title = a.id;
 
       btn.addEventListener("click", () => {
-        log("[words] Activity selected", { id: a.id, index: i });
         cancelRun();
         setActiveActivity(i);
       });
@@ -396,17 +405,8 @@
   }
 
   // ------------------------------------------------------------
-  // Runner
+  // Activity module management
   // ------------------------------------------------------------
-  function cancelRun() {
-    runToken += 1;
-    running = false;
-    stopActiveActivity({ reason: "cancelRun" });
-    setRunnerUi({ isRunning: false });
-    setActivityStatus("idle");
-    updateActivityButtonStates();
-  }
-
   function getActivityModule(activityKey) {
     const acts = window.Activities;
     if (!acts || typeof acts !== "object") return null;
@@ -427,97 +427,55 @@
     }
   }
 
-  function waitForDoneOrActivityEnd(currentToken) {
+  function cancelRun() {
+    runToken += 1;
+    running = false;
+    stopActiveActivity({ reason: "stop" });
+    setRunnerUi({ isRunning: false });
+    setActivityStatus("idle");
+  }
+
+  // Wait until:
+  // - activity module resolves its promise, OR
+  // - user stops (runToken changes)
+  function waitForStopOrDone(currentToken) {
     return new Promise((resolve) => {
-      const doneBtn = $("done-activity-btn");
       let settled = false;
 
       const finish = () => {
         if (settled) return;
         settled = true;
-        if (doneBtn) doneBtn.removeEventListener("click", onDone);
         resolve();
       };
-
-      const onDone = () => {
-        stopActiveActivity({ reason: "doneClick" });
-        finish();
-      };
-
-      if (doneBtn) doneBtn.addEventListener("click", onDone);
 
       const p = activeActivityDonePromise;
       if (p && typeof p.then === "function") {
-        p.then(() => { stopActiveActivity({ reason: "activityDone" }); finish(); })
-         .catch(() => { stopActiveActivity({ reason: "activityError" }); finish(); });
+        p.then(finish).catch(finish);
       }
 
       const poll = () => {
-        if (currentToken !== runToken) { finish(); return; }
+        if (currentToken !== runToken) return finish();
+        if (!running) return finish();
         requestAnimationFrame(poll);
       };
       requestAnimationFrame(poll);
     });
   }
-
-  function canonicalActivityId(activityId) {
-    const rawId = String(activityId ?? "");
-    const id = rawId.trim().toLowerCase();
-    return id.startsWith("tts") ? "tts"
-      : id.startsWith("letters") ? "letters"
-      : id.startsWith("words") ? "words"
-      : id.startsWith("story") ? "story"
-      : id.startsWith("sounds") ? "sounds"
-      : id;
-  }
-
-  function waitForDone(currentToken) {
-    return new Promise((resolve) => {
-      const doneBtn = $("done-activity-btn");
-      if (!doneBtn) return resolve();
-
-      const onDone = () => {
-        stopActiveActivity({ reason: "doneClick" });
-        doneBtn.removeEventListener("click", onDone);
-        resolve();
-      };
-
-      doneBtn.addEventListener("click", onDone);
-
-      const poll = () => {
-        if (currentToken !== runToken) {
-          doneBtn.removeEventListener("click", onDone);
-          resolve();
-          return;
-        }
-        requestAnimationFrame(poll);
-      };
-      requestAnimationFrame(poll);
-    });
-  }
-
-  const handlers = {
-    async tts(ctx) { setActivityStatus("running (tts)"); return waitForDone(ctx.token); },
-    async letters(ctx) { setActivityStatus("running (letters)"); return waitForDoneOrActivityEnd(ctx.token); },
-    async words(ctx) { setActivityStatus("running (words)"); return waitForDone(ctx.token); },
-    async story(ctx) { setActivityStatus("running (story)"); return waitForDoneOrActivityEnd(ctx.token); },
-    async sounds(ctx) { setActivityStatus("running (sounds)"); return waitForDone(ctx.token); },
-    async default(ctx) { setActivityStatus("running"); return waitForDone(ctx.token); }
-  };
 
   async function startSelectedActivity({ autoStarted = false } = {}) {
     const cur = getCurrentActivity();
     if (!cur) return;
 
+    // stop any current run first
     cancelRun();
     const token = runToken;
 
     const activityKey = canonicalActivityId(cur.activity.id);
-    const handler = handlers[activityKey] || handlers.default;
-
     const activityModule = getActivityModule(activityKey);
+
     if (activityModule) {
       activeActivityModule = activityModule;
+
       const maybePromise = activityModule.start({
         activityKey,
         activityId: cur.activity?.id ?? null,
@@ -528,7 +486,9 @@
         activityIndex: currentActivityIndex,
         autoStarted: Boolean(autoStarted)
       });
-      activeActivityDonePromise = (maybePromise && typeof maybePromise.then === "function") ? maybePromise : null;
+
+      activeActivityDonePromise =
+        (maybePromise && typeof maybePromise.then === "function") ? maybePromise : null;
     } else {
       activeActivityModule = null;
       activeActivityDonePromise = null;
@@ -537,10 +497,12 @@
 
     running = true;
     setRunnerUi({ isRunning: true });
+    setActivityStatus(autoStarted ? "running (auto)" : "running");
 
     try {
-      await handler({ ...cur, token });
+      await waitForStopOrDone(token);
     } finally {
+      // if a new run started, ignore
       if (token !== runToken) return;
 
       running = false;
@@ -553,6 +515,14 @@
       if (autoRun && autoRun.checked) {
         advanceToNextActivityOrWord({ autoStart: true });
       }
+    }
+  }
+
+  function toggleRun() {
+    if (running) {
+      cancelRun();
+    } else {
+      startSelectedActivity({ autoStarted: false });
     }
   }
 
@@ -575,7 +545,7 @@
   }
 
   // ------------------------------------------------------------
-  // Navigation (buttons + keyboard only)
+  // Navigation (word only)
   // ------------------------------------------------------------
   function next() {
     if (!records.length) return;
@@ -591,6 +561,29 @@
     currentIndex = (currentIndex - 1 + records.length) % records.length;
     currentActivityIndex = 0;
     render();
+  }
+
+  // ------------------------------------------------------------
+  // Right thumb logic:
+  // - If story is running: toggle play/pause inside story module
+  // - Else: start selected activity (same as Start button)
+  // Left thumb: does nothing
+  // ------------------------------------------------------------
+  function rightThumbAction() {
+    const cur = getCurrentActivity();
+    const key = canonicalActivityId(cur?.activity?.id);
+
+    if (running && key === "story" && activeActivityModule && typeof activeActivityModule.togglePlayPause === "function") {
+      activeActivityModule.togglePlayPause("RightThumb");
+      return;
+    }
+
+    // otherwise behave like Start
+    if (!running) startSelectedActivity({ autoStarted: false });
+  }
+
+  function leftThumbAction() {
+    // intentionally no-op
   }
 
   // ------------------------------------------------------------
@@ -640,68 +633,6 @@
   }
 
   // ------------------------------------------------------------
-  // Init
-  // ------------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", () => {
-    log("[words] DOMContentLoaded");
-
-    const nextBtn = $("next-btn");
-    const prevBtn = $("prev-btn");
-    const startActivityBtn = $("start-activity-btn");
-
-    if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
-      BrailleBridge.connect();
-      BrailleBridge.on("cursor", (evt) => {
-        if (typeof evt?.index !== "number") return;
-        dispatchCursorSelection({ index: evt.index }, "bridge");
-      });
-      BrailleBridge.on("connected", () => log("[words] BrailleBridge connected"));
-      BrailleBridge.on("disconnected", () => log("[words] BrailleBridge disconnected"));
-    }
-
-    if (window.BrailleMonitor && typeof BrailleMonitor.init === "function") {
-      brailleMonitor = BrailleMonitor.init({
-        containerId: "brailleMonitorComponent",
-        onCursorClick(info) {
-          dispatchCursorSelection(info, "monitor");
-        },
-
-        // Thumb keys:
-        // - RightThumb starts ONLY when not running (prevents restart during story toggle)
-        // - Others do nothing
-        mapping: {
-          rightthumb: () => {
-            if (running) return;
-            startSelectedActivity({ autoStarted: false });
-          },
-          leftthumb: () => {},
-          middleleftthumb: () => {},
-          middlerightthumb: () => {}
-        }
-      });
-    } else {
-      log("[words] BrailleMonitor component not available");
-    }
-
-    if (nextBtn) nextBtn.addEventListener("click", next);
-    if (prevBtn) prevBtn.addEventListener("click", prev);
-
-    if (startActivityBtn) {
-      startActivityBtn.addEventListener("click", () => startSelectedActivity({ autoStarted: false }));
-    } else {
-      log("[words] Missing #start-activity-btn");
-    }
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowDown") next();
-      if (e.key === "ArrowUp") prev();
-      if (e.key === "Enter") startSelectedActivity({ autoStarted: false });
-    });
-
-    loadData();
-  });
-
-  // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
   function render() {
@@ -748,4 +679,78 @@
     setActivityStatus("idle");
     setStatus(`geladen (${records.length})`);
   }
+
+  // ------------------------------------------------------------
+  // Init
+  // ------------------------------------------------------------
+  document.addEventListener("DOMContentLoaded", () => {
+    log("[words] DOMContentLoaded");
+
+    const nextBtn = $("next-btn");
+    const prevBtn = $("prev-btn");
+    const runBtn = $("run-activity-btn");
+    const toggleFieldsBtn = $("toggle-fields-btn");
+    const fieldsPanel = $("fields-panel");
+
+    if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
+      BrailleBridge.connect();
+      BrailleBridge.on("cursor", (evt) => {
+        if (typeof evt?.index !== "number") return;
+        dispatchCursorSelection({ index: evt.index }, "bridge");
+      });
+      BrailleBridge.on("connected", () => log("[words] BrailleBridge connected"));
+      BrailleBridge.on("disconnected", () => log("[words] BrailleBridge disconnected"));
+    }
+
+    if (window.BrailleMonitor && typeof BrailleMonitor.init === "function") {
+      brailleMonitor = BrailleMonitor.init({
+        containerId: "brailleMonitorComponent",
+        onCursorClick(info) {
+          dispatchCursorSelection(info, "monitor");
+        },
+        mapping: {
+          // Left thumb does nothing
+          leftthumb: () => leftThumbAction(),
+
+          // Right thumb:
+          // - story running => toggle play/pause
+          // - else => start selected activity
+          rightthumb: () => rightThumbAction(),
+
+          // other thumbs do nothing to avoid unintended restarts
+          middleleftthumb: () => {},
+          middlerightthumb: () => {}
+        }
+      });
+    }
+
+    if (nextBtn) nextBtn.addEventListener("click", next);
+    if (prevBtn) prevBtn.addEventListener("click", prev);
+    if (runBtn) runBtn.addEventListener("click", toggleRun);
+
+    function setFieldsPanelVisible(visible) {
+      if (!toggleFieldsBtn || !fieldsPanel) return;
+      fieldsPanel.classList.toggle("hidden", !visible);
+      toggleFieldsBtn.textContent = visible ? "Verberg velden" : "Velden";
+      toggleFieldsBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+    }
+
+    if (toggleFieldsBtn && fieldsPanel) {
+      setFieldsPanelVisible(false);
+      toggleFieldsBtn.addEventListener("click", () => {
+        const isHidden = fieldsPanel.classList.contains("hidden");
+        setFieldsPanelVisible(isHidden);
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") next();
+      if (e.key === "ArrowUp") prev();
+
+      // Enter toggles start/stop
+      if (e.key === "Enter") toggleRun();
+    });
+
+    loadData();
+  });
 })();

@@ -17,20 +17,17 @@
   function create() {
     let intervalId = null;
     let session = null;
-    let playToken = 0;
 
+    let playToken = 0;
     let currentHowl = null;
     let currentUrl = null;
+
+    // IMPORTANT: to resume without restarting
     let currentSoundId = null;
+    let isPaused = false;
 
     let donePromise = null;
     let doneResolve = null;
-
-    let isPaused = false;
-
-    // Debounce to avoid double firing (keydown+keyup / duplicates)
-    let lastToggleAt = 0;
-    const TOGGLE_DEBOUNCE_MS = 220;
 
     function isRunning() {
       return Boolean(intervalId);
@@ -47,8 +44,7 @@
     function stopCurrentHowl() {
       if (!currentHowl) return;
       try {
-        if (currentSoundId != null) currentHowl.stop(currentSoundId);
-        else currentHowl.stop();
+        currentHowl.stop(currentSoundId || undefined);
       } catch {
         // ignore
       } finally {
@@ -73,7 +69,26 @@
       r(payload);
     }
 
-    function playHowl(howl, token) {
+    function normalizeStoryKey(fileName) {
+      const raw = String(fileName || "").trim();
+      if (!raw) return "";
+      const base = raw.split(/[\\/]/).pop() || raw;
+      return base.replace(/\.[^/.]+$/, "").trim().toLowerCase();
+    }
+
+    // Start a file from the beginning (new playback)
+    function startHowlFromBeginning(howl) {
+      if (!howl) return;
+
+      // ensure clean start
+      try { howl.stop(); } catch {}
+      try { howl.seek(0); } catch {}
+
+      isPaused = false;
+      currentSoundId = howl.play(); // store id for pause/resume correctness
+    }
+
+    function waitForHowlEnd(howl, token) {
       return new Promise((resolve, reject) => {
         if (!howl) return resolve();
         if (token !== playToken) return resolve();
@@ -87,27 +102,15 @@
         howl.once("playerror", onPlayError);
 
         try {
-          isPaused = false;
-          howl.stop();
-
-          // IMPORTANT: store the soundId to resume correctly
-          currentSoundId = howl.play();
+          startHowlFromBeginning(howl);
         } catch (err) {
           reject(err);
         }
       });
     }
 
-    function normalizeStoryKey(fileName) {
-      const raw = String(fileName || "").trim();
-      if (!raw) return "";
-      const base = raw.split(/[\\/]/).pop() || raw;
-      return base.replace(/\.[^/.]+$/, "").trim().toLowerCase();
-    }
-
     async function playStory(ctx) {
       const token = playToken;
-
       const record = ctx?.record || {};
       const storyFiles = Array.isArray(record.story) ? record.story : [];
       const lang = ctx?.lang || DEFAULT_LANG;
@@ -117,9 +120,7 @@
       const hasValidIndex = Number.isFinite(parsedIndex);
 
       log("[activity:story] audio sequence", {
-        lang,
-        count: storyFiles.length,
-        index: hasValidIndex ? parsedIndex : indexRaw
+        lang, count: storyFiles.length, index: hasValidIndex ? parsedIndex : indexRaw
       });
 
       if (!storyFiles.length) return;
@@ -128,11 +129,8 @@
       await ensureSoundsReady();
 
       const filesToPlay =
-        parsedIndex === -1
-          ? storyFiles
-          : parsedIndex >= 0 && parsedIndex < storyFiles.length
-            ? [storyFiles[parsedIndex]]
-            : [];
+        parsedIndex === -1 ? storyFiles :
+        parsedIndex >= 0 && parsedIndex < storyFiles.length ? [storyFiles[parsedIndex]] : [];
 
       if (!filesToPlay.length) return;
 
@@ -145,14 +143,15 @@
         const url = Sounds._buildUrl(lang, "stories", key);
         currentUrl = url;
         currentHowl = Sounds._getHowl(url);
-        currentSoundId = null;
+
         isPaused = false;
+        currentSoundId = null;
 
         log("[activity:story] play start", { key, url, fileName: String(fileName) });
 
         try {
           // eslint-disable-next-line no-await-in-loop
-          await playHowl(currentHowl, token);
+          await waitForHowlEnd(currentHowl, token);
           log("[activity:story] play end", { key, url, fileName: String(fileName) });
         } finally {
           stopCurrentHowl();
@@ -163,89 +162,59 @@
       stop({ reason: "audioEnd" });
     }
 
-    // RightThumb ONLY: toggle play/pause (no restart)
+    // ------------------------------------------------------------
+    // Toggle play/pause (RightThumb)
+    // This MUST NOT restart from the beginning.
+    // ------------------------------------------------------------
     function togglePlayPause(source) {
-      const now = Date.now();
-      if (now - lastToggleAt < TOGGLE_DEBOUNCE_MS) return;
-      lastToggleAt = now;
-
-      if (!isRunning() || !currentHowl) return;
+      if (!isRunning() || !currentHowl) {
+        log("[activity:story] toggle ignored (not running/no howl)", { source });
+        return;
+      }
 
       try {
-        const id = currentSoundId;
+        const playingNow = currentSoundId != null
+          ? currentHowl.playing(currentSoundId)
+          : currentHowl.playing();
 
-        if (currentHowl.playing(id)) {
-          currentHowl.pause(id);
+        if (playingNow) {
+          // pause
+          try {
+            if (currentSoundId != null) currentHowl.pause(currentSoundId);
+            else currentHowl.pause();
+          } catch {}
           isPaused = true;
-          log("[activity:story] paused", { source, url: currentUrl, soundId: id });
+          log("[activity:story] paused", { source, url: currentUrl });
           return;
         }
 
-        if (isPaused && id != null) {
-          currentHowl.play(id); // resumes same instance
+        // not playing
+        if (isPaused) {
+          // resume
+          if (currentSoundId != null) {
+            currentHowl.play(currentSoundId); // resume the same id
+          } else {
+            // fallback: resume best-effort (Howler may allocate a new id)
+            currentSoundId = currentHowl.play();
+          }
           isPaused = false;
-          log("[activity:story] resumed", { source, url: currentUrl, soundId: id });
+          log("[activity:story] resumed", { source, url: currentUrl });
           return;
         }
 
-        log("[activity:story] toggle ignored (not playing, not paused)", { source, url: currentUrl, soundId: id });
+        // If it is neither playing nor paused (e.g. ended), do nothing here.
+        // The activity will proceed or end naturally.
+        log("[activity:story] toggle ignored (not paused, not playing)", { source, url: currentUrl });
       } catch (err) {
         log("[activity:story] toggle error", { source, message: err?.message || String(err) });
       }
     }
-
-    function normalizeKeyName(x) {
-      return String(x || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "")
-        .replace(/[_-]/g, "");
-    }
-
-    function extractKeyNameFromEvent(ev) {
-      if (!ev) return "";
-      if (typeof ev === "string") return ev;
-      const d = ev.detail || {};
-      return d.keyName || d.key || d.name || ev.keyName || ev.key || ev.code || "";
-    }
-
-    function handleThumbKeys(ev, sourceLabel) {
-      const raw = extractKeyNameFromEvent(ev);
-      const k = normalizeKeyName(raw);
-      if (!k) return;
-
-      const isRightThumb =
-        k === "rightthumb" ||
-        k === "rt" ||
-        k === "thumbright" ||
-        k === "rightthumbkey";
-
-      if (isRightThumb) togglePlayPause(sourceLabel || raw);
-      // All other keys ignored
-    }
-
-    (function attachKeyListenersOnce() {
-      if (window.__storyThumbKeysAttached) return;
-      window.__storyThumbKeysAttached = true;
-
-      window.addEventListener("braillebridge:key", (ev) => handleThumbKeys(ev, "braillebridge:key"));
-      window.addEventListener("braille-key", (ev) => handleThumbKeys(ev, "braille-key"));
-      window.addEventListener("braillebridgeKey", (ev) => handleThumbKeys(ev, "braillebridgeKey"));
-
-      // Dev fallback: Space toggles
-      window.addEventListener("keydown", (ev) => {
-        if (ev.code === "Space") handleThumbKeys({ detail: { keyName: "RightThumb" } }, "keydown:Space");
-      });
-
-      log("[activity:story] right-thumb toggle listeners attached");
-    })();
 
     function start(ctx) {
       stop({ reason: "restart" });
       ensureDonePromise();
 
       isPaused = false;
-      currentSoundId = null;
 
       session = {
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -255,13 +224,15 @@
       log("[activity:story] start", {
         sessionId: session.id,
         recordId: ctx?.record?.id,
-        word: ctx?.record?.word
+        word: ctx?.record?.word,
+        storyLines: Array.isArray(ctx?.record?.story) ? ctx.record.story.length : null
       });
 
       let tick = 0;
       intervalId = window.setInterval(() => {
         tick += 1;
-        log("[activity:story] tick", { sessionId: session.id, tick });
+        // lightweight heartbeat
+        // log("[activity:story] tick", { sessionId: session.id, tick });
       }, 750);
 
       playToken += 1;
@@ -281,16 +252,21 @@
 
       playToken += 1;
 
-      stopCurrentHowl();
-      log("[activity:story] stop", { sessionId: session?.id, payload });
+      const url = currentUrl;
+      if (payload?.reason && url) log("[activity:story] play stop", { url, reason: payload.reason });
 
+      stopCurrentHowl();
+
+      log("[activity:story] stop", { sessionId: session?.id, payload });
       session = null;
+
       resolveDone({ ok: true, payload });
     }
 
-    return { start, stop, isRunning };
+    // Expose togglePlayPause so /js/words.js can call it for RightThumb.
+    return { start, stop, isRunning, togglePlayPause };
   }
 
   window.Activities = window.Activities || {};
-  if (!window.Activities.story) window.Activities.story = create();
+  window.Activities.story = create();
 })();
