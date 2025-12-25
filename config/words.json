@@ -7,11 +7,11 @@
     "story": ["bal.mp3"],
     "sounds": ["bounce.mp3", "shot.mp3", "goal.mp3"],
     "activities": [
-      { "id": "story", "index": 0, "caption": "bal", "instruction": "Luister naar het verhaal, ballen." },
+      { "id": "verhaal", "index": 0, "caption": "bal", "instruction": "Luister naar het verhaal, bal." },
       { "id": "letters", "caption": "Oefen letter b a l", "instruction": "Oefen de letters van het woord." },
-      { "id": "story", "index": 0, "caption": "2ballen", "instruction": "Luister naar het verhaal: 2ballen." },
+      { "id": "verhaal", "index": 0, "caption": "ballen", "instruction": "Luister naar het verhaal: bal." },
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." },
-      { "id": "story", "index": -1, "caption": "alles", "instruction": "Luister naar alle verhalen." }
+      { "id": "verhaal", "index": -1, "caption": "alles", "instruction": "Luister naar alle verhalen." }
     ],
     "short": true,
     "icon": "ball.icon",
