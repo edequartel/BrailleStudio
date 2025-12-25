@@ -206,6 +206,15 @@ Moeilijker door tempo en afleiders.
 
 —
 
+
+### Boggle
+doel: kies de letters/woorden die hetzelfde zijn
+
+- er komen letter verspreid op de leesregel
+- dit zijn 2 of meer dezelfde
+- uitbreiden met meer letters hetzelfde
+- aabbbcccc abcb
+
 ## Sociaal Leren
 
 - Bestuurder & Meedenker

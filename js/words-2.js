@@ -2,6 +2,9 @@
 (function () {
   "use strict";
 
+  // ------------------------------------------------------------
+  // Logging helper
+  // ------------------------------------------------------------
   function log(msg, data) {
     const line = data ? `${msg} ${safeJson(data)}` : msg;
     if (typeof window.logMessage === "function") window.logMessage(line);
@@ -14,14 +17,24 @@
 
   log("[words] words.js loaded");
 
+  // ------------------------------------------------------------
+  // Config
+  // ------------------------------------------------------------
   const LOCAL_DATA_URL = "../config/words.json";
   const REMOTE_DATA_URL = "https://edequartel.github.io/BrailleServer/config/words.json";
 
+  // ------------------------------------------------------------
+  // State
+  // ------------------------------------------------------------
   let records = [];
   let currentIndex = 0;
   let currentActivityIndex = 0;
+  let runToken = 0;
+  let running = false;
 
-  let runner = null;
+  let activeActivityModule = null;
+  let activeActivityDonePromise = null;
+
   let brailleMonitor = null;
   let brailleLine = "";
   const BRAILLE_CELLS = 40;
@@ -49,6 +62,9 @@
     "/": "⠌"
   };
 
+  // ------------------------------------------------------------
+  // DOM helper
+  // ------------------------------------------------------------
   function $(id) {
     const el = document.getElementById(id);
     if (!el) log(`[words] Missing element #${id}`);
@@ -65,16 +81,18 @@
     if (el) el.textContent = "Status: " + text;
   }
 
+  // ------------------------------------------------------------
+  // Activity button state styling hooks
+  // ------------------------------------------------------------
   function updateActivityButtonStates() {
     const wrap = $("activity-buttons");
     if (!wrap) return;
 
-    const isRunning = runner ? runner.isRunning() : false;
     const buttons = wrap.querySelectorAll("button.chip");
     for (const btn of buttons) {
       const i = Number(btn.dataset.index);
       const isSelected = Number.isFinite(i) && i === currentActivityIndex;
-      const isActive = isSelected && Boolean(isRunning);
+      const isActive = isSelected && Boolean(running);
 
       btn.classList.toggle("is-selected", isSelected);
       btn.classList.toggle("is-active", isActive);
@@ -85,27 +103,38 @@
     }
   }
 
+  // ------------------------------------------------------------
+  // SINGLE toggle run button UI
+  // ------------------------------------------------------------
   function setRunnerUi({ isRunning }) {
     const runBtn = $("run-activity-btn");
     const autoRun = $("auto-run");
 
+    if (autoRun) autoRun.disabled = Boolean(isRunning);
+
     if (runBtn) {
       runBtn.textContent = isRunning ? "Stop" : "Start";
       runBtn.setAttribute("aria-pressed", isRunning ? "true" : "false");
-      runBtn.classList.toggle("danger", Boolean(isRunning));
+      runBtn.classList.toggle("is-running", Boolean(isRunning));
     }
-
-    if (autoRun) autoRun.disabled = Boolean(isRunning);
 
     updateActivityButtonStates();
   }
 
+  // ------------------------------------------------------------
+  // Emoji/icon helpers
+  // ------------------------------------------------------------
   function getEmojiForItem(item) {
     const direct = String(item?.emoji ?? "").trim();
     if (direct) return direct;
 
     const icon = String(item?.icon ?? "").trim().toLowerCase();
-    const map = { "ball.icon": "⚽", "comb.icon": "💇", "monkey.icon": "🐒", "branch.icon": "🌿" };
+    const map = {
+      "ball.icon": "⚽",
+      "comb.icon": "💇",
+      "monkey.icon": "🐒",
+      "branch.icon": "🌿"
+    };
     return map[icon] || "";
   }
 
@@ -146,20 +175,39 @@
 
     if (window.BrailleBridge) {
       if (!next && typeof BrailleBridge.clearDisplay === "function") {
-        BrailleBridge.clearDisplay().catch((err) => log("[words] BrailleBridge.clearDisplay failed", { message: err?.message }));
+        BrailleBridge.clearDisplay().catch((err) => {
+          log("[words] BrailleBridge.clearDisplay failed", { message: err?.message });
+        });
       } else if (typeof BrailleBridge.sendText === "function") {
-        BrailleBridge.sendText(next).catch((err) => log("[words] BrailleBridge.sendText failed", { message: err?.message }));
+        BrailleBridge.sendText(next).catch((err) => {
+          log("[words] BrailleBridge.sendText failed", { message: err?.message });
+        });
       }
     }
 
     log("[words] Braille line updated", { len: next.length, reason: meta.reason || "unspecified" });
   }
 
+  function getBrailleTextForCurrent() {
+    const item = records[currentIndex];
+    if (!item) return "";
+
+    const cur = getCurrentActivity();
+    if (cur && cur.activity) {
+      const { detail } = formatActivityDetail(cur.activity.id, item);
+      const detailText = compactSingleLine(detail);
+      if (detailText && detailText !== "–") return detailText;
+    }
+
+    return item.word != null ? String(item.word) : "";
+  }
+
   function computeWordAt(text, index) {
     if (!text) return "";
     const len = text.length;
     if (index < 0 || index >= len) return "";
-    let start = index, end = index;
+    let start = index;
+    let end = index;
     while (start > 0 && text[start - 1] !== " ") start--;
     while (end < len - 1 && text[end + 1] !== " ") end++;
     return text.substring(start, end + 1).trim();
@@ -172,12 +220,48 @@
 
     log("[words] Cursor selection", { source, index, letter, word });
 
-    const mod = runner ? runner.getActiveModule() : null;
-    if (mod && typeof mod.onCursor === "function") {
-      mod.onCursor({ source, index, letter, word });
+    if (activeActivityModule && typeof activeActivityModule.onCursor === "function") {
+      activeActivityModule.onCursor({ source, index, letter, word });
     }
   }
 
+  function formatAllFields(item) {
+    if (!item || typeof item !== "object") return "–";
+
+    const activities = Array.isArray(item.activities) ? item.activities : [];
+    const activityLines = activities
+      .filter(a => a && typeof a === "object")
+      .map(a => {
+        const id = String(a.id ?? "").trim();
+        const caption = String(a.caption ?? "").trim();
+        const instruction = String(a.instruction ?? "").trim();
+        if (!id && !caption) return null;
+        if (caption && instruction) return `${id} -- ${caption} -- ${instruction}`;
+        if (caption) return `${id} -- ${caption}`;
+        if (instruction) return `${id} -- ${instruction}`;
+        return id;
+      })
+      .filter(Boolean);
+
+    const lines = [
+      `id: ${item.id ?? "–"}`,
+      `word: ${item.word ?? "–"}`,
+      `icon: ${item.icon ?? "–"}`,
+      `emoji: ${item.emoji ?? "–"}`,
+      `short: ${typeof item.short === "boolean" ? item.short : (item.short ?? "–")}`,
+      `letters: ${Array.isArray(item.letters) ? item.letters.join(" ") : "–"}`,
+      `words: ${Array.isArray(item.words) ? item.words.join(", ") : "–"}`,
+      `story: ${Array.isArray(item.story) ? item.story.join(", ") : "–"}`,
+      `sounds: ${Array.isArray(item.sounds) ? item.sounds.join(", ") : "–"}`,
+      `activities (${activityLines.length}):${activityLines.length ? "\n  - " + activityLines.join("\n  - ") : " –"}`
+    ];
+
+    return lines.join("\n");
+  }
+
+  // ------------------------------------------------------------
+  // Activities
+  // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
       return item.activities
@@ -199,6 +283,33 @@
     return activities;
   }
 
+  function formatActivityDetail(activityId, item) {
+    const rawId = String(activityId ?? "");
+    const id = rawId.trim().toLowerCase();
+    const canonical =
+      id.startsWith("tts") ? "tts" :
+      id.startsWith("letters") ? "letters" :
+      id.startsWith("words") ? "words" :
+      id.startsWith("story") ? "story" :
+      id.startsWith("sounds") ? "sounds" :
+      id;
+
+    switch (canonical) {
+      case "tts":
+        return { caption: "Luister (woord)", detail: item.word ? String(item.word) : "–" };
+      case "letters":
+        return { caption: "Oefen letters", detail: Array.isArray(item.letters) && item.letters.length ? item.letters.join(" ") : "–" };
+      case "words":
+        return { caption: "Maak woorden", detail: Array.isArray(item.words) && item.words.length ? item.words.join(", ") : "–" };
+      case "story":
+        return { caption: "Luister (verhaal)", detail: Array.isArray(item.story) && item.story.length ? item.story.join("\n") : "–" };
+      case "sounds":
+        return { caption: "Geluiden", detail: Array.isArray(item.sounds) && item.sounds.length ? item.sounds.join("\n") : "–" };
+      default:
+        return { caption: rawId ? `Activity: ${rawId}` : "Details", detail: safeJson(item) };
+    }
+  }
+
   function canonicalActivityId(activityId) {
     const rawId = String(activityId ?? "");
     const id = rawId.trim().toLowerCase();
@@ -210,46 +321,46 @@
       : id;
   }
 
-  function getCurrentActivity() {
-    const item = records[currentIndex];
-    if (!item) return null;
-    const activities = getActivities(item);
-    if (!activities.length) return null;
-    const active = activities[currentActivityIndex] ?? activities[0];
-    if (!active) return null;
-    return { item, activities, activity: active };
-  }
-
-  function getBrailleTextForCurrent() {
-    const item = records[currentIndex];
-    if (!item) return "";
-    const cur = getCurrentActivity();
-    if (cur && cur.activity) {
-      // simplest: show instruction/detail
-      const instruction = String(cur.activity.instruction ?? "").trim();
-      if (instruction) return instruction;
-    }
-    return item.word != null ? String(item.word) : "";
-  }
-
   function setActiveActivity(index) {
     const item = records[currentIndex];
     if (!item) return;
+
     const activities = getActivities(item);
-    if (!activities.length) { currentActivityIndex = 0; return; }
-    currentActivityIndex = Math.max(0, Math.min(index, activities.length - 1));
+    if (!activities.length) {
+      currentActivityIndex = 0;
+      return;
+    }
+
+    const nextIndex = Math.max(0, Math.min(index, activities.length - 1));
+    currentActivityIndex = nextIndex;
+
     renderActivity(item, activities);
     updateActivityButtonStates();
-    updateBrailleLine(getBrailleTextForCurrent(), { reason: "activity-change" });
+  }
+
+  function getCurrentActivity() {
+    const item = records[currentIndex];
+    if (!item) return null;
+
+    const activities = getActivities(item);
+    if (!activities.length) return null;
+
+    const active = activities[currentActivityIndex] ?? activities[0];
+    if (!active) return null;
+
+    return { item, activities, activity: active };
   }
 
   function renderActivity(item, activities) {
     const activityIndexEl = $("activity-index");
     const activityIdEl = $("activity-id");
     const activityButtonsEl = $("activity-buttons");
-    const activityInstructionEl = $("activity-instruction");
+    const activityInstructionEl = document.getElementById("activity-instruction");
 
-    if (!activityIndexEl || !activityIdEl || !activityButtonsEl) return;
+    if (!activityIndexEl || !activityIdEl || !activityButtonsEl) {
+      log("[words] Missing activity DOM elements; cannot render activity.");
+      return;
+    }
 
     if (!activities.length) {
       activityIndexEl.textContent = "0 / 0";
@@ -266,8 +377,10 @@
     activityIndexEl.textContent = `${currentActivityIndex + 1} / ${activities.length}`;
     activityIdEl.textContent = `Activity: ${String(active.id ?? "–")}`;
 
+    const { caption } = formatActivityDetail(active.id, item);
     const instruction = String(active.instruction ?? "").trim();
-    if (activityInstructionEl) activityInstructionEl.textContent = instruction || "–";
+
+    if (activityInstructionEl) activityInstructionEl.textContent = instruction || caption || "–";
 
     activityButtonsEl.innerHTML = "";
     for (let i = 0; i < activities.length; i++) {
@@ -280,7 +393,7 @@
       btn.title = a.id;
 
       btn.addEventListener("click", () => {
-        if (runner) runner.stop("activityChange");
+        cancelRun();
         setActiveActivity(i);
       });
 
@@ -288,8 +401,12 @@
     }
 
     updateActivityButtonStates();
+    updateBrailleLine(getBrailleTextForCurrent(), { reason: "activity-change" });
   }
 
+  // ------------------------------------------------------------
+  // Activity module management
+  // ------------------------------------------------------------
   function getActivityModule(activityKey) {
     const acts = window.Activities;
     if (!acts || typeof acts !== "object") return null;
@@ -299,8 +416,119 @@
     return mod;
   }
 
+  function stopActiveActivity(payload) {
+    try {
+      if (activeActivityModule && typeof activeActivityModule.stop === "function") {
+        activeActivityModule.stop(payload);
+      }
+    } finally {
+      activeActivityModule = null;
+      activeActivityDonePromise = null;
+    }
+  }
+
+  function cancelRun() {
+    runToken += 1;
+    running = false;
+    stopActiveActivity({ reason: "stop" });
+    setRunnerUi({ isRunning: false });
+    setActivityStatus("idle");
+  }
+
+  // Wait until:
+  // - activity module resolves its promise, OR
+  // - user stops (runToken changes)
+  function waitForStopOrDone(currentToken) {
+    return new Promise((resolve) => {
+      let settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+
+      const p = activeActivityDonePromise;
+      if (p && typeof p.then === "function") {
+        p.then(finish).catch(finish);
+      }
+
+      const poll = () => {
+        if (currentToken !== runToken) return finish();
+        if (!running) return finish();
+        requestAnimationFrame(poll);
+      };
+      requestAnimationFrame(poll);
+    });
+  }
+
+  async function startSelectedActivity({ autoStarted = false } = {}) {
+    const cur = getCurrentActivity();
+    if (!cur) return;
+
+    // stop any current run first
+    cancelRun();
+    const token = runToken;
+
+    const activityKey = canonicalActivityId(cur.activity.id);
+    const activityModule = getActivityModule(activityKey);
+
+    if (activityModule) {
+      activeActivityModule = activityModule;
+
+      const maybePromise = activityModule.start({
+        activityKey,
+        activityId: cur.activity?.id ?? null,
+        activityCaption: cur.activity?.caption ?? null,
+        activity: cur.activity ?? null,
+        record: cur.item ?? null,
+        recordIndex: currentIndex,
+        activityIndex: currentActivityIndex,
+        autoStarted: Boolean(autoStarted)
+      });
+
+      activeActivityDonePromise =
+        (maybePromise && typeof maybePromise.then === "function") ? maybePromise : null;
+    } else {
+      activeActivityModule = null;
+      activeActivityDonePromise = null;
+      log("[words] No activity module found", { activityKey });
+    }
+
+    running = true;
+    setRunnerUi({ isRunning: true });
+    setActivityStatus(autoStarted ? "running (auto)" : "running");
+
+    try {
+      await waitForStopOrDone(token);
+    } finally {
+      // if a new run started, ignore
+      if (token !== runToken) return;
+
+      running = false;
+      setRunnerUi({ isRunning: false });
+      setActivityStatus("done");
+
+      stopActiveActivity({ reason: "finally" });
+
+      const autoRun = $("auto-run");
+      if (autoRun && autoRun.checked) {
+        advanceToNextActivityOrWord({ autoStart: true });
+      }
+    }
+  }
+
+  function toggleRun() {
+    if (running) {
+      cancelRun();
+    } else {
+      startSelectedActivity({ autoStarted: false });
+    }
+  }
+
   function advanceToNextActivityOrWord({ autoStart = false } = {}) {
     if (!records.length) return;
+
     const item = records[currentIndex];
     const activities = getActivities(item);
     const nextIndex = currentActivityIndex + 1;
@@ -313,12 +541,15 @@
       render();
     }
 
-    if (autoStart && runner) runner.start({ autoStarted: true });
+    if (autoStart) startSelectedActivity({ autoStarted: true });
   }
 
+  // ------------------------------------------------------------
+  // Navigation (word only)
+  // ------------------------------------------------------------
   function next() {
     if (!records.length) return;
-    if (runner) runner.stop("wordNext");
+    cancelRun();
     currentIndex = (currentIndex + 1) % records.length;
     currentActivityIndex = 0;
     render();
@@ -326,12 +557,38 @@
 
   function prev() {
     if (!records.length) return;
-    if (runner) runner.stop("wordPrev");
+    cancelRun();
     currentIndex = (currentIndex - 1 + records.length) % records.length;
     currentActivityIndex = 0;
     render();
   }
 
+  // ------------------------------------------------------------
+  // Right thumb logic:
+  // - If story is running: toggle play/pause inside story module
+  // - Else: start selected activity (same as Start button)
+  // Left thumb: does nothing
+  // ------------------------------------------------------------
+  function rightThumbAction() {
+    const cur = getCurrentActivity();
+    const key = canonicalActivityId(cur?.activity?.id);
+
+    if (running && key === "story" && activeActivityModule && typeof activeActivityModule.togglePlayPause === "function") {
+      activeActivityModule.togglePlayPause("RightThumb");
+      return;
+    }
+
+    // otherwise behave like Start
+    if (!running) startSelectedActivity({ autoStarted: false });
+  }
+
+  function leftThumbAction() {
+    // intentionally no-op
+  }
+
+  // ------------------------------------------------------------
+  // Load JSON
+  // ------------------------------------------------------------
   async function loadData() {
     const params = new URLSearchParams(window.location.search || "");
     const overrideUrl = params.get("data");
@@ -350,7 +607,7 @@
       currentActivityIndex = 0;
       render();
     } catch (err) {
-      log("[words] ERROR loading JSON", { message: err.message });
+      log("[words] ERROR loading JSON", { message: err?.message || String(err) });
 
       if (!overrideUrl && preferred === REMOTE_DATA_URL) {
         const fallbackUrl = new URL(LOCAL_DATA_URL, window.location.href).toString();
@@ -366,7 +623,7 @@
           render();
           return;
         } catch (fallbackErr) {
-          log("[words] ERROR loading local JSON", { message: fallbackErr.message });
+          log("[words] ERROR loading local JSON", { message: fallbackErr?.message || String(fallbackErr) });
         }
       }
 
@@ -375,9 +632,14 @@
     }
   }
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   function render() {
     if (!records.length) {
       setStatus("geen records");
+      const allEl = $("field-all");
+      if (allEl) allEl.textContent = "–";
       return;
     }
 
@@ -406,24 +668,29 @@
     const wordBrailleEl = $("field-word-braille");
     if (wordBrailleEl) wordBrailleEl.textContent = toBrailleUnicode(item.word || "");
 
+    const allEl = $("field-all");
+    if (allEl) allEl.textContent = formatAllFields(item);
+
     const activities = getActivities(item);
     if (currentActivityIndex >= activities.length) currentActivityIndex = 0;
     renderActivity(item, activities);
 
-    const isRunning = runner ? runner.isRunning() : false;
-    setRunnerUi({ isRunning });
-    setActivityStatus(isRunning ? "running" : "idle");
+    setRunnerUi({ isRunning: false });
+    setActivityStatus("idle");
     setStatus(`geladen (${records.length})`);
-
-    updateBrailleLine(getBrailleTextForCurrent(), { reason: "render" });
   }
 
+  // ------------------------------------------------------------
+  // Init
+  // ------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     log("[words] DOMContentLoaded");
 
-    const prevBtn = $("prev-btn");
     const nextBtn = $("next-btn");
+    const prevBtn = $("prev-btn");
     const runBtn = $("run-activity-btn");
+    const toggleFieldsBtn = $("toggle-fields-btn");
+    const fieldsPanel = $("fields-panel");
 
     if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
       BrailleBridge.connect();
@@ -431,69 +698,57 @@
         if (typeof evt?.index !== "number") return;
         dispatchCursorSelection({ index: evt.index }, "bridge");
       });
+      BrailleBridge.on("connected", () => log("[words] BrailleBridge connected"));
+      BrailleBridge.on("disconnected", () => log("[words] BrailleBridge disconnected"));
     }
 
     if (window.BrailleMonitor && typeof BrailleMonitor.init === "function") {
       brailleMonitor = BrailleMonitor.init({
         containerId: "brailleMonitorComponent",
-        onCursorClick(info) { dispatchCursorSelection(info, "monitor"); },
-
-        // Thumb keys ONLY start the selected activity
+        onCursorClick(info) {
+          dispatchCursorSelection(info, "monitor");
+        },
         mapping: {
-          leftthumb: () => runner && runner.start({ autoStarted: false }),
-          rightthumb: () => runner && runner.start({ autoStarted: false }),
-          middleleftthumb: () => runner && runner.start({ autoStarted: false }),
-          middlerightthumb: () => runner && runner.start({ autoStarted: false })
+          // Left thumb does nothing
+          leftthumb: () => leftThumbAction(),
+
+          // Right thumb:
+          // - story running => toggle play/pause
+          // - else => start selected activity
+          rightthumb: () => rightThumbAction(),
+
+          // other thumbs do nothing to avoid unintended restarts
+          middleleftthumb: () => {},
+          middlerightthumb: () => {}
         }
       });
     }
 
-    runner = window.ActivityRunner.create({
-      log,
-      getActivityModule,
-      canonicalActivityId,
-
-      getCurrentContext() {
-        const cur = getCurrentActivity();
-        if (!cur) return null;
-        return { ...cur, recordIndex: currentIndex, activityIndex: currentActivityIndex };
-      },
-
-      onRunningChange(isRunning) {
-        setRunnerUi({ isRunning });
-      },
-
-      onStatus(text) {
-        setActivityStatus(text);
-      },
-
-      isAutoRunEnabled() {
-        const el = $("auto-run");
-        return Boolean(el && el.checked);
-      },
-
-      onAutoAdvance() {
-        advanceToNextActivityOrWord({ autoStart: true });
-      }
-    });
-
-    if (prevBtn) prevBtn.addEventListener("click", prev);
     if (nextBtn) nextBtn.addEventListener("click", next);
+    if (prevBtn) prevBtn.addEventListener("click", prev);
+    if (runBtn) runBtn.addEventListener("click", toggleRun);
 
-    // SINGLE TOGGLE BUTTON
-    if (runBtn) {
-      runBtn.addEventListener("click", () => {
-        if (!runner) return;
-        if (runner.isRunning()) runner.stop("runToggleStop");
-        else runner.start({ autoStarted: false });
+    function setFieldsPanelVisible(visible) {
+      if (!toggleFieldsBtn || !fieldsPanel) return;
+      fieldsPanel.classList.toggle("hidden", !visible);
+      toggleFieldsBtn.textContent = visible ? "Verberg velden" : "Velden";
+      toggleFieldsBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+    }
+
+    if (toggleFieldsBtn && fieldsPanel) {
+      setFieldsPanelVisible(false);
+      toggleFieldsBtn.addEventListener("click", () => {
+        const isHidden = fieldsPanel.classList.contains("hidden");
+        setFieldsPanelVisible(isHidden);
       });
     }
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown") next();
       if (e.key === "ArrowUp") prev();
-      if (e.key === "Enter") runner && runner.start({ autoStarted: false });
-      if (e.key === "Escape") runner && runner.stop("escape");
+
+      // Enter toggles start/stop
+      if (e.key === "Enter") toggleRun();
     });
 
     loadData();
