@@ -145,7 +145,7 @@
         { key: "leftthumb", label: "•" },
         { key: "middleleftthumb", label: "••" },
         { key: "middlerightthumb", label: "••" },
-        { key: "rightthumb", label: "• ▶" }
+        { key: "rightthumb", label: "•" }
       ];
 
       thumbDefs.forEach((def) => {
