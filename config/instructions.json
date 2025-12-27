@@ -1,172 +1,68 @@
-{
-  "version": "1.1", 
-  "audioBase": "https://www.tastenbraille.com/braillestudio/sounds/nl/alfabet/",
-  "snippets": {
-    "kijk_naar_leesregel": "kijk-naar-de-leesregel.mp3",
-    "komt_er": "komt-er.mp3",
-    "de_letter": "de-letter.mp3",
-    "vraagteken": "vraagteken.mp3",
-    "is_het_een": "is-het-een.mp3",
-    "is_het_geen": "is-het-geen.mp3",
-    "druk_dan": "druk-dan.mp3",
-    "rechts": "rechts.mp3",
-    "links": "links.mp3",
-    "volgende": "volgende.mp3"
+[
+  {
+    "title": "Story",
+    "instructionf": "De computer leest een verhaal voor.",
+    "audio": "story.mp3",
+    "fileid": ""
   },
-
- "varaudiomap": {
-  "<a>": "a.mp3",
-  "<b>": "b.mp3",
-  "<c>": "c.mp3",
-  "<d>": "d.mp3",
-  "<e>": "e.mp3",
-  "<f>": "f.mp3",
-  "<g>": "g.mp3",
-  "<h>": "h.mp3",
-  "<i>": "i.mp3",
-  "<j>": "j.mp3",
-  "<k>": "k.mp3",
-  "<l>": "l.mp3",
-  "<m>": "m.mp3",
-  "<n>": "n.mp3",
-  "<o>": "o.mp3",
-  "<p>": "p.mp3",
-  "<q>": "q.mp3",
-  "<r>": "r.mp3",
-  "<s>": "s.mp3",
-  "<t>": "t.mp3",
-  "<u>": "u.mp3",
-  "<v>": "v.mp3",
-  "<w>": "w.mp3",
-  "<x>": "x.mp3",
-  "<y>": "y.mp3",
-  "<z>": "z.mp3"
-},
-
-  "instructions": [
-    {
-      "id": "instr_detect_a",
-      "title": "Detecteer letter a",
-      "vars": { "TARGET": "<a>" },
-      "instructionText": "Kijk naar de leesregel. Is er een a? Druk rechts. Anders links.",
-      "script": [
-        { "type": "audio", "name": "kijk_naar_leesregel" },
-        { "type": "set", "var": "present", "expr": "includes(display, vars.TARGET)" },
-        {
-          "type": "choice",
-          "expr": "vars.present === true",
-          "then": [
-            { "type": "audio", "name": "is_het_een" },
-            { "type": "audioVar", "var": "TARGET" },
-            { "type": "audio", "name": "rechts" }
-          ],
-          "else": [
-            { "type": "audio", "name": "is_het_geen" },
-            { "type": "audioVar", "var": "TARGET" },
-            { "type": "audio", "name": "links" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "instr_detect_b",
-      "title": "Detecteer letter b",
-      "vars": { "TARGET": "<b>" },
-      "instructionText": "Kijk naar de leesregel. Zie je een b? Rechts. Anders links.",
-      "script": [
-        { "type": "audio", "name": "kijk_naar_leesregel" },
-        { "type": "set", "var": "present", "expr": "includes(display, vars.TARGET)" },
-        {
-          "type": "choice",
-          "expr": "vars.present === true",
-          "then": [
-            { "type": "audioVar", "var": "TARGET" },
-            { "type": "audio", "name": "rechts" }
-          ],
-          "else": [
-            { "type": "audio", "name": "links" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "instr_detect_c",
-      "title": "Detecteer letter c",
-      "vars": { "TARGET": "<c>" },
-      "instructionText": "Controleer of de letter c voorkomt.",
-      "script": [
-        { "type": "audio", "name": "komt_er" },
-        { "type": "audioVar", "var": "TARGET" },
-        { "type": "audio", "name": "vraagteken" }
-      ]
-    },
-    {
-      "id": "instr_detect_d",
-      "title": "Detecteer letter d",
-      "vars": { "TARGET": "<d>" },
-      "instructionText": "Let op de leesregel. Is het een d?",
-      "script": [
-        { "type": "audio", "name": "de_letter" },
-        { "type": "audioVar", "var": "TARGET" }
-      ]
-    },
-    {
-      "id": "instr_detect_e",
-      "title": "Detecteer letter e",
-      "vars": { "TARGET": "<e>" },
-      "instructionText": "Luister en controleer of e voorkomt.",
-      "script": [
-        { "type": "audioVar", "var": "TARGET" },
-        { "type": "audio", "name": "vraagteken" }
-      ]
-    },
-    {
-      "id": "instr_detect_f",
-      "title": "Detecteer letter f",
-      "vars": { "TARGET": "<f>" },
-      "instructionText": "Komt de letter f voor?",
-      "script": [
-        { "type": "audio", "name": "komt_er" },
-        { "type": "audioVar", "var": "TARGET" }
-      ]
-    },
-    {
-      "id": "instr_detect_g",
-      "title": "Detecteer letter g",
-      "vars": { "TARGET": "<g>" },
-      "instructionText": "Zoek naar de letter g.",
-      "script": [
-        { "type": "audioVar", "var": "TARGET" }
-      ]
-    },
-    {
-      "id": "instr_detect_h",
-      "title": "Detecteer letter h",
-      "vars": { "TARGET": "<h>" },
-      "instructionText": "Let op: staat h op de leesregel?",
-      "script": [
-        { "type": "audioVar", "var": "TARGET" },
-        { "type": "audio", "name": "vraagteken" }
-      ]
-    },
-    {
-      "id": "instr_detect_i",
-      "title": "Detecteer letter i",
-      "vars": { "TARGET": "<i>" },
-      "instructionText": "Controleer de letter i.",
-      "script": [
-        { "type": "audioVar", "var": "TARGET" }
-      ]
-    },
-    {
-      "id": "instr_detect_j",
-      "title": "Detecteer letter j",
-      "vars": { "TARGET": "<j>" },
-      "instructionText": "Is de letter j aanwezig?",
-      "script": [
-        { "type": "audioVar", "var": "TARGET" },
-        { "type": "audio", "name": "volgende" }
-      ]
-    }
-  ]
-}
+  {
+    "title": "Woord",
+    "instructionf": "Lees het woord <bal>. Druk op de volgende toets voor het volgende woord.",
+    "audio": "woord.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Letter",
+    "instructionf": "Op de leesregel zie je een letter. Dit is de <b>. Omdat het een <b> is druk je op de rechterduimtoets. Er komen nog meer letters. Bij de <b> druk je op de rechterduimtoets. Als het geen <b> is, kies je de linkerduimtoets.",
+    "audio": "letter.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Typen",
+    "instructionf": "Op de leesregel zie je een <b>. De <b> type je met toets 1 en 2. Type de letter en druk op de rechterduimtoets. Type tot je de stuiterende bal hoort.",
+    "audio": "typen.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Auditief herkennen",
+    "instructionf": "De computer leest een woord voor. Hoor je een <l> in het woord, druk op de rechterduimtoets. Hoor je geen <l> in het woord, druk dan op de linkerduimtoets.",
+    "audio": "auditiefHerkennen.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Lezen woord en letters",
+    "instructionf": "Op de leesregel komen woorden of letters. Lees ze hardop. Druk op de rechterduimtoets voor de volgende regel.",
+    "audio": "lezenWoordenEnLetters.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Tactiel herkennen",
+    "instructionf": "Op de leesregel komen woorden. Druk op de rechterduimtoets als het woord met een <b> begint. Druk anders op de linkerduimtoets. Als je het goed hebt gedaan hoor je een geluid. Daarna komt de volgende. Als het niet goed is hoor je een ander geluid en komt het woord nog een keer.",
+    "audio": "tactielHerkennen.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Auditieve synthese",
+    "instructionf": "Je hoort letters. De computer maakt er een woord van. Soms is het fout. Druk dan op de linkerduimtoets. Druk op de rechterduimtoets als het goed is.",
+    "audio": "auditieveSynthese.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Tactiele discriminatie",
+    "instructionf": "Op de leesregel staan woorden. Zet de cursor in het woord dat hetzelfde is als het eerste woord.",
+    "audio": "tactieleDiscriminatie.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Dictee",
+    "instructionf": "Luister naar het woord, type het en druk de rechterduimtoets.",
+    "audio": "dictee.mp3",
+    "fileid": ""
+  },
+  {
+    "title": "Memory",
+    "instructionf": "Op de leesregel zijn 6 woorden verstopt. Zoek 2 dezelfde woorden. Je vindt de woorden door de cursortoetsen te gebruiken. Druk op de rechterduimtoets als je 2 dezelfde hebt. Druk de linkerduimtoets als ze niet hetzelfde zijn.",
+    "audio": "memory.mp3",
+    "fileid": ""
+  }
+]
