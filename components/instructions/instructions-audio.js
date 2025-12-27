@@ -1,8 +1,8 @@
 /* global Howl */
 
 (() => {
-  const JSON_URL = "./config/instructions.json";
-  const AUDIO_BASE = "./audio/";
+  const JSON_URL = "/config/instructions.json";
+  const AUDIO_BASE = "../audio/";
 
   const ul = document.getElementById("list");
 
