@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local Profile (localStorage JSON)</title>
+
+  <link rel="stylesheet" href="profile.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Student Profile</h1>
+      <p class="muted">Stored locally in your browser as JSON (localStorage).</p>
+    </header>
+
+    <section class="card">
+      <form id="profileForm" autocomplete="off">
+        <div class="grid">
+          <label class="field">
+            <span class="label">Name</span>
+            <input id="name" name="name" type="text" placeholder="e.g. Eric de Quartel" />
+          </label>
+
+          <label class="field">
+            <span class="label">Age</span>
+            <input id="age" name="age" type="number" min="0" max="130" step="1" placeholder="e.g. 42" />
+          </label>
+
+          <label class="field field--full">
+            <span class="label">Address</span>
+            <input id="address" name="address" type="text" placeholder="Street + number, City" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="resetBtn" type="button" class="btn btn--secondary">Reset</button>
+          <button id="exportBtn" type="button" class="btn">Export JSON</button>
+          <div class="status" aria-live="polite">
+            <span id="statusDot" class="dot" aria-hidden="true"></span>
+            <span id="statusText">Not saved yet</span>
+          </div>
+        </div>
+
+        <details class="debug">
+          <summary>Preview stored JSON</summary>
+          <pre id="jsonPreview">{}</pre>
+        </details>
+      </form>
+    </section>
+
+    <footer class="footer muted">
+      Tip: localStorage is per browser/device. Clearing browser data removes it.
+    </footer>
+  </main>
+
+  <script src="../js/profile.js"></script>
+</body>
+</html>

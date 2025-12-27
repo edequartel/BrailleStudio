@@ -1,0 +1,224 @@
+/* =====================================================
+   Dark-only theme (forced)
+===================================================== */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0f1117;
+  --fg: #e5e7eb;
+  --muted: #9aa4b2;
+
+  --card: #161a23;
+  --border: #2a2f3a;
+  --shadow: 0 10px 30px rgba(0,0,0,.6);
+
+  --btn: #7aa2ff;
+  --btn-fg: #0f1117;
+  --btn2: #1e2330;
+
+  --ok: #4ade80;
+  --idle: #64748b;
+}
+
+/* =====================================================
+   Reset / base
+===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  line-height: 1.45;
+}
+
+/* =====================================================
+   Layout
+===================================================== */
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header h1 {
+  margin: 0 0 6px 0;
+  font-size: 1.6rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.footer {
+  margin-top: 14px;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+/* =====================================================
+   Card
+===================================================== */
+
+.card {
+  margin-top: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+}
+
+/* =====================================================
+   Form grid – aligned fields
+===================================================== */
+
+.grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  column-gap: 18px;
+  row-gap: 14px;
+  align-items: center;
+}
+
+/* Labels */
+.label {
+  text-align: right;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+/* Field wrapper */
+.field {
+  display: contents;
+}
+
+/* Inputs */
+input {
+  width: 100%;
+  max-width: 420px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0f1422;
+  color: var(--fg);
+  font-size: 1rem;
+}
+
+input::placeholder {
+  color: #7c8799;
+}
+
+input:focus {
+  outline: 3px solid rgba(122, 162, 255, 0.35);
+  border-color: #7aa2ff;
+}
+
+/* Age field compact */
+#age {
+  max-width: 120px;
+}
+
+/* Full-width field (address) */
+.field--full .label {
+  align-self: start;
+  padding-top: 6px;
+}
+
+.field--full input {
+  max-width: none;
+}
+
+/* =====================================================
+   Actions / buttons / status
+===================================================== */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 0;
+  background: var(--btn);
+  color: var(--btn-fg);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.btn--secondary {
+  background: var(--btn2);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--idle);
+}
+
+/* =====================================================
+   JSON preview
+===================================================== */
+
+.debug {
+  margin-top: 14px;
+}
+
+.debug summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.debug pre {
+  margin-top: 10px;
+  padding: 12px;
+  background: #0b1220;
+  color: #d7e0ff;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: auto;
+}
+
+/* =====================================================
+   Mobile fallback
+===================================================== */
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .label {
+    text-align: left;
+  }
+
+  input,
+  #age {
+    max-width: none;
+  }
+}
