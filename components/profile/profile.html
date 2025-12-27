@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Local Profile (localStorage JSON)</title>
+  <title>Profile (localStorage)</title>
 
-  <link rel="stylesheet" href="profile.css" />
+  <link rel="stylesheet" href="./profile.css" />
 </head>
 <body>
   <main class="container">
@@ -36,24 +36,23 @@
         <div class="actions">
           <button id="resetBtn" type="button" class="btn btn--secondary">Reset</button>
           <button id="exportBtn" type="button" class="btn">Export JSON</button>
+
           <div class="status" aria-live="polite">
             <span id="statusDot" class="dot" aria-hidden="true"></span>
             <span id="statusText">Not saved yet</span>
           </div>
         </div>
 
-        <details class="debug">
-          <summary>Preview stored JSON</summary>
-          <pre id="jsonPreview">{}</pre>
-        </details>
+        <!-- Preview ALWAYS visible -->
+        <h2 class="previewTitle">Stored JSON preview</h2>
+        <pre id="jsonPreview">{}</pre>
+
+        <!-- JS loaded diagnostic -->
+        <p id="jsDiag" class="muted" style="margin-top:10px;">JS: loading…</p>
       </form>
     </section>
-
-    <footer class="footer muted">
-      Tip: localStorage is per browser/device. Clearing browser data removes it.
-    </footer>
   </main>
 
-  <script src="../js/profile.js"></script>
+  <script src="./profile.js"></script>
 </body>
 </html>

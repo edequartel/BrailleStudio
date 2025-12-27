@@ -1,7 +1,6 @@
 (() => {
   "use strict";
 
-  // Change this key if you want multiple profiles per user/device.
   const STORAGE_KEY = "brailleserver.profile.v1";
 
   const els = {
@@ -14,16 +13,23 @@
     statusDot: document.getElementById("statusDot"),
     statusText: document.getElementById("statusText"),
     jsonPreview: document.getElementById("jsonPreview"),
+    jsDiag: document.getElementById("jsDiag"),
   };
 
+  // Hard fail early if DOM IDs don't match
+  for (const [k, v] of Object.entries(els)) {
+    if (!v) {
+      console.error("Profile page missing element:", k);
+      alert("Profile JS error: missing element '" + k + "'. Check HTML IDs.");
+      return;
+    }
+  }
+
+  // Confirm JS loaded
+  els.jsDiag.textContent = "JS: loaded OK";
+
   function defaultProfile() {
-    return {
-      name: "",
-      age: null,
-      address: "",
-      updatedAt: null,
-      version: 1,
-    };
+    return { name: "", age: null, address: "", updatedAt: null, version: 1 };
   }
 
   function safeParse(json) {
@@ -36,6 +42,12 @@
     const parsed = safeParse(raw);
     if (!parsed || typeof parsed !== "object") return defaultProfile();
     return { ...defaultProfile(), ...parsed };
+  }
+
+  function writeForm(profile) {
+    els.name.value = profile.name ?? "";
+    els.age.value = profile.age === null || profile.age === undefined ? "" : String(profile.age);
+    els.address.value = profile.address ?? "";
   }
 
   function readForm() {
@@ -51,52 +63,40 @@
     };
   }
 
-  function writeForm(profile) {
-    els.name.value = profile.name ?? "";
-    els.age.value = profile.age === null || profile.age === undefined ? "" : String(profile.age);
-    els.address.value = profile.address ?? "";
-  }
-
-  function setStatus(saved, text) {
-    els.statusDot.style.background = saved ? "var(--ok)" : "var(--idle)";
-    els.statusText.textContent = text;
-  }
-
   function renderPreview(profile) {
     els.jsonPreview.textContent = JSON.stringify(profile, null, 2);
   }
 
+  function setStatus(text, ok = false) {
+    els.statusText.textContent = text;
+    // dot color still works even if CSS missing
+    els.statusDot.style.background = ok ? "#4ade80" : "#64748b";
+  }
+
   function saveProfile(profile) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    setStatus(true, `Saved ${new Date().toLocaleTimeString()}`);
+    setStatus("Saved " + new Date().toLocaleTimeString(), true);
     renderPreview(profile);
   }
 
-  // Debounce saving so it doesn't write on every keystroke instantly.
   let saveTimer = null;
   function scheduleSave() {
-    setStatus(false, "Editing…");
+    setStatus("Editing…", false);
     if (saveTimer) clearTimeout(saveTimer);
-
-    saveTimer = setTimeout(() => {
-      const profile = readForm();
-      saveProfile(profile);
-    }, 250);
+    saveTimer = setTimeout(() => saveProfile(readForm()), 200);
   }
 
   async function exportJson() {
     const profile = readForm();
     const text = JSON.stringify(profile, null, 2);
+    renderPreview(profile);
 
     try {
       await navigator.clipboard.writeText(text);
-      setStatus(true, "Exported JSON to clipboard");
+      setStatus("Exported JSON to clipboard", true);
     } catch {
-      // Fallback: show it in preview (already shown)
-      setStatus(true, "Clipboard blocked; JSON shown below");
+      setStatus("Clipboard blocked; JSON shown below", true);
     }
-
-    renderPreview(profile);
   }
 
   function resetAll() {
@@ -104,21 +104,23 @@
     const fresh = defaultProfile();
     writeForm(fresh);
     renderPreview(fresh);
-    setStatus(false, "Reset (nothing stored)");
+    setStatus("Reset (nothing stored)", false);
   }
 
   // Init
   const existing = loadProfile();
   writeForm(existing);
   renderPreview(existing);
-  setStatus(!!existing.updatedAt, existing.updatedAt ? "Loaded from storage" : "Nothing stored yet");
+  setStatus(existing.updatedAt ? "Loaded from storage" : "Nothing stored yet", !!existing.updatedAt);
 
   // Auto-save on edits
-  ["input", "change"].forEach(evt => {
-    els.form.addEventListener(evt, scheduleSave, { passive: true });
-  });
+  els.form.addEventListener("input", scheduleSave, { passive: true });
+  els.form.addEventListener("change", scheduleSave, { passive: true });
 
   // Buttons
   els.resetBtn.addEventListener("click", resetAll);
   els.exportBtn.addEventListener("click", exportJson);
+
+  // Extra: prove localStorage works
+  console.log("localStorage origin OK, key:", STORAGE_KEY, "value:", localStorage.getItem(STORAGE_KEY));
 })();
