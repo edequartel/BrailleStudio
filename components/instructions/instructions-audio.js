@@ -85,19 +85,21 @@
       if (currentIndex === index) stopCurrent();
     });
 
+    // CHANGE: do NOT show the path in the "Missing" state text
     howl.on("loaderror", (id, err) => {
       logError(`Audio file NOT FOUND: ${src}`, err);
       if (currentIndex === index) {
         stopCurrent();
-        setItemState(index, `Missing: ${src}`, false, true);
+        setItemState(index, "Missing file", false, true);
       }
     });
 
+    // CHANGE: do NOT show the path in the "Error" state text
     howl.on("playerror", (id, err) => {
       logError(`Audio play error: ${src}`, err);
       if (currentIndex === index) {
         stopCurrent();
-        setItemState(index, `Error: ${src}`, false, true);
+        setItemState(index, "Play error", false, true);
       }
     });
 
