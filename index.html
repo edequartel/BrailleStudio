@@ -1,268 +1,235 @@
-<!-- /pages/words.html -->
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BrailleStudio - Bartiméus Onderwijs</title>
-
-  <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css" />
-  <link rel="stylesheet" href="./pages/activity-runner.css" />
-  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <title>BrailleStudio</title>
 
   <style>
-    /* Minimal floating settings button */
-    .settings-fab{
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      z-index: 9999;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 52px;
-      height: 52px;
-      border-radius: 999px;
-      border: 1px solid rgba(127,127,127,.35);
-      background: rgba(255,255,255,.10);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      color: inherit;
+    :root{
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+
+      --link-bg: #f9fafb;
+      --link-hover: #eef2ff;
+      --shadow: rgba(0, 0, 0, 0.14);
+
+      --md-bg: #ffffff;
+      --md-text: #1c1f25;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg: #0f1117;
+        --panel: #161a23;
+        --text: #f5f6f7;
+        --muted: #a3adbd;
+
+        --link-bg: #1e2431;
+        --link-hover: #293043;
+        --shadow: rgba(0, 0, 0, 0.55);
+
+        --md-bg: #1b1f2a;
+        --md-text: #ffffff;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body{
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main{
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 10px 36px var(--shadow);
+    }
+
+    header{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    h1{
+      margin: 0;
+      font-size: 1.85rem;
+      font-weight: 850;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .subtitle{
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    /* Use the space better: 2-column layout on wide screens */
+    .layout{
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px){
+      body{ padding: 16px; }
+      main{ padding: 16px; }
+      .layout{ grid-template-columns: 1fr; }
+    }
+
+    /* Links panel */
+    nav{
+      background: rgba(255,255,255,0.0);
+    }
+
+    ul{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    li{ margin: 0; }
+
+    /* No borders on links */
+    a{
+      display: block;
+      padding: 14px 14px;
+      border-radius: 12px;
+      background: var(--link-bg);
       text-decoration: none;
-      box-shadow: 0 10px 22px rgba(0,0,0,.22);
-      cursor: pointer;
-      user-select: none;
+      color: var(--text);
+      font-weight: 700;
+      transition: background 0.15s ease, transform 0.12s ease;
     }
-    html[data-theme="dark"] .settings-fab{
-      background: rgba(20,24,36,.55);
-      border-color: rgba(255,255,255,.16);
-    }
-    .settings-fab:hover{
+
+    a:hover{
+      background: var(--link-hover);
       transform: translateY(-1px);
     }
-    .settings-fab:active{
+
+    a:active{
       transform: translateY(0);
     }
-    .settings-fab svg{
-      width: 24px;
-      height: 24px;
-      display: block;
+
+    /* README panel (no border; uses space better) */
+    #readme-box{
+      background: var(--md-bg);
+      color: var(--md-text);
+      border-radius: 12px;
+      padding: 16px 16px;
+      height: calc(100vh - 24px - 24px - 22px - 22px); /* body padding + main padding */
+      max-height: 640px;
+      overflow: auto;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.14);
+      font-size: 1rem;
+      line-height: 1.65;
     }
-    .settings-fab:focus-visible{
-      outline: 3px solid rgba(122,162,255,.55);
-      outline-offset: 3px;
+
+    @media (max-width: 900px){
+      #readme-box{
+        height: auto;
+        max-height: 520px;
+      }
+    }
+
+    #readme-box h1,
+    #readme-box h2,
+    #readme-box h3{
+      margin: 1.2rem 0 0.6rem 0;
+      color: var(--md-text);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    #readme-box p{
+      margin: 0.75rem 0;
+    }
+
+    #readme-box ul{
+      list-style: disc;
+      padding-left: 1.4rem;
+      margin: 0.6rem 0;
+      gap: 0;
+    }
+
+    #readme-box code{
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    @media (prefers-color-scheme: dark){
+      #readme-box code{
+        background: rgba(255,255,255,0.10);
+      }
+    }
+
+    #readme-box a{
+      color: #60a5fa;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-weight: 700;
+      display: inline;
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
-  <main class="container" aria-live="polite">
-    <div class="braille-panel">
-      <div class="word-header">
-        <span id="field-emoji" class="word-emoji" aria-hidden="true">–</span>
+  <main>
+    <header>
+      <div>
+        <h1>BrailleServer</h1>
+        <p class="subtitle">Kies een onderdeel. De README staat rechts voor context en uitleg.</p>
+      </div>
+    </header>
 
-        <div class="word-line">
-          <span id="field-word" class="word-text">–</span>
-          <span id="field-word-braille" class="word-braille">–</span>
-        </div>
-      </div>
-      
-      <!-- MOVED HERE: prev/next buttons inside braille-panel -->
-      <div class="braille-nav">
-        <button id="prev-btn" class="secondary" type="button">prev</button>
-        
-         <span class="runner-controls">
-        <label class="auto-next">
-          <input id="auto-run" type="checkbox" checked />
-          
-        </label>
-      </span>
-        
-        
-        <button id="next-btn" type="button">next</button>
-      </div>
+    <div class="layout">
+      <nav aria-label="Hoofdmenu">
+        <ul>
+          <li><a href="./pages/words.html">Letter en woorden oefenen</a></li>
+          <li><a href="./pages/stories.html">Verhalen lezen</a></li>
+          <li><a href="./components/instructions/instructions-audio.html">Instructies – audio overzicht</a></li>
+          <li><a href="./components/profile/profile.html">Profiel student</a></li>
+        </ul>
+      </nav>
+
+      <section>
+        <div id="readme-box">Laden...</div>
+      </section>
     </div>
-
-    <!-- IMPORTANT: only one element with this id -->
-    <div id="brailleMonitorComponent"></div>
-
-    <p class="field-value" id="activity-instruction">–</p>
-
-    <div class="meta-bar">
-      <span id="item-id">ID: –</span>
-      <span id="item-index">0 / 0</span>
-      <span id="data-status">Data: –</span>
-    </div>
-
-    <div class="meta-bar meta-bar-tight">
-      <span id="activity-index">0 / 0</span>
-      <span id="activity-id">Activity: –</span>
-    </div>
-
-    <div class="meta-bar meta-bar-tight">
-      <span id="activity-status">Status: idle</span>
-    </div>
-
-    <!-- TOP CONTROLS BAR: left (activities), right (tools) -->
-    <div class="top-controls">
-      <div class="top-controls__left">
-        <div id="activity-buttons" class="buttons buttons-left"></div>
-      </div>
-
-      <div class="top-controls__right">
-        <div class="buttons buttons-right">
-          <button
-            id="toggle-fields-btn"
-            class="secondary"
-            type="button"
-            aria-controls="fields-panel"
-            aria-expanded="false">
-            Velden
-          </button>
-
-          <button id="toggle-log-btn" class="secondary" type="button">Log</button>
-
-          <button
-            id="themeToggle"
-            class="theme-toggle"
-            type="button"
-            aria-label="Toggle theme">
-            <span class="theme-dot" aria-hidden="true"></span>
-            <span id="themeLabel">Theme: light</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <section id="fields-panel" class="log-panel hidden" aria-label="Alle velden">
-      <div class="log-header">
-        <span>Alle velden</span>
-      </div>
-      <div id="field-all" class="log-body">–</div>
-    </section>
-
-    <section id="log-panel" class="log-panel hidden" aria-label="Log">
-      <div class="log-header">
-        <span>Log</span>
-        <span class="log-controls">
-          <button id="clear-log-btn" type="button">Clear</button>
-        </span>
-      </div>
-      <div id="log" class="log-body">Log start…</div>
-    </section>
   </main>
 
-  <!-- Settings button (bottom-right) -->
-  <a class="settings-fab" href="../pages/settings.html" aria-label="Settings">
-    <!-- Gear icon -->
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path fill="currentColor"
-        d="M19.14,12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58
-        c.18-.14.23-.4.12-.61l-1.92-3.32c-.11-.2-.35-.28-.56-.2l-2.39.96
-        c-.5-.38-1.04-.69-1.64-.92l-.36-2.54C14.4,2.18,14.2,2,13.96,2h-3.92
-        C9.8,2,9.6,2.18,9.56,2.42L9.2,4.96c-.6.23-1.14.54-1.64.92l-2.39-.96
-        c-.21-.08-.45,0-.56.2L2.69,8.44c-.11.21-.06.47.12.61l2.03,1.58
-        c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03,1.58c-.18.14-.23.4-.12.61
-        l1.92,3.32c.11.2.35.28.56.2l2.39-.96c.5.38,1.04.69,1.64.92l.36,2.54
-        c.04.24.24.42.48.42h3.92c.24,0,.44-.18.48-.42l.36-2.54
-        c.6-.23,1.14-.54,1.64-.92l2.39.96c.21.08.45,0,.56-.2l1.92-3.32
-        c.11-.21.06-.47-.12-.61L19.14,12.94z M12,15.5c-1.93,0-3.5-1.57-3.5-3.5
-        s1.57-3.5,3.5-3.5s3.5,1.57,3.5,3.5S13.93,15.5,12,15.5z" />
-    </svg>
-  </a>
-
   <script>
-    (function () {
-      const THEME_KEY = "bs_theme";
-      const html = document.documentElement;
-
-      function applyTheme(theme) {
-        html.setAttribute("data-theme", theme);
-        const label = document.getElementById("themeLabel");
-        if (label) label.textContent = "Theme: " + theme;
-      }
-
-      function getInitialTheme() {
-        const saved = localStorage.getItem(THEME_KEY);
-        if (saved === "light" || saved === "dark") return saved;
-        return window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        applyTheme(getInitialTheme());
-
-        const tbtn = document.getElementById("themeToggle");
-        if (tbtn) {
-          tbtn.addEventListener("click", () => {
-            const current =
-              html.getAttribute("data-theme") === "dark" ? "dark" : "light";
-            const next = current === "dark" ? "light" : "dark";
-            localStorage.setItem(THEME_KEY, next);
-            applyTheme(next);
-            if (typeof window.logMessage === "function") {
-              window.logMessage("[theme] " + next);
-            }
-          });
-        }
+    fetch('./README.md')
+      .then(r => r.text())
+      .then(md => {
+        document.getElementById('readme-box').innerHTML = marked.parse(md);
+      })
+      .catch(() => {
+        document.getElementById('readme-box').innerText =
+          'README.md kon niet worden geladen.';
       });
-
-      function appendToPanel(line) {
-        const el = document.getElementById("log");
-        if (!el) return;
-        if (el.textContent === "Log start…") el.textContent = "";
-        el.textContent += line + "\n";
-        el.scrollTop = el.scrollHeight;
-      }
-
-      if (typeof window.logMessage !== "function") {
-        window.logMessage = function (msg) {
-          appendToPanel(String(msg));
-          console.log(msg);
-        };
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const btn = document.getElementById("clear-log-btn");
-        if (btn) {
-          btn.addEventListener("click", () => {
-            const el = document.getElementById("log");
-            if (el) el.textContent = "";
-          });
-        }
-
-        const toggle = document.getElementById("toggle-log-btn");
-        const panel = document.getElementById("log-panel");
-        if (toggle && panel) {
-          toggle.addEventListener("click", () => {
-            panel.classList.toggle("hidden");
-          });
-        }
-      });
-
-      window.logMessage("[words.html] Inline logger ready.");
-    })();
   </script>
-
-  <script src="../js/logging.js"></script>
-  <script src="../js/braillebridge.js"></script>
-  <script src="../components/braille-monitor/braillemonitor.js"></script>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
-  <script src="../js/sounds.js"></script>
-
-  <script src="../activities/tts.js"></script>
-  <script src="../activities/letters.js"></script>
-  <script src="../activities/words.js"></script>
-  <script src="../activities/story.js"></script>
-  <script src="../activities/sounds.js"></script>
-
-  <!-- If you use an external runner, it must load before words.js -->
-  <script src="../js/activity-runner.js"></script>
-
-  <!-- Main page logic -->
-  <script src="../js/words.js"></script>
 </body>
 </html>
