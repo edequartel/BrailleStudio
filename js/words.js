@@ -189,7 +189,11 @@
   }
 
   // ------------------------------------------------------------
-  // FIX: story activity should show WORD, not filenames
+  // IMPORTANT:
+  // - Idle (activity inactive): ALWAYS show the WORD on the display.
+  // - Running:
+  //     - story: ALWAYS show the WORD (never filenames)
+  //     - others: show activity detail
   // ------------------------------------------------------------
   function getBrailleTextForCurrent() {
     const item = records[currentIndex];
@@ -197,13 +201,17 @@
 
     const word = item.word != null ? String(item.word) : "";
 
+    // ✅ When not running, the page controls what is on the display:
+    // always show the word (stable, no filenames).
+    if (!running) return word;
+
     const cur = getCurrentActivity();
     const activityKey = canonicalActivityId(cur?.activity?.id);
 
-    // ✅ Story: always show the JSON word on the braille display
+    // ✅ Story: always show the word (also while running)
     if (activityKey === "story") return word;
 
-    // Default: show activity detail if available
+    // Default: show activity detail
     if (cur && cur.activity) {
       const { detail } = formatActivityDetail(cur.activity.id, item);
       const detailText = compactSingleLine(detail);
@@ -246,17 +254,28 @@
         const id = String(a.id ?? "").trim();
         const caption = String(a.caption ?? "").trim();
         const instruction = String(a.instruction ?? "").trim();
+        const nrof = a.nrof ?? a.nrOf ?? a.nRounds;
+        const lineLen = a.lineLen;
+
         if (!id && !caption) return null;
-        if (caption && instruction) return `${id} -- ${caption} -- ${instruction}`;
-        if (caption) return `${id} -- ${caption}`;
-        if (instruction) return `${id} -- ${instruction}`;
-        return id;
+
+        const extras = [];
+        if (nrof != null) extras.push(`nrof=${nrof}`);
+        if (lineLen != null) extras.push(`lineLen=${lineLen}`);
+
+        const extraStr = extras.length ? ` -- ${extras.join(" ")}` : "";
+
+        if (caption && instruction) return `${id} -- ${caption} -- ${instruction}${extraStr}`;
+        if (caption) return `${id} -- ${caption}${extraStr}`;
+        if (instruction) return `${id} -- ${instruction}${extraStr}`;
+        return `${id}${extraStr}`;
       })
       .filter(Boolean);
 
     const lines = [
       `id: ${item.id ?? "–"}`,
       `word: ${item.word ?? "–"}`,
+      `knownLetters: ${Array.isArray(item.knownLetters) ? item.knownLetters.join(" ") : "–"}`,
       `icon: ${item.icon ?? "–"}`,
       `emoji: ${item.emoji ?? "–"}`,
       `short: ${typeof item.short === "boolean" ? item.short : (item.short ?? "–")}`,
@@ -281,7 +300,11 @@
           id: String(a.id ?? "").trim(),
           caption: String(a.caption ?? "").trim(),
           instruction: String(a.instruction ?? "").trim(),
-          index: a.index
+          index: a.index,
+
+          // pass-through config for custom activities (e.g. pairletters)
+          nrof: a.nrof ?? a.nrOf ?? a.nRounds,
+          lineLen: a.lineLen
         }))
         .filter(a => a.id);
     }
@@ -291,6 +314,8 @@
     if (Array.isArray(item.words) && item.words.length) activities.push({ id: "words", caption: "Maak woorden" });
     if (Array.isArray(item.story) && item.story.length) activities.push({ id: "story", caption: "Luister (verhaal)" });
     if (Array.isArray(item.sounds) && item.sounds.length) activities.push({ id: "sounds", caption: "Geluiden" });
+
+    // Note: pairletters is usually explicitly configured per record in JSON.
     return activities;
   }
 
@@ -303,23 +328,29 @@
       id.startsWith("words") ? "words" :
       id.startsWith("story") ? "story" :
       id.startsWith("sounds") ? "sounds" :
+      id.startsWith("pair") ? "pairletters" :
       id;
 
     switch (canonical) {
       case "tts":
         return { caption: "Luister (woord)", detail: item.word ? String(item.word) : "–" };
+
       case "letters":
         return { caption: "Oefen letters", detail: Array.isArray(item.letters) && item.letters.length ? item.letters.join(" ") : "–" };
+
       case "words":
         return { caption: "Maak woorden", detail: Array.isArray(item.words) && item.words.length ? item.words.join(", ") : "–" };
 
       case "story":
-        // ✅ FIX: do NOT expose story filenames as the "detail" (prevents braille showing filenames)
+        // ✅ do not expose filenames in "detail"
         return { caption: "Luister (verhaal)", detail: item.word ? String(item.word) : "–" };
 
       case "sounds":
-        // unchanged (still shows sounds list as detail)
+        // unchanged (still shows sounds list as detail while running)
         return { caption: "Geluiden", detail: Array.isArray(item.sounds) && item.sounds.length ? item.sounds.join("\n") : "–" };
+
+      case "pairletters":
+        return { caption: "Zoek het letterpaar", detail: item.word ? String(item.word) : "–" };
 
       default:
         return { caption: rawId ? `Activity: ${rawId}` : "Details", detail: safeJson(item) };
@@ -334,6 +365,7 @@
       : id.startsWith("words") ? "words"
       : id.startsWith("story") ? "story"
       : id.startsWith("sounds") ? "sounds"
+      : id.startsWith("pair") ? "pairletters"
       : id;
   }
 
@@ -449,6 +481,9 @@
     stopActiveActivity({ reason: "stop" });
     setRunnerUi({ isRunning: false });
     setActivityStatus("idle");
+
+    // After stopping, show stable idle braille (word)
+    updateBrailleLine(getBrailleTextForCurrent(), { reason: "cancelRun" });
   }
 
   // Wait until:
@@ -526,6 +561,9 @@
       setActivityStatus("done");
 
       stopActiveActivity({ reason: "finally" });
+
+      // After running, return to stable idle braille (word)
+      updateBrailleLine(getBrailleTextForCurrent(), { reason: "run-finished" });
 
       const autoRun = $("auto-run");
       if (autoRun && autoRun.checked) {
@@ -694,6 +732,9 @@
     setRunnerUi({ isRunning: false });
     setActivityStatus("idle");
     setStatus(`geladen (${records.length})`);
+
+    // Ensure idle braille is stable
+    updateBrailleLine(getBrailleTextForCurrent(), { reason: "render" });
   }
 
   // ------------------------------------------------------------
