@@ -13,8 +13,8 @@
   }
 
   const DEFAULT_ROUNDS = 5;
-  const DEFAULT_LINE_LEN = 5; // number of CELLS (not string chars)
-  const FLASH_MS = 2450;
+  const DEFAULT_LINE_LEN = 18; // number of CELLS (not string chars)
+  const FLASH_MS = 450;
 
   function create() {
     let running = false;
@@ -28,12 +28,12 @@
     let lineLenCells = DEFAULT_LINE_LEN;
 
     // We keep TWO representations:
-    // - cells[]: array of letters per cell index (length = lineLenCells)
+    // - cells[]: array of letters per cell index (length = effectiveLen)
     // - lineText: the string that is sent to the display (spaces between letters)
     let cells = [];
     let lineText = "";
 
-    let target = "";   // letter that appears twice
+    let target = "";      // letter that appears twice
     let hits = new Set(); // store CELL indices (not string indices)
 
     let known = [];
@@ -88,8 +88,8 @@
     }
 
     function readConfigFromCtx(ctx) {
-      // Only from activity-level JSON. (No record-level fallback.)
       const a = ctx?.activity || {};
+
       totalRounds = clampInt(
         a.nrof ?? a.nrOf ?? a.nRounds,
         1, 200,
@@ -98,7 +98,7 @@
 
       lineLenCells = clampInt(
         a.lineLen ?? a.lineLength ?? a.len,
-        6, 40,
+        2, 40,
         DEFAULT_LINE_LEN
       );
 
@@ -106,21 +106,42 @@
     }
 
     function pickTarget() {
+      // target must be from fresh/known only
       if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
       if (known.length) return known[Math.floor(Math.random() * known.length)];
+      // last resort (should not happen if JSON is correct)
       return "a";
     }
 
-    function buildCells(targetLetter, lenCells) {
-      const len = clampInt(lenCells, 6, 40, DEFAULT_LINE_LEN);
+    // Enforces: ONLY letters from known+fresh are used.
+    // Enforces: target appears twice; all other letters are unique.
+    function buildCells(targetLetter, requestedLenCells) {
+      // Allowed pool = known + fresh only
+      const poolAll = uniqLetters([...(known || []), ...(fresh || [])]);
 
-      const pool = [...known, ...fresh].filter(ch => ch !== targetLetter);
-      const alphabet = "abcdefghijklmnopqrstuvwxyz".split("").filter(ch => ch !== targetLetter);
-      const candidates = [...pool, ...alphabet];
+      // Candidates for other positions (must not be target)
+      const candidates = poolAll.filter(ch => ch && ch !== targetLetter);
 
-      const used = new Set();
-      used.add(targetLetter);
+      // We need (len - 2) unique other letters.
+      // So: candidates.length >= len - 2  =>  len <= candidates.length + 2
+      const maxLenPossible = candidates.length + 2;
 
+      let len = clampInt(requestedLenCells, 2, 40, DEFAULT_LINE_LEN);
+      if (len > maxLenPossible) {
+        log("[pairletters] warning: lineLen reduced (not enough unique letters in pool)", {
+          requested: len,
+          maxPossible: maxLenPossible,
+          poolAll: poolAll.join(""),
+          candidates: candidates.join(""),
+          target: targetLetter
+        });
+        len = maxLenPossible;
+      }
+
+      // If still too small to be meaningful, force at least 2
+      len = Math.max(2, len);
+
+      // positions for the two target letters
       const pos1 = Math.floor(Math.random() * len);
       let pos2 = Math.floor(Math.random() * len);
       while (pos2 === pos1) pos2 = Math.floor(Math.random() * len);
@@ -129,41 +150,44 @@
       arr[pos1] = targetLetter;
       arr[pos2] = targetLetter;
 
+      // choose unique letters for the remaining positions
+      // (we do NOT allow duplicates among non-target letters)
+      const available = candidates.slice();
+      // shuffle available
+      for (let i = available.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = available[i];
+        available[i] = available[j];
+        available[j] = tmp;
+      }
+
+      let takeIdx = 0;
       for (let i = 0; i < len; i++) {
         if (i === pos1 || i === pos2) continue;
 
-        let chosen = "";
-        for (let tries = 0; tries < candidates.length; tries++) {
-          const c = candidates[Math.floor(Math.random() * candidates.length)];
-          if (!c) continue;
-          if (used.has(c)) continue;
-          chosen = c;
-          break;
-        }
-        if (!chosen) chosen = "x";
-        used.add(chosen);
-        arr[i] = chosen;
+        const chosen = available[takeIdx++];
+        // If JSON is consistent, chosen exists. If not, use target (but that would violate uniqueness)
+        // Better: use "x" (still violates "only from pool"). So we just guard:
+        arr[i] = chosen || targetLetter;
       }
 
       return arr;
     }
 
     function cellsToDisplayText(arr) {
-      // For a braille *text* display this can be "a b c ...".
-      // Important: cursor index is per CELL, so we must NOT read back from this string.
       return (Array.isArray(arr) ? arr : []).join(" ");
     }
 
     function sendToBraille(text) {
       const t = String(text || "");
 
-      // 1) Preferred: go through words.js pipeline (monitor + bridge best-effort)
+      // Preferred: go through words.js pipeline (monitor + bridge best-effort)
       if (window.BrailleUI && typeof window.BrailleUI.setLine === "function") {
         window.BrailleUI.setLine(t, { reason: "pairletters" });
         return Promise.resolve();
       }
 
-      // 2) Fallback: direct bridge call, but NEVER throw
+      // Fallback: direct bridge call, but NEVER throw
       if (window.BrailleBridge && typeof window.BrailleBridge.sendText === "function") {
         return window.BrailleBridge.sendText(t).catch(() => {});
       }
@@ -206,9 +230,10 @@
       log("[pairletters] round line", {
         round: round + 1,
         totalRounds,
-        lineLen: lineLenCells,
+        lineLenRequested: lineLenCells,
+        lineLenEffective: cells.length,
         target,
-        cells: cells.join(""),
+        pool: uniqLetters([...(known || []), ...(fresh || [])]).join(""),
         line: lineText
       });
 
@@ -223,7 +248,6 @@
       known = knownLetters;
       fresh = freshLetters;
 
-      // Read activity config (nrof, lineLen) from JSON
       readConfigFromCtx(ctx);
 
       log("[pairletters] start run", {
@@ -281,18 +305,13 @@
       return Boolean(running);
     }
 
-    // ------------------------------------------------------------
-    // Cursor choice (from bridge/monitor)
     // info.index is CELL index (0..39)
-    // ------------------------------------------------------------
     function onCursor(info) {
       if (!running) return;
 
       const idx = typeof info?.index === "number" ? info.index : null;
       if (idx == null) return;
 
-      // IMPORTANT:
-      // idx is cell index, so read from `cells[idx]`, NOT from `lineText[idx]`.
       const letter = String(cells[idx] || "").trim().toLowerCase();
       if (!letter) return;
 
