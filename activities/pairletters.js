@@ -13,8 +13,8 @@
   }
 
   const DEFAULT_ROUNDS = 5;
-  const DEFAULT_LINE_LEN = 18; // aantal letters in set
-  const FLASH_MS = 450;
+  const DEFAULT_LINE_LEN = 10; // number of CELLS (not string chars)
+  const FLASH_MS = 2450;
 
   function create() {
     let running = false;
@@ -25,10 +25,16 @@
     // state per run
     let round = 0;
     let totalRounds = DEFAULT_ROUNDS;
+    let lineLenCells = DEFAULT_LINE_LEN;
 
-    let line = "";     // huidige regel die we tonen
-    let target = "";   // letter die 2x voorkomt
-    let hits = new Set();
+    // We keep TWO representations:
+    // - cells[]: array of letters per cell index (length = lineLenCells)
+    // - lineText: the string that is sent to the display (spaces between letters)
+    let cells = [];
+    let lineText = "";
+
+    let target = "";   // letter that appears twice
+    let hits = new Set(); // store CELL indices (not string indices)
 
     let known = [];
     let fresh = [];
@@ -74,14 +80,39 @@
       return { knownLetters, freshLetters };
     }
 
+    function clampInt(x, min, max, fallback) {
+      const n = Number(x);
+      if (!Number.isFinite(n)) return fallback;
+      const i = Math.floor(n);
+      return Math.max(min, Math.min(max, i));
+    }
+
+    function readConfigFromCtx(ctx) {
+      // Only from activity-level JSON. (No record-level fallback.)
+      const a = ctx?.activity || {};
+      totalRounds = clampInt(
+        a.nrof ?? a.nrOf ?? a.nRounds,
+        1, 200,
+        DEFAULT_ROUNDS
+      );
+
+      lineLenCells = clampInt(
+        a.lineLen ?? a.lineLength ?? a.len,
+        6, 40,
+        DEFAULT_LINE_LEN
+      );
+
+      log("[pairletters] config", { totalRounds, lineLen: lineLenCells });
+    }
+
     function pickTarget() {
       if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
       if (known.length) return known[Math.floor(Math.random() * known.length)];
       return "a";
     }
 
-    function buildLine(targetLetter, lineLen) {
-      const len = Math.max(6, Math.min(40, Number(lineLen) || DEFAULT_LINE_LEN));
+    function buildCells(targetLetter, lenCells) {
+      const len = clampInt(lenCells, 6, 40, DEFAULT_LINE_LEN);
 
       const pool = [...known, ...fresh].filter(ch => ch !== targetLetter);
       const alphabet = "abcdefghijklmnopqrstuvwxyz".split("").filter(ch => ch !== targetLetter);
@@ -94,7 +125,7 @@
       let pos2 = Math.floor(Math.random() * len);
       while (pos2 === pos1) pos2 = Math.floor(Math.random() * len);
 
-      const arr = new Array(len).fill("?");
+      const arr = new Array(len).fill("x");
       arr[pos1] = targetLetter;
       arr[pos2] = targetLetter;
 
@@ -114,8 +145,13 @@
         arr[i] = chosen;
       }
 
-      // met spaties zodat het "cel-achtig" voelt
-      return arr.join(" ");
+      return arr;
+    }
+
+    function cellsToDisplayText(arr) {
+      // For a braille *text* display this can be "a b c ...".
+      // Important: cursor index is per CELL, so we must NOT read back from this string.
+      return (Array.isArray(arr) ? arr : []).join(" ");
     }
 
     function sendToBraille(text) {
@@ -136,7 +172,7 @@
     }
 
     async function flashMessage(msg) {
-      const saved = line;
+      const saved = lineText;
       try {
         await sendToBraille(msg);
         await new Promise(r => setTimeout(r, FLASH_MS));
@@ -164,17 +200,19 @@
       hits.clear();
       target = pickTarget();
 
-      const lineLen = currentCtx?.activity?.lineLen ?? DEFAULT_LINE_LEN;
-      line = buildLine(target, lineLen);
+      cells = buildCells(target, lineLenCells);
+      lineText = cellsToDisplayText(cells);
 
       log("[pairletters] round line", {
         round: round + 1,
         totalRounds,
+        lineLen: lineLenCells,
         target,
-        line
+        cells: cells.join(""),
+        line: lineText
       });
 
-      await sendToBraille(line);
+      await sendToBraille(lineText);
     }
 
     async function run(ctx, token) {
@@ -185,20 +223,16 @@
       known = knownLetters;
       fresh = freshLetters;
 
-      totalRounds = Number(
-        ctx?.activity?.nrof ??
-        ctx?.activity?.nrOf ??
-        ctx?.activity?.nRounds ??
-        rec?.nrof
-      );
-      if (!Number.isFinite(totalRounds) || totalRounds <= 0) totalRounds = DEFAULT_ROUNDS;
+      // Read activity config (nrof, lineLen) from JSON
+      readConfigFromCtx(ctx);
 
       log("[pairletters] start run", {
         recordId: rec?.id,
         word: rec?.word,
         knownLetters: known,
         freshLetters: fresh,
-        rounds: totalRounds
+        rounds: totalRounds,
+        lineLen: lineLenCells
       });
 
       round = 0;
@@ -226,7 +260,6 @@
       const token = playToken;
 
       run(ctx, token).catch((err) => {
-        // keep it visible in log but do not crash the whole app
         log("[pairletters] error", { message: err?.message || String(err) });
         resolveDone({ ok: false, error: err?.message || String(err) });
       });
@@ -249,8 +282,8 @@
     }
 
     // ------------------------------------------------------------
-    // Cursor keuze (routing key / cursor keys)
-    // info.index is 0..39 (cel index)
+    // Cursor choice (from bridge/monitor)
+    // info.index is CELL index (0..39)
     // ------------------------------------------------------------
     function onCursor(info) {
       if (!running) return;
@@ -258,10 +291,9 @@
       const idx = typeof info?.index === "number" ? info.index : null;
       if (idx == null) return;
 
-      // We sent `line` including spaces, so index should match what is on the display.
-      const s = String(line || "");
-      const ch = s[idx] || "";
-      const letter = String(ch).trim().toLowerCase();
+      // IMPORTANT:
+      // idx is cell index, so read from `cells[idx]`, NOT from `lineText[idx]`.
+      const letter = String(cells[idx] || "").trim().toLowerCase();
       if (!letter) return;
 
       log("[pairletters] cursor", { idx, letter, target, hits: Array.from(hits) });
