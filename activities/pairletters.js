@@ -13,7 +13,7 @@
   }
 
   const DEFAULT_ROUNDS = 5;
-  const DEFAULT_LINE_LEN = 10; // number of CELLS (not string chars)
+  const DEFAULT_LINE_LEN = 5; // number of CELLS (not string chars)
   const FLASH_MS = 2450;
 
   function create() {
