@@ -27,7 +27,7 @@
     "knownLetters": ["b", "a", "l"],
     "letters": ["k", "a", "m"],
     "words": ["kam", "ka", "am", "mak"],
-    "story": ["kam.mp3", "kam.mp3"],
+    "story": ["kam.mp3"],
     "sounds": ["scratch.mp3", "hair.mp3", "tap.mp3"],
     "activities": [
       { "id": "story", "index": 0, "caption": "kam verhaal", "instruction": "Luister naar het verhaal, kam." },
