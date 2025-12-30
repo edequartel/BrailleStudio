@@ -5,19 +5,17 @@
     "knownLetters": [],
     "letters": ["b", "a", "l"],
     "words": ["bal", "ba", "al", "la"],
+    "text": [
+      ["Dit is een bal.", "De bal rolt.", "De bal stuitert."],
+      ["Kijk, een bal.", "De bal gaat heen en weer.", "De bal komt terug."]
+    ],
     "story": ["bal.mp3"],
     "sounds": ["bounce.mp3", "shot.mp3", "goal.mp3"],
     "activities": [
       { "id": "story", "index": 0, "caption": "bal verhaal", "instruction": "Luister naar het verhaal, bal." },
-      
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
-      
       { "id": "letters", "caption": "Oefen letter b a l", "instruction": "Oefen de letters van het woord." },
-      
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." }
-      
-      
-      
     ],
     "short": true,
     "icon": "ball.icon",
@@ -29,20 +27,18 @@
     "knownLetters": ["b", "a", "l"],
     "letters": ["k", "a", "m"],
     "words": ["kam", "ka", "am", "mak"],
+    "text": [
+      ["Dit is een kam.", "Ik kam mijn haar.", "De kam gaat van boven naar beneden."],
+      ["Hier ligt een kam.", "Je gebruikt een kam voor je haar.", "De kam heeft tanden."]
+    ],
     "story": ["kam.mp3"],
     "sounds": ["scratch.mp3", "hair.mp3", "tap.mp3"],
     "activities": [
       { "id": "story", "index": 0, "caption": "kam verhaal", "instruction": "Luister naar het verhaal, kam." },
-      
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
-
-      
-      
       { "id": "tts", "caption": "Luister (woord)", "instruction": "Luister naar het woord." },
       { "id": "letters", "caption": "Oefen letters", "instruction": "Oefen de letters van het woord." },
-      
       { "id": "words", "caption": "Maak woorden", "instruction": "Maak woorden met de letters." },
-      
       { "id": "story", "index": -1, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." }
     ],
@@ -56,15 +52,15 @@
     "knownLetters": ["b", "a", "l", "k", "m"],
     "letters": ["a", "a", "p"],
     "words": ["aap", "aa", "ap", "pa"],
+    "text": [
+      ["Dit is een aap.", "De aap springt.", "De aap maakt geluid."],
+      ["Kijk, een aap.", "De aap klimt omhoog.", "De aap zit in een boom."]
+    ],
     "story": ["aap1.mp3", "aap2.mp3"],
     "sounds": ["monkey1.mp3", "monkey2.mp3", "jump.mp3"],
     "activities": [
       { "id": "tts", "caption": "Luister (woord)", "instruction": "Luister naar het woord." },
-      
-      
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
-
-      
       { "id": "letters", "caption": "Oefen letters", "instruction": "Oefen de letters van het woord." },
       { "id": "words", "caption": "Maak woorden", "instruction": "Maak woorden met de letters." },
       { "id": "story", "index": 1, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
@@ -80,16 +76,15 @@
     "knownLetters": ["b", "a", "l", "k", "m", "p"],
     "letters": ["t", "a", "k"],
     "words": ["tak", "ta", "ak", "kat"],
+    "text": [
+      ["Dit is een tak.", "De tak ligt op de grond.", "De tak kraakt."],
+      ["Hier is een tak.", "De tak waait heen en weer.", "De tak breekt soms."]
+    ],
     "story": ["tak1.mp3", "tak2.mp3"],
     "sounds": ["branch.mp3", "snap.mp3", "wind.mp3"],
     "activities": [
       { "id": "tts", "caption": "Luister (woord)", "instruction": "Luister naar het woord." },
-      
-      
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
-
-      
-      
       { "id": "letters", "caption": "Oefen letters", "instruction": "Oefen de letters van het woord." },
       { "id": "words", "caption": "Maak woorden", "instruction": "Maak woorden met de letters." },
       { "id": "story", "index": 1, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
