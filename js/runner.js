@@ -18,6 +18,128 @@
   log("[words] words.js loaded");
 
   // ------------------------------------------------------------
+  // Activity lifecycle audio (GitHub Pages + iOS unlock)
+  // ------------------------------------------------------------
+
+  function getBasePath() {
+    try {
+      const host = String(location.hostname || "");
+      const path = String(location.pathname || "/");
+      const seg = path.split("/").filter(Boolean);
+      if (host.endsWith("github.io") && seg.length > 0) {
+        // first segment is repo name
+        return "/" + seg[0];
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  }
+
+  const BASE_PATH = getBasePath();
+
+  function lifecycleUrl(file) {
+    return `${location.origin}${BASE_PATH}/audio/${file}`;
+  }
+
+  let audioUnlocked = false;
+
+  function unlockAudioOnce() {
+    if (audioUnlocked) return;
+
+    try {
+      // Howler unlock/resume
+      if (window.Howler && window.Howler.ctx && window.Howler.ctx.state === "suspended") {
+        window.Howler.ctx.resume().catch(() => {});
+      }
+
+      // HTML5 warm-up (must be after a gesture on iOS)
+      const a = new Audio(lifecycleUrl("started.mp3"));
+      a.muted = true;
+      a.preload = "auto";
+      const p = a.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => { try { a.pause(); } catch {} }).catch(() => {});
+      }
+    } catch {}
+
+    audioUnlocked = true;
+    log("[lifecycle] audio unlocked");
+  }
+
+  function installAudioUnlock() {
+    const once = () => {
+      unlockAudioOnce();
+      document.removeEventListener("pointerdown", once, true);
+      document.removeEventListener("touchstart", once, true);
+      document.removeEventListener("keydown", once, true);
+    };
+    document.addEventListener("pointerdown", once, true);
+    document.addEventListener("touchstart", once, true);
+    document.addEventListener("keydown", once, true);
+  }
+
+  function playLifecycleFile(file) {
+    const url = lifecycleUrl(file);
+
+    return new Promise((resolve) => {
+      let done = false;
+      let watchdog = null;
+
+      function finish(reason) {
+        if (done) return;
+        done = true;
+        if (watchdog) {
+          try { clearTimeout(watchdog); } catch {}
+          watchdog = null;
+        }
+        log("[lifecycle] done", { file, url, reason });
+        resolve();
+      }
+
+      try {
+        log("[lifecycle] play", { file, url, howler: Boolean(window.Howl), unlocked: audioUnlocked });
+
+        // Safety watchdog so auto-run never hangs waiting for "ended"
+        watchdog = setTimeout(() => finish("watchdog"), 8000);
+
+        if (window.Howl) {
+          const h = new Howl({
+            src: [url],
+            preload: true,
+            volume: 1.0,
+            onloaderror: (id, err) => { log("[lifecycle] howl load error", { file, url, err }); finish("loaderror"); },
+            onplayerror: (id, err) => { log("[lifecycle] howl play error", { file, url, err }); finish("playerror"); },
+            onend: () => finish("ended")
+          });
+
+          h.play();
+        } else {
+          const a = new Audio(url);
+          a.preload = "auto";
+
+          a.addEventListener("ended", () => finish("ended"), { once: true });
+          a.addEventListener("error", () => finish("error"), { once: true });
+
+          const p = a.play();
+          if (p && typeof p.catch === "function") {
+            p.catch((e) => {
+              log("[lifecycle] html5 play blocked", { file, url, error: String(e) });
+              finish("blocked");
+            });
+          }
+        }
+      } catch (e) {
+        log("[lifecycle] exception", { file, url, error: String(e) });
+        finish("exception");
+      }
+    });
+  }
+
+  async function playStarted() { await playLifecycleFile("started.mp3"); }
+  async function playStopped() { await playLifecycleFile("stopped.mp3"); }
+
+  // ------------------------------------------------------------
   // Config
   // ------------------------------------------------------------
   const LOCAL_DATA_URL = "../config/words.json";
@@ -34,6 +156,8 @@
 
   let activeActivityModule = null;
   let activeActivityDonePromise = null;
+
+  let stoppedPlayedForThisRun = false;
 
   let brailleMonitor = null;
   let brailleLine = "";
@@ -171,14 +295,12 @@
     if (next === brailleLine) return;
     brailleLine = next;
 
-    // on-screen monitor
     if (brailleMonitor && typeof brailleMonitor.setText === "function") {
       if (next) brailleMonitor.setText(next);
       else if (typeof brailleMonitor.clear === "function") brailleMonitor.clear();
       else brailleMonitor.setText("");
     }
 
-    // hardware via bridge (best-effort)
     if (window.BrailleBridge) {
       if (!next && typeof BrailleBridge.clearDisplay === "function") {
         BrailleBridge.clearDisplay().catch((err) => {
@@ -194,11 +316,6 @@
     log("[words] Braille line updated", { len: next.length, reason: meta.reason || "unspecified" });
   }
 
-  // ------------------------------------------------------------
-  // Rule you want:
-  // - NOT running => runner controls display (word)
-  // - running => activity controls display (runner MUST NOT overwrite)
-  // ------------------------------------------------------------
   function getIdleBrailleText() {
     const item = records[currentIndex];
     return item && item.word != null ? String(item.word) : "";
@@ -262,9 +379,6 @@
     return lines.join("\n");
   }
 
-  // ------------------------------------------------------------
-  // Activities
-  // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
       return item.activities
@@ -369,7 +483,7 @@
       btn.title = a.id;
 
       btn.addEventListener("click", () => {
-        cancelRun();
+        cancelRun("stop");
         setActiveActivity(i);
       });
 
@@ -378,13 +492,9 @@
 
     updateActivityButtonStates();
 
-    // IMPORTANT: during running, activity controls display -> do not overwrite.
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "activity-change-idle" });
   }
 
-  // ------------------------------------------------------------
-  // Activity module management
-  // ------------------------------------------------------------
   function getActivityModule(activityKey) {
     const acts = window.Activities;
     if (!acts || typeof acts !== "object") return null;
@@ -405,14 +515,17 @@
     }
   }
 
-  function cancelRun() {
+  function cancelRun(reason = "stop") {
+    if (reason !== "restart" && running && !stoppedPlayedForThisRun) {
+      stoppedPlayedForThisRun = true;
+      playStopped(); // do not await on manual stop
+    }
+
     runToken += 1;
     running = false;
-    stopActiveActivity({ reason: "stop" });
+    stopActiveActivity({ reason });
     setRunnerUi({ isRunning: false });
     setActivityStatus("idle");
-
-    // back to idle display rule
     updateBrailleLine(getIdleBrailleText(), { reason: "cancelRun-idle" });
   }
 
@@ -444,8 +557,12 @@
     const cur = getCurrentActivity();
     if (!cur) return;
 
-    cancelRun();
+    cancelRun("restart");
     const token = runToken;
+
+    stoppedPlayedForThisRun = false;
+
+    await playStarted();
 
     const activityKey = canonicalActivityId(cur.activity.id);
     const activityModule = getActivityModule(activityKey);
@@ -476,12 +593,15 @@
     setRunnerUi({ isRunning: true });
     setActivityStatus(autoStarted ? "running (auto)" : "running");
 
-    // IMPORTANT: do NOT set braille line here. Activity owns display now.
-
     try {
       await waitForStopOrDone(token);
     } finally {
       if (token !== runToken) return;
+
+      if (!stoppedPlayedForThisRun) {
+        stoppedPlayedForThisRun = true;
+        await playStopped(); // IMPORTANT: wait so it won't overlap the next started cue
+      }
 
       running = false;
       setRunnerUi({ isRunning: false });
@@ -489,7 +609,6 @@
 
       stopActiveActivity({ reason: "finally" });
 
-      // after activity finished => back to idle display rule
       updateBrailleLine(getIdleBrailleText(), { reason: "activity-done-idle" });
 
       const autoRun = $opt("auto-run");
@@ -500,7 +619,7 @@
   }
 
   function toggleRun() {
-    if (running) cancelRun();
+    if (running) cancelRun("stop");
     else startSelectedActivity({ autoStarted: false });
   }
 
@@ -522,12 +641,9 @@
     if (autoStart) startSelectedActivity({ autoStarted: true });
   }
 
-  // ------------------------------------------------------------
-  // Navigation (word only)
-  // ------------------------------------------------------------
   function next() {
     if (!records.length) return;
-    cancelRun();
+    cancelRun("stop");
     currentIndex = (currentIndex + 1) % records.length;
     currentActivityIndex = 0;
     render();
@@ -535,55 +651,36 @@
 
   function prev() {
     if (!records.length) return;
-    cancelRun();
+    cancelRun("stop");
     currentIndex = (currentIndex - 1 + records.length) % records.length;
     currentActivityIndex = 0;
     render();
   }
 
-  // ------------------------------------------------------------
-  // THUMB KEY ACTIONS (ADJUSTED)
-  //
-  // IMPORTANT CHANGE:
-  // - While running: forward thumb presses to the active activity module if it
-  //   implements onRightThumb/onLeftThumb.
-  //
-  // This enables activities like "readlines" to step through content without
-  // requiring direct access to BrailleBridge key events.
-  // ------------------------------------------------------------
   function rightThumbAction() {
     const cur = getCurrentActivity();
     const key = canonicalActivityId(cur?.activity?.id);
 
-    // 1) Running: give priority to activity handler
     if (running && activeActivityModule && typeof activeActivityModule.onRightThumb === "function") {
       activeActivityModule.onRightThumb();
       return;
     }
 
-    // 2) Keep existing story toggle behavior
     if (running && key === "story" && activeActivityModule && typeof activeActivityModule.togglePlayPause === "function") {
       activeActivityModule.togglePlayPause("RightThumb");
       return;
     }
 
-    // 3) Idle: start selected activity
     if (!running) startSelectedActivity({ autoStarted: false });
   }
 
   function leftThumbAction() {
-    // Running: forward to activity if supported
     if (running && activeActivityModule && typeof activeActivityModule.onLeftThumb === "function") {
       activeActivityModule.onLeftThumb();
       return;
     }
-
-    // otherwise intentionally no-op
   }
 
-  // ------------------------------------------------------------
-  // Load JSON
-  // ------------------------------------------------------------
   async function loadData() {
     const params = new URLSearchParams(window.location.search || "");
     const overrideUrl = params.get("data");
@@ -627,9 +724,6 @@
     }
   }
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   function render() {
     if (!records.length) {
       setStatus("geen records");
@@ -674,13 +768,9 @@
     setActivityStatus("idle");
     setStatus(`geladen (${records.length})`);
 
-    // only in idle: show word
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "render-idle" });
   }
 
-  // ------------------------------------------------------------
-  // Public helper for activities (pairletters + readlines)
-  // ------------------------------------------------------------
   window.BrailleUI = window.BrailleUI || {};
   window.BrailleUI.setLine = function (text, meta) {
     updateBrailleLine(String(text ?? ""), meta || { reason: "activity" });
@@ -689,11 +779,11 @@
     updateBrailleLine("", meta || { reason: "activity-clear" });
   };
 
-  // ------------------------------------------------------------
-  // Init
-  // ------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     log("[words] DOMContentLoaded");
+    log("[lifecycle] basePath", { BASE_PATH, origin: location.origin });
+
+    installAudioUnlock();
 
     const nextBtn = $("next-btn");
     const prevBtn = $("prev-btn");
