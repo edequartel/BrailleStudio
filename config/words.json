@@ -7,18 +7,13 @@
     "words": ["bal", "ba", "al", "la"],
     "text": [
       ["bal", "bal bal", "bal bal bal"],
-      ["Kijk, een bal.!", "De bal gaat heen en weer.", "De bal komt terug."]
+      ["Kijk, een bal!", "De bal gaat heen en weer.", "De bal komt terug."]
     ],
     "story": ["bal.mp3"],
     "sounds": ["bounce.mp3", "shot.mp3", "goal.mp3"],
     "activities": [
       { "id": "story", "index": 0, "caption": "bal verhaal", "instruction": "Luister naar het verhaal, bal." },
-      
-      
       { "id": "readlines", "index": 0, "caption": "lezen", "instruction": "Lees het verhaal." },
-
-      
-      
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
       { "id": "letters", "caption": "Oefen letter b a l", "instruction": "Oefen de letters van het woord." },
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." }
@@ -45,7 +40,7 @@
       { "id": "tts", "caption": "Luister (woord)", "instruction": "Luister naar het woord." },
       { "id": "letters", "caption": "Oefen letters", "instruction": "Oefen de letters van het woord." },
       { "id": "words", "caption": "Maak woorden", "instruction": "Maak woorden met de letters." },
-      { "id": "story", "index": -1, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
+      { "id": "story", "index": 0, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." }
     ],
     "short": true,
