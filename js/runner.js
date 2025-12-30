@@ -1,4 +1,4 @@
-// /js/words.js
+// /js/runner.js
 (function () {
   "use strict";
 
@@ -138,6 +138,45 @@
 
   async function playStarted() { await playLifecycleFile("started.mp3"); }
   async function playStopped() { await playLifecycleFile("stopped.mp3"); }
+
+  // ------------------------------------------------------------
+  // Instruction right after "started.mp3"
+  // ------------------------------------------------------------
+
+  // Default instruction mp3 placed in /audio/
+  const DEFAULT_AFTER_STARTED_INSTRUCTION = "instruction.mp3";
+
+  function getAfterStartedInstructionFile(cur) {
+    // Priority:
+    // 1) activity.afterStarted
+    // 2) activity.instructionAudio (optional reuse)
+    // 3) record.afterStarted
+    // 4) default
+    const a = cur?.activity || null;
+    const r = cur?.item || null;
+
+    const fromActivity = String(a?.afterStarted ?? "").trim();
+    if (fromActivity) return fromActivity;
+
+    const fromInstructionAudio = String(a?.instructionAudio ?? "").trim();
+    if (fromInstructionAudio) return fromInstructionAudio;
+
+    const fromRecord = String(r?.afterStarted ?? "").trim();
+    if (fromRecord) return fromRecord;
+
+    return DEFAULT_AFTER_STARTED_INSTRUCTION;
+  }
+
+  async function playAfterStartedInstruction(cur) {
+    const file = getAfterStartedInstructionFile(cur);
+    if (!file) return;
+
+    // allow disabling via "none"/"off"/"-"
+    const normalized = String(file).trim().toLowerCase();
+    if (normalized === "none" || normalized === "off" || normalized === "-") return;
+
+    await playLifecycleFile(file);
+  }
 
   // ------------------------------------------------------------
   // Config
@@ -387,6 +426,8 @@
           id: String(a.id ?? "").trim(),
           caption: String(a.caption ?? "").trim(),
           instruction: String(a.instruction ?? "").trim(),
+          afterStarted: a.afterStarted,          // NEW (optional config)
+          instructionAudio: a.instructionAudio,  // NEW (optional config)
           index: a.index,
           nrof: a.nrof,
           lineLen: a.lineLen
@@ -562,7 +603,11 @@
 
     stoppedPlayedForThisRun = false;
 
+    // 1) started cue
     await playStarted();
+
+    // 2) instruction immediately after started.mp3
+    await playAfterStartedInstruction(cur);
 
     const activityKey = canonicalActivityId(cur.activity.id);
     const activityModule = getActivityModule(activityKey);
