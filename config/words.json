@@ -13,9 +13,11 @@
       { "id": "pairletters", "caption": "Zoek het letterpaar", "instruction": "Zoek de letter die twee keer voorkomt.", "nrof": 4, "lineLen": 10 },
       
       { "id": "letters", "caption": "Oefen letter b a l", "instruction": "Oefen de letters van het woord." },
-      { "id": "story", "index": 0, "caption": "ballen", "instruction": "Luister naar het verhaal: bal." },
+      
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." },
-      { "id": "story", "index": -1, "caption": "alles", "instruction": "Luister naar alle verhalen." }
+      
+      
+      
     ],
     "short": true,
     "icon": "ball.icon",
@@ -38,7 +40,9 @@
       
       { "id": "tts", "caption": "Luister (woord)", "instruction": "Luister naar het woord." },
       { "id": "letters", "caption": "Oefen letters", "instruction": "Oefen de letters van het woord." },
+      
       { "id": "words", "caption": "Maak woorden", "instruction": "Maak woorden met de letters." },
+      
       { "id": "story", "index": -1, "caption": "Luister (verhaal)", "instruction": "Luister naar het verhaal." },
       { "id": "sounds", "caption": "Geluiden", "instruction": "Luister naar de geluiden." }
     ],
