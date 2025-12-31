@@ -1,0 +1,152 @@
+<!-- /pages/feedback-demo.html
+     Uses CURRENT EventLog class (no helpers).
+     Creates window.eventLog instance and everything logs through it.
+     Loads: /components/event-log/event-log.js  (your existing file)
+            /components/feedback/feedback.js   (above)
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Feedback demo (current EventLog class)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      padding: 1rem;
+      background: #f7f7f9;
+    }
+
+    h1 { margin: 0 0 0.75rem 0; }
+
+    .row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* Minimal styling so the EventLog looks OK in the demo */
+    .event-log {
+      background: #0f1117;
+      color: #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #2a2f3a;
+    }
+
+    .event-log__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: #161a23;
+      border-bottom: 1px solid #2a2f3a;
+    }
+
+    .event-log__title {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .event-log__controls button {
+      padding: 0.35rem 0.6rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .event-log__body {
+      max-height: 260px;
+      overflow: auto;
+      padding: 0.5rem 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .event-log__entry { margin: 0.15rem 0; }
+    .event-log__entry--system { color: #e5e7eb; }
+    .event-log__entry--info   { color: #93c5fd; }
+    .event-log__entry--warn   { color: #fbbf24; }
+    .event-log__entry--error  { color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+  <h1>Feedback demo</h1>
+
+  <div class="row">
+    <button id="btnCorrect" type="button">Correct</button>
+    <button id="btnIncorrect" type="button">Incorrect</button>
+    <button id="btnDone" type="button">Done</button>
+    <button id="btnHint" type="button">Hint</button>
+  </div>
+
+  <!-- EventLog mount point -->
+  <div id="eventLog"></div>
+
+  <!-- 1) Load your current EventLog class -->
+  <script src="/components/event-log/event-log.js"></script>
+  <script>
+    // Create ONE global instance
+    window.eventLog = new window.EventLog(document.getElementById("eventLog"), {
+      maxEntries: 500
+    });
+
+    window.eventLog.log("Demo page loaded", "info");
+  </script>
+
+  <!-- 2) Headless BrailleUI stub (logs only) -->
+  <script>
+    window.BrailleUI = {
+      setLine(text, meta) {
+        window.eventLog.log(`braille setLine ${JSON.stringify({ text, meta })}`, "info");
+      },
+      clear(meta) {
+        window.eventLog.log(`braille clear ${JSON.stringify(meta || {})}`, "info");
+      }
+    };
+  </script>
+
+  <!-- 3) AudioPlayer (logs and plays) -->
+  <script>
+    window.AudioPlayer = {
+      play(src) {
+        window.eventLog.log(`audio play ${src}`, "info");
+        const audio = new Audio(src);
+        audio.play().catch(err => {
+          window.eventLog.log(`audio error ${err.message}`, "error");
+        });
+      }
+    };
+  </script>
+
+  <!-- 4) Feedback component -->
+  <script src="/components/feedback/feedback.js"></script>
+
+  <!-- 5) Wire buttons -->
+  <script>
+    function safeShow(type) {
+      if (!window.Feedback?.show) {
+        window.eventLog.log("Feedback.show not found (check /components/feedback/feedback.js)", "error");
+        return;
+      }
+      window.eventLog.log(`ui click -> Feedback.show("${type}")`, "system");
+      window.Feedback.show(type);
+    }
+
+    document.getElementById("btnCorrect").addEventListener("click", () => safeShow("correct"));
+    document.getElementById("btnIncorrect").addEventListener("click", () => safeShow("incorrect"));
+    document.getElementById("btnDone").addEventListener("click", () => safeShow("done"));
+    document.getElementById("btnHint").addEventListener("click", () => safeShow("hint"));
+  </script>
+
+</body>
+</html>

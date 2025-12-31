@@ -1,69 +1,22 @@
 {
-  "language": "nl-NL",
-  "version": "1.4",
-  "categories": [
-    {
-      "type": "very_short",
-      "label": "Zeer kort",
-      "correct": true,
-      "items": [
-        { "id": "fb_ok_001", "text": "Goed.", "audio": "goed.mp3" },
-        { "id": "fb_ok_002", "text": "Juist.", "audio": "juist.mp3" },
-        { "id": "fb_ok_003", "text": "Klopt.", "audio": "klopt.mp3" },
-        { "id": "fb_ok_004", "text": "Top.", "audio": "top.mp3" },
-        { "id": "fb_ok_005", "text": "Prima.", "audio": "prima.mp3" }
-      ]
-    },
-    {
-      "type": "short",
-      "label": "Kort",
-      "correct": true,
-      "items": [
-        { "id": "fb_ok_006", "text": "Goed gedaan.", "audio": "goed-gedaan.mp3" },
-        { "id": "fb_ok_007", "text": "Helemaal goed.", "audio": "helemaal-goed.mp3" },
-        { "id": "fb_ok_008", "text": "Dat klopt.", "audio": "dat-klopt.mp3" },
-        { "id": "fb_ok_009", "text": "Precies goed.", "audio": "precies-goed.mp3" },
-        { "id": "fb_ok_010", "text": "Netjes.", "audio": "netjes.mp3" }
-      ]
-    },
-    {
-      "type": "motivating",
-      "label": "Motiverend",
-      "correct": true,
-      "items": [
-        { "id": "fb_ok_011", "text": "Goed gedaan, ga zo door.", "audio": "goed-gedaan-ga-zo-door.mp3" },
-        { "id": "fb_ok_012", "text": "Super gedaan.", "audio": "super-gedaan.mp3" },
-        { "id": "fb_ok_013", "text": "Mooi resultaat.", "audio": "mooi-resultaat.mp3" },
-        { "id": "fb_ok_014", "text": "Dat heb je goed aangepakt.", "audio": "goed-aangepakt.mp3" },
-        { "id": "fb_ok_015", "text": "Je hebt het goed gedaan.", "audio": "je-hebt-het-goed-gedaan.mp3" }
-      ]
-    },
-    {
-      "type": "extra_positive",
-      "label": "Extra positief",
-      "correct": true,
-      "items": [
-        { "id": "fb_ok_016", "text": "Uitstekend werk.", "audio": "uitstekend-werk.mp3" },
-        { "id": "fb_ok_017", "text": "Perfect gedaan.", "audio": "perfect-gedaan.mp3" },
-        { "id": "fb_ok_018", "text": "Dat is helemaal juist.", "audio": "helemaal-juist.mp3" },
-        { "id": "fb_ok_019", "text": "Je bent goed bezig.", "audio": "goed-bezig.mp3" },
-        { "id": "fb_ok_020", "text": "Heel knap gedaan.", "audio": "heel-knap-gedaan.mp3" }
-      ]
-    },
-    {
-      "type": "negative",
-      "label": "Niet juist / motiverend",
-      "correct": false,
-      "items": [
-        { "id": "fb_no_001", "text": "Jammer.", "audio": "jammer.mp3" },
-        { "id": "fb_no_002", "text": "Helaas.", "audio": "helaas.mp3" },
-        { "id": "fb_no_003", "text": "Dat klopt nog niet.", "audio": "klopt-nog-niet.mp3" },
-        { "id": "fb_no_004", "text": "Probeer het nog eens.", "audio": "probeer-nog-eens.mp3" },
-        { "id": "fb_no_005", "text": "Volgende keer beter.", "audio": "volgende-keer-beter.mp3" },
-        { "id": "fb_no_006", "text": "Nog niet goed, blijf proberen.", "audio": "nog-niet-goed-blijf-proberen.mp3" },
-        { "id": "fb_no_007", "text": "Dat ging nog niet goed.", "audio": "ging-nog-niet-goed.mp3" },
-        { "id": "fb_no_008", "text": "Geef niet op.", "audio": "geef-niet-op.mp3" }
-      ]
-    }
-  ]
+  "correct": {
+    "braille": "goed",
+    "sound": "/audio/ui/correct.mp3",
+    "duration": 300
+  },
+  "incorrect": {
+    "braille": "fout",
+    "sound": "/audio/ui/incorrect.mp3",
+    "duration": 300
+  },
+  "done": {
+    "braille": "klaar",
+    "sound": "/audio/ui/done.mp3",
+    "duration": 600
+  },
+  "hint": {
+    "braille": "luister",
+    "sound": "/audio/ui/hint.mp3",
+    "duration": 400
+  }
 }
