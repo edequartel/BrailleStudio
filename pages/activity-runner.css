@@ -404,3 +404,5 @@ html[data-theme="dark"] .chip.active {
   flex: 1;
 }
 
+#activity-instruction { white-space: pre-line; }
+

@@ -42,6 +42,7 @@
     clearBtn.insertAdjacentElement("afterend", btn);
 
     function getLogText() {
+      // Prefer the element your logger uses. Try common ids.
       const el =
         document.getElementById("log") ||
         document.getElementById("event-log") ||
@@ -52,6 +53,8 @@
         document.getElementById("debugLog");
 
       if (!el) return "";
+
+      // For <textarea>/<input> use .value; otherwise use visible text.
       if (typeof el.value === "string") return el.value;
       return (el.innerText || el.textContent || "").trim();
     }
@@ -60,6 +63,7 @@
       const t = String(text ?? "");
       if (!t) return false;
 
+      // Modern clipboard API (requires secure context: https or localhost)
       if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
         try {
           await navigator.clipboard.writeText(t);
@@ -69,6 +73,7 @@
         }
       }
 
+      // Fallback (works in more places, but not all iOS cases)
       try {
         const ta = document.createElement("textarea");
         ta.value = t;
@@ -102,12 +107,18 @@
   // ------------------------------------------------------------
   // Activity lifecycle audio (GitHub Pages + iOS unlock)
   // ------------------------------------------------------------
+
+  // Works both:
+  // - locally (Working Copy / local server): origin = http://localhost:...
+  // - GitHub Pages: origin = https://<user>.github.io and first path segment is repo name
   function getBasePath() {
     try {
       const host = String(location.hostname || "");
       const path = String(location.pathname || "/");
       const seg = path.split("/").filter(Boolean);
-      if (host.endsWith("github.io") && seg.length > 0) return "/" + seg[0];
+      if (host.endsWith("github.io") && seg.length > 0) {
+        return "/" + seg[0]; // repo name
+      }
       return "";
     } catch {
       return "";
@@ -116,6 +127,7 @@
 
   const BASE_PATH = getBasePath();
 
+  // audio files are in /audio on the website root (repo root on GitHub Pages)
   function lifecycleUrl(file) {
     return `${location.origin}${BASE_PATH}/audio/${file}`;
   }
@@ -126,10 +138,12 @@
     if (audioUnlocked) return;
 
     try {
+      // Howler unlock/resume
       if (window.Howler && window.Howler.ctx && window.Howler.ctx.state === "suspended") {
         window.Howler.ctx.resume().catch(() => {});
       }
 
+      // HTML5 warm-up (must be after a gesture on iOS)
       const a = new Audio(lifecycleUrl("started.mp3"));
       a.muted = true;
       a.preload = "auto";
@@ -176,6 +190,7 @@
       try {
         log("[lifecycle] play", { file, url, howl: Boolean(window.Howl), howler: Boolean(window.Howler), unlocked: audioUnlocked });
 
+        // Safety watchdog so auto-run never hangs waiting for "ended"
         watchdog = setTimeout(() => finish("watchdog"), 8000);
 
         if (window.Howl) {
@@ -215,23 +230,45 @@
   async function playStopped() { await playLifecycleFile("stopped.mp3"); }
 
   // ------------------------------------------------------------
-  // Instruction audio right after "started.mp3"
+  // NEW: Instruction audio right after "started.mp3"
   // ------------------------------------------------------------
+  //
+  // Requirement:
+  // - JSON field is called "instruction"
+  // - That field is a mp3 filename (e.g. "bal-001.mp3") stored in /audio/
+  // - No placeholder / default should be played.
+  //
+  // Behavior:
+  // - If instruction is empty / missing / "–" / "placeholder" / "none" => play nothing.
+  // - If instruction ends with ".mp3" => play it from /audio/<instruction>
+  // - Otherwise (instruction text, not a filename) => play nothing (silent)
+  //
+
   function looksLikeDisabledInstruction(s) {
     const t = String(s ?? "").trim().toLowerCase();
     if (!t) return true;
-    return (t === "–" || t === "-" || t === "none" || t === "off" || t === "placeholder" || t === "instruction");
+    return (
+      t === "–" ||
+      t === "-" ||
+      t === "none" ||
+      t === "off" ||
+      t === "placeholder" ||
+      t === "instruction"
+    );
   }
 
   function normalizeInstructionFilename(s) {
     const t = String(s ?? "").trim();
     if (!t) return "";
+    // Only accept mp3 filenames; otherwise treat as non-audio instruction text.
     if (!t.toLowerCase().endsWith(".mp3")) return "";
+    // Safety: prevent path traversal; keep it a simple filename.
     const name = t.split("/").pop().split("\\").pop();
     return name;
   }
 
   function getInstructionMp3ForCurrent(cur) {
+    // The "instruction" field lives on the activity object in words.json
     const instr = cur?.activity?.instruction;
     if (looksLikeDisabledInstruction(instr)) return "";
     return normalizeInstructionFilename(instr);
@@ -339,7 +376,7 @@
   // SINGLE toggle run button UI (optional)
   // ------------------------------------------------------------
   function setRunnerUi({ isRunning }) {
-    const runBtn = $opt("run-activity-btn");
+    const runBtn = $opt("run-activity-btn"); // optional
     const autoRun = $opt("auto-run");
 
     if (autoRun) autoRun.disabled = Boolean(isRunning);
@@ -448,27 +485,6 @@
     }
   }
 
-  // ------------------------------------------------------------
-  // NEW: Markdown renderer for instruction panel (Marked)
-  // ------------------------------------------------------------
-  function renderMarkdownInto(el, md) {
-    if (!el) return;
-
-    const text = String(md ?? "");
-    if (!text.trim()) {
-      el.textContent = "–";
-      return;
-    }
-
-    // If marked exists, render markdown; otherwise plain text.
-    // NOTE: Marked does NOT sanitize HTML. Keep your input trusted.
-    if (window.marked && typeof window.marked.parse === "function") {
-      el.innerHTML = window.marked.parse(text);
-    } else {
-      el.textContent = text;
-    }
-  }
-
   function formatAllFields(item) {
     if (!item || typeof item !== "object") return "–";
 
@@ -486,8 +502,11 @@
         const bits = [];
         bits.push(id || "–");
         if (caption) bits.push(caption);
+
+        // keep instruction visible in "all fields" view (debug), even if it's mp3
         if (instruction) bits.push(instruction);
         if (text) bits.push(`text: ${text}`);
+
         return bits.join(" -- ");
       })
       .filter(Boolean);
@@ -510,18 +529,25 @@
   }
 
   // ------------------------------------------------------------
-  // Preserve ALL activity fields + normalize new activity.text (1 string)
+  // FIX for pairletters (and any activity-specific config):
+  // Preserve ALL activity fields from words.json, not just a small subset.
+  // This ensures cur.activity.twoletters / targetCount / etc remain available.
+  // PLUS: normalize new field activity.text (1 string)
   // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
       return item.activities
         .filter(a => a && typeof a === "object")
         .map(a => {
+          // Keep everything (pairletters config like twoletters/targetCount/etc)
           const out = { ...a };
 
+          // Normalize runner-required fields
           out.id = String(a.id ?? "").trim();
           out.caption = String(a.caption ?? "").trim();
           out.instruction = String(a.instruction ?? "").trim();
+
+          // NEW: text under caption (1 string)
           out.text = String(a.text ?? "").trim();
 
           return out;
@@ -605,26 +631,27 @@
     activityIdEl.textContent = `Activity: ${String(active.id ?? "–")}`;
 
     // ------------------------------------------------------------
-    // MARKDOWN UI RULE:
-    // Put activity.text under the caption, rendered as Markdown using Marked.
-    // - NEVER show .mp3 filenames (instruction) in UI
-    // - caption is bold, text is under it
+    // NEW UI RULE:
+    // Put activity.text UNDER the caption in the instruction panel.
+    // - caption is the top line
+    // - text is the second line
+    // - do NOT show .mp3 filenames in UI
+    //
+    // Note: For newline rendering, set CSS:
+    //   #activity-instruction { white-space: pre-line; }
     // ------------------------------------------------------------
     const caption = String(active.caption ?? "").trim();
     const text = String(active.text ?? "").trim();
 
-    // If instruction is not an mp3 filename, allow it as a fallback UI line
     const instr = String(active.instruction ?? "").trim();
     const instrUi = (instr && !instr.toLowerCase().endsWith(".mp3")) ? instr : "";
 
     const top = caption || instrUi || "–";
     const bottom = (caption && text) ? text : "";
 
-    const md = bottom
-      ? `**${top}**\n\n${bottom}`
-      : `**${top}**`;
-
-    renderMarkdownInto(activityInstructionEl, md);
+    if (activityInstructionEl) {
+      activityInstructionEl.textContent = bottom ? `${top}\n${bottom}` : top;
+    }
 
     activityButtonsEl.innerHTML = "";
     for (let i = 0; i < activities.length; i++) {
@@ -672,7 +699,7 @@
   function cancelRun(reason = "stop") {
     if (reason !== "restart" && running && !stoppedPlayedForThisRun) {
       stoppedPlayedForThisRun = true;
-      playStopped();
+      playStopped(); // do not await on manual stop
     }
 
     runToken += 1;
@@ -716,7 +743,11 @@
 
     stoppedPlayedForThisRun = false;
 
+    // 1) started cue
     await playStarted();
+
+    // 2) instruction mp3 from JSON field "instruction" (only if it ends with .mp3)
+    //    NO default / placeholder audio will be played.
     await playInstructionAfterStarted(cur);
 
     const activityKey = canonicalActivityId(cur.activity.id);
@@ -729,8 +760,8 @@
         activityKey,
         activityId: cur.activity?.id ?? null,
         activityCaption: cur.activity?.caption ?? null,
-        activityText: cur.activity?.text ?? null, // NEW (optional use in activity modules)
-        activity: cur.activity ?? null,
+        activityText: cur.activity?.text ?? null, // NEW: pass to activity modules if useful
+        activity: cur.activity ?? null,           // contains pairletters config now
         record: cur.item ?? null,
         recordIndex: currentIndex,
         activityIndex: currentActivityIndex,
@@ -756,7 +787,7 @@
 
       if (!stoppedPlayedForThisRun) {
         stoppedPlayedForThisRun = true;
-        await playStopped();
+        await playStopped(); // wait so it won't overlap the next started cue
       }
 
       running = false;
@@ -940,11 +971,13 @@
     log("[lifecycle] basePath", { BASE_PATH, origin: location.origin });
 
     installAudioUnlock();
+
+    // NEW: install copy button next to the Clear button in the log
     installLogCopyButton();
 
     const nextBtn = $("next-btn");
     const prevBtn = $("prev-btn");
-    const runBtn = $opt("run-activity-btn");
+    const runBtn = $opt("run-activity-btn"); // optional
     const toggleFieldsBtn = $("toggle-fields-btn");
     const fieldsPanel = $("fields-panel");
 
