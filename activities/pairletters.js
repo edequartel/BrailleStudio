@@ -2,6 +2,9 @@
 (function () {
   "use strict";
 
+  // VERSION MARKER (useful for cache/path debugging)
+  console.log("[pairletters] LOADED version 2025-12-31 twoletters-fixed");
+
   function log(msg, data) {
     const line = data ? `${msg} ${safeJson(data)}` : msg;
     if (typeof window.logMessage === "function") window.logMessage(line);
@@ -13,12 +16,9 @@
 
   const DEFAULT_ROUNDS = 5;
   const DEFAULT_LINE_LEN = 18; // number of CELLS
-
-  // Tunables
   const FEEDBACK_MS = 300;
   const FLIPBACK_MS = 650;
 
-  // When twoletters:true you can configure how many targets appear
   const DEFAULT_TARGET_COUNT = 2;
 
   function create() {
@@ -32,10 +32,10 @@
     let totalRounds = DEFAULT_ROUNDS;
     let lineLenCells = DEFAULT_LINE_LEN;
 
-    // Only when true => exactly TWO distinct letters on the line (target + one distractor)
+    // twoletters:true => EXACTLY two distinct letters per line (target + distractor)
     let twoLettersOnly = false;
 
-    // Only used when twoletters:true
+    // only used in twoletters mode
     let targetCount = DEFAULT_TARGET_COUNT;
 
     // round state
@@ -61,7 +61,7 @@
     let inputLocked = false;
     let selectionEpoch = 0;
 
-    // keep record around for record.letters pool
+    // keep record for record.letters pool
     let ctxRecord = null;
 
     // ------------------------------------------------------------
@@ -112,23 +112,40 @@
       return Math.max(min, Math.min(max, i));
     }
 
+    // Read bool from multiple possible key names
+    function readBool(a, keys, fallback) {
+      for (const k of keys) {
+        if (a && Object.prototype.hasOwnProperty.call(a, k)) {
+          const v = a[k];
+          if (v === true) return true;
+          if (v === false) return false;
+          const s = String(v).trim().toLowerCase();
+          if (s === "true") return true;
+          if (s === "false") return false;
+        }
+      }
+      return fallback;
+    }
+
     function readConfigFromCtx(ctx) {
       const a = ctx?.activity || {};
+
       totalRounds = clampInt(a.nrof ?? a.nrOf ?? a.nRounds, 1, 200, DEFAULT_ROUNDS);
       lineLenCells = clampInt(a.lineLen ?? a.lineLength ?? a.len, 2, 40, DEFAULT_LINE_LEN);
 
-      const tl = a.twoletters;
-      twoLettersOnly = (tl === true) || (String(tl).toLowerCase() === "true");
+      // accept multiple spellings to avoid runner normalization issues
+      twoLettersOnly = readBool(a, ["twoletters", "twoLetters", "twoLettersOnly"], false);
 
-      // targetCount applies only in twoletters mode; we still parse it always
-      const tc = a.targetCount ?? a.targets ?? a.targetcount;
+      // accept multiple spellings
+      const tc = a.targetCount ?? a.targetcount ?? a.targets ?? a.targetCounts;
       targetCount = clampInt(tc, 2, 40, DEFAULT_TARGET_COUNT);
 
+      // IMPORTANT: show the incoming activity config
+      log("[pairletters] activity cfg", a);
       log("[pairletters] config", { totalRounds, lineLenCells, twoLettersOnly, targetCount });
     }
 
     function pickTarget() {
-      // prefer fresh letters, else known, else record letters, else "a"
       if (fresh.length) return fresh[Math.floor(Math.random() * fresh.length)];
       if (known.length) return known[Math.floor(Math.random() * known.length)];
       const rl = uniqLetters(ctxRecord?.letters);
@@ -136,8 +153,7 @@
       return "a";
     }
 
-    // For twoletters:true: prefer distractor from record.letters (word letters).
-    // Fallback to global pool if needed.
+    // distractor pool: prefer record letters (word letters) first
     function pickDistractor(targetLetter) {
       const recordPool = uniqLetters(ctxRecord?.letters).filter(ch => ch !== targetLetter);
       if (recordPool.length) return recordPool[Math.floor(Math.random() * recordPool.length)];
@@ -148,12 +164,12 @@
       return targetLetter;
     }
 
-    // Default/old behaviour: many distinct letters, target occurs exactly twice, others (mostly) unique.
+    // Default mode (old): many letters, target appears exactly twice
     function buildCellsMultiLetter(targetLetter, requestedLenCells) {
       const poolAll = uniqLetters([...(known || []), ...(fresh || [])]);
       const candidates = poolAll.filter(ch => ch && ch !== targetLetter);
 
-      const maxLenPossible = candidates.length + 2; // target twice + others unique
+      const maxLenPossible = candidates.length + 2;
       let len = clampInt(requestedLenCells, 2, 40, DEFAULT_LINE_LEN);
 
       if (len > maxLenPossible) {
@@ -193,9 +209,8 @@
       return arr;
     }
 
-    // twoletters:true:
-    // Exactly TWO distinct letters: target + ONE distractor (fixed per round).
-    // Place targetCount occurrences of target; all others are distractor.
+    // twoletters:true mode:
+    // EXACTLY two distinct letters: target + ONE distractor (fixed per round)
     function buildCellsTwoLetter(targetLetter, distractorLetter, requestedLenCells) {
       let len = clampInt(requestedLenCells, 2, 40, DEFAULT_LINE_LEN);
       len = Math.max(2, len);
@@ -203,13 +218,13 @@
       const target = String(targetLetter || "").trim().toLowerCase() || "a";
       const distractor = String(distractorLetter || "").trim().toLowerCase() || target;
 
-      // Ensure at least 1 distractor exists
+      // ensure at least 1 distractor remains
       const maxTargets = Math.max(2, len - 1);
       const tCount = Math.max(2, Math.min(maxTargets, targetCount));
 
       const arr = new Array(len).fill(distractor);
 
-      // pick tCount unique positions for target
+      // choose tCount unique positions for target
       const positions = [];
       for (let i = 0; i < len; i++) positions.push(i);
       for (let i = positions.length - 1; i > 0; i--) {
@@ -222,10 +237,15 @@
         arr[positions[k]] = target;
       }
 
+      // HARD INVARIANT: only two letters
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] !== target) arr[i] = distractor;
+      }
+
       return arr;
     }
 
-    // Rendering and mapping
+    // Rendering: in twoletters mode show letters always; in default mask selected with "é"
     function renderLineAndMapping() {
       const parts = [];
       cellCharStarts = [];
@@ -239,9 +259,6 @@
         cellCharStarts[i] = charPos;
 
         const isSelected = (i === firstIdx || i === secondIdx);
-
-        // Default: old behaviour (selected => "é")
-        // twoletters:true: show letters always (no masking)
         const shown = twoLettersOnly
           ? (cells[i] || " ")
           : (isSelected ? "é" : (cells[i] || " "));
@@ -330,12 +347,12 @@
         lineText,
         twoLettersOnly,
         target: currentTarget,
-        targetCount
+        targetCount,
+        unique: Array.from(new Set(cells))
       });
       await sendToBraille(lineText);
     }
 
-    // IMPORTANT: distractor is chosen ONCE per round, and we enforce the invariant.
     async function nextRound(token) {
       if (token !== playToken) return;
 
@@ -349,28 +366,12 @@
         const distractor = pickDistractor(currentTarget);
         cells = buildCellsTwoLetter(currentTarget, distractor, lineLenCells);
 
-        // HARD INVARIANT: only {target, distractor} allowed
-        const setBefore = new Set(cells);
-        if (setBefore.size > 2) {
-          const before = Array.from(setBefore).join("");
-          for (let i = 0; i < cells.length; i++) {
-            if (cells[i] !== currentTarget) cells[i] = distractor;
-          }
-          const after = Array.from(new Set(cells)).join("");
-          log("[pairletters] FIXED invariant (twoletters)", {
-            target: currentTarget,
-            distractor,
-            before,
-            after
-          });
-        }
-
         log("[pairletters] twoletters round", {
           target: currentTarget,
           distractor,
-          unique: Array.from(new Set(cells)),
           targetCount,
-          len: cells.length
+          len: cells.length,
+          unique: Array.from(new Set(cells))
         });
       } else {
         cells = buildCellsMultiLetter(currentTarget, lineLenCells);
@@ -401,10 +402,8 @@
       round = 0;
       while (round < totalRounds) {
         if (token !== playToken) return;
-
         await nextRound(token);
         await waitForRoundCompletion(token);
-
         round += 1;
       }
 
@@ -485,48 +484,36 @@
       const letter = normLetter(cells[idx]);
       if (!letter) return;
 
-      // ignore selecting same open card again
       if (idx === firstIdx || idx === secondIdx) return;
 
-      // Stage 0 -> first pick
       if (stage === 0) {
         firstIdx = idx;
         firstLetter = letter;
         stage = 1;
-
         redraw("pick-first").catch(() => {});
         return;
       }
 
-      // Stage 1 -> second pick + compare
       if (stage === 1) {
         secondIdx = idx;
         secondLetter = letter;
         stage = 2;
 
         redraw("pick-second").catch(() => {});
-
         const epochAtPick = selectionEpoch;
 
         const sameLetter = (secondLetter === firstLetter);
 
-        // In twoletters mode, distractor repeats, so only TARGET matches count.
-        // In default mode, any same letter is a match.
+        // In twoletters mode distractor repeats, so only TARGET matches count.
         const isMatch = twoLettersOnly
           ? (sameLetter && secondLetter === currentTarget)
           : sameLetter;
 
         inputLocked = true;
 
-        if (isMatch) {
-          handleMatch(epochAtPick).catch(() => {});
-        } else {
-          handleMismatch(epochAtPick).catch(() => {});
-        }
-        return;
+        if (isMatch) handleMatch(epochAtPick).catch(() => {});
+        else handleMismatch(epochAtPick).catch(() => {});
       }
-
-      // stage 2: waiting; ignore
     }
 
     return { start, stop, isRunning, onCursor };

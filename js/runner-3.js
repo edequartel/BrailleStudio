@@ -188,7 +188,7 @@
       }
 
       try {
-        log("[lifecycle] play", { file, url, howl: Boolean(window.Howl), howler: Boolean(window.Howler), unlocked: audioUnlocked });
+        log("[lifecycle] play", { file, url, howler: Boolean(window.Howl), unlocked: audioUnlocked });
 
         // Safety watchdog so auto-run never hangs waiting for "ended"
         watchdog = setTimeout(() => finish("watchdog"), 8000);
@@ -253,7 +253,8 @@
       t === "none" ||
       t === "off" ||
       t === "placeholder" ||
-      t === "instruction"
+      t === "instruction" ||
+      t === "instruction.mp3"
     );
   }
 
@@ -520,26 +521,19 @@
     return lines.join("\n");
   }
 
-  // ------------------------------------------------------------
-  // FIX for pairletters (and any activity-specific config):
-  // Preserve ALL activity fields from words.json, not just a small subset.
-  // This ensures cur.activity.twoletters / targetCount / etc remain available.
-  // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
       return item.activities
         .filter(a => a && typeof a === "object")
-        .map(a => {
-          // Keep everything (pairletters config like twoletters/targetCount/etc)
-          const out = { ...a };
-
-          // Normalize runner-required fields
-          out.id = String(a.id ?? "").trim();
-          out.caption = String(a.caption ?? "").trim();
-          out.instruction = String(a.instruction ?? "").trim();
-
-          return out;
-        })
+        .map(a => ({
+          id: String(a.id ?? "").trim(),
+          caption: String(a.caption ?? "").trim(),
+          // IMPORTANT: instruction is used both for UI text AND (if it ends with .mp3) as audio filename
+          instruction: String(a.instruction ?? "").trim(),
+          index: a.index,
+          nrof: a.nrof,
+          lineLen: a.lineLen
+        }))
         .filter(a => a.id);
     }
 
@@ -621,7 +615,8 @@
     // If instruction is an mp3 filename, do NOT show it as text in the UI.
     // Instead show caption (or "–").
     const instr = String(active.instruction ?? "").trim();
-    const uiText = (instr && instr.toLowerCase().endsWith(".mp3")) ? "" : instr;
+    const uiText =
+      (instr && instr.toLowerCase().endsWith(".mp3")) ? "" : instr;
 
     if (activityInstructionEl) activityInstructionEl.textContent = uiText || active.caption || "–";
 
@@ -718,7 +713,7 @@
     // 1) started cue
     await playStarted();
 
-    // 2) instruction mp3 from JSON field "instruction" (only if it ends with .mp3)
+    // 2) play instruction mp3 from JSON field "instruction" (only if it ends with .mp3)
     //    NO default / placeholder audio will be played.
     await playInstructionAfterStarted(cur);
 
@@ -732,7 +727,7 @@
         activityKey,
         activityId: cur.activity?.id ?? null,
         activityCaption: cur.activity?.caption ?? null,
-        activity: cur.activity ?? null,         // contains pairletters config now
+        activity: cur.activity ?? null,
         record: cur.item ?? null,
         recordIndex: currentIndex,
         activityIndex: currentActivityIndex,
@@ -758,7 +753,7 @@
 
       if (!stoppedPlayedForThisRun) {
         stoppedPlayedForThisRun = true;
-        await playStopped(); // wait so it won't overlap the next started cue
+        await playStopped(); // IMPORTANT: wait so it won't overlap the next started cue
       }
 
       running = false;
