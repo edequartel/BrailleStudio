@@ -18,7 +18,7 @@
   log("[runner] runner.js loaded");
 
   // ------------------------------------------------------------
-  // Copy log button (next to Clear)
+  // NEW: Copy log button (next to Clear)
   // ------------------------------------------------------------
   function installLogCopyButton() {
     const clearBtn = document.getElementById("clear-log-btn");
@@ -26,6 +26,8 @@
       log("[runner] No #clear-log-btn found; copy-log button not installed");
       return;
     }
+
+    // Avoid duplicates if runner.js is loaded twice
     if (document.getElementById("copy-log-btn")) return;
 
     const btn = document.createElement("button");
@@ -35,6 +37,8 @@
     btn.textContent = "Copy";
     btn.title = "Copy log to clipboard";
     btn.setAttribute("aria-label", "Copy log to clipboard");
+
+    // Place directly next to Clear
     clearBtn.insertAdjacentElement("afterend", btn);
 
     function getLogText() {
@@ -87,6 +91,7 @@
     btn.addEventListener("click", async () => {
       const text = getLogText();
       const ok = await copyTextToClipboard(text);
+
       if (ok) log("[runner] log copied to clipboard", { chars: text.length });
       else log("[runner] could not copy log (clipboard blocked or no log element found)");
     });
@@ -182,6 +187,7 @@
             onplayerror: (id, err) => { log("[lifecycle] howl play error", { file, url, err }); finish("playerror"); },
             onend: () => finish("ended")
           });
+
           h.play();
         } else {
           const a = new Audio(url);
@@ -292,15 +298,18 @@
     if (!el) log(`[runner] Missing element #${id}`);
     return el;
   }
-  function $opt(id) { return document.getElementById(id); }
 
-  // Meta/status elements are OPTIONAL after refactor
+  function $opt(id) {
+    return document.getElementById(id);
+  }
+
   function setStatus(text) {
-    const el = $opt("data-status");
+    const el = $("data-status");
     if (el) el.textContent = "Data: " + text;
   }
+
   function setActivityStatus(text) {
-    const el = $opt("activity-status");
+    const el = $("activity-status");
     if (el) el.textContent = "Status: " + text;
   }
 
@@ -308,7 +317,7 @@
   // Activity button state styling hooks
   // ------------------------------------------------------------
   function updateActivityButtonStates() {
-    const wrap = $opt("activity-buttons");
+    const wrap = $("activity-buttons");
     if (!wrap) return;
 
     const buttons = wrap.querySelectorAll("button.chip");
@@ -440,7 +449,7 @@
   }
 
   // ------------------------------------------------------------
-  // Markdown renderer for instruction panel (Marked)
+  // NEW: Markdown renderer for instruction panel (Marked)
   // ------------------------------------------------------------
   function renderMarkdownInto(el, md) {
     if (!el) return;
@@ -451,6 +460,8 @@
       return;
     }
 
+    // If marked exists, render markdown; otherwise plain text.
+    // NOTE: Marked does NOT sanitize HTML. Keep your input trusted.
     if (window.marked && typeof window.marked.parse === "function") {
       el.innerHTML = window.marked.parse(text);
     } else {
@@ -499,7 +510,7 @@
   }
 
   // ------------------------------------------------------------
-  // Preserve ALL activity fields + normalize activity.text
+  // Preserve ALL activity fields + normalize new activity.text (1 string)
   // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
@@ -507,10 +518,12 @@
         .filter(a => a && typeof a === "object")
         .map(a => {
           const out = { ...a };
+
           out.id = String(a.id ?? "").trim();
           out.caption = String(a.caption ?? "").trim();
           out.instruction = String(a.instruction ?? "").trim();
           out.text = String(a.text ?? "").trim();
+
           return out;
         })
         .filter(a => a.id);
@@ -566,20 +579,19 @@
   }
 
   function renderActivity(item, activities) {
-    // Meta elements OPTIONAL; #activity-buttons is required
-    const activityIndexEl = $opt("activity-index");
-    const activityIdEl = $opt("activity-id");
-    const activityButtonsEl = $("activity-buttons"); // required
-    const activityInstructionEl = $opt("activity-instruction");
+    const activityIndexEl = $("activity-index");
+    const activityIdEl = $("activity-id");
+    const activityButtonsEl = $("activity-buttons");
+    const activityInstructionEl = document.getElementById("activity-instruction");
 
-    if (!activityButtonsEl) {
-      log("[runner] Missing #activity-buttons; cannot render activity.");
+    if (!activityIndexEl || !activityIdEl || !activityButtonsEl) {
+      log("[runner] Missing activity DOM elements; cannot render activity.");
       return;
     }
 
     if (!activities.length) {
-      if (activityIndexEl) activityIndexEl.textContent = "0 / 0";
-      if (activityIdEl) activityIdEl.textContent = "Activity: –";
+      activityIndexEl.textContent = "0 / 0";
+      activityIdEl.textContent = "Activity: –";
       if (activityInstructionEl) activityInstructionEl.textContent = "–";
       activityButtonsEl.innerHTML = "";
       if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "activity-empty-idle" });
@@ -589,19 +601,29 @@
     const active = activities[currentActivityIndex] ?? activities[0];
     if (!active) return;
 
-    if (activityIndexEl) activityIndexEl.textContent = `${currentActivityIndex + 1} / ${activities.length}`;
-    if (activityIdEl) activityIdEl.textContent = `Activity: ${String(active.id ?? "–")}`;
+    activityIndexEl.textContent = `${currentActivityIndex + 1} / ${activities.length}`;
+    activityIdEl.textContent = `Activity: ${String(active.id ?? "–")}`;
 
+    // ------------------------------------------------------------
+    // MARKDOWN UI RULE:
+    // Put activity.text under the caption, rendered as Markdown using Marked.
+    // - NEVER show .mp3 filenames (instruction) in UI
+    // - caption is bold, text is under it
+    // ------------------------------------------------------------
     const caption = String(active.caption ?? "").trim();
     const text = String(active.text ?? "").trim();
 
+    // If instruction is not an mp3 filename, allow it as a fallback UI line
     const instr = String(active.instruction ?? "").trim();
     const instrUi = (instr && !instr.toLowerCase().endsWith(".mp3")) ? instr : "";
 
     const top = caption || instrUi || "–";
     const bottom = (caption && text) ? text : "";
 
-    const md = bottom ? `**${top}**\n\n${bottom}` : `**${top}**`;
+    const md = bottom
+      ? `**${top}**\n\n${bottom}`
+      : `**${top}**`;
+
     renderMarkdownInto(activityInstructionEl, md);
 
     activityButtonsEl.innerHTML = "";
@@ -623,6 +645,7 @@
     }
 
     updateActivityButtonStates();
+
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "activity-change-idle" });
   }
 
@@ -706,7 +729,7 @@
         activityKey,
         activityId: cur.activity?.id ?? null,
         activityCaption: cur.activity?.caption ?? null,
-        activityText: cur.activity?.text ?? null,
+        activityText: cur.activity?.text ?? null, // NEW (optional use in activity modules)
         activity: cur.activity ?? null,
         record: cur.item ?? null,
         recordIndex: currentIndex,
@@ -860,30 +883,26 @@
   function render() {
     if (!records.length) {
       setStatus("geen records");
-      const allEl = $opt("field-all");
+      const allEl = $("field-all");
       if (allEl) allEl.textContent = "–";
       return;
     }
 
     const item = records[currentIndex];
 
-    // Meta elements OPTIONAL; only #field-word is required
-    const idEl = $opt("item-id");
-    const indexEl = $opt("item-index");
-    const wordEl = $("field-word"); // required
-    const emojiEl = $opt("field-emoji");
+    const idEl = $("item-id");
+    const indexEl = $("item-index");
+    const wordEl = $("field-word");
+    const emojiEl = $("field-emoji");
 
-    if (!wordEl) {
-      setStatus("HTML mist #field-word");
+    if (!idEl || !indexEl || !wordEl) {
+      setStatus("HTML mist ids");
       return;
     }
 
-    // Always fill core word UI
+    idEl.textContent = "ID: " + (item.id ?? "–");
+    indexEl.textContent = `${currentIndex + 1} / ${records.length}`;
     wordEl.textContent = item.word || "–";
-
-    // Fill meta only if present
-    if (idEl) idEl.textContent = "ID: " + (item.id ?? "–");
-    if (indexEl) indexEl.textContent = `${currentIndex + 1} / ${records.length}`;
 
     if (emojiEl) {
       const em = getEmojiForItem(item);
@@ -891,10 +910,10 @@
       emojiEl.style.display = em ? "" : "none";
     }
 
-    const wordBrailleEl = $opt("field-word-braille");
+    const wordBrailleEl = $("field-word-braille");
     if (wordBrailleEl) wordBrailleEl.textContent = toBrailleUnicode(item.word || "");
 
-    const allEl = $opt("field-all");
+    const allEl = $("field-all");
     if (allEl) allEl.textContent = formatAllFields(item);
 
     const activities = getActivities(item);
@@ -923,11 +942,11 @@
     installAudioUnlock();
     installLogCopyButton();
 
-    const nextBtn = $opt("next-btn");
-    const prevBtn = $opt("prev-btn");
+    const nextBtn = $("next-btn");
+    const prevBtn = $("prev-btn");
     const runBtn = $opt("run-activity-btn");
-    const toggleFieldsBtn = $opt("toggle-fields-btn");
-    const fieldsPanel = $opt("fields-panel");
+    const toggleFieldsBtn = $("toggle-fields-btn");
+    const fieldsPanel = $("fields-panel");
 
     if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
       BrailleBridge.connect();
