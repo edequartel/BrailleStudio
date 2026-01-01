@@ -63,6 +63,9 @@
   user-select: none;
   border: 1px solid transparent;
 
+  /* NEW: ensure both lines inherit the same (white) color */
+  color: #fff;
+
   /* Prevent inner lines from wrapping in odd ways */
   vertical-align: top;
 }
@@ -75,14 +78,17 @@
 /* -------------------------------------------------------
    Braille line (top) and print line (bottom)
    CHANGED: Braille line uses Bartimeus6Dots webfont.
-   IMPORTANT: This will only look correct if JS outputs
-              Braille ASCII (not Unicode U+2800…).
 ------------------------------------------------------- */
 .monitor-cell__braille {
   display: block;
   line-height: 1;
   font-size: 1.05em;
-  opacity: 0.85;
+
+  /* CHANGED: remove opacity so it is the SAME color intensity */
+  opacity: 1;
+
+  /* CHANGED: inherit the exact same color as the cell */
+  color: inherit;
 
   /* CHANGED: prefer Bartimeus 6-dots font first */
   font-family: var(--braille-font),
@@ -100,6 +106,9 @@
   display: block;
   line-height: 1;
   font-size: 1.05em;
+
+  /* NEW: force same color as braille */
+  color: inherit;
 }
 
 /* Option B: Flex, but force equal-width buttons */
@@ -200,6 +209,11 @@
     border-color: #2a3550;
     background: #0f172a;
     color: #cfd6e4;
+  }
+
+  /* NEW: keep monitor cells white in dark mode as requested */
+  .braille-monitor-cells .monitor-cell {
+    color: #fff;
   }
 
   .braille-monitor-cells .monitor-cell:hover {

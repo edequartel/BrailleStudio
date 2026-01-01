@@ -1,9 +1,9 @@
 /* braillemonitor.css - component scoped styling */
 
 /* -------------------------------------------------------
-   Bartimeus 6-dots webfont (repo hosted)
-   Location: /resources/webfonts/bartimeus6dots-webfont.woff2|.woff
-   NOTE: This font typically expects Braille ASCII input.
+   (OPTIONAL) Bartimeus 6-dots webfont (repo hosted)
+   NOTE: This font expects Braille ASCII input.
+   KEEP ONLY if you use it elsewhere. Not used for Unicode braille.
 ------------------------------------------------------- */
 @font-face {
   font-family: "Bartimeus6Dots";
@@ -15,9 +15,17 @@
   font-display: swap;
 }
 
-/* Optional: local variable so you can change in one place */
+/* -------------------------------------------------------
+   Unicode braille font stack
+   - Noto Sans Symbols2 includes Unicode braille patterns
+   - Segoe UI Symbol works on Windows
+------------------------------------------------------- */
 :root {
-  --braille-font: "Bartimeus6Dots";
+  /* Use Unicode-capable fonts for braille patterns (U+2800…U+28FF) */
+  --braille-unicode-font: "Noto Sans Symbols2", "Segoe UI Symbol", system-ui, sans-serif;
+
+  /* Keep your monospace for print line and container */
+  --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Cascadia Code", "Fira Code", monospace;
 }
 
 .braille-monitor-component {
@@ -25,36 +33,31 @@
   gap: 0.6rem;
 }
 
-/* CHANGED: allow stacked (2-line) cells while keeping horizontal scroll */
+/* Container */
 .mono-box.braille-monitor-cells {
   border: 1px solid #cfd6e4;
   border-radius: 10px;
   background: #ffffff;
   padding: 0.6rem 0.7rem;
 
-  /* CHANGED: keep your monospace for the container (print line etc.) */
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Cascadia Code", "Fira Code", monospace;
-
+  font-family: var(--mono-font);
   font-size: 1.05rem;
 
-  /* Two-line cell needs tighter line-height */
   line-height: 1.05;
 
-  /* Keep single-row scroll like before */
   overflow-x: auto;
   white-space: nowrap;
 }
 
-/* CHANGED: cell is a vertical stack: braille above, print below */
+/* Cell: stacked (braille above, print below) */
 .braille-monitor-cells .monitor-cell {
   display: inline-flex;
-  flex-direction: column;     /* ABOVE, not next to */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.18rem;
 
-  min-width: 1.2ch;           /* a bit wider for braille glyphs */
+  min-width: 1.2ch;
   padding: 0.12rem 0.18rem;
   margin: 0 0.03rem;
 
@@ -63,10 +66,9 @@
   user-select: none;
   border: 1px solid transparent;
 
-  /* NEW: ensure both lines inherit the same (white) color */
+  /* Ensure both lines are the same color (white) as you requested */
   color: #fff;
 
-  /* Prevent inner lines from wrapping in odd ways */
   vertical-align: top;
 }
 
@@ -76,39 +78,38 @@
 }
 
 /* -------------------------------------------------------
-   Braille line (top) and print line (bottom)
-   CHANGED: Braille line uses Bartimeus6Dots webfont.
+   Braille line (top) – Unicode braille patterns
+   CHANGED: Use Unicode font stack, NOT Bartimeus6Dots.
 ------------------------------------------------------- */
 .monitor-cell__braille {
   display: block;
   line-height: 1;
-  font-size: 1.05em;
 
-  /* CHANGED: remove opacity so it is the SAME color intensity */
+  /* Slightly larger helps readability of Unicode braille patterns */
+  font-size: 1.15em;
+
   opacity: 1;
-
-  /* CHANGED: inherit the exact same color as the cell */
   color: inherit;
 
-  /* CHANGED: prefer Bartimeus 6-dots font first */
-  font-family: var(--braille-font),
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Cascadia Code", "Fira Code", monospace;
+  /* IMPORTANT: Unicode braille font stack */
+  font-family: var(--braille-unicode-font);
 
   /* keep rendering stable */
   font-variant-ligatures: none;
   letter-spacing: 0;
+
+  /* these can help clarity for symbol fonts */
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Print line (bottom) */
 .monitor-cell__print {
   display: block;
   line-height: 1;
   font-size: 1.05em;
-
-  /* NEW: force same color as braille */
   color: inherit;
+  font-family: var(--mono-font);
 }
 
 /* Option B: Flex, but force equal-width buttons */
@@ -122,60 +123,52 @@
    Thumb keys (LARGE TEXT UPDATE)
 ------------------------------------------ */
 
-/* Base thumb keys (already present) */
+/* Base thumb keys */
 .thumb-key {
   min-height: 3rem;
   padding: 0.6rem 0.75rem;
 
-  /* CHANGED: larger, clearer text */
-  font-size: 1.15rem;     /* was 0.9rem */
+  font-size: 1.15rem;
   font-weight: 800;
   line-height: 1.25;
   letter-spacing: 0.02em;
 
-  border-radius: 14px; /* round corners */
+  border-radius: 14px;
 }
 
-/* Middle thumb keys (both middle-left and middle-right) */
+/* Middle thumb keys */
 .thumb-key[data-thumb="middleleftthumb"],
 .thumb-key[data-thumb="middlerightthumb"] {
-  background: #e6f0ff; /* light blue */
+  background: #e6f0ff;
   border-color: #7aa2ff;
   color: #0b1f4d;
 
-  /* CHANGED: even larger for primary controls */
   font-size: 1.3rem;
   font-weight: 900;
 }
 
-/* Active state for middle buttons */
 .thumb-key[data-thumb="middleleftthumb"].active,
 .thumb-key[data-thumb="middlerightthumb"].active {
   box-shadow: inset 0 0 0 2px rgba(26, 76, 255, 0.35);
 }
 
-/* If you use symbols like ▶ ■ etc, add class="symbol" */
 .thumb-key.symbol {
   font-size: 1.6rem;
   line-height: 1;
 }
 
-/* Dark mode for middle keys */
 @media (prefers-color-scheme: dark) {
   .thumb-key[data-thumb="middleleftthumb"],
   .thumb-key[data-thumb="middlerightthumb"] {
-    background: #1b2b52; /* darker blue */
+    background: #1b2b52;
     border-color: #7aa2ff;
     color: #e6eaf2;
   }
 }
 
-/* Optional: even taller + larger on touch devices */
 @media (pointer: coarse) {
   .thumb-key {
     min-height: 3.5rem;
-
-    /* CHANGED: increase further on touch */
     font-size: 1.35rem;
   }
 
@@ -211,7 +204,7 @@
     color: #cfd6e4;
   }
 
-  /* NEW: keep monitor cells white in dark mode as requested */
+  /* Keep monitor cells white in dark mode */
   .braille-monitor-cells .monitor-cell {
     color: #fff;
   }
@@ -245,27 +238,17 @@
 .button-row.thumb-row {
   display: flex;
   align-items: center;
-
-  /* Option A: equal distribution across the row */
   justify-content: center;
-
-  /* Add explicit spacing too (applies when buttons wrap or when there is spare room) */
   gap: 0.75rem;
-
-  /* Optional: keep some breathing room at the edges */
   padding: 0.25rem 0.5rem;
-
-  /* Optional: allow wrap on small screens */
   flex-wrap: wrap;
 }
 
-/* Optional: give buttons consistent width so spacing looks intentional */
 .button-row.thumb-row .thumb-key {
   min-width: 3.25rem;
 }
 
-/* Optional: if you want the row to be narrower than the monitor and centered */
 .braille-monitor-component .button-row.thumb-row {
-  max-width: 520px;     /* pick a value you like */
+  max-width: 520px;
   margin: 0.5rem auto 0;
 }

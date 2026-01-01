@@ -1,23 +1,19 @@
 /*!
- * /components/braille-monitor/braillemonitor.js
+ * braillemonitor.js – Reusable Braille monitor + thumbkey component
  * -----------------------------------------------------------------
- * UPDATED (2026-01-01):
- * - Braille rendering is now delegated to a Braille "translator" layer:
- *     window.Braille.textToBrailleAscii(text)  -> returns Braille ASCII line
- *   This enables Dutch/English/etc braille rules (capital sign, number sign, punctuation rules)
- *   WITHOUT touching runner.js or activities.
+ * CHANGE (2026-01-01):
+ * - Do NOT render Unicode braille (U+2800…)
+ * - Render Braille ASCII (0x20–0x5F) so the Bartimeus6Dots webfont can draw 6-dot cells.
+ * - Braille line is shown ABOVE each printed character (stacked cell).
  *
- * - If window.Braille is NOT present, we fall back to a local per-character mapping
- *   (same behaviour as before).
- *
- * - Keeps stacked cells:
- *     Braille (top) + Print (bottom)
- *
- * - Keeps visible-space marker (␣) on BOTH lines.
+ * FIX (space visibility):
+ * - Ensure SPACE is visible on BOTH lines:
+ *   - Braille line: show a visible blank marker (␣) instead of real ASCII space.
+ *   - Print line: keep your visible-space marker (␣).
  *
  * IMPORTANT:
  * - Your CSS must apply "Bartimeus6Dots" to .monitor-cell__braille
- * - Bartimeus6Dots expects Braille ASCII (not Unicode U+2800).
+ * - The Bartimeus6Dots font is expected to map Braille ASCII characters to dots.
  */
 
 (function (global) {
@@ -35,13 +31,10 @@
     return "system";
   }
 
-  // Visible markers (UI)
-  const VISIBLE_SPACE = "␣";
-  const VISIBLE_BRAILLE_SPACE = "␣";
+  // -------------------------------------------------------------------
+  // Braille ASCII mapping (6-dot)
+  // -------------------------------------------------------------------
 
-  // -------------------------------------------------------------------
-  // Local fallback mapping (6-dot Braille ASCII)
-  // -------------------------------------------------------------------
   const BRAILLE_ASCII_LETTERS = {
     a: "A", b: "B", c: "C", d: "D", e: "E",
     f: "F", g: "G", h: "H", i: "I", j: "J",
@@ -56,7 +49,7 @@
   };
 
   const BRAILLE_ASCII_PUNCT = {
-    " ": " ",     // blank braille cell
+    " ": " ",     // blank braille cell (ASCII space)
     ".": "4",
     ",": "1",
     ";": "2",
@@ -73,13 +66,19 @@
 
   const BRAILLE_FALLBACK = "?";
 
-  function toBrailleAsciiCellFallback(ch) {
+  // Visible markers (for both lines)
+  const VISIBLE_SPACE = "␣";      // show space as a symbol in UI
+  const VISIBLE_BRAILLE_SPACE = "␣"; // IMPORTANT: do NOT output real " " for braille line, otherwise it vanishes visually
+
+  function toBrailleAsciiCell(ch) {
     if (ch == null) return " ";
     const s = String(ch);
     if (!s) return " ";
+
     const c = s[0];
 
     if (BRAILLE_ASCII_PUNCT[c]) return BRAILLE_ASCII_PUNCT[c];
+
     if (BRAILLE_ASCII_DIGITS[c]) return BRAILLE_ASCII_DIGITS[c];
 
     const lower = c.toLowerCase();
@@ -88,35 +87,13 @@
     return BRAILLE_FALLBACK;
   }
 
-  // Convert a full text line to Braille ASCII:
-  // - Preferred: window.Braille.textToBrailleAscii(text) (language aware)
-  // - Fallback: per-character map above
-  function textToBrailleAsciiLine(text) {
-    const raw = String(text ?? "");
-
-    // Preferred external translator
-    if (global.Braille && typeof global.Braille.textToBrailleAscii === "function") {
-      try {
-        const out = global.Braille.textToBrailleAscii(raw);
-        return typeof out === "string" ? out : String(out ?? "");
-      } catch {
-        // fall through to local fallback
-      }
+  // NEW: Convert braille cell output to a visible representation for UI.
+  // For spaces, show a marker so the user sees the cell exists.
+  function toVisibleBrailleCell(originalChar) {
+    if (originalChar === " ") {
+      return VISIBLE_BRAILLE_SPACE;
     }
-
-    // Local fallback
-    let out = "";
-    for (let i = 0; i < raw.length; i++) {
-      out += toBrailleAsciiCellFallback(raw[i]);
-    }
-    return out;
-  }
-
-  // Visible braille cell (for UI)
-  function toVisibleBrailleCellFromAscii(asciiCell) {
-    // If translator returns real ASCII space, show marker so it is visible.
-    if (asciiCell === " " || asciiCell == null) return VISIBLE_BRAILLE_SPACE;
-    return String(asciiCell);
+    return toBrailleAsciiCell(originalChar);
   }
 
   const BrailleMonitor = {
@@ -230,9 +207,9 @@
 
       // -------------------------------------------------------------------
       // Render two lines per cell:
-      // - Braille (Braille ASCII) ABOVE (via translator)
+      // - Braille (Braille ASCII) ABOVE
       // - Print character BELOW
-      // Space visible on BOTH lines.
+      // Space is visible on BOTH lines.
       // -------------------------------------------------------------------
       function rebuildCells() {
         monitorP.innerHTML = "";
@@ -242,27 +219,14 @@
           return;
         }
 
-        // Translate the full line once (important for number/capital mode)
-        const asciiLine = textToBrailleAsciiLine(currentText);
-
-        // We must render per print character index.
-        // If translator returns a different-length string (e.g., adds signs),
-        // we use a safe strategy:
-        // - Prefer 1:1 mapping if lengths match.
-        // - Otherwise, render only first N chars and mark overflow with fallback.
-        const oneToOne = (asciiLine.length === currentText.length);
-
         for (let i = 0; i < currentText.length; i++) {
           const ch = currentText[i] || " ";
 
-          // Print line: visible space marker
+          // Print line: show visible space marker
           const printChar = ch === " " ? VISIBLE_SPACE : ch;
 
-          // Braille cell:
-          // - if 1:1, use asciiLine[i]
-          // - else, fall back per-character (still visible) to avoid index drift
-          const asciiCell = oneToOne ? (asciiLine[i] ?? " ") : toBrailleAsciiCellFallback(ch);
-          const brailleCell = toVisibleBrailleCellFromAscii(asciiCell);
+          // Braille line: for space show visible marker too, otherwise map to braille ascii
+          const brailleCell = toVisibleBrailleCell(ch);
 
           const cell = document.createElement("span");
           cell.className = "monitor-cell monitor-cell--stack";
@@ -270,26 +234,17 @@
           cell.setAttribute("role", "option");
           cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
 
-          const brailleLineEl = document.createElement("span");
-          brailleLineEl.className = "monitor-cell__braille";
-          brailleLineEl.textContent = brailleCell;
-          cell.appendChild(brailleLineEl);
+          const brailleLine = document.createElement("span");
+          brailleLine.className = "monitor-cell__braille";
+          brailleLine.textContent = brailleCell;
+          cell.appendChild(brailleLine);
 
-          const printLineEl = document.createElement("span");
-          printLineEl.className = "monitor-cell__print";
-          printLineEl.textContent = printChar;
-          cell.appendChild(printLineEl);
+          const printLine = document.createElement("span");
+          printLine.className = "monitor-cell__print";
+          printLine.textContent = printChar;
+          cell.appendChild(printLine);
 
           monitorP.appendChild(cell);
-        }
-
-        if (!oneToOne) {
-          log(
-            "BrailleMonitor",
-            "Translator returned non 1:1 length; using fallback per cell to avoid drift. " +
-              "asciiLen=" + asciiLine.length + " textLen=" + currentText.length,
-            "warn"
-          );
         }
       }
 

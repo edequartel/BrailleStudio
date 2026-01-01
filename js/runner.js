@@ -1,4 +1,4 @@
-// /js/runner.js
+// /js/runner.js  (UNICODE BRAILLE MONITOR VERSION)
 (function () {
   "use strict";
 
@@ -258,18 +258,40 @@
   let stoppedPlayedForThisRun = false;
 
   let brailleMonitor = null;
-  let brailleLine = "";
+
+  // Two representations:
+  // - textLine: plain text (cursor routing / activities)
+  // - cellsLine: Unicode braille patterns (monitor)
+  let textLine = "";
+  let cellsLine = "";
+
   const BRAILLE_CELLS = 40;
 
-  const BRAILLE_UNICODE_MAP = {
-    a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
-    f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
-    k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
-    p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
-    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵",
-    "1": "⠼⠁", "2": "⠼⠃", "3": "⠼⠉", "4": "⠼⠙", "5": "⠼⠑",
-    "6": "⠼⠋", "7": "⠼⠛", "8": "⠼⠓", "9": "⠼⠊", "0": "⠼⠚",
-    " ": "⠀",
+  // If TRUE, also send Unicode braille patterns to the physical display via BrailleBridge.
+  // Keep FALSE unless you know the display/bridge expects Unicode braille patterns.
+  const SEND_UNICODE_TO_BRIDGE = false;
+
+  // ------------------------------------------------------------
+  // Unicode braille (grade-1 minimal) mapping
+  // ------------------------------------------------------------
+  const BRAILLE_CAPITAL = "⠠";
+  const BRAILLE_NUMBER  = "⠼";
+  const BRAILLE_BLANK   = "⠀";
+  const BRAILLE_UNKNOWN = "⣿";
+
+  const BRAILLE_LETTER = {
+    a:"⠁",b:"⠃",c:"⠉",d:"⠙",e:"⠑",
+    f:"⠋",g:"⠛",h:"⠓",i:"⠊",j:"⠚",
+    k:"⠅",l:"⠇",m:"⠍",n:"⠝",o:"⠕",
+    p:"⠏",q:"⠟",r:"⠗",s:"⠎",t:"⠞",
+    u:"⠥",v:"⠧",w:"⠺",x:"⠭",y:"⠽",z:"⠵"
+  };
+
+  const BRAILLE_DIGIT = { "1":"⠁","2":"⠃","3":"⠉","4":"⠙","5":"⠑","6":"⠋","7":"⠛","8":"⠓","9":"⠊","0":"⠚" };
+
+  // Minimal punctuation (extend later per NL rules if needed)
+  const BRAILLE_PUNCT = {
+    " ": BRAILLE_BLANK,
     ".": "⠲",
     ",": "⠂",
     ";": "⠆",
@@ -279,10 +301,48 @@
     "-": "⠤",
     "'": "⠄",
     "\"": "⠶",
-    "(": "⠐⠣",
-    ")": "⠐⠜",
     "/": "⠌"
   };
+
+  function toBrailleCellsUnicode(text) {
+    const raw = String(text ?? "");
+    if (!raw) return "";
+
+    let out = "";
+    let numberMode = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+
+      // digits: start number mode for a run
+      if (ch >= "0" && ch <= "9") {
+        if (!numberMode) {
+          out += BRAILLE_NUMBER;
+          numberMode = true;
+        }
+        out += (BRAILLE_DIGIT[ch] || BRAILLE_UNKNOWN);
+        continue;
+      }
+
+      // anything else ends number mode
+      numberMode = false;
+
+      // punctuation + space
+      if (BRAILLE_PUNCT[ch]) { out += BRAILLE_PUNCT[ch]; continue; }
+
+      // letters (+ capital sign)
+      const lower = ch.toLowerCase();
+      if (BRAILLE_LETTER[lower]) {
+        if (ch !== lower) out += BRAILLE_CAPITAL;
+        out += BRAILLE_LETTER[lower];
+        continue;
+      }
+
+      out += BRAILLE_UNKNOWN;
+    }
+
+    return out;
+  }
 
   // ------------------------------------------------------------
   // DOM helper
@@ -361,54 +421,64 @@
     return map[icon] || "";
   }
 
-  function toBrailleUnicode(text) {
-    const raw = String(text ?? "");
-    if (!raw) return "–";
-    let out = "";
-    for (let i = 0; i < raw.length; i++) {
-      const ch = raw[i];
-      if (BRAILLE_UNICODE_MAP[ch]) { out += BRAILLE_UNICODE_MAP[ch]; continue; }
-      const lower = ch.toLowerCase();
-      if (BRAILLE_UNICODE_MAP[lower]) { out += BRAILLE_UNICODE_MAP[lower]; continue; }
-      out += "⣿";
-    }
-    return out;
-  }
-
   function compactSingleLine(text) {
     return String(text ?? "").replace(/\s+/g, " ").trim();
   }
 
-  function normalizeBrailleText(text) {
+  function normalizeTextLine(text) {
     const single = compactSingleLine(text);
     if (!single) return "";
     return single.padEnd(BRAILLE_CELLS, " ").substring(0, BRAILLE_CELLS);
   }
 
-  function updateBrailleLine(text, meta = {}) {
-    const next = normalizeBrailleText(text);
-    if (next === brailleLine) return;
-    brailleLine = next;
+  function normalizeCellsLine(cells) {
+    const s = String(cells ?? "");
+    if (!s) return "";
+    const padded = s + BRAILLE_BLANK.repeat(Math.max(0, BRAILLE_CELLS - s.length));
+    return padded.substring(0, BRAILLE_CELLS);
+  }
 
-    if (brailleMonitor && typeof brailleMonitor.setText === "function") {
-      if (next) brailleMonitor.setText(next);
-      else if (typeof brailleMonitor.clear === "function") brailleMonitor.clear();
-      else brailleMonitor.setText("");
+  function updateBrailleLine(text, meta = {}) {
+    const nextText = normalizeTextLine(text);
+    const nextCells = normalizeCellsLine(toBrailleCellsUnicode(nextText));
+
+    if (nextText === textLine && nextCells === cellsLine) return;
+
+    textLine = nextText;
+    cellsLine = nextCells;
+
+    // --- BrailleMonitor (Unicode) ---
+    if (brailleMonitor) {
+      if (typeof brailleMonitor.setCells === "function") {
+        brailleMonitor.setCells(cellsLine, { text: textLine });
+      } else if (typeof brailleMonitor.setText === "function") {
+        brailleMonitor.setText(textLine);
+      } else if (typeof brailleMonitor.clear === "function" && !textLine) {
+        brailleMonitor.clear();
+      }
     }
 
+    // --- BrailleBridge (physical display) ---
     if (window.BrailleBridge) {
-      if (!next && typeof BrailleBridge.clearDisplay === "function") {
+      const toSend = SEND_UNICODE_TO_BRIDGE ? cellsLine : textLine;
+
+      if (!toSend && typeof BrailleBridge.clearDisplay === "function") {
         BrailleBridge.clearDisplay().catch((err) => {
           log("[runner] BrailleBridge.clearDisplay failed", { message: err?.message });
         });
       } else if (typeof BrailleBridge.sendText === "function") {
-        BrailleBridge.sendText(next).catch((err) => {
+        BrailleBridge.sendText(toSend).catch((err) => {
           log("[runner] BrailleBridge.sendText failed", { message: err?.message });
         });
       }
     }
 
-    log("[runner] Braille line updated", { len: next.length, reason: meta.reason || "unspecified" });
+    log("[runner] Braille line updated", {
+      reason: meta.reason || "unspecified",
+      textLen: textLine.length,
+      cellsLen: cellsLine.length,
+      sendUnicode: SEND_UNICODE_TO_BRIDGE
+    });
   }
 
   function getIdleBrailleText() {
@@ -429,8 +499,8 @@
 
   function dispatchCursorSelection(info, source) {
     const index = typeof info?.index === "number" ? info.index : null;
-    const letter = info?.letter ?? (index != null ? brailleLine[index] || " " : " ");
-    const word = info?.word ?? (index != null ? computeWordAt(brailleLine, index) : "");
+    const letter = info?.letter ?? (index != null ? (textLine[index] || " ") : " ");
+    const word = info?.word ?? (index != null ? computeWordAt(textLine, index) : "");
 
     log("[runner] Cursor selection", { source, index, letter, word });
 
@@ -892,7 +962,7 @@
     }
 
     const wordBrailleEl = $opt("field-word-braille");
-    if (wordBrailleEl) wordBrailleEl.textContent = toBrailleUnicode(item.word || "");
+    if (wordBrailleEl) wordBrailleEl.textContent = toBrailleCellsUnicode(item.word || "");
 
     const allEl = $opt("field-all");
     if (allEl) allEl.textContent = formatAllFields(item);

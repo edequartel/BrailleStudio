@@ -1,12 +1,8 @@
-/* /css/words.css (clean + adapted for Unicode BrailleMonitor)
-   - Fixes typo: --flag-fg had trailing "u"
-   - Removes duplicated .chip blocks (keeps ONE system)
-   - Keeps your theme tokens + layout
-   - Ensures activity chips use runner’s classes: .is-selected / .is-active
-   - Improves contrast on hover for both themes
-   - Keeps braille-panel navigation layout (.braille-nav)
-*/
+/* /css/words.css */
 
+/* ----------------------------
+   Theme tokens
+---------------------------- */
 :root {
   --bg: #f3f4f6;
   --fg: #111827;
@@ -32,7 +28,7 @@
   --log-body-fg: #e5e7eb;
 
   --flag-bg: #ecfdf3;
-  --flag-fg: #15803d; /* FIX: removed stray 'u' */
+  --flag-fg: #15803d;
 }
 
 html[data-theme="dark"] {
@@ -191,124 +187,33 @@ button.secondary {
 }
 
 /* ----------------------------
-   Word header
+   Activity chips (highlight selected)
 ---------------------------- */
-.word-header {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  align-items: center;
-  column-gap: 12px;
-  margin-bottom: 12px;
-}
-
-.word-emoji {
-  width: 44px;
-  text-align: left;
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.word-line {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: 16px;
-  min-width: 0;
-}
-
-.word-text {
-  font-size: 1.35rem;
-  font-weight: 800;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Unicode braille patterns: use a mono font; spacing controlled by letter-spacing */
-.word-braille {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New", monospace;
-  font-size: 1.25rem;
-  letter-spacing: 0.18em;
-  text-align: right;
-  white-space: nowrap;
-  opacity: 0.95;
-}
-
-/* ----------------------------
-   Activity chips (single source of truth)
-   Runner toggles: .is-selected / .is-active
----------------------------- */
-#activity-buttons .chip {
-  appearance: none;
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
   border: 1px solid var(--chip-border);
   background: var(--chip-bg);
   color: var(--chip-fg);
-  border-radius: 999px;
-  padding: 0.35rem 0.7rem;
-  font: inherit;
-  line-height: 1.1;
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
-  user-select: none;
-  transition: background-color 0.12s ease, border-color 0.12s ease,
-    box-shadow 0.12s ease, transform 0.04s ease;
 }
 
-#activity-buttons .chip:hover {
-  background: rgba(0, 0, 0, 0.05);
+.chip:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
-html[data-theme="dark"] #activity-buttons .chip:hover {
-  background: rgba(255, 255, 255, 0.06);
+.chip.active {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
 }
 
-#activity-buttons .chip:active {
-  transform: translateY(1px);
+html[data-theme="dark"] .chip.active {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
-
-#activity-buttons .chip:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 107, 237, 0.35);
-}
-
-/* SELECTED (but not running) */
-#activity-buttons .chip.is-selected {
-  background: rgba(79, 107, 237, 0.16);
-  border-color: rgba(79, 107, 237, 0.6);
-  box-shadow: 0 0 0 2px rgba(79, 107, 237, 0.12) inset;
-}
-
-/* ACTIVE = selected AND currently running */
-#activity-buttons .chip.is-active {
-  background: rgba(20, 140, 60, 0.18);
-  border-color: rgba(20, 140, 60, 0.65);
-  box-shadow:
-    0 0 0 2px rgba(20, 140, 60, 0.14) inset,
-    0 0 0 3px rgba(20, 140, 60, 0.18);
-}
-
-/* If both classes exist, active wins (redundant but explicit) */
-#activity-buttons .chip.is-selected.is-active {
-  background: rgba(20, 140, 60, 0.18);
-  border-color: rgba(20, 140, 60, 0.65);
-}
-
-/* ----------------------------
-   Instruction panel text
----------------------------- */
-#activity-instruction { white-space: pre-line; }
-
-/* ----------------------------
-   Braille navigation (Prev/Next inside braille panel)
----------------------------- */
-.braille-nav {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.braille-nav button { flex: 1; }
 
 /* ----------------------------
    Log panel
@@ -356,3 +261,148 @@ html[data-theme="dark"] .log-controls button {
   background: #1f2937;
   color: #e5e7eb;
 }
+
+/* ----------------------------
+   Word header
+---------------------------- */
+.word-header {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  column-gap: 12px;
+  margin-bottom: 12px;
+}
+
+.word-emoji {
+  width: 44px;
+  text-align: left;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.word-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 16px;
+  min-width: 0;
+}
+
+.word-text {
+  font-size: 1.35rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.word-braille {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Cascadia Code", "Fira Code", "Liberation Mono", "Courier New", monospace;
+  font-size: 1.25rem;
+  letter-spacing: 0.18em;
+  text-align: right;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+
+
+/* ---------------------------------
+   Activity chips (selection highlight)
+--------------------------------- */
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* SELECTED activity */
+.chip.active {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark mode fine-tuning */
+html[data-theme="dark"] .chip.active {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+/* /css/words.css */
+
+/* Activity "chip" buttons: default / selected / active */
+#activity-buttons .chip {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.04);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  line-height: 1.1;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    box-shadow 0.12s ease, transform 0.04s ease;
+}
+
+#activity-buttons .chip:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+#activity-buttons .chip:active {
+  transform: translateY(1px);
+}
+
+#activity-buttons .chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 107, 237, 0.35);
+}
+
+/* SELECTED (but not running) */
+#activity-buttons .chip.is-selected {
+  background: rgba(79, 107, 237, 0.16);
+  border-color: rgba(79, 107, 237, 0.6);
+  box-shadow: 0 0 0 2px rgba(79, 107, 237, 0.12) inset;
+}
+
+/* ACTIVE = selected AND currently running */
+#activity-buttons .chip.is-active {
+  background: rgba(20, 140, 60, 0.18);
+  border-color: rgba(20, 140, 60, 0.65);
+  box-shadow: 0 0 0 2px rgba(20, 140, 60, 0.14) inset,
+    0 0 0 3px rgba(20, 140, 60, 0.18);
+}
+
+/* If both classes exist, active should win */
+#activity-buttons .chip.is-selected.is-active {
+  background: rgba(20, 140, 60, 0.18);
+  border-color: rgba(20, 140, 60, 0.65);
+}
+
+/* Add this to /pages/activity-runner.css (or your main page CSS)
+   Keeps prev/next inside the braille-panel, aligned and full-width. */
+
+.braille-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.braille-nav button {
+  flex: 1;
+}
+
+#activity-instruction { white-space: pre-line; }
+
