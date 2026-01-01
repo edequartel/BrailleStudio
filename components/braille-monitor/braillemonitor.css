@@ -1,5 +1,25 @@
 /* braillemonitor.css - component scoped styling */
 
+/* -------------------------------------------------------
+   Bartimeus 6-dots webfont (repo hosted)
+   Location: /resources/webfonts/bartimeus6dots-webfont.woff2|.woff
+   NOTE: This font typically expects Braille ASCII input.
+------------------------------------------------------- */
+@font-face {
+  font-family: "Bartimeus6Dots";
+  src:
+    url("../../resources/webfonts/bartimeus6dots-webfont.woff2") format("woff2"),
+    url("../../resources/webfonts/bartimeus6dots-webfont.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Optional: local variable so you can change in one place */
+:root {
+  --braille-font: "Bartimeus6Dots";
+}
+
 .braille-monitor-component {
   display: grid;
   gap: 0.6rem;
@@ -11,8 +31,11 @@
   border-radius: 10px;
   background: #ffffff;
   padding: 0.6rem 0.7rem;
+
+  /* CHANGED: keep your monospace for the container (print line etc.) */
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Cascadia Code", "Fira Code", monospace;
+
   font-size: 1.05rem;
 
   /* Two-line cell needs tighter line-height */
@@ -49,15 +72,28 @@
   border-color: #d7def2;
 }
 
-/* Braille line (top) and print line (bottom) */
+/* -------------------------------------------------------
+   Braille line (top) and print line (bottom)
+   CHANGED: Braille line uses Bartimeus6Dots webfont.
+   IMPORTANT: This will only look correct if JS outputs
+              Braille ASCII (not Unicode U+2800…).
+------------------------------------------------------- */
 .monitor-cell__braille {
   display: block;
   line-height: 1;
   font-size: 1.05em;
   opacity: 0.85;
-  font-family: "Apple Braille", "Noto Sans Symbols2", "Segoe UI Symbol",
-    "DejaVu Sans", "Arial Unicode MS", ui-monospace, SFMono-Regular, Menlo,
-    Monaco, Consolas, "Cascadia Code", "Fira Code", monospace;
+
+  /* CHANGED: prefer Bartimeus 6-dots font first */
+  font-family: var(--braille-font),
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Cascadia Code", "Fira Code", monospace;
+
+  /* keep rendering stable */
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }
 
 .monitor-cell__print {
