@@ -1,4 +1,4 @@
-// /js/runner.js  (UNICODE BRAILLE MONITOR VERSION)
+// /js/runner.js
 (function () {
   "use strict";
 
@@ -258,40 +258,18 @@
   let stoppedPlayedForThisRun = false;
 
   let brailleMonitor = null;
-
-  // Two representations:
-  // - textLine: plain text (cursor routing / activities)
-  // - cellsLine: Unicode braille patterns (monitor)
-  let textLine = "";
-  let cellsLine = "";
-
+  let brailleLine = "";
   const BRAILLE_CELLS = 40;
 
-  // If TRUE, also send Unicode braille patterns to the physical display via BrailleBridge.
-  // Keep FALSE unless you know the display/bridge expects Unicode braille patterns.
-  const SEND_UNICODE_TO_BRIDGE = false;
-
-  // ------------------------------------------------------------
-  // Unicode braille (grade-1 minimal) mapping
-  // ------------------------------------------------------------
-  const BRAILLE_CAPITAL = "⠠";
-  const BRAILLE_NUMBER  = "⠼";
-  const BRAILLE_BLANK   = "⠀";
-  const BRAILLE_UNKNOWN = "⣿";
-
-  const BRAILLE_LETTER = {
-    a:"⠁",b:"⠃",c:"⠉",d:"⠙",e:"⠑",
-    f:"⠋",g:"⠛",h:"⠓",i:"⠊",j:"⠚",
-    k:"⠅",l:"⠇",m:"⠍",n:"⠝",o:"⠕",
-    p:"⠏",q:"⠟",r:"⠗",s:"⠎",t:"⠞",
-    u:"⠥",v:"⠧",w:"⠺",x:"⠭",y:"⠽",z:"⠵"
-  };
-
-  const BRAILLE_DIGIT = { "1":"⠁","2":"⠃","3":"⠉","4":"⠙","5":"⠑","6":"⠋","7":"⠛","8":"⠓","9":"⠊","0":"⠚" };
-
-  // Minimal punctuation (extend later per NL rules if needed)
-  const BRAILLE_PUNCT = {
-    " ": BRAILLE_BLANK,
+  const BRAILLE_UNICODE_MAP = {
+    a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
+    f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
+    k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
+    p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
+    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵",
+    "1": "⠼⠁", "2": "⠼⠃", "3": "⠼⠉", "4": "⠼⠙", "5": "⠼⠑",
+    "6": "⠼⠋", "7": "⠼⠛", "8": "⠼⠓", "9": "⠼⠊", "0": "⠼⠚",
+    " ": "⠀",
     ".": "⠲",
     ",": "⠂",
     ";": "⠆",
@@ -301,48 +279,10 @@
     "-": "⠤",
     "'": "⠄",
     "\"": "⠶",
+    "(": "⠐⠣",
+    ")": "⠐⠜",
     "/": "⠌"
   };
-
-  function toBrailleCellsUnicode(text) {
-    const raw = String(text ?? "");
-    if (!raw) return "";
-
-    let out = "";
-    let numberMode = false;
-
-    for (let i = 0; i < raw.length; i++) {
-      const ch = raw[i];
-
-      // digits: start number mode for a run
-      if (ch >= "0" && ch <= "9") {
-        if (!numberMode) {
-          out += BRAILLE_NUMBER;
-          numberMode = true;
-        }
-        out += (BRAILLE_DIGIT[ch] || BRAILLE_UNKNOWN);
-        continue;
-      }
-
-      // anything else ends number mode
-      numberMode = false;
-
-      // punctuation + space
-      if (BRAILLE_PUNCT[ch]) { out += BRAILLE_PUNCT[ch]; continue; }
-
-      // letters (+ capital sign)
-      const lower = ch.toLowerCase();
-      if (BRAILLE_LETTER[lower]) {
-        if (ch !== lower) out += BRAILLE_CAPITAL;
-        out += BRAILLE_LETTER[lower];
-        continue;
-      }
-
-      out += BRAILLE_UNKNOWN;
-    }
-
-    return out;
-  }
 
   // ------------------------------------------------------------
   // DOM helper
@@ -362,6 +302,39 @@
   function setActivityStatus(text) {
     const el = $opt("activity-status");
     if (el) el.textContent = "Status: " + text;
+  }
+
+  // ------------------------------------------------------------
+  // Language resolver for Braille translator selection
+  // ------------------------------------------------------------
+  function resolveLang() {
+    // 1) Explicit app globals (if you have it)
+    const appLang = String(window.AppLang || window.APP_LANG || "").trim();
+    if (appLang) return appLang;
+
+    // 2) i18n module state (common patterns)
+    const i18nLang =
+      (window.i18n && (window.i18n.lang || window.i18n.locale)) ||
+      (window.I18N && (window.I18N.lang || window.I18N.locale));
+    if (i18nLang) return String(i18nLang).trim();
+
+    // 3) localStorage preference (adjust keys if you already use another)
+    const stored = String(localStorage.getItem("bs_lang") || localStorage.getItem("lang") || "").trim();
+    if (stored) return stored;
+
+    // 4) HTML lang attribute
+    const htmlLang = String(document.documentElement.getAttribute("lang") || "").trim();
+    if (htmlLang) return htmlLang;
+
+    // 5) Browser language
+    const nav = (navigator.languages && navigator.languages[0]) ? navigator.languages[0] : navigator.language;
+    return String(nav || "nl").trim();
+  }
+
+  function normalizeLang(tag) {
+    const t = String(tag || "").toLowerCase();
+    const base = t.split("-")[0];
+    return (base === "nl" || base === "en") ? base : "nl";
   }
 
   // ------------------------------------------------------------
@@ -390,7 +363,7 @@
   // SINGLE toggle run button UI (optional)
   // ------------------------------------------------------------
   function setRunnerUi({ isRunning }) {
-    const runBtn = $opt("run-activity-btn");
+    const runBtn = $opt("run-activity-btn");   // OPTIONAL: if your HTML does not have it, nothing happens
     const autoRun = $opt("auto-run");
 
     if (autoRun) autoRun.disabled = Boolean(isRunning);
@@ -421,64 +394,54 @@
     return map[icon] || "";
   }
 
+  function toBrailleUnicode(text) {
+    const raw = String(text ?? "");
+    if (!raw) return "–";
+    let out = "";
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+      if (BRAILLE_UNICODE_MAP[ch]) { out += BRAILLE_UNICODE_MAP[ch]; continue; }
+      const lower = ch.toLowerCase();
+      if (BRAILLE_UNICODE_MAP[lower]) { out += BRAILLE_UNICODE_MAP[lower]; continue; }
+      out += "⣿";
+    }
+    return out;
+  }
+
   function compactSingleLine(text) {
     return String(text ?? "").replace(/\s+/g, " ").trim();
   }
 
-  function normalizeTextLine(text) {
+  function normalizeBrailleText(text) {
     const single = compactSingleLine(text);
     if (!single) return "";
     return single.padEnd(BRAILLE_CELLS, " ").substring(0, BRAILLE_CELLS);
   }
 
-  function normalizeCellsLine(cells) {
-    const s = String(cells ?? "");
-    if (!s) return "";
-    const padded = s + BRAILLE_BLANK.repeat(Math.max(0, BRAILLE_CELLS - s.length));
-    return padded.substring(0, BRAILLE_CELLS);
-  }
-
   function updateBrailleLine(text, meta = {}) {
-    const nextText = normalizeTextLine(text);
-    const nextCells = normalizeCellsLine(toBrailleCellsUnicode(nextText));
+    const next = normalizeBrailleText(text);
+    if (next === brailleLine) return;
+    brailleLine = next;
 
-    if (nextText === textLine && nextCells === cellsLine) return;
-
-    textLine = nextText;
-    cellsLine = nextCells;
-
-    // --- BrailleMonitor (Unicode) ---
-    if (brailleMonitor) {
-      if (typeof brailleMonitor.setCells === "function") {
-        brailleMonitor.setCells(cellsLine, { text: textLine });
-      } else if (typeof brailleMonitor.setText === "function") {
-        brailleMonitor.setText(textLine);
-      } else if (typeof brailleMonitor.clear === "function" && !textLine) {
-        brailleMonitor.clear();
-      }
+    if (brailleMonitor && typeof brailleMonitor.setText === "function") {
+      if (next) brailleMonitor.setText(next);
+      else if (typeof brailleMonitor.clear === "function") brailleMonitor.clear();
+      else brailleMonitor.setText("");
     }
 
-    // --- BrailleBridge (physical display) ---
     if (window.BrailleBridge) {
-      const toSend = SEND_UNICODE_TO_BRIDGE ? cellsLine : textLine;
-
-      if (!toSend && typeof BrailleBridge.clearDisplay === "function") {
+      if (!next && typeof BrailleBridge.clearDisplay === "function") {
         BrailleBridge.clearDisplay().catch((err) => {
           log("[runner] BrailleBridge.clearDisplay failed", { message: err?.message });
         });
       } else if (typeof BrailleBridge.sendText === "function") {
-        BrailleBridge.sendText(toSend).catch((err) => {
+        BrailleBridge.sendText(next).catch((err) => {
           log("[runner] BrailleBridge.sendText failed", { message: err?.message });
         });
       }
     }
 
-    log("[runner] Braille line updated", {
-      reason: meta.reason || "unspecified",
-      textLen: textLine.length,
-      cellsLen: cellsLine.length,
-      sendUnicode: SEND_UNICODE_TO_BRIDGE
-    });
+    log("[runner] Braille line updated", { len: next.length, reason: meta.reason || "unspecified" });
   }
 
   function getIdleBrailleText() {
@@ -499,8 +462,8 @@
 
   function dispatchCursorSelection(info, source) {
     const index = typeof info?.index === "number" ? info.index : null;
-    const letter = info?.letter ?? (index != null ? (textLine[index] || " ") : " ");
-    const word = info?.word ?? (index != null ? computeWordAt(textLine, index) : "");
+    const letter = info?.letter ?? (index != null ? brailleLine[index] || " " : " ");
+    const word = info?.word ?? (index != null ? computeWordAt(brailleLine, index) : "");
 
     log("[runner] Cursor selection", { source, index, letter, word });
 
@@ -962,7 +925,7 @@
     }
 
     const wordBrailleEl = $opt("field-word-braille");
-    if (wordBrailleEl) wordBrailleEl.textContent = toBrailleCellsUnicode(item.word || "");
+    if (wordBrailleEl) wordBrailleEl.textContent = toBrailleUnicode(item.word || "");
 
     const allEl = $opt("field-all");
     if (allEl) allEl.textContent = formatAllFields(item);
@@ -978,6 +941,7 @@
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "render-idle" });
   }
 
+  // Public braille output API for activities
   window.BrailleUI = window.BrailleUI || {};
   window.BrailleUI.setLine = function (text, meta) {
     updateBrailleLine(String(text ?? ""), meta || { reason: "activity" });
@@ -995,7 +959,7 @@
 
     const nextBtn = $opt("next-btn");
     const prevBtn = $opt("prev-btn");
-    const runBtn = $opt("run-activity-btn");
+    const runBtn = $opt("run-activity-btn"); // OPTIONAL; if not in HTML, no start/stop button
     const toggleFieldsBtn = $opt("toggle-fields-btn");
     const fieldsPanel = $opt("fields-panel");
 
@@ -1009,9 +973,14 @@
       BrailleBridge.on("disconnected", () => log("[runner] BrailleBridge disconnected"));
     }
 
+    // IMPORTANT: pass lang into BrailleMonitor so it can choose nl.js/en.js translator rules
     if (window.BrailleMonitor && typeof BrailleMonitor.init === "function") {
+      const lang = normalizeLang(resolveLang());
+      log("[runner] BrailleMonitor lang", { lang });
+
       brailleMonitor = BrailleMonitor.init({
         containerId: "brailleMonitorComponent",
+        lang,
         onCursorClick(info) { dispatchCursorSelection(info, "monitor"); },
         mapping: {
           leftthumb: () => leftThumbAction(),

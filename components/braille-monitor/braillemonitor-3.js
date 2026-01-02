@@ -3,28 +3,25 @@
  * -----------------------------------------------------------------
  * UNICODE BRAILLE MONITOR (no Bartimeus6Dots)
  *
- * Key design:
- * - Keep 1 UI cell per PRINT character (cursor routing stable).
- * - Braille shown in the top line can be 1 or 2 unicode braille chars:
- *     b  -> ⠃
- *     B  -> ⠠⠃ (capital sign + ⠃)
- *     1  -> ⠼⠁ (number sign + ⠁)  [only at start of digit run]
- * - Space:
- *     print line shows ␣
- *     braille line shows U+2800 blank (⠀)
+ * - Renders Unicode braille (U+2800…U+28FF) in the UI.
+ * - Stacked cells: Braille (top) + Print (bottom)
+ * - Keeps visible-space marker (␣) on print line.
+ * - Braille blank cell uses U+2800 (⠀).
  *
- * Optional external translator hook:
- *   window.Braille.textToBrailleCells(text, { lang }) -> Array<string>
- * Must return array with SAME LENGTH as `text`.
+ * Optional translator hook:
+ *   window.Braille.textToBrailleUnicodeLine(text) -> string
  *
- * HARDENING:
- * - Even if translator forgets capital/number signs, we add them here so UI is correct.
+ * IMPORTANT CONTRACT:
+ * - The returned braille string MUST be the same length as `text`
+ *   (1 braille cell per print character), otherwise we fall back to 1:1 mapping.
  */
 
 (function (global) {
   "use strict";
 
-  function makeId(base, suffix) { return base + "_" + suffix; }
+  function makeId(base, suffix) {
+    return base + "_" + suffix;
+  }
 
   function toEventLogType(level) {
     const lv = (level || "info").toLowerCase();
@@ -34,33 +31,21 @@
     return "system";
   }
 
-  // UI markers
-  const VISIBLE_SPACE = "␣";
-  const BRAILLE_BLANK = "⠀";       // U+2800
-  const BRAILLE_UNKNOWN = "⣿";     // visible fallback
+  // Visible markers (UI)
+  const VISIBLE_SPACE = "␣";          // for print line
+  const BRAILLE_BLANK = "⠀";         // U+2800 (blank braille pattern)
+  const BRAILLE_UNKNOWN = "⣿";       // visible fallback block
 
-  // Signs
-  const SIGN_CAPITAL = "⠠";        // dot 6
-  const SIGN_NUMBER  = "⠼";        // 3456
-
-  // Letters a-z (basic)
-  const BRAILLE_LETTERS = {
+  // Minimal 1:1 fallback mapping (NOT full Dutch literary braille rules)
+  const BRAILLE_UNICODE_MAP = {
     a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
     f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
     k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
     p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
-    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵"
-  };
+    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵",
 
-  // Digits 1-0 map to a-j after number sign
-  const BRAILLE_DIGITS = {
-    "1": "⠁", "2": "⠃", "3": "⠉", "4": "⠙", "5": "⠑",
-    "6": "⠋", "7": "⠛", "8": "⠓", "9": "⠊", "0": "⠚"
-  };
-
-  // Punctuation (basic; refine later if needed)
-  const BRAILLE_PUNCT = {
     " ": BRAILLE_BLANK,
+
     ".": "⠲",
     ",": "⠂",
     ";": "⠆",
@@ -75,171 +60,50 @@
     ")": "⠐⠜"
   };
 
-  function visiblePrintChar(ch) {
-    return ch === " " ? VISIBLE_SPACE : ch;
-  }
-
-  function isAsciiDigit(ch) {
-    return ch >= "0" && ch <= "9";
-  }
-
-  function isAsciiLetter(ch) {
-    const lower = ch.toLowerCase();
-    return lower !== ch || (lower >= "a" && lower <= "z");
-  }
-
-  /**
-   * Default per-character braille cell generator (returns 1..2 braille unicode chars)
-   * NOTE: For digits, this returns number sign per digit. We'll normalize digit-runs later.
-   */
-  function defaultCellForChar(ch) {
+  function fallbackBrailleCell(ch) {
     const c = String(ch ?? "");
     if (!c) return BRAILLE_BLANK;
 
-    // punctuation incl. space
-    if (Object.prototype.hasOwnProperty.call(BRAILLE_PUNCT, c)) return BRAILLE_PUNCT[c];
+    const direct = BRAILLE_UNICODE_MAP[c];
+    if (direct) return direct;
 
-    // digit -> number sign + a-j
-    if (Object.prototype.hasOwnProperty.call(BRAILLE_DIGITS, c)) return SIGN_NUMBER + BRAILLE_DIGITS[c];
-
-    // letter
     const lower = c.toLowerCase();
-    if (Object.prototype.hasOwnProperty.call(BRAILLE_LETTERS, lower)) {
-      const letterCell = BRAILLE_LETTERS[lower];
-      // uppercase -> capital sign + letter
-      if (c !== lower) return SIGN_CAPITAL + letterCell;
-      return letterCell;
-    }
+    const low = BRAILLE_UNICODE_MAP[lower];
+    if (low) return low;
+
+    // digits: simple fallback (number sign is NOT handled in 1:1 mapping)
+    if (c >= "0" && c <= "9") return BRAILLE_UNKNOWN;
 
     return BRAILLE_UNKNOWN;
   }
 
   /**
-   * Normalize translator output:
-   * - Ensure array length matches text length
-   * - Ensure space => BRAILLE_BLANK
-   * - Ensure uppercase => has SIGN_CAPITAL prefix
-   * - Ensure digit runs => SIGN_NUMBER only at start of run
-   *
-   * This fixes "capital sign not applied" even if translator returns plain letters.
+   * Convert print text -> braille line for UI.
+   * Uses translator hook if available AND returns 1:1 length.
    */
-  function coerceCells(text, cells) {
+  function textToBrailleUnicodeLine(text) {
     const raw = String(text ?? "");
-    const out = new Array(raw.length);
 
-    let inNumberRun = false;
-
-    for (let i = 0; i < raw.length; i++) {
-      const ch = raw[i] ?? " ";
-      let cell = (cells && cells[i] != null) ? String(cells[i]) : "";
-
-      // Normalize empties
-      if (!cell) cell = BRAILLE_BLANK;
-
-      // SPACE always blank cell
-      if (ch === " ") {
-        out[i] = BRAILLE_BLANK;
-        inNumberRun = false;
-        continue;
-      }
-
-      // DIGITS: enforce number sign only at start of run
-      if (isAsciiDigit(ch)) {
-        const digitCell = BRAILLE_DIGITS[ch] || BRAILLE_UNKNOWN;
-
-        if (!inNumberRun) {
-          // start of digit run: must have ⠼ prefix
-          if (!cell.startsWith(SIGN_NUMBER)) {
-            // if translator gave the digit cell without sign, fix it
-            // if translator gave something else, still force a safe representation
-            cell = SIGN_NUMBER + (cell === digitCell ? digitCell : digitCell);
-          } else {
-            // if it starts with ⠼ but doesn't contain the digit pattern, enforce known digit
-            // keep whatever comes after if you prefer; here we standardize
-            cell = SIGN_NUMBER + digitCell;
-          }
-          inNumberRun = true;
-        } else {
-          // inside digit run: NO ⠼ prefix
-          if (cell.startsWith(SIGN_NUMBER)) {
-            // strip sign if translator repeats it
-            cell = digitCell;
-          } else {
-            // if translator gave something else, standardize to digit cell
-            cell = digitCell;
-          }
-        }
-
-        out[i] = cell;
-        continue;
-      } else {
-        inNumberRun = false;
-      }
-
-      // PUNCTUATION: if printable punctuation exists in our table, prefer it
-      if (Object.prototype.hasOwnProperty.call(BRAILLE_PUNCT, ch)) {
-        out[i] = BRAILLE_PUNCT[ch];
-        continue;
-      }
-
-      // LETTERS: enforce capital sign when needed
-      const lower = String(ch).toLowerCase();
-      if (Object.prototype.hasOwnProperty.call(BRAILLE_LETTERS, lower)) {
-        const baseLetter = BRAILLE_LETTERS[lower];
-        const isUpper = ch !== lower;
-
-        if (isUpper) {
-          // If translator didn't include ⠠, prefix it.
-          if (!cell.startsWith(SIGN_CAPITAL)) {
-            // If translator returned just the base letter, perfect.
-            // If translator returned something else, still enforce base letter.
-            cell = SIGN_CAPITAL + baseLetter;
-          }
-        } else {
-          // lowercase: if translator accidentally prefixes capital sign, drop it
-          if (cell.startsWith(SIGN_CAPITAL)) cell = baseLetter;
-          else cell = baseLetter;
-        }
-
-        out[i] = cell;
-        continue;
-      }
-
-      // Unknown char fallback
-      out[i] = cell || BRAILLE_UNKNOWN;
-    }
-
-    return out;
-  }
-
-  /**
-   * Translate to an array of per-print-character braille cells (each cell is a string).
-   * External hook must return Array<string> of same length as text.
-   */
-  function textToBrailleCells(text, { lang } = {}) {
-    const raw = String(text ?? "");
-    let cells = null;
-
-    // Optional external translator hook
-    if (global.Braille && typeof global.Braille.textToBrailleCells === "function") {
+    // Preferred external translator hook
+    if (global.Braille && typeof global.Braille.textToBrailleUnicodeLine === "function") {
       try {
-        const out = global.Braille.textToBrailleCells(raw, { lang });
-        if (Array.isArray(out) && out.length === raw.length) {
-          cells = out.map(x => (x == null ? "" : String(x)));
+        const out = global.Braille.textToBrailleUnicodeLine(raw);
+        if (typeof out === "string" && out.length === raw.length) {
+          return out;
         }
       } catch {
         // ignore and fall back
       }
     }
 
-    // If no translator output, use default mapping
-    if (!cells) {
-      cells = new Array(raw.length);
-      for (let i = 0; i < raw.length; i++) cells[i] = defaultCellForChar(raw[i]);
-    }
+    // Local 1:1 fallback
+    let out = "";
+    for (let i = 0; i < raw.length; i++) out += fallbackBrailleCell(raw[i]);
+    return out;
+  }
 
-    // Always coerce (fix missing capital/number signs, normalize spaces)
-    return coerceCells(raw, cells);
+  function visiblePrintChar(ch) {
+    return ch === " " ? VISIBLE_SPACE : ch;
   }
 
   const BrailleMonitor = {
@@ -250,8 +114,7 @@
           mapping: {},
           onCursorClick: null,
           showInfo: true,
-          logger: null,
-          lang: null // optional language tag e.g. "nl"
+          logger: null
         },
         options || {}
       );
@@ -274,7 +137,9 @@
           fn.call(Logging, source, msg);
           return;
         }
-        if (global.console && console.log) console.log("[" + source + "] " + msg);
+        if (global.console && console.log) {
+          console.log("[" + source + "] " + msg);
+        }
       }
 
       if (!opts.containerId) {
@@ -343,8 +208,10 @@
 
         let start = index;
         let end = index;
+
         while (start > 0 && currentText[start - 1] !== " ") start--;
         while (end < len - 1 && currentText[end + 1] !== " ") end++;
+
         return currentText.substring(start, end + 1).trim();
       }
 
@@ -356,12 +223,12 @@
           return;
         }
 
-        const brailleCells = textToBrailleCells(currentText, { lang: opts.lang });
+        const brailleLine = textToBrailleUnicodeLine(currentText);
 
         for (let i = 0; i < currentText.length; i++) {
           const ch = currentText[i] || " ";
           const printChar = visiblePrintChar(ch);
-          const brailleCell = brailleCells[i] || BRAILLE_BLANK;
+          const brailleCell = brailleLine[i] || BRAILLE_BLANK;
 
           const cell = document.createElement("span");
           cell.className = "monitor-cell monitor-cell--stack";
@@ -371,7 +238,7 @@
 
           const brailleEl = document.createElement("span");
           brailleEl.className = "monitor-cell__braille";
-          brailleEl.textContent = brailleCell; // may be 1..2 unicode braille chars
+          brailleEl.textContent = brailleCell;
           cell.appendChild(brailleEl);
 
           const printEl = document.createElement("span");
@@ -451,7 +318,9 @@
         rebuildCells();
       }
 
-      function clear() { setText(""); }
+      function clear() {
+        setText("");
+      }
 
       setText("");
 

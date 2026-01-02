@@ -1,80 +1,94 @@
+// /js/braille/nl.js
 (function (global) {
   "use strict";
 
-  const LETTERS = {
-    a:"A", b:"B", c:"C", d:"D", e:"E", f:"F", g:"G", h:"H", i:"I", j:"J",
-    k:"K", l:"L", m:"M", n:"N", o:"O", p:"P", q:"Q", r:"R", s:"S", t:"T",
-    u:"U", v:"V", w:"W", x:"X", y:"Y", z:"Z"
+  global.BrailleRegistry = global.BrailleRegistry || {};
+
+  const LETTER = {
+    a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
+    f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
+    k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
+    p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
+    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵"
   };
 
-  const DIGITS = { "1":"A","2":"B","3":"C","4":"D","5":"E","6":"F","7":"G","8":"H","9":"I","0":"J" };
+  const DIGIT = {
+    "1": "⠁", "2": "⠃", "3": "⠉", "4": "⠙", "5": "⠑",
+    "6": "⠋", "7": "⠛", "8": "⠓", "9": "⠊", "0": "⠚"
+  };
 
-  // Common "computer braille" ASCII markers (many systems use these)
-  const CAPITAL = "^";  // represents ⠠
-  const NUMBER  = "#";  // represents ⠼
-
-  // Minimal punctuation (extend later)
+  // Basispunctuatie (conservatief). Als jouw NL brailletabel andere tekens wil,
+  // pas alleen deze mapping aan.
   const PUNCT = {
-    " ": " ",
-    ".": "4",
-    ",": "1",
-    ";": "2",
-    ":": "3",
-    "?": "8",
-    "!": "6",
-    "-": "-",
-    "'": "'",
-    "\"": "7",
-    "/": "/",
-    "(": "(",
-    ")": ")"
+    " ": "⠀",
+    ".": "⠲",
+    ",": "⠂",
+    ";": "⠆",
+    ":": "⠒",
+    "?": "⠦",
+    "!": "⠖",
+    "-": "⠤",
+    "'": "⠄",
+    "\"": "⠶",
+    "(": "⠶",
+    ")": "⠶",
+    "/": "⠌"
   };
+  
+  
+  const SIGN_CAPITAL = "⠨"; // correct NL (dots 4-6)
 
-  function toAscii(text, { mode } = {}) {
-    // mode:
-    // - "learn": do NOT add capital/number signs (simple)
-    // - "real" : add them
-    const real = (mode === "real");
+  // const CAPITAL = "⠠";
+  const NUMBER  = "⠼";
+  const UNKNOWN = "⣿";
 
-    let out = "";
-    let numberMode = false;
+  function isDigit(ch) {
+    return ch >= "0" && ch <= "9";
+  }
 
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
+  function textToBrailleCellsNL(text) {
+    const raw = String(text ?? "");
+    const out = new Array(raw.length);
 
-      // punctuation / space
-      if (PUNCT[ch]) {
-        out += PUNCT[ch];
-        numberMode = false;
+    let inNumberRun = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+
+      if (isDigit(ch)) {
+        const cell = DIGIT[ch] || UNKNOWN;
+        if (!inNumberRun) {
+          out[i] = NUMBER + cell;
+          inNumberRun = true;
+        } else {
+          out[i] = cell;
+        }
+        continue;
+      } else {
+        inNumberRun = false;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(PUNCT, ch)) {
+        out[i] = PUNCT[ch];
         continue;
       }
 
-      // digits
-      if (ch >= "0" && ch <= "9") {
-        if (real && !numberMode) out += NUMBER;
-        numberMode = true;
-        out += DIGITS[ch] || "?";
-        continue;
-      }
-
-      // letters
       const lower = ch.toLowerCase();
-      const isLetter = lower >= "a" && lower <= "z";
-
-      if (isLetter) {
-        if (real && ch !== lower) out += CAPITAL; // uppercase
-        out += LETTERS[lower] || "?";
-        numberMode = false;
+      if (Object.prototype.hasOwnProperty.call(LETTER, lower)) {
+        const cell = LETTER[lower];
+        const isUpper = ch !== lower;
+        out[i] = isUpper ? (CAPITAL + cell) : cell;
         continue;
       }
 
-      // unknown
-      out += "?";
-      numberMode = false;
+      out[i] = UNKNOWN;
     }
 
     return out;
   }
 
-  global.BrailleNL = { toAscii };
+  global.BrailleRegistry.nl = {
+    id: "nl",
+    textToBrailleCells: textToBrailleCellsNL
+  };
 })(window);
