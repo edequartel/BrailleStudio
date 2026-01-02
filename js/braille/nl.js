@@ -37,8 +37,6 @@
   
   
   const SIGN_CAPITAL = "⠨"; // correct NL (dots 4-6)
-
-  // const CAPITAL = "⠠";
   const NUMBER  = "⠼";
   const UNKNOWN = "⣿";
 
