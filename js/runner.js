@@ -5,13 +5,14 @@
   // ------------------------------------------------------------
   // Logging helper
   // ------------------------------------------------------------
-  function safeJson(x) {
-    try { return JSON.stringify(x); } catch { return String(x); }
-  }
   function log(msg, data) {
     const line = data ? `${msg} ${safeJson(data)}` : msg;
     if (typeof window.logMessage === "function") window.logMessage(line);
     else console.log(line);
+  }
+
+  function safeJson(x) {
+    try { return JSON.stringify(x); } catch { return String(x); }
   }
 
   log("[runner] runner.js loaded");
@@ -94,7 +95,7 @@
   }
 
   // ------------------------------------------------------------
-  // Base path helper (GitHub Pages vs localhost)
+  // Activity lifecycle audio (GitHub Pages + iOS unlock)
   // ------------------------------------------------------------
   function getBasePath() {
     try {
@@ -107,11 +108,9 @@
       return "";
     }
   }
+
   const BASE_PATH = getBasePath();
 
-  // ------------------------------------------------------------
-  // Activity lifecycle audio (GitHub Pages + iOS unlock)
-  // ------------------------------------------------------------
   function lifecycleUrl(file) {
     return `${location.origin}${BASE_PATH}/audio/${file}`;
   }
@@ -171,6 +170,7 @@
 
       try {
         log("[lifecycle] play", { file, url, howl: Boolean(window.Howl), howler: Boolean(window.Howler), unlocked: audioUnlocked });
+
         watchdog = setTimeout(() => finish("watchdog"), 8000);
 
         if (window.Howl) {
@@ -186,6 +186,7 @@
         } else {
           const a = new Audio(url);
           a.preload = "auto";
+
           a.addEventListener("ended", () => finish("ended"), { once: true });
           a.addEventListener("error", () => finish("error"), { once: true });
 
@@ -237,11 +238,14 @@
   }
 
   // ------------------------------------------------------------
-  // Config (robust URL strategy)
+  // Config
   // ------------------------------------------------------------
-  const SAME_ORIGIN_WORDS = `${location.origin}${BASE_PATH}/config/words.json`;
-  const RELATIVE_WORDS = "../config/words.json";
-  const REMOTE_WORDS = "https://edequartel.github.io/BrailleServer/config/words.json";
+  // Important:
+  // - Local dev: http://localhost:PORT/pages/activity-runner.html
+  //   -> config lives at http://localhost:PORT/config/words.json (same origin)
+  // - GitHub Pages: https://.../BrailleServer/pages/activity-runner.html
+  //   -> config lives at https://.../BrailleServer/config/words.json
+  const DATA_URL = "../config/words.json"; // single source; works both locally and on GitHub Pages
 
   // ------------------------------------------------------------
   // State
@@ -262,6 +266,90 @@
   const BRAILLE_CELLS = 40;
 
   // ------------------------------------------------------------
+  // Header braille (NL signs aware): add ⠠ for capitals, ⠼ at digit-run start
+  // This is for the *visual header* (#field-word-braille), NOT for routing.
+  // ------------------------------------------------------------
+  const SIGN_CAPITAL = "⠠";     // dot 6
+  const SIGN_NUMBER  = "⠼";     // 3456
+  const BRAILLE_BLANK = "⠀";    // U+2800
+  const BRAILLE_UNKNOWN = "⣿";
+
+  const BRAILLE_LETTERS = {
+    a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
+    f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
+    k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
+    p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
+    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵"
+  };
+
+  const BRAILLE_DIGITS = {
+    "1": "⠁", "2": "⠃", "3": "⠉", "4": "⠙", "5": "⠑",
+    "6": "⠋", "7": "⠛", "8": "⠓", "9": "⠊", "0": "⠚"
+  };
+
+  const BRAILLE_PUNCT = {
+    " ": BRAILLE_BLANK,
+    ".": "⠲",
+    ",": "⠂",
+    ";": "⠆",
+    ":": "⠒",
+    "?": "⠦",
+    "!": "⠖",
+    "-": "⠤",
+    "'": "⠄",
+    "\"": "⠶",
+    "/": "⠌",
+    "(": "⠐⠣",
+    ")": "⠐⠜"
+  };
+
+  function isDigit(ch) { return ch >= "0" && ch <= "9"; }
+
+  function toBrailleUnicode(text) {
+    const raw = String(text ?? "");
+    if (!raw) return "–";
+
+    let out = "";
+    let inNumberRun = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i];
+
+      // space / punctuation
+      if (Object.prototype.hasOwnProperty.call(BRAILLE_PUNCT, ch)) {
+        out += BRAILLE_PUNCT[ch];
+        inNumberRun = false;
+        continue;
+      }
+
+      // digits: number sign only at start of run
+      if (isDigit(ch)) {
+        const digitCell = BRAILLE_DIGITS[ch] || BRAILLE_UNKNOWN;
+        if (!inNumberRun) out += SIGN_NUMBER;
+        out += digitCell;
+        inNumberRun = true;
+        continue;
+      } else {
+        inNumberRun = false;
+      }
+
+      // letters + capitals
+      const lower = ch.toLowerCase();
+      if (Object.prototype.hasOwnProperty.call(BRAILLE_LETTERS, lower)) {
+        const cell = BRAILLE_LETTERS[lower];
+        if (ch !== lower) out += SIGN_CAPITAL;
+        out += cell;
+        continue;
+      }
+
+      // unknown
+      out += BRAILLE_UNKNOWN;
+    }
+
+    return out;
+  }
+
+  // ------------------------------------------------------------
   // DOM helper
   // ------------------------------------------------------------
   function $(id) {
@@ -271,6 +359,7 @@
   }
   function $opt(id) { return document.getElementById(id); }
 
+  // Meta/status elements are OPTIONAL after refactor
   function setStatus(text) {
     const el = $opt("data-status");
     if (el) el.textContent = "Data: " + text;
@@ -281,7 +370,7 @@
   }
 
   // ------------------------------------------------------------
-  // Language (Settings key: bs_lang)
+  // Language (aligned with Settings page localStorage key: bs_lang)
   // ------------------------------------------------------------
   const LANG_KEY = "bs_lang";
 
@@ -309,7 +398,7 @@
   let currentLang = "nl";
 
   // ------------------------------------------------------------
-  // Activity button states
+  // Activity button state styling hooks
   // ------------------------------------------------------------
   function updateActivityButtonStates() {
     const wrap = $opt("activity-buttons");
@@ -331,10 +420,10 @@
   }
 
   // ------------------------------------------------------------
-  // Toggle run button UI (optional)
+  // SINGLE toggle run button UI (optional)
   // ------------------------------------------------------------
   function setRunnerUi({ isRunning }) {
-    const runBtn = $opt("run-activity-btn");
+    const runBtn = $opt("run-activity-btn");   // OPTIONAL
     const autoRun = $opt("auto-run");
 
     if (autoRun) autoRun.disabled = Boolean(isRunning);
@@ -349,9 +438,24 @@
   }
 
   // ------------------------------------------------------------
-  // Braille line handling
-  // - Send PRINT line to BrailleBridge (source-of-truth for translation + routing)
-  // - BrailleMonitor renders signs in UI for readability
+  // Emoji/icon helpers
+  // ------------------------------------------------------------
+  function getEmojiForItem(item) {
+    const direct = String(item?.emoji ?? "").trim();
+    if (direct) return direct;
+
+    const icon = String(item?.icon ?? "").trim().toLowerCase();
+    const map = {
+      "ball.icon": "⚽",
+      "comb.icon": "💇",
+      "monkey.icon": "🐒",
+      "branch.icon": "🌿"
+    };
+    return map[icon] || "";
+  }
+
+  // ------------------------------------------------------------
+  // Braille line to hardware/monitor: keep PRINT TEXT ONLY (no emoji)
   // ------------------------------------------------------------
   function compactSingleLine(text) {
     return String(text ?? "").replace(/\s+/g, " ").trim();
@@ -436,8 +540,48 @@
     }
   }
 
+  function formatAllFields(item) {
+    if (!item || typeof item !== "object") return "–";
+
+    const activities = Array.isArray(item.activities) ? item.activities : [];
+    const activityLines = activities
+      .filter(a => a && typeof a === "object")
+      .map(a => {
+        const id = String(a.id ?? "").trim();
+        const caption = String(a.caption ?? "").trim();
+        const instruction = String(a.instruction ?? "").trim();
+        const text = String(a.text ?? "").trim();
+
+        if (!id && !caption) return null;
+
+        const bits = [];
+        bits.push(id || "–");
+        if (caption) bits.push(caption);
+        if (instruction) bits.push(instruction);
+        if (text) bits.push(`text: ${text}`);
+        return bits.join(" -- ");
+      })
+      .filter(Boolean);
+
+    const lines = [
+      `id: ${item.id ?? "–"}`,
+      `word: ${item.word ?? "–"}`,
+      `knownLetters: ${Array.isArray(item.knownLetters) ? item.knownLetters.join(" ") : "–"}`,
+      `icon: ${item.icon ?? "–"}`,
+      `emoji: ${item.emoji ?? "–"}`,
+      `short: ${typeof item.short === "boolean" ? item.short : (item.short ?? "–")}`,
+      `letters: ${Array.isArray(item.letters) ? item.letters.join(" ") : "–"}`,
+      `words: ${Array.isArray(item.words) ? item.words.join(", ") : "–"}`,
+      `story: ${Array.isArray(item.story) ? item.story.join(", ") : "–"}`,
+      `sounds: ${Array.isArray(item.sounds) ? item.sounds.join(", ") : "–"}`,
+      `activities (${activityLines.length}):${activityLines.length ? "\n  - " + activityLines.join("\n  - ") : " –"}`
+    ];
+
+    return lines.join("\n");
+  }
+
   // ------------------------------------------------------------
-  // Activities (preserve all fields)
+  // Preserve ALL activity fields + normalize activity.text
   // ------------------------------------------------------------
   function getActivities(item) {
     if (Array.isArray(item.activities) && item.activities.length) {
@@ -454,8 +598,11 @@
         .filter(a => a.id);
     }
 
-    // fallback
     const activities = [{ id: "tts", caption: "Luister (woord)", instruction: "", text: "" }];
+    if (Array.isArray(item.letters) && item.letters.length) activities.push({ id: "letters", caption: "Oefen letters", instruction: "", text: "" });
+    if (Array.isArray(item.words) && item.words.length) activities.push({ id: "words", caption: "Maak woorden", instruction: "", text: "" });
+    if (Array.isArray(item.story) && item.story.length) activities.push({ id: "story", caption: "Luister (verhaal)", instruction: "", text: "" });
+    if (Array.isArray(item.sounds) && item.sounds.length) activities.push({ id: "sounds", caption: "Geluiden", instruction: "", text: "" });
     return activities;
   }
 
@@ -467,8 +614,6 @@
       : id.startsWith("words") ? "words"
       : id.startsWith("story") ? "story"
       : id.startsWith("sounds") ? "sounds"
-      : id.startsWith("readlines") ? "readlines"
-      : id.startsWith("pairletters") ? "pairletters"
       : id;
   }
 
@@ -505,7 +650,7 @@
   function renderActivity(item, activities) {
     const activityIndexEl = $opt("activity-index");
     const activityIdEl = $opt("activity-id");
-    const activityButtonsEl = $("activity-buttons"); // required
+    const activityButtonsEl = $("activity-buttons");
     const activityInstructionEl = $opt("activity-instruction");
 
     if (!activityButtonsEl) {
@@ -562,9 +707,6 @@
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "activity-change-idle" });
   }
 
-  // ------------------------------------------------------------
-  // Activity modules
-  // ------------------------------------------------------------
   function getActivityModule(activityKey) {
     const acts = window.Activities;
     if (!acts || typeof acts !== "object") return null;
@@ -753,86 +895,85 @@
     }
   }
 
-  // ------------------------------------------------------------
-  // JSON loading (fix "The string did not match the expected pattern.")
-  // - Fetch as text
-  // - Strip UTF-8 BOM
-  // - JSON.parse
-  // - Log prefix on parse errors
-  // ------------------------------------------------------------
-  async function fetchJsonArray(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    let txt = await res.text();
-
-    // Strip BOM if present
-    if (txt && txt.charCodeAt(0) === 0xFEFF) txt = txt.slice(1);
-
-    try {
-      const json = JSON.parse(txt);
-      if (!Array.isArray(json)) throw new Error("words.json is not an array");
-      return json;
-    } catch (e) {
-      const head = String(txt || "").slice(0, 120);
-      const msg = e?.message || String(e);
-      throw new Error(`${msg} | head="${head}"`);
-    }
-  }
-
   async function loadData() {
     const params = new URLSearchParams(window.location.search || "");
     const overrideUrl = params.get("data");
-
-    const candidates = overrideUrl
-      ? [overrideUrl]
-      : [SAME_ORIGIN_WORDS, RELATIVE_WORDS, REMOTE_WORDS];
-
+    const preferred = overrideUrl ? overrideUrl : DATA_URL;
+    const resolvedUrl = new URL(preferred, window.location.href).toString();
     setStatus("laden...");
 
-    for (let i = 0; i < candidates.length; i++) {
-      const url = candidates[i];
-      try {
-        const json = await fetchJsonArray(url);
-        records = json;
-        currentIndex = 0;
-        currentActivityIndex = 0;
-        log("[runner] JSON loaded", { url, records: records.length });
-        render();
-        return;
-      } catch (err) {
-        if (i === 0) log("[runner] ERROR loading JSON", { message: err?.message || String(err), url });
-        else log("[runner] ERROR loading fallback JSON", { message: err?.message || String(err), url });
-      }
-    }
+    try {
+      const res = await fetch(resolvedUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!Array.isArray(json)) throw new Error("words.json is not an array");
 
-    if (location.protocol === "file:") setStatus("laden mislukt: open via http:// (file:// blokkeert fetch)");
-    else setStatus("laden mislukt (zie log/console)");
+      records = json;
+      currentIndex = 0;
+      currentActivityIndex = 0;
+      render();
+    } catch (err) {
+      log("[runner] ERROR loading JSON", { message: err?.message || String(err), url: resolvedUrl });
+      if (location.protocol === "file:") setStatus("laden mislukt: open via http:// (file:// blokkeert fetch)");
+      else setStatus("laden mislukt (zie log/console)");
+    }
   }
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   function render() {
     if (!records.length) {
       setStatus("geen records");
-      const wordEl0 = $opt("field-word");
-      if (wordEl0) wordEl0.textContent = "–";
+      const allEl = $opt("field-all");
+      if (allEl) allEl.textContent = "–";
+
+      // keep header sane
+      const emojiEl = $opt("field-emoji");
+      if (emojiEl) { emojiEl.textContent = "–"; emojiEl.style.display = ""; }
+      const wordEl = $opt("field-word");
+      if (wordEl) wordEl.textContent = "–";
+      const wordBrailleEl = $opt("field-word-braille");
+      if (wordBrailleEl) wordBrailleEl.textContent = "–";
+
+      // keep monitor empty
+      if (brailleMonitor && typeof brailleMonitor.clear === "function") brailleMonitor.clear();
+      updateBrailleLine("", { reason: "render-empty" });
       return;
     }
 
     const item = records[currentIndex];
 
+    // Meta elements OPTIONAL; only #field-word is required
     const idEl = $opt("item-id");
     const indexEl = $opt("item-index");
-    const wordEl = $("field-word"); // required
+    const wordEl = $("field-word");
+    const emojiEl = $opt("field-emoji");
+
     if (!wordEl) {
       setStatus("HTML mist #field-word");
       return;
     }
 
-    wordEl.textContent = item.word || "–";
+    const wordText = String(item.word ?? "–");
+
+    // Always fill core word UI
+    wordEl.textContent = wordText;
+
+    // Fill meta only if present
     if (idEl) idEl.textContent = "ID: " + (item.id ?? "–");
     if (indexEl) indexEl.textContent = `${currentIndex + 1} / ${records.length}`;
+
+    if (emojiEl) {
+      const em = getEmojiForItem(item);
+      // Show emoji if we have one; hide otherwise
+      emojiEl.textContent = em || " ";
+      emojiEl.style.display = em ? "" : "none";
+    }
+
+    // Header braille rendering (visual only; adds ⠠ and ⠼ rules)
+    const wordBrailleEl = $opt("field-word-braille");
+    if (wordBrailleEl) wordBrailleEl.textContent = toBrailleUnicode(wordText);
+
+    const allEl = $opt("field-all");
+    if (allEl) allEl.textContent = formatAllFields(item);
 
     const activities = getActivities(item);
     if (currentActivityIndex >= activities.length) currentActivityIndex = 0;
@@ -845,9 +986,7 @@
     if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "render-idle" });
   }
 
-  // ------------------------------------------------------------
   // Public braille output API for activities
-  // ------------------------------------------------------------
   window.BrailleUI = window.BrailleUI || {};
   window.BrailleUI.setLine = function (text, meta) {
     updateBrailleLine(String(text ?? ""), meta || { reason: "activity" });
@@ -856,9 +995,6 @@
     updateBrailleLine("", meta || { reason: "activity-clear" });
   };
 
-  // ------------------------------------------------------------
-  // Boot
-  // ------------------------------------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     log("[runner] DOMContentLoaded");
     log("[lifecycle] basePath", { BASE_PATH, origin: location.origin });
@@ -868,7 +1004,7 @@
 
     const nextBtn = $opt("next-btn");
     const prevBtn = $opt("prev-btn");
-    const runBtn = $opt("run-activity-btn"); // optional
+    const runBtn = $opt("run-activity-btn"); // OPTIONAL
     const toggleFieldsBtn = $opt("toggle-fields-btn");
     const fieldsPanel = $opt("fields-panel");
 
@@ -880,12 +1016,10 @@
     // Bridge events
     if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
       BrailleBridge.connect();
-
       BrailleBridge.on("cursor", (evt) => {
         if (typeof evt?.index !== "number") return;
         dispatchCursorSelection({ index: evt.index }, "bridge");
       });
-
       BrailleBridge.on("connected", () => log("[runner] BrailleBridge connected"));
       BrailleBridge.on("disconnected", () => log("[runner] BrailleBridge disconnected"));
     }
@@ -910,16 +1044,19 @@
 
     // Apply language changes when returning from Settings (iOS BFCache safe)
     function applyLanguageIfChanged(reason) {
-      const nextLang = resolveLang();
-      if (nextLang === currentLang) return;
+      const next = resolveLang();
+      if (next === currentLang) return;
 
-      currentLang = nextLang;
+      currentLang = next;
       applyLangToHtml(currentLang);
       log("[runner] lang changed", { lang: currentLang, reason });
 
       if (brailleMonitor && typeof brailleMonitor.setLang === "function") {
         brailleMonitor.setLang(currentLang);
       }
+
+      // re-render header braille too
+      render();
 
       if (!running) updateBrailleLine(getIdleBrailleText(), { reason: "lang-change-idle" });
     }
