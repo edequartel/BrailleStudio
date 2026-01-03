@@ -1,7 +1,7 @@
 {
   "storiesTheme" : "dark",
   "elevenlabs.remember.voiceId" : "0",
-  "localstorage.json" : "{\"lang\":\"nl\",\"ssocSimulator\":true,\"method\":\"mpop.json\",\"brailleMode\":\"literacy\"}",
+  "localstorage.json" : "{\"lang\":\"nl\",\"ssocSimulator\":false,\"method\":\"marechal.json\",\"brailleMode\":\"computer\"}",
   "elevenlabs.remember.apiKey" : "0",
   "apiSpeech.rememberKey" : "on",
   "bs_lang" : "nl",
