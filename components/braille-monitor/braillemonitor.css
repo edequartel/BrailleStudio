@@ -2,8 +2,6 @@
 
 /* -------------------------------------------------------
    (OPTIONAL) Bartimeus 6-dots webfont (repo hosted)
-   NOTE: This font expects Braille ASCII input.
-   KEEP ONLY if you use it elsewhere. Not used for Unicode braille.
 ------------------------------------------------------- */
 @font-face {
   font-family: "Bartimeus6Dots";
@@ -16,7 +14,7 @@
 }
 
 /* -------------------------------------------------------
-   Unicode braille font stack
+   Fonts
 ------------------------------------------------------- */
 :root {
   --braille-unicode-font: "Noto Sans Symbols2", "Segoe UI Symbol", system-ui, sans-serif;
@@ -29,12 +27,12 @@
 }
 
 /* -------------------------------------------------------
-   Container
+   DEFAULT = DARK LOOK (swapped)
 ------------------------------------------------------- */
 .mono-box.braille-monitor-cells {
-  border: 1px solid #cfd6e4;
+  border: 1px solid #2a3550;
   border-radius: 10px;
-  background: #ffffff;
+  background: #0f172a;
   padding: 0.6rem 0.7rem;
 
   font-family: var(--mono-font);
@@ -44,12 +42,12 @@
   overflow-x: auto;
   white-space: nowrap;
 
-  /* default readable text in light mode */
-  color: #0f172a;
+  /* white text by default */
+  color: #ffffff;
 }
 
 /* -------------------------------------------------------
-   Cell (stacked braille + print)
+   Cells
 ------------------------------------------------------- */
 .braille-monitor-cells .monitor-cell {
   display: inline-flex;
@@ -67,15 +65,15 @@
   user-select: none;
   border: 1px solid transparent;
 
-  /* FIX: dark text in light mode */
-  color: #0f172a;
+  /* white in default (dark) */
+  color: #ffffff;
 
   vertical-align: top;
 }
 
 .braille-monitor-cells .monitor-cell:hover {
-  background: #f1f5ff;
-  border-color: #d7def2;
+  background: #121f3a;
+  border-color: #2a3550;
 }
 
 /* -------------------------------------------------------
@@ -107,7 +105,7 @@
 }
 
 /* -------------------------------------------------------
-   Thumb keys
+   Thumb keys (default dark)
 ------------------------------------------------------- */
 .button-row.thumb-row {
   display: flex;
@@ -125,16 +123,16 @@
   letter-spacing: 0.02em;
 
   border-radius: 14px;
-  border: 1px solid #cfd6e4;
-  background: #f3f6fb;
-  color: #0b1f4d;
+  border: 1px solid #2a3550;
+  background: #162447;
+  color: #e6eaf2;
 }
 
 .thumb-key[data-thumb="middleleftthumb"],
 .thumb-key[data-thumb="middlerightthumb"] {
-  background: #e6f0ff;
+  background: #1b2b52;
   border-color: #7aa2ff;
-  color: #0b1f4d;
+  color: #e6eaf2;
 
   font-size: 1.3rem;
   font-weight: 900;
@@ -148,52 +146,58 @@
 .thumb-key.active {
   transform: translateY(1px);
   filter: brightness(0.97);
-  box-shadow: inset 0 0 0 2px rgba(26, 76, 255, 0.25);
+  box-shadow: inset 0 0 0 2px rgba(122, 162, 255, 0.35);
 }
 
 .small {
   margin: 0;
   font-size: 0.85rem;
-  color: #556;
+  color: #aab3c5;
 }
 
 /* -------------------------------------------------------
-   Dark mode
+   DARK MODE = LIGHT LOOK (swapped)
 ------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
   .mono-box.braille-monitor-cells {
-    border-color: #2a3550;
-    background: #0f172a;
-    color: #cfd6e4;
+    border-color: #cfd6e4;
+    background: #ffffff;
+    color: #0f172a;
   }
 
-  /* FIX: white text only in dark mode */
   .braille-monitor-cells .monitor-cell {
-    color: #ffffff;
+    color: #0f172a;
   }
 
   .braille-monitor-cells .monitor-cell:hover {
-    background: #121f3a;
-    border-color: #2a3550;
+    background: #f1f5ff;
+    border-color: #d7def2;
   }
 
   .thumb-key {
-    border-color: #2a3550;
-    background: #162447;
-    color: #e6eaf2;
+    border-color: #cfd6e4;
+    background: #f3f6fb;
+    color: #0b1f4d;
+  }
+
+  .thumb-key[data-thumb="middleleftthumb"],
+  .thumb-key[data-thumb="middlerightthumb"] {
+    background: #e6f0ff;
+    border-color: #7aa2ff;
+    color: #0b1f4d;
   }
 
   .thumb-key.active {
-    box-shadow: inset 0 0 0 2px rgba(122, 162, 255, 0.35);
+    box-shadow: inset 0 0 0 2px rgba(26, 76, 255, 0.25);
   }
 
   .small {
-    color: #aab3c5;
+    color: #556;
   }
 }
 
 /* -------------------------------------------------------
-   Touch / coarse pointer adjustments
+   Touch adjustments
 ------------------------------------------------------- */
 @media (pointer: coarse) {
   .thumb-key {
@@ -212,7 +216,7 @@
 }
 
 /* -------------------------------------------------------
-   Optional styling
+   Optional
 ------------------------------------------------------- */
 .thumb-key.pill {
   border-radius: 999px;
