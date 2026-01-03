@@ -17,9 +17,14 @@
 
 /* -------------------------------------------------------
    Unicode braille font stack
+   - Noto Sans Symbols2 includes Unicode braille patterns
+   - Segoe UI Symbol works on Windows
 ------------------------------------------------------- */
 :root {
+  /* Use Unicode-capable fonts for braille patterns (U+2800…U+28FF) */
   --braille-unicode-font: "Noto Sans Symbols2", "Segoe UI Symbol", system-ui, sans-serif;
+
+  /* Keep your monospace for print line and container */
   --mono-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Cascadia Code", "Fira Code", monospace;
 }
 
@@ -28,9 +33,7 @@
   gap: 0.6rem;
 }
 
-/* -------------------------------------------------------
-   Container
-------------------------------------------------------- */
+/* Container */
 .mono-box.braille-monitor-cells {
   border: 1px solid #cfd6e4;
   border-radius: 10px;
@@ -39,18 +42,14 @@
 
   font-family: var(--mono-font);
   font-size: 1.05rem;
+
   line-height: 1.05;
 
   overflow-x: auto;
   white-space: nowrap;
-
-  /* default readable text in light mode */
-  color: #0f172a;
 }
 
-/* -------------------------------------------------------
-   Cell (stacked braille + print)
-------------------------------------------------------- */
+/* Cell: stacked (braille above, print below) */
 .braille-monitor-cells .monitor-cell {
   display: inline-flex;
   flex-direction: column;
@@ -67,8 +66,8 @@
   user-select: none;
   border: 1px solid transparent;
 
-  /* FIX: dark text in light mode */
-  color: #0f172a;
+  /* Ensure both lines are the same color (white) as you requested */
+  color: #fff;
 
   vertical-align: top;
 }
@@ -79,25 +78,32 @@
 }
 
 /* -------------------------------------------------------
-   Braille line (top)
+   Braille line (top) – Unicode braille patterns
+   CHANGED: Use Unicode font stack, NOT Bartimeus6Dots.
 ------------------------------------------------------- */
 .monitor-cell__braille {
   display: block;
   line-height: 1;
+
+  /* Slightly larger helps readability of Unicode braille patterns */
   font-size: 1.15em;
 
+  opacity: 1;
   color: inherit;
+
+  /* IMPORTANT: Unicode braille font stack */
   font-family: var(--braille-unicode-font);
 
+  /* keep rendering stable */
   font-variant-ligatures: none;
   letter-spacing: 0;
+
+  /* these can help clarity for symbol fonts */
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
 }
 
-/* -------------------------------------------------------
-   Print line (bottom)
-------------------------------------------------------- */
+/* Print line (bottom) */
 .monitor-cell__print {
   display: block;
   line-height: 1;
@@ -106,15 +112,18 @@
   font-family: var(--mono-font);
 }
 
-/* -------------------------------------------------------
-   Thumb keys
-------------------------------------------------------- */
+/* Option B: Flex, but force equal-width buttons */
 .button-row.thumb-row {
   display: flex;
   gap: 0.5rem;
   width: 100%;
 }
 
+/* -----------------------------------------
+   Thumb keys (LARGE TEXT UPDATE)
+------------------------------------------ */
+
+/* Base thumb keys */
 .thumb-key {
   min-height: 3rem;
   padding: 0.6rem 0.75rem;
@@ -125,11 +134,9 @@
   letter-spacing: 0.02em;
 
   border-radius: 14px;
-  border: 1px solid #cfd6e4;
-  background: #f3f6fb;
-  color: #0b1f4d;
 }
 
+/* Middle thumb keys */
 .thumb-key[data-thumb="middleleftthumb"],
 .thumb-key[data-thumb="middlerightthumb"] {
   background: #e6f0ff;
@@ -140,9 +147,39 @@
   font-weight: 900;
 }
 
+.thumb-key[data-thumb="middleleftthumb"].active,
+.thumb-key[data-thumb="middlerightthumb"].active {
+  box-shadow: inset 0 0 0 2px rgba(26, 76, 255, 0.35);
+}
+
 .thumb-key.symbol {
   font-size: 1.6rem;
   line-height: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .thumb-key[data-thumb="middleleftthumb"],
+  .thumb-key[data-thumb="middlerightthumb"] {
+    background: #1b2b52;
+    border-color: #7aa2ff;
+    color: #e6eaf2;
+  }
+}
+
+@media (pointer: coarse) {
+  .thumb-key {
+    min-height: 3.5rem;
+    font-size: 1.35rem;
+  }
+
+  .thumb-key[data-thumb="middleleftthumb"],
+  .thumb-key[data-thumb="middlerightthumb"] {
+    font-size: 1.45rem;
+  }
+
+  .thumb-key.symbol {
+    font-size: 1.85rem;
+  }
 }
 
 .thumb-key.active {
@@ -157,9 +194,9 @@
   color: #556;
 }
 
-/* -------------------------------------------------------
+/* -----------------------------
    Dark mode
-------------------------------------------------------- */
+------------------------------ */
 @media (prefers-color-scheme: dark) {
   .mono-box.braille-monitor-cells {
     border-color: #2a3550;
@@ -167,9 +204,9 @@
     color: #cfd6e4;
   }
 
-  /* FIX: white text only in dark mode */
+  /* Keep monitor cells white in dark mode */
   .braille-monitor-cells .monitor-cell {
-    color: #ffffff;
+    color: #fff;
   }
 
   .braille-monitor-cells .monitor-cell:hover {
@@ -192,32 +229,12 @@
   }
 }
 
-/* -------------------------------------------------------
-   Touch / coarse pointer adjustments
-------------------------------------------------------- */
-@media (pointer: coarse) {
-  .thumb-key {
-    min-height: 3.5rem;
-    font-size: 1.35rem;
-  }
-
-  .thumb-key[data-thumb="middleleftthumb"],
-  .thumb-key[data-thumb="middlerightthumb"] {
-    font-size: 1.45rem;
-  }
-
-  .thumb-key.symbol {
-    font-size: 1.85rem;
-  }
-}
-
-/* -------------------------------------------------------
-   Optional styling
-------------------------------------------------------- */
+/* Optional: pill-shaped buttons */
 .thumb-key.pill {
   border-radius: 999px;
 }
 
+/* Thumb key row: spread buttons with clear spacing */
 .button-row.thumb-row {
   display: flex;
   align-items: center;
