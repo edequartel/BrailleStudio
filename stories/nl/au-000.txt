@@ -1,0 +1,49 @@
+[geluid: vogels]
+
+Sam loopt met Bo de hond in de tuin.  
+Sam ziet een steen.  
+Hij wil er over heen stappen.  
+
+[stap]
+
+Au!  
+Sam stoot zijn teen.  
+
+[au]
+
+Bo blaft zacht.  
+Bo kijkt bezorgd.  
+
+[blaf zacht]
+
+Tala komt aanlopen.  
+Ze lacht niet, ze kijkt goed.  
+"Gaat het, Sam?" vraagt ze.  
+
+Sam zit op de grond.  
+Hij wrijft over zijn teen.  
+"Het deed even au," zegt Sam.  
+
+Roberto komt erbij.  
+Hij maakt een gek gezicht.  
+"Au is naar," zegt hij,  
+"maar kijk, ik kan er een pleister op doen."  
+
+[pleister]
+
+Sam staat weer op.  
+De pijn is minder.  
+Bo likt aan zijn hand.  
+
+[lik]
+
+Sam lacht.  
+"Dank je," zegt hij.  
+
+[lach]
+
+Ze lopen samen verder.  
+Sam kijkt nu goed waar hij loopt.  
+Geen au meer vandaag.  
+
+[geluid: stappen die weggaan]

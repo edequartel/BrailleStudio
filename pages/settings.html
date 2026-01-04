@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="../css/settings.css" />
+
+  <!-- Core JS -->
+  <script src="../js/settings-store.js"></script>
+  <script src="../js/i18n.js"></script>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <h1 data-i18n="settings.title">Settings</h1>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <div class="card">
+
+      <!-- Language -->
+      <div class="row">
+        <div>
+          <div class="label" data-i18n="settings.language.label">Language</div>
+          <div class="hint" data-i18n="settings.language.hint">Used by runner.</div>
+        </div>
+        <div>
+          <select id="langSelect">
+            <option value="nl" data-i18n="settings.language.option.nl">Nederlands</option>
+            <option value="en" data-i18n="settings.language.option.en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SSOC Simulator -->
+      <div class="row">
+        <div>
+          <div class="label" data-i18n="settings.sim.label">SSOC Simulator</div>
+          <div class="hint" data-i18n="settings.sim.hint">Local fallback mode</div>
+        </div>
+        <div class="toggle">
+          <input type="checkbox" id="simToggle" />
+          <label for="simToggle" data-i18n="settings.sim.toggle">Use simulator</label>
+        </div>
+      </div>
+
+      <!-- Method -->
+      <div class="row">
+        <div>
+          <div class="label" data-i18n="settings.method.label">Method</div>
+          <div class="hint" data-i18n="settings.method.hint">Select the active teaching method.</div>
+        </div>
+        <div>
+          <select id="methodSelect">
+            <option value="mpop.json" data-i18n="settings.method.option.mpop">MPOP</option>
+            <option value="marechal.json" data-i18n="settings.method.option.marechal">Maréchal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Braille mode -->
+      <div class="row">
+        <div>
+          <div class="label" data-i18n="settings.braillemode.label">Braille mode</div>
+          <div class="hint" data-i18n="settings.braillemode.hint">Choose between 6-dot and 8-dot.</div>
+        </div>
+        <div>
+          <select id="brailleModeSelect">
+            <option value="literacy" data-i18n="settings.braillemode.option.literacy">
+              Literacy (6 dots)
+            </option>
+            <option value="computer" data-i18n="settings.braillemode.option.computer">
+              Computer (8 dots)
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Debug -->
+      <div id="debugBox" class="debug">Debug: (loading…)</div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+(async function () {
+  "use strict";
+
+  const BASE_PATH = "../"; // because /pages/settings.html
+
+  const elLang        = document.getElementById("langSelect");
+  const elSim         = document.getElementById("simToggle");
+  const elMethod      = document.getElementById("methodSelect");
+  const elBrailleMode = document.getElementById("brailleModeSelect");
+  const elDebug       = document.getElementById("debugBox");
+
+  function debug(msg, obj) {
+    elDebug.textContent =
+      msg + (obj ? "\n" + JSON.stringify(obj, null, 2) : "");
+    console.log(msg, obj || "");
+  }
+
+  if (!window.SettingsStore || !window.I18n) {
+    debug("ERROR: Required JS not loaded", {
+      SettingsStore: !!window.SettingsStore,
+      I18n: !!window.I18n
+    });
+    return;
+  }
+
+  function forceSelectRepaint(sel) {
+    const i = sel.selectedIndex;
+    sel.selectedIndex = -1;
+    sel.selectedIndex = i;
+  }
+
+  async function applyLang(lang) {
+    const res = await I18n.loadAndApply({ lang, basePath: BASE_PATH });
+    forceSelectRepaint(elLang);
+    forceSelectRepaint(elMethod);
+    forceSelectRepaint(elBrailleMode);
+    debug("i18n applied", res.applied);
+  }
+
+  async function syncUI() {
+    const state = SettingsStore.load();
+
+    elLang.value        = state.lang;
+    elSim.checked       = !!state.ssocSimulator;
+    elMethod.value      = state.method;
+    elBrailleMode.value = state.brailleMode;
+
+    await applyLang(state.lang);
+    debug("UI synced", state);
+  }
+
+  function update(patch) {
+    const state = SettingsStore.patch(patch);
+    if (patch.lang) applyLang(state.lang);
+    debug("Updated", patch);
+  }
+
+  elLang.addEventListener("change", () =>
+    update({ lang: I18n.normalizeLang(elLang.value) })
+  );
+  elSim.addEventListener("change", () =>
+    update({ ssocSimulator: elSim.checked })
+  );
+  elMethod.addEventListener("change", () =>
+    update({ method: elMethod.value })
+  );
+  elBrailleMode.addEventListener("change", () =>
+    update({ brailleMode: elBrailleMode.value })
+  );
+
+  window.addEventListener("pageshow", syncUI);
+  syncUI();
+})();
+</script>
+</body>
+</html>

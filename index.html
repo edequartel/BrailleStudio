@@ -1,197 +1,332 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <title>BrailleServer – Overzicht</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrailleStudio</title>
+  
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="e5e6688f-dec8-44f0-8b83-b223bda340af"></script> 
 
   <style>
-    /* Extra layout bovenop style.css (geen JS nodig) */
+    :root{
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
 
-    .section {
-      margin-top: 28px;
+      --link-bg: #f9fafb;
+      --link-hover: #eef2ff;
+      --shadow: rgba(0, 0, 0, 0.14);
+
+      --md-bg: #ffffff;
+      --md-text: #1c1f25;
     }
 
-    .section h2 {
-      margin-bottom: 10px;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 6px;
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg: #0f1117;
+        --panel: #161a23;
+        --text: #f5f6f7;
+        --muted: #a3adbd;
+
+        --link-bg: #1e2431;
+        --link-hover: #293043;
+        --shadow: rgba(0, 0, 0, 0.55);
+
+        --md-bg: #1b1f2a;
+        --md-text: #ffffff;
+      }
     }
 
-    .card-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    * { box-sizing: border-box; }
+
+    body{
+      margin: 0;
+      padding: 24px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main{
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--panel);
+      padding: 22px;
+      border-radius: 16px;
+      box-shadow: 0 10px 36px var(--shadow);
+    }
+
+    header{
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
       gap: 14px;
+      margin-bottom: 16px;
     }
 
-    .card {
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 14px 16px;
-      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    h1{
+      margin: 0;
+      font-size: 1.85rem;
+      font-weight: 850;
+      letter-spacing: -0.01em;
+      color: var(--text);
     }
 
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 6px;
-      font-size: 1.05rem;
+    .subtitle{
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.35;
     }
 
-    .card p {
-      margin: 0 0 10px 0;
-      color: #475569;
+    /* Use the space better: 2-column layout on wide screens */
+    .layout{
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px){
+      body{ padding: 16px; }
+      main{ padding: 16px; }
+      .layout{ grid-template-columns: 1fr; }
+    }
+
+    /* Links panel */
+    nav{
+      background: rgba(255,255,255,0.0);
+    }
+
+    ul{
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    li{ margin: 0; }
+
+    /* No borders on links */
+    a{
+      display: block;
+      padding: 14px 14px;
+      border-radius: 12px;
+      background: var(--link-bg);
+      text-decoration: none;
+      color: var(--text);
+      font-weight: 700;
+      transition: background 0.15s ease, transform 0.12s ease;
+    }
+
+    a:hover{
+      background: var(--link-hover);
+      transform: translateY(-1px);
+    }
+
+    a:active{
+      transform: translateY(0);
+    }
+
+    /* README panel (no border; uses space better) */
+    #readme-box{
+      background: var(--md-bg);
+      color: var(--md-text);
+      border-radius: 12px;
+      padding: 16px 16px;
+      height: calc(100vh - 24px - 24px - 22px - 22px); /* body padding + main padding */
+      max-height: 640px;
+      overflow: auto;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.14);
+      font-size: 1rem;
+      line-height: 1.65;
+    }
+
+    @media (max-width: 900px){
+      #readme-box{
+        height: auto;
+        max-height: 520px;
+      }
+    }
+
+    #readme-box h1,
+    #readme-box h2,
+    #readme-box h3{
+      margin: 1.2rem 0 0.6rem 0;
+      color: var(--md-text);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    #readme-box p{
+      margin: 0.75rem 0;
+    }
+
+    #readme-box ul{
+      list-style: disc;
+      padding-left: 1.4rem;
+      margin: 0.6rem 0;
+      gap: 0;
+    }
+
+    #readme-box code{
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
       font-size: 0.95rem;
     }
 
-    .card a {
-      font-weight: 600;
+    @media (prefers-color-scheme: dark){
+      #readme-box code{
+        background: rgba(255,255,255,0.10);
+      }
     }
 
-    .badge {
-      display: inline-block;
-      margin-bottom: 6px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #1e293b;
+    #readme-box a{
+      color: #60a5fa;
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-weight: 700;
+      display: inline;
     }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Language comes from SettingsStore (localstorage.json) -->
+  <script src="./js/settings-store.js"></script>
 </head>
 
 <body>
-  <div class="container">
-    <h1>BrailleServer</h1>
-
-    <p>
-      Startpagina voor demo’s, spellen en testpagina’s die samenwerken met
-      <strong>BrailleBridge</strong> en de leesregel.
-    </p>
-
-    <!-- DEMO'S -->
-    <div class="section">
-      <h2>Demo’s</h2>
-
-      <div class="card-list">
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>BrailleBridge Demo</h3>
-          <p>Basisdemo van de HTTP- en WebSocket-koppeling met BrailleBridge.</p>
-          <a href="pages/braillebridge-demo.html">Open demo</a>
-        </div>
-
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>BrailleUI Demo</h3>
-          <p>Interactieve BrailleUI-test met invoer via leesregel.</p>
-          <a href="pages/brailleui-demo.html">Open demo</a>
-        </div>
-
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>BrailleUI Monitor</h3>
-          <p>Visuele weergave van braillecellen en cursor routing.</p>
-          <a href="pages/brailleui-demo-monitor.html">Open monitor</a>
-        </div>
-
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>Monitor + Cursor</h3>
-          <p>Uitgebreide monitor met cursor-routing feedback.</p>
-          <a href="pages/brailleui-demo-monitor-cursor.html">Open monitor</a>
-        </div>
-
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>Sounds Demo</h3>
-          <p>Testpagina voor audio-afspelen via Howler en Braille-interactie.</p>
-          <a href="pages/sounds-demo.html">Open sounds demo</a>
-        </div>
-
-        <div class="card">
-          <span class="badge">Demo</span>
-          <h3>Showcase</h3>
-          <p>Verzamelpagina voor visuele en functionele tests.</p>
-          <a href="pages/showcase.html">Open showcase</a>
-        </div>
+  <main>
+    <header>
+      <div>
+        <h1 data-i18n="title">BrailleStudio</h1>
       </div>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="" data-i18n-aria="mainNav">
+        <ul>
+          <li><a href="./pages/activity-runner.html" data-i18n="nav.practice"></a></li>
+          <li><a href="./pages/stories.html" data-i18n="nav.stories"></a></li>
+          <li><a href="./components/instructions/instructions-audio.html" data-i18n="nav.instructions"></a></li>
+          <li><a href="./components/profile/profile.html" data-i18n="nav.profile"></a></li>
+          <li><a href="./pages/settings.html" data-i18n="nav.settings"></a></li>
+        </ul>
+      </nav>
+
+      <section>
+        <div id="readme-box" data-i18n="loading">Laden…</div>
+      </section>
     </div>
+  </main>
 
-    <!-- GAMES -->
-    <div class="section">
-      <h2>Spellen</h2>
+  <script>
+  (async function () {
+    "use strict";
 
-      <div class="card-list">
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Braille Sound Game</h3>
-          <p>Luister naar een geluid en reageer via de leesregel.</p>
-          <a href="pages/braille-sound-game.html">Start spel</a>
-        </div>
+    // ------------------------------------------------------------
+    // i18n dictionary (explicit, readable, maintainable)
+    // ------------------------------------------------------------
+    const I18N = {
+      nl: {
+        title: "BrailleStudio",
+        loading: "Laden…",
+        readmeError: "README kon niet worden geladen.",
+        mainNav: "Hoofdmenu",
+        nav: {
+          practice: "Letters en woorden oefenen",
+          stories: "Verhalen lezen",
+          instructions: "Instructies – audio overzicht",
+          profile: "Profiel student",
+          settings: "Instellingen"
+        }
+      },
+      en: {
+        title: "BrailleStudio",
+        loading: "Loading…",
+        readmeError: "README could not be loaded.",
+        mainNav: "Main navigation",
+        nav: {
+          practice: "Practice letters and words",
+          stories: "Read stories",
+          instructions: "Instructions – audio overview",
+          profile: "Student profile",
+          settings: "Settings"
+        }
+      }
+    };
 
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Dier Match</h3>
-          <p>Koppel dierengeluiden aan het juiste braillewoord.</p>
-          <a href="pages/game-dier-match.html">Start spel</a>
-        </div>
+    // ------------------------------------------------------------
+    // Language resolution (single source of truth: SettingsStore)
+    // ------------------------------------------------------------
+    function normalizeLang(x){
+      const t = String(x || "").trim().toLowerCase();
+      const base = t.split("-")[0];
+      return (base === "en" || base === "nl") ? base : "nl";
+    }
 
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Letter Yes / No</h3>
-          <p>Kies met duimtoetsen of een letter klopt.</p>
-          <a href="pages/game-letter-yes-no.html">Start spel</a>
-        </div>
+    function getLangFromSettings(){
+      try{
+        if (window.SettingsStore && typeof SettingsStore.load === "function") {
+          const s = SettingsStore.load();
+          return normalizeLang(s.lang);
+        }
+      }catch{}
+      return "nl";
+    }
 
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Woorden kiezen</h3>
-          <p>Selecteer het juiste woord via braille-invoer.</p>
-          <a href="pages/game-woorden-kiezen.html">Start spel</a>
-        </div>
+    const lang = getLangFromSettings();
+    const T = I18N[lang] || I18N.nl;
 
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Lied – Bal</h3>
-          <p>Liedje en woordherkenning rond “bal”.</p>
-          <a href="pages/lied-bal.html">Open lied</a>
-        </div>
+    // Set <html lang="..">
+    document.documentElement.setAttribute("lang", lang);
 
-        <div class="card">
-          <span class="badge">Game</span>
-          <h3>Play Ball</h3>
-          <p>Eenvoudig spel rondom het woord “bal”.</p>
-          <a href="pages/play_ball.html">Start spel</a>
-        </div>
-      </div>
-    </div>
+    // ------------------------------------------------------------
+    // Apply translations to DOM
+    // ------------------------------------------------------------
+    function applyI18n(){
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.dataset.i18n;
+        const value = key.split(".").reduce((o,k)=>o && o[k], T);
+        if (value != null) el.textContent = String(value);
+      });
 
-    <!-- OVERIG -->
-    <div class="section">
-      <h2>Overig</h2>
+      document.querySelectorAll("[data-i18n-aria]").forEach(el => {
+        const key = el.dataset.i18nAria;
+        const value = T[key];
+        if (value != null) el.setAttribute("aria-label", String(value));
+      });
+    }
 
-      <div class="card-list">
-        <div class="card">
-          <span class="badge">Overig</span>
-          <h3>Words</h3>
-          <p>Testpagina voor woorden en braille-uitvoer.</p>
-          <a href="pages/words.html">Open pagina</a>
-        </div>
+    applyI18n();
 
-        <div class="card">
-          <span class="badge">Overig</span>
-          <h3>Skeleton</h3>
-          <p>Basis HTML-sjabloon voor nieuwe pagina’s.</p>
-          <a href="pages/skeleton.html">Open skeleton</a>
-        </div>
-      </div>
-    </div>
+    // ------------------------------------------------------------
+    // README loading from /content
+    // Expected:
+    //   /content/README.nl.md
+    //   /content/README.en.md
+    // ------------------------------------------------------------
+    const box = document.getElementById("readme-box");
+    const readmeUrl = `./content/README.${lang}.md`;
 
-    <p class="small" style="margin-top: 24px;">
-      Deze index is volledig statisch en bewust JavaScript-vrij.
-    </p>
-  </div>
+    console.log("[index] loading README", { lang, readmeUrl });
+
+    try{
+      const res = await fetch(readmeUrl, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const md = await res.text();
+      box.innerHTML = marked.parse(md);
+    } catch (e) {
+      console.error("[index] README load failed", e);
+      box.textContent = T.readmeError;
+    }
+
+  })();
+  </script>
 </body>
 </html>

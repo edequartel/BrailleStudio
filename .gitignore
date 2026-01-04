@@ -1,2 +1,7 @@
 .DS_Store
+/pages/localStorage.json
 /components/api-speech/localStorage.json
+*.bak
+*.old
+*.tmp
+*~

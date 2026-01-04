@@ -1,0 +1,32 @@
+	1.	Bepaal eerst de nieuwe activiteit
+Kies een vaste activity-id (bijvoorbeeld pairletters). Bepaal welke instellingen je nodig hebt, zoals nrof (aantal rondes) en eventueel de lengte van de regel. Beschrijf in eenvoudige woorden wat de leerling moet doen.
+	2.	Schrijf de prompt / specificatie
+Leg vast wat de activiteit doet:
+– welke letters worden gebruikt (nieuwe letters uit letters, bekende uit knownLetters)
+– hoe de leesregel eruitziet (twee dezelfde letters tussen andere verschillende)
+– hoe de leerling antwoordt (cursor toetsen, twee keer dezelfde letter kiezen)
+– wanneer een ronde klaar is en wanneer de activiteit stopt (nrof bereikt)
+	3.	Maak het activity-JavaScript bestand
+Voeg een nieuw bestand toe in /activities, bijvoorbeeld pairletters.js.
+Implementeer de standaard functies: start, stop en onCursor.
+Lees de instellingen uit ctx.activity (zoals nrof).
+Zorg dat de activiteit per ronde een nieuwe set letters genereert en na nrof rondes stopt.
+	4.	Pas words.json aan
+Voeg de activiteit toe aan het activities-blok van een record.
+Zet daar ook nrof (en eventueel andere instellingen).
+Zorg dat knownLetters per record aanwezig is en klopt.
+	5.	Pas words.html aan
+Voeg het nieuwe activity-script toe met een script-tag.
+Plaats deze tussen de andere activity-scripts en vóór words.js.
+	6.	Pas words.js aan
+Zorg dat de nieuwe activiteit herkend wordt in canonicalActivityId.
+Voeg eventueel een caption toe in formatActivityDetail.
+Controleer dat bij inactieve activiteiten altijd het woord op de leesregel blijft staan.
+	7.	Testen
+Start de pagina.
+Selecteer de nieuwe activiteit en druk op Start.
+Controleer of:
+– er altijd twee gelijke letters op de leesregel staan
+– cursorselecties worden herkend
+– na nrof rondes automatisch wordt gestopt of doorgegaan
+– bij stoppen of wisselen de leesregel weer het woord toont

@@ -1,17 +1,33 @@
 /*!
- * braillemonitor.js – Reusable Braille monitor + thumbkey component
+ * /components/braille-monitor/braillemonitor.js
  * -----------------------------------------------------------------
- * CHANGE: Adds Unicode braille (⠁⠃⠉…) ABOVE each printed character.
+ * UNICODE BRAILLE MONITOR (no Bartimeus6Dots)
  *
- * Requires a small CSS tweak (see comment near the bottom).
+ * Key design:
+ * - Keep 1 UI cell per PRINT character (cursor routing stable).
+ * - Braille shown in the top line can be 1 or 2 unicode braille chars:
+ *     b  -> ⠃
+ *     B  -> ⠠⠃ (capital sign + ⠃)
+ *     1  -> ⠼⠁ (number sign + ⠁)  [only at start of digit run]
+ * - Space:
+ *     print line shows ␣
+ *     braille line shows U+2800 blank (⠀)
+ *
+ * Optional external translator hook:
+ *   window.Braille.textToBrailleCells(text, { lang }) -> Array<string>
+ * Must return array with SAME LENGTH as `text`.
+ *
+ * HARDENING:
+ * - Even if translator forgets capital/number signs, we add them here so UI is correct.
+ *
+ * ADDED IN THIS VERSION:
+ * - setLang(lang): switch language after init and re-render (safe for Settings page)
  */
 
 (function (global) {
   "use strict";
 
-  function makeId(base, suffix) {
-    return base + "_" + suffix;
-  }
+  function makeId(base, suffix) { return base + "_" + suffix; }
 
   function toEventLogType(level) {
     const lv = (level || "info").toLowerCase();
@@ -21,23 +37,33 @@
     return "system";
   }
 
-  // -------------------------------------------------------------------
-  // NEW: Basic Unicode braille mapping for common characters
-  // -------------------------------------------------------------------
-  const BRAILLE_MAP = {
-    // letters (Grade 1)
+  // UI markers
+  const VISIBLE_SPACE = "␣";
+  const BRAILLE_BLANK = "⠀";       // U+2800
+  const BRAILLE_UNKNOWN = "⣿";     // visible fallback
+
+  // Signs
+  const SIGN_CAPITAL = "⠠";        // dot 6
+  const SIGN_NUMBER  = "⠼";        // 3456
+
+  // Letters a-z (basic)
+  const BRAILLE_LETTERS = {
     a: "⠁", b: "⠃", c: "⠉", d: "⠙", e: "⠑",
     f: "⠋", g: "⠛", h: "⠓", i: "⠊", j: "⠚",
     k: "⠅", l: "⠇", m: "⠍", n: "⠝", o: "⠕",
     p: "⠏", q: "⠟", r: "⠗", s: "⠎", t: "⠞",
-    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵",
+    u: "⠥", v: "⠧", w: "⠺", x: "⠭", y: "⠽", z: "⠵"
+  };
 
-    // digits (1-0 use a-j patterns; typically preceded by number sign ⠼)
-    "1": "⠼⠁", "2": "⠼⠃", "3": "⠼⠉", "4": "⠼⠙", "5": "⠼⠑",
-    "6": "⠼⠋", "7": "⠼⠛", "8": "⠼⠓", "9": "⠼⠊", "0": "⠼⠚",
+  // Digits 1-0 map to a-j after number sign
+  const BRAILLE_DIGITS = {
+    "1": "⠁", "2": "⠃", "3": "⠉", "4": "⠙", "5": "⠑",
+    "6": "⠋", "7": "⠛", "8": "⠓", "9": "⠊", "0": "⠚"
+  };
 
-    // space + a few punctuation marks
-    " ": "⠀",           // U+2800 blank braille
+  // Punctuation (basic; refine later if needed)
+  const BRAILLE_PUNCT = {
+    " ": BRAILLE_BLANK,
     ".": "⠲",
     ",": "⠂",
     ";": "⠆",
@@ -47,32 +73,148 @@
     "-": "⠤",
     "'": "⠄",
     "\"": "⠶",
+    "/": "⠌",
     "(": "⠐⠣",
-    ")": "⠐⠜",
-    "/": "⠌"
+    ")": "⠐⠜"
   };
 
-  function toBrailleUnicode(ch) {
-    if (ch == null) return "⠀";
-    const s = String(ch);
-    if (!s) return "⠀";
+  function visiblePrintChar(ch) {
+    return ch === " " ? VISIBLE_SPACE : ch;
+  }
 
-    // keep one character (your monitor is cell-based)
-    const c = s[0];
+  function isAsciiDigit(ch) {
+    return ch >= "0" && ch <= "9";
+  }
 
-    // direct map
-    if (BRAILLE_MAP[c]) return BRAILLE_MAP[c];
+  function isAsciiLetter(ch) {
+    const s = String(ch || "");
+    if (!s) return false;
+    const lower = s.toLowerCase();
+    return lower >= "a" && lower <= "z";
+  }
 
-    // letters case-insensitive
+  /**
+   * Default per-character braille cell generator (returns 1..2 braille unicode chars)
+   * NOTE: For digits, this returns number sign per digit. We'll normalize digit-runs later.
+   */
+  function defaultCellForChar(ch) {
+    const c = String(ch ?? "");
+    if (!c) return BRAILLE_BLANK;
+
+    // punctuation incl. space
+    if (Object.prototype.hasOwnProperty.call(BRAILLE_PUNCT, c)) return BRAILLE_PUNCT[c];
+
+    // digit -> number sign + a-j
+    if (Object.prototype.hasOwnProperty.call(BRAILLE_DIGITS, c)) return SIGN_NUMBER + BRAILLE_DIGITS[c];
+
+    // letter
     const lower = c.toLowerCase();
-    if (BRAILLE_MAP[lower]) {
-      // If you want an uppercase prefix, you can use "⠠" + letter
-      // return (c !== lower ? "⠠" : "") + BRAILLE_MAP[lower];
-      return BRAILLE_MAP[lower];
+    if (Object.prototype.hasOwnProperty.call(BRAILLE_LETTERS, lower)) {
+      const letterCell = BRAILLE_LETTERS[lower];
+      // uppercase -> capital sign + letter
+      if (c !== lower) return SIGN_CAPITAL + letterCell;
+      return letterCell;
     }
 
-    // fallback: unknown -> full cell (visually obvious)
-    return "⣿";
+    return BRAILLE_UNKNOWN;
+  }
+
+  /**
+   * Normalize translator output:
+   * - Ensure array length matches text length
+   * - Ensure space => BRAILLE_BLANK
+   * - Ensure uppercase => has SIGN_CAPITAL prefix
+   * - Ensure digit runs => SIGN_NUMBER only at start of run
+   */
+  function coerceCells(text, cells) {
+    const raw = String(text ?? "");
+    const out = new Array(raw.length);
+
+    let inNumberRun = false;
+
+    for (let i = 0; i < raw.length; i++) {
+      const ch = raw[i] ?? " ";
+      let cell = (cells && cells[i] != null) ? String(cells[i]) : "";
+
+      if (!cell) cell = BRAILLE_BLANK;
+
+      // SPACE always blank cell
+      if (ch === " ") {
+        out[i] = BRAILLE_BLANK;
+        inNumberRun = false;
+        continue;
+      }
+
+      // DIGITS: enforce number sign only at start of run
+      if (isAsciiDigit(ch)) {
+        const digitCell = BRAILLE_DIGITS[ch] || BRAILLE_UNKNOWN;
+
+        if (!inNumberRun) {
+          cell = SIGN_NUMBER + digitCell;
+          inNumberRun = true;
+        } else {
+          cell = digitCell; // no ⠼ inside run
+        }
+
+        out[i] = cell;
+        continue;
+      } else {
+        inNumberRun = false;
+      }
+
+      // PUNCTUATION
+      if (Object.prototype.hasOwnProperty.call(BRAILLE_PUNCT, ch)) {
+        out[i] = BRAILLE_PUNCT[ch];
+        continue;
+      }
+
+      // LETTERS (ASCII a-z only here)
+      const lower = String(ch).toLowerCase();
+      if (isAsciiLetter(lower) && Object.prototype.hasOwnProperty.call(BRAILLE_LETTERS, lower)) {
+        const baseLetter = BRAILLE_LETTERS[lower];
+        const isUpper = ch !== lower;
+
+        if (isUpper) out[i] = SIGN_CAPITAL + baseLetter;
+        else out[i] = baseLetter;
+
+        continue;
+      }
+
+      // Unknown char fallback
+      out[i] = cell || BRAILLE_UNKNOWN;
+    }
+
+    return out;
+  }
+
+  /**
+   * Translate to an array of per-print-character braille cells (each cell is a string).
+   * External hook must return Array<string> of same length as text.
+   */
+  function textToBrailleCells(text, { lang } = {}) {
+    const raw = String(text ?? "");
+    let cells = null;
+
+    // Optional external translator hook
+    if (global.Braille && typeof global.Braille.textToBrailleCells === "function") {
+      try {
+        const out = global.Braille.textToBrailleCells(raw, { lang });
+        if (Array.isArray(out) && out.length === raw.length) {
+          cells = out.map(x => (x == null ? "" : String(x)));
+        }
+      } catch {
+        // ignore and fall back
+      }
+    }
+
+    // If no translator output, use default mapping
+    if (!cells) {
+      cells = new Array(raw.length);
+      for (let i = 0; i < raw.length; i++) cells[i] = defaultCellForChar(raw[i]);
+    }
+
+    // Always coerce (fix missing capital/number signs, normalize spaces)
+    return coerceCells(raw, cells);
   }
 
   const BrailleMonitor = {
@@ -83,7 +225,8 @@
           mapping: {},
           onCursorClick: null,
           showInfo: true,
-          logger: null
+          logger: null,
+          lang: null
         },
         options || {}
       );
@@ -106,9 +249,7 @@
           fn.call(Logging, source, msg);
           return;
         }
-        if (global.console && console.log) {
-          console.log("[" + source + "] " + msg);
-        }
+        if (global.console && console.log) console.log("[" + source + "] " + msg);
       }
 
       if (!opts.containerId) {
@@ -127,6 +268,7 @@
       const thumbRowId = makeId(baseId, "thumbRow");
 
       let currentText = "";
+      let currentLang = opts.lang ? String(opts.lang) : null;
 
       const wrapper = document.createElement("div");
       wrapper.className = "braille-monitor-component";
@@ -142,10 +284,10 @@
       thumbRow.className = "button-row thumb-row";
 
       const thumbDefs = [
-        { key: "leftthumb", label: "⟵ Left" },
-        { key: "middleleftthumb", label: "⟵ Mid-Left" },
-        { key: "middlerightthumb", label: "Mid-Right ⟶" },
-        { key: "rightthumb", label: "Right ⟶" }
+        { key: "leftthumb", label: "•" },
+        { key: "middleleftthumb", label: "••" },
+        { key: "middlerightthumb", label: "••" },
+        { key: "rightthumb", label: "•" }
       ];
 
       thumbDefs.forEach((def) => {
@@ -163,10 +305,7 @@
       if (opts.showInfo) {
         const info = document.createElement("p");
         info.className = "small";
-        info.textContent =
-          "Deze monitor toont 1-op-1 de tekst op de brailleleesregel. " +
-          "Klik op een cel om een cursorrouting te simuleren. " +
-          "De knoppen bootsen de duimtoetsen na en lichten op bij echte duimtoetsen.";
+        info.textContent = "";
         wrapper.appendChild(info);
       }
 
@@ -180,16 +319,11 @@
 
         let start = index;
         let end = index;
-
         while (start > 0 && currentText[start - 1] !== " ") start--;
         while (end < len - 1 && currentText[end + 1] !== " ") end++;
-
         return currentText.substring(start, end + 1).trim();
       }
 
-      // -------------------------------------------------------------------
-      // UPDATED: Render two lines per cell: braille above, print below
-      // -------------------------------------------------------------------
       function rebuildCells() {
         monitorP.innerHTML = "";
 
@@ -198,27 +332,28 @@
           return;
         }
 
+        const brailleCells = textToBrailleCells(currentText, { lang: currentLang });
+
         for (let i = 0; i < currentText.length; i++) {
           const ch = currentText[i] || " ";
-          const printChar = ch === " " ? "␣" : ch;
-          const brailleChar = toBrailleUnicode(ch);
+          const printChar = visiblePrintChar(ch);
+          const brailleCell = brailleCells[i] || BRAILLE_BLANK;
 
           const cell = document.createElement("span");
-          cell.className = "monitor-cell monitor-cell--stack"; // <-- new helper class
+          cell.className = "monitor-cell monitor-cell--stack";
           cell.dataset.index = String(i);
           cell.setAttribute("role", "option");
           cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
 
-          const brailleLine = document.createElement("span");
-          brailleLine.className = "monitor-cell__braille";
-          brailleLine.textContent = brailleChar;
+          const brailleEl = document.createElement("span");
+          brailleEl.className = "monitor-cell__braille";
+          brailleEl.textContent = brailleCell; // 1..2 unicode braille chars
+          cell.appendChild(brailleEl);
 
-          const printLine = document.createElement("span");
-          printLine.className = "monitor-cell__print";
-          printLine.textContent = printChar;
-
-          cell.appendChild(brailleLine);
-          cell.appendChild(printLine);
+          const printEl = document.createElement("span");
+          printEl.className = "monitor-cell__print";
+          printEl.textContent = printChar;
+          cell.appendChild(printEl);
 
           monitorP.appendChild(cell);
         }
@@ -228,12 +363,12 @@
         const target = event.target;
         if (!target) return;
 
-        // Click might be on inner spans; walk up to the cell
-        const cell = target.classList && target.classList.contains("monitor-cell")
-          ? target
-          : target.closest
-          ? target.closest(".monitor-cell")
-          : null;
+        const cell =
+          target.classList && target.classList.contains("monitor-cell")
+            ? target
+            : target.closest
+            ? target.closest(".monitor-cell")
+            : null;
 
         if (!cell) return;
 
@@ -243,25 +378,11 @@
         const letter = currentText[index] || " ";
         const word = computeWordAt(index);
 
-        if (opts.logger && typeof opts.logger.log === "function") {
-          opts.logger.log(
-            `BrailleMonitor: Cursor routing index=${index} letter="${letter}" word="${word}"`,
-            "routing"
-          );
-        } else {
-          log(
-            "BrailleMonitor",
-            "UI cursor click index=" + index + ' letter="' + letter + '" word="' + word + '"',
-            "info"
-          );
-        }
+        log("BrailleMonitor", "UI cursor click index=" + index + ' letter="' + letter + '" word="' + word + '"', "info");
 
         if (typeof opts.onCursorClick === "function") {
-          try {
-            opts.onCursorClick({ index, letter, word });
-          } catch (err) {
-            log("BrailleMonitor", "Error in onCursorClick: " + (err && err.message), "error");
-          }
+          try { opts.onCursorClick({ index, letter, word }); }
+          catch (err) { log("BrailleMonitor", "Error in onCursorClick: " + (err && err.message), "error"); }
         }
       }
 
@@ -270,11 +391,8 @@
       function invokeThumbAction(nameLower) {
         const fn = opts.mapping[nameLower];
         if (typeof fn === "function") {
-          try {
-            fn();
-          } catch (err) {
-            log("BrailleMonitor", "Error in thumb mapping for " + nameLower + ": " + (err && err.message), "error");
-          }
+          try { fn(); }
+          catch (err) { log("BrailleMonitor", "Error in thumb mapping for " + nameLower + ": " + (err && err.message), "error"); }
         } else {
           log("BrailleMonitor", "No mapping for thumbkey: " + nameLower, "debug");
         }
@@ -291,9 +409,6 @@
       thumbRow.querySelectorAll(".thumb-key").forEach((btn) => {
         const nameLower = (btn.dataset.thumb || "").toLowerCase();
         btn.addEventListener("click", () => {
-          if (opts.logger && typeof opts.logger.log === "function") {
-            opts.logger.log(`BrailleMonitor: Thumbkey (sim) ${nameLower}`, "key");
-          }
           invokeThumbAction(nameLower);
           flashThumbButton(nameLower);
         });
@@ -302,65 +417,28 @@
       if (global.BrailleBridge && typeof global.BrailleBridge.on === "function") {
         global.BrailleBridge.on("thumbkey", (evt) => {
           const nameLower = (evt.nameLower || "").toLowerCase();
-
-          if (opts.logger && typeof opts.logger.log === "function") {
-            opts.logger.log(`BrailleBridge: Thumbkey ${nameLower}`, "key");
-          } else {
-            log("BrailleBridge", "Thumbkey event: " + nameLower, "info");
-          }
-
           flashThumbButton(nameLower);
           invokeThumbAction(nameLower);
         });
-      } else {
-        log("BrailleMonitor", "BrailleBridge not available; cannot listen to thumbkeys", "warn");
       }
 
       function setText(text) {
         currentText = text != null ? String(text) : "";
         rebuildCells();
-
-        if (opts.logger && typeof opts.logger.log === "function") {
-          opts.logger.log(`BrailleMonitor: setText (${currentText.length} chars)`, "system");
-        }
       }
 
-      function clear() {
-        setText("");
+      function clear() { setText(""); }
+
+      function setLang(lang) {
+        currentLang = lang ? String(lang) : null;
+        rebuildCells();
       }
 
       setText("");
 
-      return {
-        monitorId,
-        thumbRowId,
-        containerId: baseId,
-        setText,
-        clear
-      };
+      return { monitorId, thumbRowId, containerId: baseId, setText, clear, setLang };
     }
   };
 
   global.BrailleMonitor = BrailleMonitor;
 })(window);
-
-/*
-CSS you should add (example):
-
-.monitor-cell--stack {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.05;
-  padding: 0.1rem 0.15rem;
-}
-
-.monitor-cell__braille {
-  font-size: 0.95em;
-  opacity: 0.85;
-}
-
-.monitor-cell__print {
-  font-size: 0.95em;
-}
-*/
