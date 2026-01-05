@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Feedback demo</title>
+</head>
+<body>
+  <button id="btnCorrect">Correct</button>
+  <button id="btnIncorrect">Incorrect</button>
+
+  <script src="/js/sounds.js"></script>
+  <script src="/js/feedback.js"></script>
+
+  <script>
+    document.getElementById("btnCorrect").addEventListener("click", () => {
+      window.Feedback?.playRandomSound("correct");
+    });
+
+    document.getElementById("btnIncorrect").addEventListener("click", () => {
+      window.Feedback?.playRandomSound("incorrect");
+    });
+  </script>
+</body>
+</html>
