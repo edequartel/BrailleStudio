@@ -69,20 +69,21 @@
 
     /* Nav: only Prev + Auto + Next (no Start button) */
     .braille-nav{
-      display:flex;
+      display:grid;
       align-items:center;
-      justify-content:space-between;
+      grid-template-columns: 1fr auto 1fr;
       gap:.75rem;
       margin-top: .75rem;
     }
     .braille-nav > button{
-      flex: 1;
+      width: 100%;
     }
     .runner-controls{
       display:flex;
       align-items:center;
       gap: 10px;
       flex: 0 0 auto;
+      justify-self: center;
     }
     .auto-next{
       display:flex;
@@ -176,7 +177,7 @@
       <div id="log" class="log-body">Log start…</div>
     </section>
 
-    <p class="version-stamp">Version: 2026.01.05.1045 — 2026-01-05 10:45</p>
+    <p class="version-stamp">Version: 2026.01.05.1047 — 2026-01-05 10:47</p>
   </main>
 
   <a class="settings-fab" href="../pages/settings.html" aria-label="Settings">

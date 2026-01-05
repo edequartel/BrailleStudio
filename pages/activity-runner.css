@@ -172,6 +172,10 @@ button.secondary {
   color: #6b7280;
 }
 
+#auto-run {
+  accent-color: #6b7280;
+}
+
 /* Theme toggle */
 .theme-toggle {
   display: inline-flex;
