@@ -5,16 +5,18 @@
 
   "languages": {
     "nl": {
-      "lettersPath": "/sounds/nl/alfabet",
-      "wordsPath":   "/sounds/nl/words",
-      "uiPath":      "/sounds/nl/ui",
-	  "stories":     "/sounds/nl/stories" 
+      "lettersPath":  "/sounds/nl/alfabet",
+      "wordsPath":    "/sounds/nl/words",
+      "uiPath":       "/sounds/nl/ui",
+	    "stories":      "/sounds/nl/stories",
+      "instructions": "/sounds/nl/instructions" 
     },
     "en": {
-      "lettersPath": "/sounds/en/letters",
-      "wordsPath":   "/sounds/en/words",
-      "uiPath":      "/sounds/en/ui",
-	  "stories":     "/sounds/nl/stories" 
+      "lettersPath":  "/sounds/en/letters",
+      "wordsPath":    "/sounds/en/words",
+      "uiPath":       "/sounds/en/ui",
+	    "stories":      "/sounds/nl/stories",
+      "instructions": "/sounds/en/instructions"
     }
   },
 
