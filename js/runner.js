@@ -110,14 +110,42 @@
   }
 
   const BASE_PATH = getBasePath();
+  const SOUNDS_CONFIG_URL =
+    (window.BOOTSTRAP && window.BOOTSTRAP.JSON && window.BOOTSTRAP.JSON.SOUNDS) ||
+    "config/sounds.json";
+  let soundsInitPromise = null;
 
-  function lifecycleUrl(file) {
-    return `${location.origin}${BASE_PATH}/audio/${file}`;
+  function ensureSoundsInit() {
+    if (!window.Sounds || typeof Sounds.init !== "function") {
+      return Promise.reject(new Error("Sounds module not available"));
+    }
+    if (!soundsInitPromise) {
+      soundsInitPromise = Sounds.init(SOUNDS_CONFIG_URL, (msg) => log(msg));
+    }
+    return soundsInitPromise;
+  }
+
+  function uiSoundKeyFromFile(file) {
+    const name = String(file || "").split("/").pop().split("\\").pop();
+    return name.replace(/\.mp3$/i, "");
+  }
+
+  async function resolveUiSoundUrl(file) {
+    await ensureSoundsInit();
+    const key = uiSoundKeyFromFile(file);
+    return Sounds._buildUrl(currentLang, "ui", key);
+  }
+
+  function resolveActivityAudioUrl(file) {
+    const base =
+      (window.BOOTSTRAP && window.BOOTSTRAP.AUDIO && window.BOOTSTRAP.AUDIO.BASE) ||
+      `${BASE_PATH}/audio/`;
+    return `${base}${file}`;
   }
 
   let audioUnlocked = false;
 
-  function unlockAudioOnce() {
+  async function unlockAudioOnce() {
     if (audioUnlocked) return;
 
     try {
@@ -125,7 +153,8 @@
         window.Howler.ctx.resume().catch(() => {});
       }
 
-      const a = new Audio(lifecycleUrl("started.mp3"));
+      const url = await resolveUiSoundUrl("started.mp3");
+      const a = new Audio(url);
       a.muted = true;
       a.preload = "auto";
       const p = a.play();
@@ -150,8 +179,14 @@
     document.addEventListener("keydown", once, true);
   }
 
-  function playLifecycleFile(file) {
-    const url = lifecycleUrl(file);
+  async function playLifecycleFile(file, resolveUrl) {
+    let url = "";
+    try {
+      url = await resolveUrl(file);
+    } catch (e) {
+      log("[lifecycle] url resolve error", { file, error: String(e) });
+      return;
+    }
 
     return new Promise((resolve) => {
       let done = false;
@@ -205,8 +240,8 @@
     });
   }
 
-  async function playStarted() { await playLifecycleFile("started.mp3"); }
-  async function playStopped() { await playLifecycleFile("stopped.mp3"); }
+  async function playStarted() { await playLifecycleFile("started.mp3", resolveUiSoundUrl); }
+  async function playStopped() { await playLifecycleFile("stopped.mp3", resolveUiSoundUrl); }
 
   // ------------------------------------------------------------
   // Instruction audio right after "started.mp3"
@@ -234,7 +269,7 @@
   async function playInstructionAfterStarted(cur) {
     const file = getInstructionMp3ForCurrent(cur);
     if (!file) return;
-    await playLifecycleFile(file);
+    await playLifecycleFile(file, resolveActivityAudioUrl);
   }
 
   // ------------------------------------------------------------
@@ -1012,6 +1047,9 @@
     currentLang = resolveLang();
     applyLangToHtml(currentLang);
     log("[runner] resolved lang", { lang: currentLang });
+    ensureSoundsInit().catch((e) => {
+      log("[lifecycle] sounds init failed", { error: String(e) });
+    });
 
     // Bridge events
     if (window.BrailleBridge && typeof BrailleBridge.connect === "function") {
