@@ -1059,7 +1059,7 @@
         dispatchCursorSelection({ index: evt.index }, "bridge");
       });
       BrailleBridge.on("connected", () => log("[runner] BrailleBridge connected"));
-      BrailleBridge.on("disconnected", () => log("[runner] BrailleBridge disconnected"));
+      BrailleBridge.on("disconnected", () => {});
     }
 
     // BrailleMonitor init (lang-aware)
