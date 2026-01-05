@@ -47,8 +47,7 @@
     else console.log(`[feedback:${type}] ${full}`);
   }
 
-  function getFeedbackConfigUrl() {
-    const lang = resolveLang();
+  function getFeedbackConfigUrl(lang) {
     const base = (window.BOOTSTRAP && window.BOOTSTRAP.BASE) ? window.BOOTSTRAP.BASE : "";
     return `${base}/config/${lang}/feedback.json`;
   }
@@ -56,12 +55,18 @@
   async function loadConfig() {
     if (config) return config;
 
-    const url = getFeedbackConfigUrl();
+    const lang = resolveLang();
+    let url = getFeedbackConfigUrl(lang);
     log("load-config", "info", { url });
 
-    const res = await fetch(url, { cache: "no-store" });
+    let res = await fetch(url, { cache: "no-store" });
+    if (!res.ok && lang !== "nl") {
+      url = getFeedbackConfigUrl("nl");
+      log("load-config retry", "warn", { url, reason: "fallback-nl" });
+      res = await fetch(url, { cache: "no-store" });
+    }
     if (!res.ok) {
-      log("load-config failed", "error", { status: res.status });
+      log("load-config failed", "error", { status: res.status, url });
       throw new Error(`[Feedback] Cannot load ${url} (HTTP ${res.status})`);
     }
 
