@@ -121,6 +121,7 @@
 
     log("audio-play", "info", { type, file, url });
     log("audio-file", "info", { file, url });
+    log("audio-url", "info", { url });
 
     if (window.AudioPlayer?.play) {
       try {
