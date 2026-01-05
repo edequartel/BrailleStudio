@@ -50,7 +50,7 @@
   function getFeedbackConfigUrl() {
     const lang = resolveLang();
     const base = (window.BOOTSTRAP && window.BOOTSTRAP.BASE) ? window.BOOTSTRAP.BASE : "";
-    return `${base}/json/${lang}/feedback.json`;
+    return `${base}/config/${lang}/feedback.json`;
   }
 
   async function loadConfig() {
