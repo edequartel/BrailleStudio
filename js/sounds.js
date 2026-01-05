@@ -54,10 +54,11 @@ const Sounds = {
     let folderPath = "";
 
     switch (category) {
-      case "letters": folderPath = langCfg.lettersPath; break;
-      case "words":   folderPath = langCfg.wordsPath;   break;
-      case "ui":      folderPath = langCfg.uiPath;      break;
-      case "stories": folderPath = langCfg.stories;     break;
+      case "letters":       folderPath = langCfg.lettersPath;      break;
+      case "words":         folderPath = langCfg.wordsPath;        break;
+      case "ui":            folderPath = langCfg.uiPath;           break;
+      case "stories":       folderPath = langCfg.stories;          break;
+      case "instructions":  folderPath = langCfg.instructions;     break;
       default:
         throw new Error(`Unknown category '${category}'`);
     }

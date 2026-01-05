@@ -149,6 +149,13 @@
     return sounds._buildUrl(currentLang, "ui", key);
   }
 
+  async function resolveInstructionSoundUrl(file) {
+    await ensureSoundsInit();
+    const key = uiSoundKeyFromFile(file);
+    const sounds = getSoundsModule();
+    return sounds._buildUrl(currentLang, "instructions", key);
+  }
+
   function resolveActivityAudioUrl(file) {
     const base =
       (window.BOOTSTRAP && window.BOOTSTRAP.AUDIO && window.BOOTSTRAP.AUDIO.BASE) ||
@@ -296,7 +303,7 @@
   async function playInstructionAfterStarted(cur) {
     const file = getInstructionMp3ForCurrent(cur);
     if (!file) return;
-    await playLifecycleFile(file, resolveUiSoundUrl);
+    await playLifecycleFile(file, resolveInstructionSoundUrl);
   }
 
   // ------------------------------------------------------------
