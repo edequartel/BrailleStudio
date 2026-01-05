@@ -93,14 +93,17 @@
   <div id="eventLog"></div>
 
   <!-- 1) Load your current EventLog class -->
-  <script src="/components/event-log/event-log.js"></script>
+  <script src="/BrailleServer/components/event-log/event-log.js"></script>
   <script>
     // Create ONE global instance
-    window.eventLog = new window.EventLog(document.getElementById("eventLog"), {
-      maxEntries: 500
-    });
-
-    window.eventLog.log("Demo page loaded", "info");
+    if (typeof window.EventLog === "function") {
+      window.eventLog = new window.EventLog(document.getElementById("eventLog"), {
+        maxEntries: 500
+      });
+      window.eventLog.log("Demo page loaded", "info");
+    } else {
+      console.warn("EventLog not available");
+    }
   </script>
 
   <!-- 2) Headless BrailleUI stub (logs only) -->
@@ -136,10 +139,18 @@
   <script>
     function playFeedback(type) {
       if (!window.Feedback?.playRandomSound) {
-        window.eventLog.log("Feedback.playRandomSound not found (check /BrailleServer/js/feedback.js)", "error");
+        if (window.eventLog?.log) {
+          window.eventLog.log("Feedback.playRandomSound not found (check /BrailleServer/js/feedback.js)", "error");
+        } else {
+          console.warn("Feedback.playRandomSound not found");
+        }
         return;
       }
-      window.eventLog.log(`ui click -> Feedback.playRandomSound("${type}")`, "system");
+      if (window.eventLog?.log) {
+        window.eventLog.log(`ui click -> Feedback.playRandomSound("${type}")`, "system");
+      } else {
+        console.log(`ui click -> Feedback.playRandomSound("${type}")`);
+      }
       window.Feedback.playRandomSound(type);
     }
 
