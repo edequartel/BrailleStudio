@@ -463,6 +463,9 @@
 
     async function handleMismatch(epochAtPick) {
       try {
+        if (!window.Feedback?.playRandomSound) {
+          log("[pairletters] feedback missing", { type: "incorrect" });
+        }
         await window.Feedback?.playRandomSound?.("incorrect");
       } catch (err) {
         log("[pairletters] feedback error", { type: "incorrect", error: err?.message || String(err) });
@@ -480,6 +483,9 @@
 
     async function handleMatch(epochAtPick) {
       try {
+        if (!window.Feedback?.playRandomSound) {
+          log("[pairletters] feedback missing", { type: "correct" });
+        }
         await window.Feedback?.playRandomSound?.("correct");
       } catch (err) {
         log("[pairletters] feedback error", { type: "correct", error: err?.message || String(err) });
