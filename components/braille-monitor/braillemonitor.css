@@ -3,7 +3,7 @@
 .braille-monitor-component {
   display: grid;
   gap: 0.6rem;
-  background: #e5e7eb;
+  background: #ffffff;
   color: #000000;
 }
 
@@ -115,6 +115,11 @@
 html[data-theme="dark"] .braille-monitor-component {
   background: #0b1220;
   color: #ffffff;
+}
+
+html[data-theme="light"] .braille-monitor-component {
+  background: #ffffff;
+  color: #000000;
 }
 
 html[data-theme="dark"] .mono-box.braille-monitor-cells {
