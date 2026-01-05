@@ -3,45 +3,45 @@
   "feedback": {
     "correct": [
       {
-        "file": "correct-01.mp3",
+        "file": "correct.mp3",
         "tts": "Goed gedaan!"
       },
       {
-        "file": "correct-02.mp3",
+        "file": "correct.mp3",
         "tts": "Dat is goed."
       },
       {
-        "file": "correct-03.mp3",
+        "file": "correct.mp3",
         "tts": "Prima!"
       },
       {
-        "file": "correct-04.mp3",
+        "file": "correct.mp3",
         "tts": "Ja, dat klopt."
       },
       {
-        "file": "correct-05.mp3",
+        "file": "correct.mp3",
         "tts": "Heel goed."
       }
     ],
     "incorrect": [
       {
-        "file": "incorrect-01.mp3",
+        "file": "incorrect.mp3",
         "tts": "Jammer."
       },
       {
-        "file": "incorrect-02.mp3",
+        "file": "incorrect.mp3",
         "tts": "Dat is niet goed."
       },
       {
-        "file": "incorrect-03.mp3",
+        "file": "incorrect.mp3",
         "tts": "Probeer het nog eens."
       },
       {
-        "file": "incorrect-04.mp3",
+        "file": "incorrect.mp3",
         "tts": "Bijna. Nog een keer."
       },
       {
-        "file": "incorrect-05.mp3",
+        "file": "incorrect.mp3",
         "tts": "Volgende keer beter."
       }
     ]

@@ -58,7 +58,7 @@
     "letters": ["k", "a", "m"],
     "words": ["kam", "ka", "am", "mak"],
     "text": [
-      ["Dit is een kam.", "uIk kam mijn haar.", "De kam gaat van boven naar beneden."],
+      ["Dit is een kam.", "Ik kam mijn haar.", "De kam gaat van boven naar beneden."],
       ["Hier ligt een kam.", "Je gebruikt een kam voor je haar.", "De kam heeft tanden."]
     ],
     "story": ["kam.mp3"],
