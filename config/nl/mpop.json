@@ -1,7 +1,7 @@
 [
   {
     "id": "bal-001",
-    "word": "bal BAL",
+    "word": "bal",
     "knownLetters": [],
     "letters": ["b", "a", "l"],
     "words": ["bal", "ba", "al", "la"],
@@ -9,7 +9,7 @@
       ["bal", "bal BAL bal", "bal bal bal"],
       ["Kijk, een bal!", "De bal gaat heen en weer.", "De bal komt terug."]
     ],
-    "story": ["bal.mp3"],
+    "story": ["bal-01.mp3"],
     "sounds": ["bounce.mp3", "shot.mp3", "goal.mp3"],
     "activities": [
       {
