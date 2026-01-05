@@ -47,15 +47,21 @@
     else console.log(`[feedback:${type}] ${full}`);
   }
 
+  function getFeedbackConfigUrl() {
+    const lang = resolveLang();
+    return `/json/${lang}/feedback.json`;
+  }
+
   async function loadConfig() {
     if (config) return config;
 
-    log("load-config", "info", { url: "/config/feedback.json" });
+    const url = getFeedbackConfigUrl();
+    log("load-config", "info", { url });
 
-    const res = await fetch("/config/feedback.json", { cache: "no-store" });
+    const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
       log("load-config failed", "error", { status: res.status });
-      throw new Error(`[Feedback] Cannot load /config/feedback.json (HTTP ${res.status})`);
+      throw new Error(`[Feedback] Cannot load ${url} (HTTP ${res.status})`);
     }
 
     config = await res.json();
