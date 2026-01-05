@@ -18,27 +18,6 @@
 
   <!-- Component CSS (same folder) -->
   <link rel="stylesheet" href="braillemonitor.css" />
-
-  <style>
-    body {
-      margin: 0;
-      padding: 1rem;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: #0b1220;
-      color: #e6eaf2;
-    }
-
-    h1 {
-      font-size: 1.1rem;
-      margin: 0 0 0.75rem 0;
-    }
-
-    p.note {
-      margin: 0 0 1rem 0;
-      font-size: 0.95rem;
-      color: #aab3c5;
-    }
-  </style>
 </head>
 <body>
 
@@ -109,7 +88,7 @@
       showVisibleBrailleSpaces: false
     });
 
-    const text = "Dit is 12,5 meter. Braille monitor voorbeeld!";
+    const text = "Dit is een voorbeeldzin voor de braillemonitor.";
     const cells = toBrailleCellsUnicode(text);
 
     // NEW: setCells(cellsUnicode, { text })
