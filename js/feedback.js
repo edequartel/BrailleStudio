@@ -16,6 +16,7 @@
 
   const DEFAULT_FEEDBACK_MS = 300;
   let config = null;
+  let configLang = null;
   const SOUNDS_CONFIG_URL =
     (window.BOOTSTRAP && window.BOOTSTRAP.JSON && window.BOOTSTRAP.JSON.SOUNDS) ||
     "/config/sounds.json";
@@ -71,6 +72,8 @@
     }
 
     config = await res.json();
+    configLang = url.includes("/config/nl/") ? "nl" : (lang || "nl");
+    log("config-lang", "info", { lang: configLang });
     log("config-loaded", "info", { keys: Object.keys(config) });
 
     return config;
@@ -121,7 +124,7 @@
 
     await ensureSoundsReady();
     const key = normalizeKey(file);
-    const lang = resolveLang();
+    const lang = configLang || resolveLang();
     const url = Sounds._buildUrl(lang, "feedback", key);
 
     log("audio-play", "info", { type, file, url });
