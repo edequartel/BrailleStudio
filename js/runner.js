@@ -112,11 +112,11 @@
   const BASE_PATH = getBasePath();
   const SOUNDS_CONFIG_URL =
     (window.BOOTSTRAP && window.BOOTSTRAP.JSON && window.BOOTSTRAP.JSON.SOUNDS) ||
-    "config/sounds.json";
+    "../config/sounds.json";
   let soundsInitPromise = null;
 
   function ensureSoundsInit() {
-    if (!window.Sounds || typeof Sounds.init !== "function") {
+    if (typeof Sounds === "undefined" || typeof Sounds.init !== "function") {
       return Promise.reject(new Error("Sounds module not available"));
     }
     if (!soundsInitPromise) {
