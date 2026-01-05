@@ -161,7 +161,9 @@
       if (p && typeof p.then === "function") {
         p.then(() => { try { a.pause(); } catch {} }).catch(() => {});
       }
-    } catch {}
+    } catch (e) {
+      log("[lifecycle] ui sound resolve failed", { file: "started.mp3", error: String(e) });
+    }
 
     audioUnlocked = true;
     log("[lifecycle] audio unlocked");
