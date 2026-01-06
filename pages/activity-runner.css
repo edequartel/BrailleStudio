@@ -163,6 +163,17 @@ button.secondary {
   color: var(--btn2-fg);
 }
 
+.buttons-right a.secondary {
+  background: var(--btn2-bg);
+  color: var(--btn2-fg);
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -178,7 +189,10 @@ button.secondary {
   display: block;
 }
 
-.home-button {
+ .buttons-left-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   margin-right: auto;
 }
 
@@ -198,16 +212,6 @@ button.secondary {
   display: flex;
   gap: 10px;
   align-items: center;
-}
-
-.bottom-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-.bottom-actions .icon-button {
-  text-decoration: none;
 }
 
 .auto-next {

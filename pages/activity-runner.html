@@ -137,14 +137,19 @@
 
       <div class="top-controls__right">
         <div class="buttons buttons-right">
-          <button
-            id="home-btn"
-            class="secondary icon-button home-button"
-            type="button"
-            aria-label="Home"
-            onclick="window.location.href = '../index.html'">
-            🏠
-          </button>
+          <div class="buttons-left-group">
+            <button
+              id="home-btn"
+              class="secondary icon-button"
+              type="button"
+              aria-label="Home"
+              onclick="window.location.href = '../index.html'">
+              🏠
+            </button>
+
+            <a class="secondary icon-button" href="braillebridge://"
+              aria-label="Start BrailleBridge">🔌</a>
+          </div>
 
           <button
             id="toggle-fields-btn"
@@ -186,11 +191,6 @@
       </div>
       <div id="log" class="log-body">Log start…</div>
     </section>
-
-    <div class="bottom-actions">
-      <a class="secondary icon-button" href="braillebridge://"
-        aria-label="Start BrailleBridge">🔌</a>
-    </div>
 
     <p class="version-stamp">Version: 2026.01.05.1434 — 2026-01-05 14:34</p>
   </main>
