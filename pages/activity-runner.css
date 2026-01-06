@@ -142,6 +142,11 @@ body {
   margin-top: 10px;
 }
 
+.buttons-right {
+  width: 100%;
+  align-items: flex-end;
+}
+
 button {
   padding: 8px 16px;
   border-radius: 999px;
@@ -158,10 +163,51 @@ button.secondary {
   color: var(--btn2-fg);
 }
 
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  font-family: "Segoe UI Symbol", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", inherit;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.home-button {
+  margin-right: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .runner-controls {
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.bottom-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.bottom-actions .icon-button {
+  text-decoration: none;
 }
 
 .auto-next {

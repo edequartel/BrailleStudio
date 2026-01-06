@@ -15,33 +15,23 @@
       {
         "id": "story",
         "index": 0,
-        "caption": "Verhaal",
+        "caption": "Verhaa bal",
         "instruction": "bal-story-instruction.mp3",
         "text": "[luister] De computer leest een verhaal. [stil] Luister goed."
       },
       {
         "id": "readlines",
         "index": 0,
-        "caption": "Lees regels",
+        "caption": "Lees woorden",
         "instruction": "bal-readlines-instruction.mp3",
         "text": "[lees] Lees de regels op de leesregel. [klik] Druk op volgende."
       },
       {
         "id": "pairletters",
-        "caption": "Zoek 2 paren",
+        "caption": "Zoek 2 dezelfde",
         "instruction": "bal-pairletters-instruction.mp3",
         "text": "[spel] Zoek twee keer dezelfde letters. [voel] Voel de letters. [druk] Zijn ze hetzelfde? Druk de cursor in. [door] Zoek ze allemaal.",
         "twoletters": true,
-        "targetCount": 2,
-        "nrof": 4,
-        "lineLen": 10
-      },
-      {
-        "id": "pairletters",
-        "caption": "Zoek 2 paren",
-        "instruction": "bal-pairletters-instruction.mp3",
-        "text": "[spel] Zoek twee keer dezelfde letters. [voel] Voel de letters. [druk] Zijn ze hetzelfde? Druk de cursor in. [door] Zoek ze allemaal.",
-        "twoletters": false,
         "targetCount": 2,
         "nrof": 4,
         "lineLen": 10

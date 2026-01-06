@@ -973,7 +973,11 @@
       return;
     }
 
-    if (!running) startSelectedActivity({ autoStarted: false });
+    if (!running) {
+      const autoRun = $opt("auto-run");
+      if (autoRun && autoRun.checked) startSelectedActivity({ autoStarted: false });
+      else advanceToNextActivityOrWord({ autoStart: false });
+    }
   }
 
   function leftThumbAction() {
@@ -1164,7 +1168,7 @@
     function setFieldsPanelVisible(visible) {
       if (!toggleFieldsBtn || !fieldsPanel) return;
       fieldsPanel.classList.toggle("hidden", !visible);
-      toggleFieldsBtn.textContent = "Info";
+      toggleFieldsBtn.setAttribute("aria-label", "Info");
       toggleFieldsBtn.setAttribute("aria-expanded", visible ? "true" : "false");
     }
 
