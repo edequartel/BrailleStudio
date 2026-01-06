@@ -858,6 +858,10 @@
 
     stoppedPlayedForThisRun = false;
 
+    running = true;
+    setRunnerUi({ isRunning: true });
+    setActivityStatus(autoStarted ? "running (auto)" : "running");
+
     await playStarted();
     await playInstructionAfterStarted(cur);
 
@@ -886,10 +890,6 @@
       activeActivityDonePromise = null;
       log("[runner] No activity module found", { activityKey });
     }
-
-    running = true;
-    setRunnerUi({ isRunning: true });
-    setActivityStatus(autoStarted ? "running (auto)" : "running");
 
     try {
       await waitForStopOrDone(token);
