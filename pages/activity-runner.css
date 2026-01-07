@@ -103,7 +103,7 @@ body {
 }
 
 .container {
-  max-width: 760px;
+  max-width: 980px;
   width: 100%;
   background: var(--panel);
   padding: 20px 24px;
