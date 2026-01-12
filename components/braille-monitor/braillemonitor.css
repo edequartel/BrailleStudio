@@ -7,21 +7,13 @@
   color: #6b7280;
 }
 
-@font-face {
-  font-family: "Noto Sans Symbols 2";
-  src: url("../../fonts/NotoSansSymbols2-Regular.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* CHANGED: allow stacked (2-line) cells while keeping horizontal scroll */
 .mono-box.braille-monitor-cells {
   border: 1px solid #cfd6e4;
   border-radius: 10px;
   background: #ffffff;
   padding: 0.6rem 0.7rem;
-  font-family: "Noto Sans Symbols 2", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Cascadia Code", "Fira Code", monospace;
   font-size: 1.15rem;
 
@@ -85,7 +77,7 @@
 /* Base thumb keys (already present) */
 .thumb-key {
   min-height: 3rem;
-  min-width: 120px;
+  min-width: 64px;
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
   line-height: 1.2;
@@ -95,19 +87,12 @@
   color: var(--btn2-fg, #111827);
 }
 
-.thumb-key[data-thumb="rightthumb"] {
-  background: #bfdbfe;
-  border-color: #bfdbfe;
-  color: #0b1220;
-}
-
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .braille-monitor-component {
     background: #0b1220;
     color: #ffffff;
   }
-
 }
 
 html[data-theme="dark"] .braille-monitor-component {
