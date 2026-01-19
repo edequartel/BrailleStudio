@@ -57,6 +57,7 @@
 
   --flag-bg: #ecfdf3;
   --flag-fg: #15803d; /* FIX: removed stray 'u' */
+
 }
 
 html[data-theme="dark"] {
