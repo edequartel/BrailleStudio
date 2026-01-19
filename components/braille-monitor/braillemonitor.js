@@ -22,6 +22,7 @@
  *
  * ADDED IN THIS VERSION:
  * - setLang(lang): switch language after init and re-render (safe for Settings page)
+ * - setBrailleUnicode(unicodeText, sourceText): render braille 1:1 from SSoC
  */
 
 (function (global) {
@@ -268,6 +269,8 @@
       const thumbRowId = makeId(baseId, "thumbRow");
 
       let currentText = "";
+      let currentBrailleUnicode = "";
+      let renderFromSsoc = false;
       let currentLang = opts.lang ? String(opts.lang) : null;
 
       const wrapper = document.createElement("div");
@@ -327,14 +330,23 @@
       function rebuildCells() {
         monitorP.innerHTML = "";
 
-        if (!currentText) {
+        if (!currentText && !currentBrailleUnicode) {
           monitorP.textContent = "(leeg)";
           return;
         }
 
-        const brailleCells = textToBrailleCells(currentText, { lang: currentLang });
+        let brailleCells = [];
+        let renderLen = 0;
 
-        for (let i = 0; i < currentText.length; i++) {
+        if (renderFromSsoc) {
+          brailleCells = Array.from(String(currentBrailleUnicode ?? ""));
+          renderLen = brailleCells.length;
+        } else {
+          brailleCells = textToBrailleCells(currentText, { lang: currentLang });
+          renderLen = currentText.length;
+        }
+
+        for (let i = 0; i < renderLen; i++) {
           const ch = currentText[i] || " ";
           const printChar = visiblePrintChar(ch);
           const brailleCell = brailleCells[i] || BRAILLE_BLANK;
@@ -423,7 +435,23 @@
       }
 
       function setText(text) {
+        renderFromSsoc = false;
+        currentBrailleUnicode = "";
         currentText = text != null ? String(text) : "";
+        rebuildCells();
+      }
+
+      function setBrailleUnicode(unicodeText, sourceText) {
+        renderFromSsoc = true;
+        currentBrailleUnicode = unicodeText != null ? String(unicodeText) : "";
+
+        if (sourceText != null) {
+          currentText = String(sourceText);
+        } else {
+          const len = Array.from(currentBrailleUnicode).length;
+          currentText = len > 0 ? " ".repeat(len) : "";
+        }
+
         rebuildCells();
       }
 
@@ -436,7 +464,7 @@
 
       setText("");
 
-      return { monitorId, thumbRowId, containerId: baseId, setText, clear, setLang };
+      return { monitorId, thumbRowId, containerId: baseId, setText, setBrailleUnicode, clear, setLang };
     }
   };
 

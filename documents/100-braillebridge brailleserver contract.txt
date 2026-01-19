@@ -34,6 +34,8 @@ Rules:
 - Replace the entire rendered braille line
 - Never derive, merge, or modify locally
 - This message is the Single Source of Content snapshot
+- BrailleMonitor toont 1-op-1 alleen Braille.UnicodeText van deze SSoC
+- Geen enkele andere braille-verbinding of lokale berekening
 
 ----------------------------------------------------
 

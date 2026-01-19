@@ -77,6 +77,10 @@ Clear the monitor:
 
   monitor.clear();
 
+If BrailleBridge provides SSoC braille output, render it 1:1:
+
+  monitor.setBrailleUnicode(ssoc.Braille.UnicodeText, ssoc.SourceText);
+
 ## 6. Show or hide the info text
 
   const monitor = BrailleMonitor.init({
