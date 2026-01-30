@@ -237,6 +237,10 @@
       background: var(--accent2);
       box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent2) 18%, transparent);
     }
+    .dot.warn {
+      background: var(--warn);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--warn) 18%, transparent);
+    }
 
     .log {
       border: 1px solid var(--border);
@@ -431,10 +435,15 @@
               <h2>WebSocket (SSoC)</h2>
               <div class="hint"></div>
             </div>
-            <div class="pill">
-              <span>WS</span>
-              <span class="dot" id="wsDot"></span>
-              <span id="wsStatusText">disconnected</span>
+            <div class="inline">
+              <div class="pill">
+                <span>WS</span>
+                <span class="dot" id="wsDot"></span>
+              </div>
+              <div class="pill">
+                <span>Editor mode</span>
+                <span class="dot" id="editorModeDot"></span>
+              </div>
             </div>
           </div>
 
@@ -442,15 +451,14 @@
             <div class="inline">
               <button class="btn good" id="wsConnectBtn">Connect</button>
               <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
-              <button class="btn" id="wsSendInputBtn">Send</button>
-              <button class="btn" id="wsSendModeBtn">Send setEditorMode</button>
+              <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
+              <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
+              <button class="btn" id="wsSendInputBtn">Send Text</button>
+              <button class="btn" id="wsSendBackspaceBtn">Send Backspace</button>
+              <button class="btn" id="wsSendSpaceBtn">Send Space</button>
+              <button class="btn" id="wsSendEnterBtn">Send Enter</button>
             </div>
 
-            <div style="margin-top:12px;">
-              <div class="inline">
-                <span class="warn">Sends {"type":"command","command":"setEditorMode","enabled":true}</span>
-              </div>
-            </div>
 
           </div>
         </section>
@@ -612,6 +620,12 @@
       const wsDisconnectBtn = el("wsDisconnectBtn");
       const wsSendInputBtn = el("wsSendInputBtn");
       const wsSendModeBtn = el("wsSendModeBtn");
+      const wsSendModeDisableBtn = el("wsSendModeDisableBtn");
+      const wsSendBackspaceBtn = el("wsSendBackspaceBtn");
+      const wsSendSpaceBtn = el("wsSendSpaceBtn");
+      const wsSendEnterBtn = el("wsSendEnterBtn");
+      const editorModeDot = el("editorModeDot");
+      const editorModeText = el("editorModeText");
 
       const brailleUnicode = el("brailleUnicode");
       const brailleTable = el("brailleTable");
@@ -690,7 +704,14 @@
       }
       function setWsStatus(ok, text) {
         wsDot.classList.toggle("ok", !!ok);
-        wsStatusText.textContent = text;
+        if (wsStatusText) wsStatusText.textContent = text;
+      }
+      function setEditorModeStatus(enabled) {
+        editorModeDot.classList.toggle("ok", enabled === true);
+        editorModeDot.classList.toggle("warn", enabled !== true && enabled !== false);
+        if (editorModeText) {
+          editorModeText.textContent = enabled === true ? "enabled" : enabled === false ? "disabled" : "unknown";
+        }
       }
 
       // Copy/Clear log
@@ -757,6 +778,7 @@
         }
       }
 
+
       async function httpPostJson(path, bodyObj) {
         const base = httpBase.value.trim().replace(/\/$/, "");
         const url = base + path;
@@ -809,8 +831,14 @@
       }
 
       // Hook up HTTP buttons
-      postEditorEnableBtn.addEventListener("click", () => httpPostJson("/editor/enable", {}));
-      postEditorDisableBtn.addEventListener("click", () => httpPostJson("/editor/disable", {}));
+      postEditorEnableBtn.addEventListener("click", () => {
+        setEditorModeStatus(true);
+        return httpPostJson("/editor/enable", {});
+      });
+      postEditorDisableBtn.addEventListener("click", () => {
+        setEditorModeStatus(false);
+        return httpPostJson("/editor/disable", {});
+      });
       getEditorStatusBtn.addEventListener("click", () => httpGet("/editor/status"));
       postEditorInputBtn.addEventListener("click", () => httpPostJson("/editor/input", buildEditorInputPayload()));
       postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "application/json"));
@@ -899,6 +927,28 @@
         const msg = { type: "command", command: "setEditorMode", enabled: true };
         appendLog("WS -> send setEditorMode: " + JSON.stringify(msg));
         ws.send(JSON.stringify(msg));
+        setEditorModeStatus(true);
+      }
+
+      function wsSendEditorModeDisable() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          appendLog("WS: not connected");
+          return;
+        }
+        const msg = { type: "command", command: "setEditorMode", enabled: false };
+        appendLog("WS -> send setEditorMode: " + JSON.stringify(msg));
+        ws.send(JSON.stringify(msg));
+        setEditorModeStatus(false);
+      }
+
+      function wsSendEditorKey(key) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          appendLog("WS: not connected");
+          return;
+        }
+        const msg = { type: "command", command: "editorInput", input: { kind: "key", key } };
+        appendLog("WS -> send editorInput: " + JSON.stringify(msg));
+        ws.send(JSON.stringify(msg));
       }
 
       function handleWsText(text) {
@@ -956,6 +1006,10 @@
       wsDisconnectBtn.addEventListener("click", wsDisconnect);
       wsSendInputBtn.addEventListener("click", wsSendEditorInput);
       wsSendModeBtn.addEventListener("click", wsSendEditorMode);
+      wsSendModeDisableBtn.addEventListener("click", wsSendEditorModeDisable);
+      wsSendBackspaceBtn.addEventListener("click", () => wsSendEditorKey("Backspace"));
+      wsSendSpaceBtn.addEventListener("click", () => wsSendEditorKey("Space"));
+      wsSendEnterBtn.addEventListener("click", () => wsSendEditorKey("Enter"));
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
