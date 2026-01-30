@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrailleStudio - Editor</title>
+
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #0f1620;
+      --panel2: #101b27;
+      --text: #e6edf3;
+      --muted: #9fb0c0;
+      --border: rgba(255,255,255,.10);
+      --accent: #6aa6ff;
+      --accent2: #7ee787;
+      --danger: #ff6b6b;
+      --warn: #ffd166;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in oklab, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      line-height: 1;
+      min-height: 38px;
+      text-decoration: none;
+      transition: transform .06s ease, border-color .15s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn.good { border-color: color-mix(in oklab, var(--accent2) 60%, var(--border)); }
+
+    main .wrap { padding-top: 16px; padding-bottom: 24px; }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card .hd {
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card .hd h2 {
+      font-size: 14px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .card .bd { padding: 14px; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+      user-select: none;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 18%, transparent);
+    }
+    .dot.ok {
+      background: var(--accent2);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent2) 18%, transparent);
+    }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      outline: none;
+      font-family: var(--mono);
+    }
+
+    textarea { min-height: 140px; resize: vertical; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="title">
+          <h1>Editor</h1>
+        </div>
+        <div class="actions">
+          <a class="btn" href="./index.html">Home</a>
+          <button class="btn good" id="wsReconnectBtn" type="button">Reconnect</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <div class="grid">
+        <section class="card">
+          <div class="hd">
+            <h2>Braille monitor</h2>
+            <div class="pill">
+              <span>WS</span>
+              <span class="dot" id="wsDot"></span>
+            </div>
+          </div>
+          <div class="bd">
+            <label for="brailleLine">UnicodeText</label>
+            <textarea id="brailleLine" readonly></textarea>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd">
+            <h2>Editor input</h2>
+          </div>
+          <div class="bd">
+            <label for="editorInput">Type here (auto send)</label>
+            <input id="editorInput" type="text" placeholder="Type..." />
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const wsUrl = "ws://localhost:5000/ws";
+      const wsDot = document.getElementById("wsDot");
+      const brailleLine = document.getElementById("brailleLine");
+      const editorInput = document.getElementById("editorInput");
+      const wsReconnectBtn = document.getElementById("wsReconnectBtn");
+
+      let ws = null;
+      let lastValue = "";
+
+      brailleLine.value = "";
+
+      function setWsStatus(ok) {
+        wsDot.classList.toggle("ok", !!ok);
+      }
+
+      function connect() {
+        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+          return;
+        }
+        ws = new WebSocket(wsUrl);
+        ws.addEventListener("open", () => {
+          setWsStatus(true);
+          const msg = { type: "command", command: "setEditorMode", enabled: true };
+          ws.send(JSON.stringify(msg));
+        });
+        ws.addEventListener("close", () => setWsStatus(false));
+        ws.addEventListener("error", () => setWsStatus(false));
+        ws.addEventListener("message", async (ev) => {
+          let text = "";
+          if (typeof ev.data === "string") text = ev.data;
+          else if (ev.data instanceof Blob) text = await ev.data.text();
+          else if (ev.data instanceof ArrayBuffer) text = new TextDecoder().decode(ev.data);
+          if (!text) return;
+          try {
+            const obj = JSON.parse(text);
+            const type = obj.Type || obj.type;
+            if (type === "brailleLine") {
+              const braille = obj.Braille || obj.braille || {};
+              brailleLine.value = braille.UnicodeText || braille.unicodeText || "";
+            }
+          } catch {}
+        });
+      }
+
+      function sendEditorInput(payload) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const msg = { type: "command", command: "editorInput", input: payload };
+        ws.send(JSON.stringify(msg));
+      }
+
+      editorInput.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          sendEditorInput({ kind: "key", key: "Backspace" });
+          return;
+        }
+        if (e.key === " ") {
+          sendEditorInput({ kind: "key", key: "Space" });
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          sendEditorInput({ kind: "key", key: "Enter" });
+          editorInput.value = "";
+          lastValue = "";
+          return;
+        }
+      });
+
+      editorInput.addEventListener("input", () => {
+        const value = editorInput.value || "";
+        if (value.length > lastValue.length) {
+          const added = value.slice(lastValue.length);
+          if (added) sendEditorInput({ kind: "text", text: added });
+        }
+        lastValue = value;
+      });
+
+      wsReconnectBtn.addEventListener("click", () => {
+        try { ws && ws.close(1000, "reconnect"); } catch {}
+        connect();
+      });
+
+      connect();
+    })();
+  </script>
+</body>
+</html>

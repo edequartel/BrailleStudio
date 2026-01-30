@@ -277,6 +277,36 @@
       font-weight: 700;
       display: inline;
     }
+
+    footer {
+      margin-top: 18px;
+      padding: 14px 18px 24px 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .footer-logo {
+      width: 120px;
+      height: auto;
+      opacity: 0.9;
+    }
+
+    @media (max-width: 600px) {
+      .footer-row {
+        flex-direction: column;
+      }
+      .footer-logo {
+        width: 90px;
+      }
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -291,10 +321,10 @@
       <div class="topbar">
         <div class="title">
           <h1 data-i18n="title">BrailleStudio</h1>
-          <div class="sub">Home · Reader + practice hub</div>
+          <div class="sub"></div>
         </div>
         <div class="actions">
-          <button class="btn ghost" id="themeBtn" type="button">Toggle theme</button>
+          <button class="btn" id="themeBtn" type="button">Toggle theme</button>
           <a class="btn" href="./pages/settings.html">Settings</a>
           <a class="btn" href="./tools/braillebridge-com.html">COM tool</a>
         </div>
@@ -309,10 +339,10 @@
       <nav aria-label="" data-i18n-aria="mainNav">
         <ul>
           <li><a href="./pages/activity-runner.html" data-i18n="nav.practice"></a></li>
+          <li><a href="#" aria-label="Marechal - volwassen">Marechal - volwassen</a></li>
+          <li><a href="./editor.html" aria-label="Editor">Editor</a></li>
           <li><a href="./pages/stories.html" data-i18n="nav.stories"></a></li>
           <li><a href="./components/instructions/instructions-audio.html" data-i18n="nav.instructions"></a></li>
-          <li><a href="./components/profile/profile.html" data-i18n="nav.profile"></a></li>
-          <li><a href="./pages/settings.html" data-i18n="nav.settings"></a></li>
         </ul>
       </nav>
 
@@ -323,6 +353,15 @@
       </div>
     </div>
   </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="footer-row">
+        <div>Powered by Bartiméus</div>
+        <img src="./assets/bartimeus.png" alt="Bartiméus" class="footer-logo" />
+      </div>
+    </div>
+  </footer>
 
   <script>
   (async function () {

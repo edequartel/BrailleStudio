@@ -115,6 +115,8 @@
     }
 
     .btn {
+      display: inline-flex;
+      align-items: center;
       appearance: none;
       border: 1px solid var(--border);
       background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
@@ -124,8 +126,11 @@
       cursor: pointer;
       box-shadow: var(--shadow);
       font-size: 13px;
+      line-height: 1;
+      min-height: 38px;
       transition: transform .06s ease, border-color .15s ease;
     }
+    a.btn { text-decoration: none; }
     .btn:active { transform: translateY(1px); }
     .btn.primary { border-color: color-mix(in oklab, var(--accent) 60%, var(--border)); }
     .btn.good { border-color: color-mix(in oklab, var(--accent2) 60%, var(--border)); }
@@ -321,10 +326,8 @@
         </div>
 
         <div class="actions">
-          <button class="btn ghost" id="themeBtn" title="Toggle theme">Toggle theme</button>
-          <button class="btn" id="copyLogBtn" title="Copy log to clipboard">Copy log</button>
+          <button class="btn" id="themeBtn" title="Toggle theme">Toggle theme</button>
           <a class="btn" href="braillebridge://" title="Open BrailleBridge">Open BrailleBridge</a>
-          <button class="btn danger" id="clearLogBtn" title="Clear log">Clear log</button>
         </div>
       </div>
     </div>
@@ -418,13 +421,7 @@
               </div>
             </div>
 
-            <div class="small">
-              Notes:
-              <ul>
-                <li>If you open this file via <code class="badge">file://</code>, some browsers can be stricter with CORS. Serving via <code class="badge">python -m http.server</code> is recommended.</li>
-                <li>HTTP endpoints only ACK. Braille content updates always arrive via WebSocket.</li>
-              </ul>
-            </div>
+
           </div>
         </section>
 
@@ -571,10 +568,14 @@
             <h2>Log</h2>
             <div class="hint">Incoming events (JSON)</div>
           </div>
-          <div class="pill">
-            <span>Log</span>
-            <span class="dot ok"></span>
-            <span>active</span>
+          <div class="inline">
+            <button class="btn" id="copyLogBtn" title="Copy log to clipboard">Copy log</button>
+            <button class="btn danger" id="clearLogBtn" title="Clear log">Clear log</button>
+            <div class="pill">
+              <span>Log</span>
+              <span class="dot ok"></span>
+              <span>active</span>
+            </div>
           </div>
         </div>
         <div class="bd">
