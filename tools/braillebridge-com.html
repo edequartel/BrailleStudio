@@ -378,6 +378,19 @@
               </div>
             </div>
 
+            <div style="margin-top:12px;">
+              <label for="brailleTextValue">Legacy braille text (POST /braille)</label>
+              <div class="row">
+                <div>
+                  <label for="brailleTextValue">Text</label>
+                  <input id="brailleTextValue" type="text" value="aap Aap AAP 123" />
+                </div>
+                <div class="inline" style="align-items:flex-end;">
+                  <button class="btn primary" id="postBrailleBtn">POST /braille</button>
+                </div>
+              </div>
+            </div>
+
             <div class="inline" style="margin-top:10px;">
               <button class="btn good" id="postEditorEnableBtn">POST /editor/enable</button>
               <button class="btn danger" id="postEditorDisableBtn">POST /editor/disable</button>
@@ -386,6 +399,7 @@
               <button class="btn" id="getPingBtn">GET /ping</button>
               <button class="btn danger" id="getClearBtn">GET /clear</button>
               <button class="btn" id="getDevicesBtn">GET /devices</button>
+              <button class="btn" id="getActiveDeviceBtn">GET /devices/active</button>
               <button class="btn" id="getTablesBtn">GET /tables</button>
             </div>
 
@@ -428,18 +442,116 @@
             <div class="inline">
               <button class="btn good" id="wsConnectBtn">Connect</button>
               <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
-              <button class="btn" id="wsSendInputBtn">Send editorInput</button>
+              <button class="btn" id="wsSendInputBtn">Send</button>
               <button class="btn" id="wsSendModeBtn">Send setEditorMode</button>
             </div>
 
             <div style="margin-top:12px;">
-              <label for="wsModeEnabled">setEditorMode enabled</label>
               <div class="inline">
-                <input id="wsModeEnabled" type="checkbox" checked />
                 <span class="warn">Sends {"type":"command","command":"setEditorMode","enabled":true}</span>
               </div>
             </div>
 
+          </div>
+        </section>
+
+        <!-- Right: Latest brailleLine -->
+        <section class="card">
+          <div class="hd">
+            <div>
+              <h2>Latest brailleLine</h2>
+              <div class="hint">Rendered from incoming WS message</div>
+            </div>
+            <div class="pill">
+              <span>WS</span>
+              <span class="dot ok"></span>
+              <span>brailleLine</span>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div>
+                <label for="brailleUnicode">Braille UnicodeText</label>
+                <textarea id="brailleUnicode" readonly></textarea>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="brailleTable">Table</label>
+                  <input id="brailleTable" type="text" readonly />
+                </div>
+                <div>
+                  <label for="brailleTimestamp">TimestampUtc</label>
+                  <input id="brailleTimestamp" type="text" readonly />
+                </div>
+              </div>
+              <div>
+                <label for="brailleSourceText">SourceText</label>
+                <textarea id="brailleSourceText" readonly></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: Latest cursorContext -->
+        <section class="card">
+          <div class="hd">
+            <div>
+              <h2>Latest cursorContext</h2>
+              <div class="hint">Rendered from incoming WS message</div>
+            </div>
+            <div class="pill">
+              <span>WS</span>
+              <span class="dot ok"></span>
+              <span>cursorContext</span>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div class="row">
+                <div>
+                  <label for="cursorCellIndex">Cursor CellIndex</label>
+                  <input id="cursorCellIndex" type="text" readonly />
+                </div>
+                <div>
+                  <label for="cursorTextIndex">Cursor TextIndex</label>
+                  <input id="cursorTextIndex" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="cursorCharacter">Character</label>
+                  <input id="cursorCharacter" type="text" readonly />
+                </div>
+                <div>
+                  <label for="cursorWord">Word</label>
+                  <input id="cursorWord" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="cursorCellChar">Braille CellChar</label>
+                  <input id="cursorCellChar" type="text" readonly />
+                </div>
+                <div>
+                  <label for="cursorCellCodePoint">CellCodePoint</label>
+                  <input id="cursorCellCodePoint" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="cursorTable">Table</label>
+                  <input id="cursorTable" type="text" readonly />
+                </div>
+                <div>
+                  <label for="cursorTimestamp">TimestampUtc</label>
+                  <input id="cursorTimestamp" type="text" readonly />
+                </div>
+              </div>
+              <div>
+                <label for="cursorSourceText">SourceText</label>
+                <textarea id="cursorSourceText" readonly></textarea>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -481,9 +593,12 @@
       const postEditorDisableBtn = el("postEditorDisableBtn");
       const getEditorStatusBtn = el("getEditorStatusBtn");
       const postEditorInputBtn = el("postEditorInputBtn");
+      const brailleTextValue = el("brailleTextValue");
+      const postBrailleBtn = el("postBrailleBtn");
       const getPingBtn = el("getPingBtn");
       const getClearBtn = el("getClearBtn");
       const getDevicesBtn = el("getDevicesBtn");
+      const getActiveDeviceBtn = el("getActiveDeviceBtn");
       const getTablesBtn = el("getTablesBtn");
 
       const httpDot = el("httpDot");
@@ -497,7 +612,21 @@
       const wsDisconnectBtn = el("wsDisconnectBtn");
       const wsSendInputBtn = el("wsSendInputBtn");
       const wsSendModeBtn = el("wsSendModeBtn");
-      const wsModeEnabled = el("wsModeEnabled");
+
+      const brailleUnicode = el("brailleUnicode");
+      const brailleTable = el("brailleTable");
+      const brailleTimestamp = el("brailleTimestamp");
+      const brailleSourceText = el("brailleSourceText");
+
+      const cursorCellIndex = el("cursorCellIndex");
+      const cursorTextIndex = el("cursorTextIndex");
+      const cursorCharacter = el("cursorCharacter");
+      const cursorWord = el("cursorWord");
+      const cursorCellChar = el("cursorCellChar");
+      const cursorCellCodePoint = el("cursorCellCodePoint");
+      const cursorTable = el("cursorTable");
+      const cursorTimestamp = el("cursorTimestamp");
+      const cursorSourceText = el("cursorSourceText");
 
       const log = el("log");
       const themeBtn = el("themeBtn");
@@ -653,14 +782,42 @@
         }
       }
 
+      async function httpPostText(path, bodyText, contentType) {
+        const base = httpBase.value.trim().replace(/\/$/, "");
+        const url = base + path;
+        const ct = contentType || "application/json";
+        appendLog(`HTTP → POST ${url} (${ct})`);
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": ct },
+            body: bodyText ?? ""
+          });
+
+          const body = await resp.text();
+          lastHttpResp.textContent = body;
+          lastHttpErr.textContent = "—";
+          setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
+          appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${body}`);
+          return body;
+        } catch (e) {
+          lastHttpErr.textContent = String(e);
+          setHttpStatus(false, "network error");
+          appendLog(`HTTP !! error :: ${String(e)}`);
+          throw e;
+        }
+      }
+
       // Hook up HTTP buttons
       postEditorEnableBtn.addEventListener("click", () => httpPostJson("/editor/enable", {}));
       postEditorDisableBtn.addEventListener("click", () => httpPostJson("/editor/disable", {}));
       getEditorStatusBtn.addEventListener("click", () => httpGet("/editor/status"));
       postEditorInputBtn.addEventListener("click", () => httpPostJson("/editor/input", buildEditorInputPayload()));
+      postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "application/json"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
       getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
+      getActiveDeviceBtn.addEventListener("click", () => httpGet("/devices/active"));
       getTablesBtn.addEventListener("click", () => httpGet("/tables"));
 
       // WebSocket
@@ -694,19 +851,23 @@
           appendLog("WS: error");
         });
 
-        ws.addEventListener("message", (ev) => {
+        ws.addEventListener("message", async (ev) => {
           const data = ev.data;
           if (typeof data === "string") {
-            // Try parse JSON
-            try {
-              const obj = JSON.parse(data);
-              appendLog("WS ← JSON " + prettyIncomingMessage(obj));
-            } catch {
-              appendLog("WS ← TEXT " + data);
-            }
-          } else {
-            appendLog("WS ← (non-text message)");
+            handleWsText(data);
+            return;
           }
+          if (data instanceof Blob) {
+            const text = await data.text();
+            handleWsText(text);
+            return;
+          }
+          if (data instanceof ArrayBuffer) {
+            const text = new TextDecoder().decode(data);
+            handleWsText(text);
+            return;
+          }
+          appendLog("WS <- (non-text message)");
         });
       }
 
@@ -720,13 +881,13 @@
       }
 
       function wsSendEditorInput() {
-        const payload = buildEditorInputPayload();
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           appendLog("WS: not connected");
           return;
         }
+        const payload = { kind: "text", text: "aap Aap AAP 123 ,.?" };
         const msg = { type: "command", command: "editorInput", input: payload };
-        appendLog("WS → send editorInput: " + JSON.stringify(msg));
+        appendLog("WS -> send editorInput: " + JSON.stringify(msg));
         ws.send(JSON.stringify(msg));
       }
 
@@ -735,24 +896,54 @@
           appendLog("WS: not connected");
           return;
         }
-        const msg = { type: "command", command: "setEditorMode", enabled: !!wsModeEnabled.checked };
-        appendLog("WS → send setEditorMode: " + JSON.stringify(msg));
+        const msg = { type: "command", command: "setEditorMode", enabled: true };
+        appendLog("WS -> send setEditorMode: " + JSON.stringify(msg));
         ws.send(JSON.stringify(msg));
+      }
+
+      function handleWsText(text) {
+        // Try parse JSON
+        try {
+          const obj = JSON.parse(text);
+          appendLog("WS <- JSON " + prettyIncomingMessage(obj));
+        } catch {
+          appendLog("WS <- TEXT " + text);
+        }
       }
 
       function prettyIncomingMessage(o) {
         if (!o || typeof o !== "object") return String(o);
 
-        if (o.Type === "brailleLine") {
-          const braille = o.Braille && o.Braille.UnicodeText ? o.Braille.UnicodeText : "(no braille)";
-          const table = o.Braille && o.Braille.Table ? o.Braille.Table : "(no table)";
-          return `brailleLine ok=${o.Ok} table=${table} text=${braille}`;
+        const type = o.Type || o.type;
+        const ok = typeof o.Ok !== "undefined" ? o.Ok : o.ok;
+        const ts = o.TimestampUtc || o.timestampUtc || "";
+        const sourceText = typeof o.SourceText !== "undefined" ? o.SourceText : (o.sourceText ?? "");
+        const braille = o.Braille || o.braille || {};
+        const cursor = o.Cursor || o.cursor || {};
+
+        if (type === "brailleLine") {
+          if (brailleUnicode) brailleUnicode.value = braille.UnicodeText || braille.unicodeText || "";
+          if (brailleTable) brailleTable.value = braille.Table || braille.table || "";
+          if (brailleTimestamp) brailleTimestamp.value = ts;
+          if (brailleSourceText) brailleSourceText.value = sourceText;
+          const brailleText = braille.UnicodeText || braille.unicodeText || "(no braille)";
+          const table = braille.Table || braille.table || "(no table)";
+          return `brailleLine ok=${ok} table=${table} text=${brailleText}`;
         }
-        if (o.Type === "cursorContext") {
-          const cell = o.Cursor && typeof o.Cursor.CellIndex !== "undefined" ? o.Cursor.CellIndex : "?";
-          const textIndex = o.Cursor && typeof o.Cursor.TextIndex !== "undefined" ? o.Cursor.TextIndex : "?";
-          const ch = o.Cursor && o.Cursor.Character ? o.Cursor.Character : "?";
-          return `cursorContext ok=${o.Ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
+        if (type === "cursorContext") {
+          if (cursorCellIndex) cursorCellIndex.value = typeof cursor.CellIndex !== "undefined" ? String(cursor.CellIndex) : (typeof cursor.cellIndex !== "undefined" ? String(cursor.cellIndex) : "");
+          if (cursorTextIndex) cursorTextIndex.value = typeof cursor.TextIndex !== "undefined" ? String(cursor.TextIndex) : (typeof cursor.textIndex !== "undefined" ? String(cursor.textIndex) : "");
+          if (cursorCharacter) cursorCharacter.value = cursor.Character || cursor.character || "";
+          if (cursorWord) cursorWord.value = cursor.Word || cursor.word || "";
+          if (cursorCellChar) cursorCellChar.value = braille.CellChar || braille.cellChar || "";
+          if (cursorCellCodePoint) cursorCellCodePoint.value = braille.CellCodePoint || braille.cellCodePoint || "";
+          if (cursorTable) cursorTable.value = o.Table || o.table || "";
+          if (cursorTimestamp) cursorTimestamp.value = ts;
+          if (cursorSourceText) cursorSourceText.value = sourceText;
+          const cell = typeof cursor.CellIndex !== "undefined" ? cursor.CellIndex : (typeof cursor.cellIndex !== "undefined" ? cursor.cellIndex : "?");
+          const textIndex = typeof cursor.TextIndex !== "undefined" ? cursor.TextIndex : (typeof cursor.textIndex !== "undefined" ? cursor.textIndex : "?");
+          const ch = cursor.Character || cursor.character || "?";
+          return `cursorContext ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
         }
         if (typeof o.MsgType !== "undefined") {
           return `keyEvent MsgType=${o.MsgType} UnitId=${o.UnitId} ButtonIndex=${o.ButtonIndex} IsPress=${o.IsPress} Name=${o.Name ?? ""} DotsMask=${o.DotsMask ?? ""}`;
@@ -768,7 +959,7 @@
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: POST /editor/enable, POST /editor/disable, GET /editor/status, POST /editor/input, GET /ping, GET /clear, GET /devices, GET /tables.");
+      appendLog("Spec: POST /editor/enable, POST /editor/disable, GET /editor/status, POST /editor/input, POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
       appendLog("Spec: WS brailleLine/cursorContext/keyEvent in, editorInput/setEditorMode out.");
     })();
   </script>
