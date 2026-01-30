@@ -386,7 +386,6 @@
               <button class="btn" id="getPingBtn">GET /ping</button>
               <button class="btn danger" id="getClearBtn">GET /clear</button>
               <button class="btn" id="getDevicesBtn">GET /devices</button>
-              <button class="btn" id="getBrailleTestBtn">GET /braille/test</button>
               <button class="btn" id="getTablesBtn">GET /tables</button>
             </div>
 
@@ -485,7 +484,6 @@
       const getPingBtn = el("getPingBtn");
       const getClearBtn = el("getClearBtn");
       const getDevicesBtn = el("getDevicesBtn");
-      const getBrailleTestBtn = el("getBrailleTestBtn");
       const getTablesBtn = el("getTablesBtn");
 
       const httpDot = el("httpDot");
@@ -663,7 +661,6 @@
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
       getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
-      getBrailleTestBtn.addEventListener("click", () => httpGet("/braille/test"));
       getTablesBtn.addEventListener("click", () => httpGet("/tables"));
 
       // WebSocket
@@ -771,7 +768,7 @@
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: POST /editor/enable, POST /editor/disable, GET /editor/status, POST /editor/input, GET /ping, GET /clear, GET /devices, GET /braille/test, GET /tables.");
+      appendLog("Spec: POST /editor/enable, POST /editor/disable, GET /editor/status, POST /editor/input, GET /ping, GET /clear, GET /devices, GET /tables.");
       appendLog("Spec: WS brailleLine/cursorContext/keyEvent in, editorInput/setEditorMode out.");
     })();
   </script>
