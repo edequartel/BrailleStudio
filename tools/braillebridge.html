@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BrailleBridge Markdown</title>
+
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #0f1620;
+      --panel2: #101b27;
+      --text: #e6edf3;
+      --muted: #9fb0c0;
+      --border: rgba(255,255,255,.10);
+      --accent: #6aa6ff;
+      --accent2: #7ee787;
+      --danger: #ff6b6b;
+      --warn: #ffd166;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    [data-theme="light"] {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel2: #fbfcfe;
+      --text: #0b1220;
+      --muted: #4b5a6a;
+      --border: rgba(10,20,40,.12);
+      --accent: #2563eb;
+      --accent2: #16a34a;
+      --danger: #dc2626;
+      --warn: #b45309;
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme]) {
+        --bg: #f6f8fb;
+        --panel: #ffffff;
+        --panel2: #fbfcfe;
+        --text: #0b1220;
+        --muted: #4b5a6a;
+        --border: rgba(10,20,40,.12);
+        --accent: #2563eb;
+        --accent2: #16a34a;
+        --danger: #dc2626;
+        --warn: #b45309;
+        --shadow: 0 10px 30px rgba(0,0,0,.10);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+                  radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in oklab, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px 18px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .title .sub {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      line-height: 1;
+      min-height: 38px;
+      transition: transform .06s ease, border-color .15s ease;
+      text-decoration: none;
+    }
+    .btn:active { transform: translateY(1px); }
+
+    main .wrap { padding-top: 16px; padding-bottom: 24px; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card .hd {
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card .hd h2 {
+      font-size: 14px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .card .hd .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      font-family: var(--mono);
+    }
+
+    .card .bd { padding: 14px; }
+
+    #readme-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in oklab, var(--panel) 94%, black 6%);
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 420px;
+    }
+
+    #readme-box h1,
+    #readme-box h2,
+    #readme-box h3 {
+      margin: 1.1rem 0 0.6rem 0;
+      letter-spacing: -0.01em;
+    }
+
+    #readme-box p {
+      margin: 0.75rem 0;
+    }
+
+    #readme-box ul {
+      padding-left: 1.2rem;
+      margin: 0.6rem 0;
+    }
+
+    #readme-box code {
+      font-family: var(--mono);
+      background: color-mix(in oklab, var(--panel2) 85%, transparent);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    #readme-box pre code {
+      display: block;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="title">
+          <h1>BrailleBridge Markdown</h1>
+          <div class="sub">Source: braillebridge.md</div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="themeBtn" title="Toggle theme">Toggle theme</button>
+          <a class="btn" href="braillebridge-com.html" title="Open BrailleBridge API tool">API tool</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <section class="card">
+        <div class="hd">
+          <div>
+            <h2>BrailleBridge API and WebSocket Reference</h2>
+            <div class="hint">Rendered as markdown text</div>
+          </div>
+        </div>
+        <div class="bd">
+          <div id="readme-box">Loading braillebridge.md...</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const themeBtn = document.getElementById("themeBtn");
+      const markdownContent = document.getElementById("readme-box");
+
+      function applyTheme(theme) {
+        if (!theme) {
+          document.documentElement.removeAttribute("data-theme");
+          localStorage.removeItem("bb_theme");
+          return;
+        }
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("bb_theme", theme);
+      }
+      function toggleTheme() {
+        const cur = document.documentElement.getAttribute("data-theme");
+        if (!cur) {
+          const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+          applyTheme(prefersLight ? "dark" : "light");
+          return;
+        }
+        applyTheme(cur === "dark" ? "light" : "dark");
+      }
+      applyTheme(localStorage.getItem("bb_theme"));
+      themeBtn.addEventListener("click", toggleTheme);
+
+      fetch("braillebridge.md", { cache: "no-store" })
+        .then((resp) => {
+          if (!resp.ok) throw new Error(`Failed to load braillebridge.md (${resp.status})`);
+          return resp.text();
+        })
+        .then((text) => {
+          markdownContent.innerHTML = window.marked ? marked.parse(text) : text;
+        })
+        .catch((err) => {
+          markdownContent.textContent = "Unable to load braillebridge.md. " +
+            "If you opened this file via file://, use a local web server instead. " +
+            "Error: " + String(err);
+        });
+    })();
+  </script>
+</body>
+</html>
