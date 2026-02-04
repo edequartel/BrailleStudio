@@ -1,13 +1,3 @@
-# run local
-Start in folder BrailleBridge
-cd ../braillebridge
-
-python3 -m http.server 8000
-
-in browser open 
-http://localhost:8000
-
-
 # BrailleBridge API & WebSocket Reference
 
 This document describes **all HTTP API endpoints and WebSocket messages**
@@ -445,6 +435,16 @@ POST /editor/input (kind:key)
 * BrailleBridge → **single source of truth**
 
 ```
+
+
+## run local
+Start in folder BrailleBridge
+cd ../braillebridge
+
+python3 -m http.server 8000
+
+in browser open 
+http://localhost:8000
 
 
 
