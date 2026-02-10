@@ -28,142 +28,6 @@ All braille rendering and cursor mapping originate here.
 
 
 
-## Editor Mode
-
-### POST `/editor/enable`
-
-Enable editor mode.
-
-```bash
-curl -X POST http://localhost:5000/editor/enable
-````
-
-Response:
-
-```json
-{
-  "ok": true,
-  "editorModeEnabled": true
-}
-```
-
-
-
-### POST `/editor/disable`
-
-Disable editor mode.
-
-```bash
-curl -X POST http://localhost:5000/editor/disable
-```
-
-Response:
-
-```json
-{
-  "ok": true,
-  "editorModeEnabled": false
-}
-```
-
-
-
-### GET `/editor/status`
-
-Get editor mode status.
-
-```bash
-curl http://localhost:5000/editor/status
-```
-
-Response:
-
-```json
-{
-  "ok": true,
-  "editorModeEnabled": true
-}
-```
-
-
-
-## Editor Input (Incremental SSoC Editing)
-
-### POST `/editor/input`
-
-Apply **one editor action** (text, braille cell, or key).
-
-Editor mode should be enabled for effect.
-
-
-
-### `kind: "text"`
-
-Insert normal text (Liblouis translation applies).
-
-```bash
-curl -X POST http://localhost:5000/editor/input \
-  -H "Content-Type: application/json; charset=utf-8" \
-  --data '{"kind":"text","text":"aap"}'
-```
-
-
-
-### `kind: "braille"`
-
-Insert an **exact Unicode braille cell** (no translation).
-
-```bash
-curl -X POST http://localhost:5000/editor/input \
-  -H "Content-Type: application/json; charset=utf-8" \
-  --data '{"kind":"braille","unicode":"⠃"}'
-```
-
-
-
-### `kind: "key"`
-
-Logical editor key.
-
-Supported keys:
-
-* `Backspace`
-* `Enter`
-* `Space`
-
-```bash
-curl -X POST http://localhost:5000/editor/input \
-  -H "Content-Type: application/json; charset=utf-8" \
-  --data '{"kind":"key","key":"Backspace"}'
-```
-
-
-
-### Command envelope (optional)
-
-```json
-{
-  "type": "command",
-  "command": "editorInput",
-  "input": {
-    "kind": "text",
-    "text": "a"
-  }
-}
-```
-
-
-
-### Response
-
-```json
-{ "ok": true }
-```
-
-> The updated `brailleLine` is **broadcast via WebSocket**, not returned in HTTP.
-
-
-
 ## Braille Table (Liblouis)
 
 ### POST `/brailletable`
@@ -413,15 +277,6 @@ Broadcast on cursor routing press.
 # Show text
 POST /braille
 
-# Enable editor
-POST /editor/enable
-
-# Type
-POST /editor/input (kind:text)
-
-# Backspace
-POST /editor/input (kind:key)
-
 # Observe updates via WebSocket
 ```
 
@@ -430,7 +285,6 @@ POST /editor/input (kind:key)
 ## Mental Model
 
 * `/braille` → **replace SSoC**
-* `/editor/input` → **edit SSoC**
 * WebSocket → **observe & control**
 * BrailleBridge → **single source of truth**
 
@@ -445,6 +299,10 @@ python3 -m http.server 8000
 
 in browser open 
 http://localhost:8000
+
+
+
+
 
 
 

@@ -365,28 +365,6 @@
             </div>
 
             <div style="margin-top:12px;">
-              <label for="editorInputKind">Editor input (payload builder)</label>
-              <div class="row">
-                <div>
-                  <label for="editorInputKind">Kind</label>
-                  <select id="editorInputKind">
-                    <option value="text">text</option>
-                    <option value="braille">braille</option>
-                    <option value="key">key</option>
-                  </select>
-                </div>
-                <div>
-                  <label for="editorInputValue">Value</label>
-                  <input id="editorInputValue" type="text" value="Hello" />
-                </div>
-              </div>
-              <div style="margin-top:10px;">
-                <label for="editorInputPreview">JSON payload preview</label>
-                <textarea id="editorInputPreview" readonly></textarea>
-              </div>
-            </div>
-
-            <div style="margin-top:12px;">
               <label for="brailleTextValue">Legacy braille text (POST /braille)</label>
               <div class="row">
                 <div>
@@ -400,10 +378,6 @@
             </div>
 
             <div class="inline" style="margin-top:10px;">
-              <button class="btn good" id="postEditorEnableBtn">POST /editor/enable</button>
-              <button class="btn danger" id="postEditorDisableBtn">POST /editor/disable</button>
-              <button class="btn" id="getEditorStatusBtn">GET /editor/status</button>
-              <button class="btn primary" id="postEditorInputBtn">POST /editor/input</button>
               <button class="btn" id="getPingBtn">GET /ping</button>
               <button class="btn danger" id="getClearBtn">GET /clear</button>
               <button class="btn" id="getDevicesBtn">GET /devices</button>
@@ -451,10 +425,19 @@
               <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
               <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
               <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
-              <button class="btn" id="wsSendInputBtn">Send Text</button>
               <button class="btn" id="wsSendBackspaceBtn">Send Backspace</button>
               <button class="btn" id="wsSendSpaceBtn">Send Space</button>
               <button class="btn" id="wsSendEnterBtn">Send Enter</button>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+              <div>
+                <label for="wsTextValue">Text to send (editorInput)</label>
+                <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?"></input>
+              </div>
+              <div class="inline" style="align-items:flex-end;">
+                <button class="btn" id="wsSendInputBtn">Send Text</button>
+              </div>
             </div>
 
 
@@ -596,13 +579,6 @@
       const httpBaseLabel = el("httpBaseLabel");
       const wsBaseLabel = el("wsBaseLabel");
 
-      const editorInputKind = el("editorInputKind");
-      const editorInputValue = el("editorInputValue");
-      const editorInputPreview = el("editorInputPreview");
-      const postEditorEnableBtn = el("postEditorEnableBtn");
-      const postEditorDisableBtn = el("postEditorDisableBtn");
-      const getEditorStatusBtn = el("getEditorStatusBtn");
-      const postEditorInputBtn = el("postEditorInputBtn");
       const brailleTextValue = el("brailleTextValue");
       const postBrailleBtn = el("postBrailleBtn");
       const getPingBtn = el("getPingBtn");
@@ -621,6 +597,7 @@
       const wsConnectBtn = el("wsConnectBtn");
       const wsDisconnectBtn = el("wsDisconnectBtn");
       const wsSendInputBtn = el("wsSendInputBtn");
+      const wsTextValue = el("wsTextValue");
       const wsSendModeBtn = el("wsSendModeBtn");
       const wsSendModeDisableBtn = el("wsSendModeDisableBtn");
       const wsSendBackspaceBtn = el("wsSendBackspaceBtn");
@@ -739,22 +716,6 @@
       wsBase.addEventListener("input", refreshBaseLabels);
       refreshBaseLabels();
 
-      function buildEditorInputPayload() {
-        const kind = editorInputKind.value;
-        const value = editorInputValue.value ?? "";
-        if (kind === "text") return { kind, text: value };
-        if (kind === "braille") return { kind, unicode: value };
-        return { kind, key: value };
-      }
-
-      function refreshEditorPreview() {
-        const payload = buildEditorInputPayload();
-        editorInputPreview.value = JSON.stringify(payload, null, 2);
-      }
-      editorInputKind.addEventListener("change", refreshEditorPreview);
-      editorInputValue.addEventListener("input", refreshEditorPreview);
-      refreshEditorPreview();
-
       // HTTP fetch wrappers
       async function httpGet(path) {
         const base = httpBase.value.trim().replace(/\/$/, "");
@@ -833,16 +794,6 @@
       }
 
       // Hook up HTTP buttons
-      postEditorEnableBtn.addEventListener("click", () => {
-        setEditorModeStatus(true);
-        return httpPostJson("/editor/enable", {});
-      });
-      postEditorDisableBtn.addEventListener("click", () => {
-        setEditorModeStatus(false);
-        return httpPostJson("/editor/disable", {});
-      });
-      getEditorStatusBtn.addEventListener("click", () => httpGet("/editor/status"));
-      postEditorInputBtn.addEventListener("click", () => httpPostJson("/editor/input", buildEditorInputPayload()));
       postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "application/json"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
@@ -915,7 +866,8 @@
           appendLog("WS: not connected");
           return;
         }
-        const payload = { kind: "text", text: "aap Aap AAP 123 ,.?" };
+        const text = (wsTextValue && wsTextValue.value ? wsTextValue.value : "").trim();
+        const payload = { kind: "text", text };
         const msg = { type: "command", command: "editorInput", input: payload };
         appendLog("WS -> send editorInput: " + JSON.stringify(msg));
         ws.send(JSON.stringify(msg));
@@ -1015,7 +967,7 @@
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: POST /editor/enable, POST /editor/disable, GET /editor/status, POST /editor/input, POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
+      appendLog("Spec: POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
       appendLog("Spec: WS brailleLine/cursorContext/keyEvent in, editorInput/setEditorMode out.");
     })();
   </script>
