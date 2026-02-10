@@ -803,6 +803,7 @@
 
       // WebSocket
       let ws = null;
+      let lastWsJsonLog = null;
 
       function wsConnect() {
         const url = wsBase.value.trim();
@@ -909,7 +910,12 @@
         // Try parse JSON
         try {
           const obj = JSON.parse(text);
-          appendLog("WS <- JSON " + prettyIncomingMessage(obj));
+          // Update UI fields via prettyIncomingMessage, but log full JSON payload.
+          prettyIncomingMessage(obj);
+          const pretty = JSON.stringify(obj, null, 2);
+          if (pretty === lastWsJsonLog) return; // de-dupe identical consecutive messages
+          lastWsJsonLog = pretty;
+          appendLog("WS <- JSON :: " + pretty);
         } catch {
           appendLog("WS <- TEXT " + text);
         }
@@ -923,15 +929,18 @@
         const ts = o.TimestampUtc || o.timestampUtc || "";
         const sourceText = typeof o.SourceText !== "undefined" ? o.SourceText : (o.sourceText ?? "");
         const braille = o.Braille || o.braille || {};
+        const meta = o.Meta || o.meta || {};
         const cursor = o.Cursor || o.cursor || {};
 
         if (type === "brailleLine") {
           if (brailleUnicode) brailleUnicode.value = braille.UnicodeText || braille.unicodeText || "";
-          if (brailleTable) brailleTable.value = braille.Table || braille.table || "";
-          if (brailleTimestamp) brailleTimestamp.value = ts;
+          const activeTable = meta.ActiveTable || meta.activeTable || braille.Table || braille.table || "";
+          const createdUtc = meta.CreatedUtc || meta.createdUtc || ts;
+          if (brailleTable) brailleTable.value = activeTable;
+          if (brailleTimestamp) brailleTimestamp.value = createdUtc;
           if (brailleSourceText) brailleSourceText.value = sourceText;
           const brailleText = braille.UnicodeText || braille.unicodeText || "(no braille)";
-          const table = braille.Table || braille.table || "(no table)";
+          const table = activeTable || "(no table)";
           return `brailleLine ok=${ok} table=${table} text=${brailleText}`;
         }
         if (type === "cursorContext") {

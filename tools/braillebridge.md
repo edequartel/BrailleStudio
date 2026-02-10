@@ -54,8 +54,19 @@ Response:
 
 ```json
 {
+  "type": "brailleLine",
   "ok": true,
-  "brailleTable": "nl-NL-g0.utb"
+  "sourceText": "aap Aap AAP 123",
+  "braille": {
+    "unicodeText": "\u2801\u2801\u280f\u2800\u2820\u2801\u2801\u280f\u2800\u2820\u2820\u2801\u2801\u280f\u2800\u283c\u2801\u2803\u2809"
+  },
+  "meta": {
+    "activeTable": "ko-g1.ctb",
+    "charSize": 4,
+    "lineId": 5,
+    "createdUtc": "2026-02-10T20:04:18.8733379Z",
+    "lineLength": 19
+  }
 }
 ```
 
@@ -218,9 +229,19 @@ Broadcast when SSoC changes.
 
 ```json
 {
-  "unicodeText": "⠃⠗⠁⠊⠇⠇⠑",
-  "cells": [...],
-  "mapping": {...}
+  "type": "brailleLine",
+  "ok": true,
+  "sourceText": "aap Aap AAP 123",
+  "braille": {
+    "unicodeText": "\u2801\u2801\u280f\u2800\u2820\u2801\u2801\u280f\u2800\u2820\u2820\u2801\u2801\u280f\u2800\u283c\u2801\u2803\u2809"
+  },
+  "meta": {
+    "activeTable": "ko-g1.ctb",
+    "charSize": 4,
+    "lineId": 5,
+    "createdUtc": "2026-02-10T20:04:18.8733379Z",
+    "lineLength": 19
+  }
 }
 ```
 
