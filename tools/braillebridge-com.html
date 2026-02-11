@@ -6,6 +6,22 @@
   <title>BrailleBridge tool</title>
 
   <style>
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../assets/fonts/NotoSans-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../assets/fonts/NotoSans-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
       --bg: #0b0f14;
       --panel: #0f1620;
@@ -20,7 +36,7 @@
       --shadow: 0 10px 30px rgba(0,0,0,.35);
       --radius: 14px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --sans: "Noto Sans", Arial, sans-serif;
     }
 
     /* Light theme override */
@@ -421,8 +437,12 @@
             <div class="inline">
               <button class="btn good" id="wsConnectBtn">Connect</button>
               <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
               <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
               <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
               <button class="btn" id="wsSendBackspaceBtn">Send Backspace</button>
               <button class="btn" id="wsSendSpaceBtn">Send Space</button>
               <button class="btn" id="wsSendEnterBtn">Send Enter</button>
@@ -430,7 +450,6 @@
 
             <div class="row" style="margin-top:12px;">
               <div>
-                <label for="wsTextValue">Text to send (editorInput)</label>
                 <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?"></input>
               </div>
               <div class="inline" style="align-items:flex-end;">
