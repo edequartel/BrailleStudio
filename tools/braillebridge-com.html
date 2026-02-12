@@ -726,8 +726,8 @@
 
       // Base URL labels
       function refreshBaseLabels() {
-        httpBaseLabel.textContent = httpBase.value.trim();
-        wsBaseLabel.textContent = wsBase.value.trim();
+        if (httpBaseLabel) httpBaseLabel.textContent = httpBase.value.trim();
+        if (wsBaseLabel) wsBaseLabel.textContent = wsBase.value.trim();
       }
       httpBase.addEventListener("input", refreshBaseLabels);
       wsBase.addEventListener("input", refreshBaseLabels);
@@ -811,7 +811,7 @@
       }
 
       // Hook up HTTP buttons
-      postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "application/json"));
+      postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "text/plain; charset=utf-8"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
       getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
