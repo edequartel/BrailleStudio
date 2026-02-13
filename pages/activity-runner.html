@@ -163,14 +163,6 @@
           <button id="toggle-log-btn" class="secondary icon-button" type="button" aria-label="Log">
             📜
           </button>
-
-          <button
-            id="themeToggle"
-            class="theme-toggle icon-button"
-            type="button"
-            aria-label="Toggle theme">
-            🌓
-          </button>
         </div>
       </div>
     </div>
@@ -252,17 +244,13 @@
       document.addEventListener("DOMContentLoaded", () => {
         applyTheme(getInitialTheme());
 
-        const tbtn = document.getElementById("themeToggle");
-        if (tbtn) {
-          tbtn.addEventListener("click", () => {
-            const current =
-              html.getAttribute("data-theme") === "dark" ? "dark" : "light";
-            const next = current === "dark" ? "light" : "dark";
-            localStorage.setItem(THEME_KEY, next);
-            applyTheme(next);
-            window.logMessage("[theme] " + next);
-          });
-        }
+        window.addEventListener("storage", (ev) => {
+          if (ev.key !== THEME_KEY) return;
+          if (ev.newValue === "light" || ev.newValue === "dark") {
+            applyTheme(ev.newValue);
+            window.logMessage("[theme] " + ev.newValue);
+          }
+        });
 
         const btn = document.getElementById("clear-log-btn");
         if (btn) {

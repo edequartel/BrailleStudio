@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl" class="force-dark">
+<html lang="nl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -113,6 +113,27 @@
 
   </div>
 </main>
+
+<script>
+(function () {
+  const THEME_KEY = "bs_theme";
+  function getInitialTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "light" || saved === "dark") return saved;
+    return window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  document.documentElement.setAttribute("data-theme", getInitialTheme());
+  window.addEventListener("storage", (ev) => {
+    if (ev.key !== THEME_KEY) return;
+    if (ev.newValue === "light" || ev.newValue === "dark") {
+      document.documentElement.setAttribute("data-theme", ev.newValue);
+    }
+  });
+})();
+</script>
 
 <script>
 (async function () {

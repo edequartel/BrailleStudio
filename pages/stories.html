@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl" data-theme="dark">
+<html lang="nl">
 <head>
   <meta charset="utf-8" />
   <title>Verhalen (NL)</title>
@@ -299,6 +299,27 @@ function loadStory(story, button) {
       console.error(error);
     });
 }
+</script>
+<script>
+(function () {
+  const THEME_KEY = "bs_theme";
+  const html = document.documentElement;
+  function getInitialTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "light" || saved === "dark") return saved;
+    return window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  }
+  html.setAttribute("data-theme", getInitialTheme());
+  window.addEventListener("storage", (ev) => {
+    if (ev.key !== THEME_KEY) return;
+    if (ev.newValue === "light" || ev.newValue === "dark") {
+      html.setAttribute("data-theme", ev.newValue);
+    }
+  });
+})();
 </script>
 
 </body>

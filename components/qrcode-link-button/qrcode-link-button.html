@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -39,6 +39,22 @@
   </div>
 
   <script src="./qrcode-link-button.js"></script>
+  <script>
+    (function () {
+      const THEME_KEY = "bs_theme";
+      const saved = localStorage.getItem(THEME_KEY);
+      const theme = (saved === "light" || saved === "dark")
+        ? saved
+        : ((window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+      window.addEventListener("storage", (ev) => {
+        if (ev.key !== THEME_KEY) return;
+        if (ev.newValue === "light" || ev.newValue === "dark") {
+          document.documentElement.setAttribute("data-theme", ev.newValue);
+        }
+      });
+    })();
+  </script>
 
 </body>
 </html>

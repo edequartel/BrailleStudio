@@ -35,6 +35,17 @@
       --mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
       --sans: "Noto Sans", Arial, sans-serif;
     }
+    [data-theme="light"] {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-2: #fbfcfe;
+      --text: #0b1220;
+      --muted: #4b5a6a;
+      --accent: #16a34a;
+      --accent-2: #2563eb;
+      --border: rgba(10,20,40,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+    }
 
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -265,6 +276,23 @@
 
   <script>
     (function () {
+      const THEME_KEY = "bs_theme";
+      function getInitialTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === "light" || saved === "dark") return saved;
+        return window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      document.documentElement.setAttribute("data-theme", getInitialTheme());
+      window.addEventListener("storage", (ev) => {
+        if (ev.key !== THEME_KEY) return;
+        if (ev.newValue === "light" || ev.newValue === "dark") {
+          document.documentElement.setAttribute("data-theme", ev.newValue);
+        }
+      });
+
       const el = (id) => document.getElementById(id);
       const search = el("search");
       const refreshBtn = el("refreshBtn");

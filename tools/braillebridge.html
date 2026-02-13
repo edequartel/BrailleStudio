@@ -219,7 +219,6 @@
         </div>
 
         <div class="actions">
-          <button class="btn" id="themeBtn" title="Toggle theme">Theme</button>
           <a class="btn" href="braillebridge-com.html" title="Open BrailleBridge API tool">API tool</a>
         </div>
       </div>
@@ -238,29 +237,27 @@
 
   <script>
     (function () {
-      const themeBtn = document.getElementById("themeBtn");
       const markdownContent = document.getElementById("readme-box");
+      const THEME_KEY = "bs_theme";
 
       function applyTheme(theme) {
-        if (!theme) {
-          document.documentElement.removeAttribute("data-theme");
-          localStorage.removeItem("bb_theme");
-          return;
-        }
         document.documentElement.setAttribute("data-theme", theme);
-        localStorage.setItem("bb_theme", theme);
       }
-      function toggleTheme() {
-        const cur = document.documentElement.getAttribute("data-theme");
-        if (!cur) {
-          const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-          applyTheme(prefersLight ? "dark" : "light");
-          return;
+      function getInitialTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === "light" || saved === "dark") return saved;
+        return window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      applyTheme(getInitialTheme());
+      window.addEventListener("storage", (ev) => {
+        if (ev.key !== THEME_KEY) return;
+        if (ev.newValue === "light" || ev.newValue === "dark") {
+          applyTheme(ev.newValue);
         }
-        applyTheme(cur === "dark" ? "light" : "dark");
-      }
-      applyTheme(localStorage.getItem("bb_theme"));
-      themeBtn.addEventListener("click", toggleTheme);
+      });
 
       fetch("braillebridge.md", { cache: "no-store" })
         .then((resp) => {

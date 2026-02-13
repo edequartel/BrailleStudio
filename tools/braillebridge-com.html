@@ -347,7 +347,6 @@
           </div>
           <a class="btn" href="../index.html" title="Home">Home</a>
           <a class="btn" href="./tables.html" title="Open Tables tool">Tables</a>
-          <button class="btn" id="themeBtn" title="Toggle theme">Theme</button>
           <button class="btn" id="showBrailleBridgeBtn" title="Show BrailleBridge window">Show BrailleBridge</button>
           <a class="btn" href="braillebridge://" title="Open BrailleBridge">Open BrailleBridge</a>
         </div>
@@ -648,33 +647,30 @@
       const cursorSourceText = el("cursorSourceText");
 
       const log = el("log");
-      const themeBtn = el("themeBtn");
       const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
       const copyLogBtn = el("copyLogBtn");
       const clearLogBtn = el("clearLogBtn");
 
-      // Theme
+      // Theme follows index.html
+      const THEME_KEY = "bs_theme";
       function applyTheme(theme) {
-        if (!theme) {
-          document.documentElement.removeAttribute("data-theme");
-          localStorage.removeItem("bb_theme");
-          return;
-        }
         document.documentElement.setAttribute("data-theme", theme);
-        localStorage.setItem("bb_theme", theme);
       }
-      function toggleTheme() {
-        const cur = document.documentElement.getAttribute("data-theme");
-        // If not set explicitly, infer current and toggle
-        if (!cur) {
-          const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-          applyTheme(prefersLight ? "dark" : "light");
-          return;
+      function getInitialTheme() {
+        const saved = localStorage.getItem(THEME_KEY);
+        if (saved === "light" || saved === "dark") return saved;
+        return window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      }
+      applyTheme(getInitialTheme());
+      window.addEventListener("storage", (ev) => {
+        if (ev.key !== THEME_KEY) return;
+        if (ev.newValue === "light" || ev.newValue === "dark") {
+          applyTheme(ev.newValue);
         }
-        applyTheme(cur === "dark" ? "light" : "dark");
-      }
-      applyTheme(localStorage.getItem("bb_theme"));
-      themeBtn.addEventListener("click", toggleTheme);
+      });
 
       // Log helpers
       function nowTs() {

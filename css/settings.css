@@ -40,6 +40,29 @@
   color-scheme: dark;
 }
 
+[data-theme="light"]{
+  --bg:#f6f8fb;
+  --panel:#ffffff;
+  --panel2:#fbfcfe;
+  --text:#0b1220;
+  --muted:#4b5a6a;
+  --label:#334155;
+  --code-bg:#f3f4f6;
+  --border:rgba(10,20,40,.12);
+  --focus:#2563eb;
+  --accent:#2563eb;
+  --accent2:#16a34a;
+  --danger:#dc2626;
+  --warn:#b45309;
+  --btn-bg:#0b1220;
+  --btn-fg:#f8fafc;
+  --btn2-bg:#e5e7eb;
+  --btn2-fg:#0b1220;
+  --chip-border:rgba(10,20,40,.12);
+  --shadow:0 10px 30px rgba(0,0,0,.10);
+  color-scheme: light;
+}
+
 /* Base */
 *{ box-sizing:border-box; }
 
@@ -252,11 +275,6 @@ input[type="checkbox"]{
   color:var(--muted);
   background:var(--code-bg);
   white-space:pre-wrap;
-}
-
-/* Light mode (still dark-leaning) */
-html.force-dark{
-  color-scheme: dark;
 }
 
 .bottom-nav{
