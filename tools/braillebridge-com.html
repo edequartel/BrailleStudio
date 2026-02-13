@@ -340,11 +340,6 @@
         </div>
 
         <div class="actions">
-          <div class="pill" title="BrailleBridge process status from GET /ping">
-            <span>BrailleBridge</span>
-            <span class="dot warn" id="bridgeOpenDot"></span>
-            <span id="bridgeOpenText">unknown</span>
-          </div>
           <a class="btn" href="../index.html" title="Home">Home</a>
           <a class="btn" href="./tables.html" title="Open Tables tool">Tables</a>
           <button class="btn" id="showBrailleBridgeBtn" title="Show BrailleBridge window">Show BrailleBridge</button>
@@ -393,6 +388,7 @@
                 </div>
                 <div class="inline" style="align-items:flex-end;">
                   <button class="btn primary" id="postBrailleBtn">POST /braille</button>
+                  <button class="btn" id="getPathsBtn">GET /paths</button>
                 </div>
               </div>
             </div>
@@ -604,6 +600,7 @@
 
       const brailleTextValue = el("brailleTextValue");
       const postBrailleBtn = el("postBrailleBtn");
+      const getPathsBtn = el("getPathsBtn");
       const getPingBtn = el("getPingBtn");
       const getClearBtn = el("getClearBtn");
       const getDevicesBtn = el("getDevicesBtn");
@@ -614,8 +611,6 @@
       const httpStatusText = el("httpStatusText");
       const lastHttpResp = el("lastHttpResp");
       const lastHttpErr = el("lastHttpErr");
-      const bridgeOpenDot = el("bridgeOpenDot");
-      const bridgeOpenText = el("bridgeOpenText");
 
       const wsDot = el("wsDot");
       const wsStatusText = el("wsStatusText");
@@ -715,14 +710,6 @@
           editorModeText.textContent = enabled === true ? "enabled" : enabled === false ? "disabled" : "unknown";
         }
       }
-      function setBridgeOpenStatus(opened) {
-        bridgeOpenDot.classList.toggle("ok", opened === true);
-        bridgeOpenDot.classList.toggle("warn", opened !== true && opened !== false);
-        if (bridgeOpenText) {
-          bridgeOpenText.textContent = opened === true ? "opened" : opened === false ? "closed" : "unknown";
-        }
-      }
-
       // Copy/Clear log
       copyLogBtn.addEventListener("click", async () => {
         try {
@@ -825,35 +812,13 @@
 
       // Hook up HTTP buttons
       postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "text/plain; charset=utf-8"));
+      getPathsBtn.addEventListener("click", () => httpGet("/paths"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
       getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
       getActiveDeviceBtn.addEventListener("click", () => httpGet("/devices/active"));
       getTablesBtn.addEventListener("click", () => httpGet("/tables"));
       showBrailleBridgeBtn.addEventListener("click", () => httpGet("/show"));
-
-      // Background bridge-open status probe: opened only when /ping contains "/ping received".
-      let lastBridgeOpenState = null;
-      async function pollBridgeOpenStatus() {
-        const base = httpBase.value.trim().replace(/\/$/, "");
-        const url = base + "/ping";
-        try {
-          const resp = await fetch(url, { method: "GET", cache: "no-store" });
-          const body = await resp.text();
-          const opened = resp.ok && body.includes("/ping received");
-          setBridgeOpenStatus(opened);
-          if (opened !== lastBridgeOpenState) {
-            appendLog(`BrailleBridge status: ${opened ? "opened" : "closed"} (GET /ping)`);
-            lastBridgeOpenState = opened;
-          }
-        } catch {
-          setBridgeOpenStatus(false);
-          if (lastBridgeOpenState !== false) {
-            appendLog("BrailleBridge status: closed (GET /ping failed)");
-            lastBridgeOpenState = false;
-          }
-        }
-      }
 
       // WebSocket
       let ws = null;
@@ -1032,9 +997,6 @@
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
       appendLog("Spec: POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
       appendLog("Spec: WS brailleLine/cursorContext/keyEvent in, editorInput/setEditorMode out.");
-      setBridgeOpenStatus(null);
-      pollBridgeOpenStatus();
-      setInterval(pollBridgeOpenStatus, 3000);
     })();
   </script>
 </body>
