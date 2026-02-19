@@ -54,11 +54,11 @@
 <div id="reader"></div>
 <div id="result">(no result yet)</div>
 
-<!-- ✅ LOAD Html5Qrcode FIRST -->
+<!-- ✅ MUST be loaded BEFORE your own script -->
 <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
 
 <script>
-  // Debug check – MUST say "function"
+  // Debug: must log "function"
   console.log("Html5Qrcode:", typeof Html5Qrcode);
 
   const startBtn = document.getElementById("startBtn");
@@ -87,8 +87,7 @@
         decodedText => {
           if (decodedText !== lastResult) {
             setResult(decodedText);
-            // Uncomment if you want auto-stop after first scan:
-            // stopScanner();
+            // stopScanner(); // enable if you want auto-stop
           }
         }
       );
@@ -105,7 +104,7 @@
     try {
       await qr.stop();
       await qr.clear();
-    } catch (e) {}
+    } catch {}
     startBtn.disabled = false;
     stopBtn.disabled = true;
   }
