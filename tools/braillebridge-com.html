@@ -368,50 +368,33 @@
           </div>
 
           <div class="bd">
-            <div class="row">
-              <div>
-                <label for="httpBase">HTTP Base URL</label>
-                <input id="httpBase" type="text" value="http://localhost:5000" />
-              </div>
-              <div>
-                <label for="wsBase">WebSocket URL</label>
-                <input id="wsBase" type="text" value="ws://localhost:5000/ws" />
-              </div>
-            </div>
-
-            <div style="margin-top:12px;">
-              <label for="brailleTextValue">Legacy braille text (POST /braille)</label>
-              <div class="row">
-                <div>
-                  <label for="brailleTextValue">Text</label>
-                  <input id="brailleTextValue" type="text" value="aap Aap AAP 123" />
-                </div>
-                <div class="inline" style="align-items:flex-end;">
-                  <button class="btn primary" id="postBrailleBtn">POST /braille</button>
-                  <button class="btn" id="getPathsBtn">GET /paths</button>
-                </div>
-              </div>
+            <div>
+              <input id="httpBase" type="text" value="http://localhost:5000" aria-label="HTTP Base URL" />
             </div>
 
             <div class="inline" style="margin-top:10px;">
+              <button class="btn" id="getPathsBtn">GET /paths</button>
               <button class="btn" id="getPingBtn">GET /ping</button>
-              <button class="btn danger" id="getClearBtn">GET /clear</button>
+              <button class="btn" id="getClearBtn">GET /clear</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
               <button class="btn" id="getDevicesBtn">GET /devices</button>
               <button class="btn" id="getActiveDeviceBtn">GET /devices/active</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
               <button class="btn" id="getTablesBtn">GET /tables</button>
             </div>
 
-            <div class="kpi">
-              <div class="box">
-                <div><strong>Last HTTP response</strong></div>
-                <div class="v" id="lastHttpResp">—</div>
-              </div>
-              <div class="box">
-                <div><strong>Last HTTP error</strong></div>
-                <div class="v" id="lastHttpErr">—</div>
+            <div style="margin-top:12px;">
+              <div class="row">
+                <div>
+                  <input id="brailleTextValue" type="text" value="aap Aap AAP 123" />
+                </div>
+                <div class="inline">
+                  <button class="btn" id="postBrailleBtn">POST /braille</button>
+                </div>
               </div>
             </div>
-
 
           </div>
         </section>
@@ -436,8 +419,11 @@
           </div>
 
           <div class="bd">
-            <div class="inline">
-              <button class="btn good" id="wsConnectBtn">Connect</button>
+            <div>
+              <input id="wsBase" type="text" value="ws://localhost:5000/ws" aria-label="WebSocket URL" />
+            </div>
+            <div class="inline" style="margin-top:12px;">
+              <button class="btn" id="wsConnectBtn">Connect</button>
               <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
             </div>
             <div class="inline" style="margin-top:8px;">
@@ -454,7 +440,7 @@
               <div>
                 <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?"></input>
               </div>
-              <div class="inline" style="align-items:flex-end;">
+              <div class="inline">
                 <button class="btn" id="wsSendInputBtn">Send Text</button>
               </div>
             </div>
@@ -500,21 +486,30 @@
           </div>
         </section>
 
-        <!-- Right: Latest cursorContext -->
+        <!-- Right: Latest cursorContext / chordContext -->
         <section class="card">
           <div class="hd">
             <div>
-              <h2>Latest cursorContext</h2>
-              <div class="hint">Rendered from incoming WS message</div>
+              <h2>Latest Contexts</h2>
             </div>
             <div class="pill">
               <span>WS</span>
               <span class="dot ok"></span>
-              <span>cursorContext</span>
+              <span id="latestContextTypePill">context</span>
             </div>
           </div>
           <div class="bd">
             <div class="split">
+              <div class="row">
+                <div>
+                  <label for="latestContextType">Latest Context Type</label>
+                  <input id="latestContextType" type="text" readonly />
+                </div>
+                <div>
+                  <label for="latestContextSamMsgType">Latest Sam.MsgType</label>
+                  <input id="latestContextSamMsgType" type="text" readonly />
+                </div>
+              </div>
               <div class="row">
                 <div>
                   <label for="cursorCellIndex">Cursor CellIndex</label>
@@ -609,9 +604,6 @@
 
       const httpDot = el("httpDot");
       const httpStatusText = el("httpStatusText");
-      const lastHttpResp = el("lastHttpResp");
-      const lastHttpErr = el("lastHttpErr");
-
       const wsDot = el("wsDot");
       const wsStatusText = el("wsStatusText");
       const wsConnectBtn = el("wsConnectBtn");
@@ -640,6 +632,9 @@
       const cursorTable = el("cursorTable");
       const cursorTimestamp = el("cursorTimestamp");
       const cursorSourceText = el("cursorSourceText");
+      const latestContextType = el("latestContextType");
+      const latestContextSamMsgType = el("latestContextSamMsgType");
+      const latestContextTypePill = el("latestContextTypePill");
 
       const log = el("log");
       const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
@@ -745,13 +740,10 @@
           if (ct.includes("application/json")) body = await resp.json();
           else body = await resp.text();
 
-          lastHttpResp.textContent = typeof body === "string" ? body : JSON.stringify(body);
-          lastHttpErr.textContent = "—";
           setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
           appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${typeof body === "string" ? body : JSON.stringify(body)}`);
           return body;
         } catch (e) {
-          lastHttpErr.textContent = String(e);
           setHttpStatus(false, "network error");
           appendLog(`HTTP !! error :: ${String(e)}`);
           throw e;
@@ -771,13 +763,10 @@
           });
 
           const body = await resp.text();
-          lastHttpResp.textContent = body;
-          lastHttpErr.textContent = "—";
           setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
           appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${body}`);
           return body;
         } catch (e) {
-          lastHttpErr.textContent = String(e);
           setHttpStatus(false, "network error");
           appendLog(`HTTP !! error :: ${String(e)}`);
           throw e;
@@ -788,7 +777,7 @@
         const base = httpBase.value.trim().replace(/\/$/, "");
         const url = base + path;
         const ct = contentType || "application/json";
-        appendLog(`HTTP → POST ${url} (${ct})`);
+        appendLog(`HTTP â†’ POST ${url} (${ct})`);
         try {
           const resp = await fetch(url, {
             method: "POST",
@@ -797,13 +786,10 @@
           });
 
           const body = await resp.text();
-          lastHttpResp.textContent = body;
-          lastHttpErr.textContent = "—";
           setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
-          appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${body}`);
+          appendLog(`HTTP â† ${resp.status} ${resp.statusText} :: ${body}`);
           return body;
         } catch (e) {
-          lastHttpErr.textContent = String(e);
           setHttpStatus(false, "network error");
           appendLog(`HTTP !! error :: ${String(e)}`);
           throw e;
@@ -950,6 +936,26 @@
         const braille = o.Braille || o.braille || {};
         const meta = o.Meta || o.meta || {};
         const cursor = o.Cursor || o.cursor || {};
+        const sam = o.Sam || o.sam || {};
+
+        function setLatestContextMeta(kind) {
+          if (latestContextType) latestContextType.value = kind || "";
+          if (latestContextTypePill) latestContextTypePill.textContent = kind || "context";
+          const samMsgType = typeof sam.MsgType !== "undefined" ? sam.MsgType : sam.msgType;
+          if (latestContextSamMsgType) latestContextSamMsgType.value = typeof samMsgType !== "undefined" ? String(samMsgType) : "";
+        }
+
+        function renderLatestContextFields() {
+          if (cursorCellIndex) cursorCellIndex.value = typeof cursor.CellIndex !== "undefined" ? String(cursor.CellIndex) : (typeof cursor.cellIndex !== "undefined" ? String(cursor.cellIndex) : "");
+          if (cursorTextIndex) cursorTextIndex.value = typeof cursor.TextIndex !== "undefined" ? String(cursor.TextIndex) : (typeof cursor.textIndex !== "undefined" ? String(cursor.textIndex) : "");
+          if (cursorCharacter) cursorCharacter.value = cursor.Character || cursor.character || "";
+          if (cursorWord) cursorWord.value = cursor.Word || cursor.word || "";
+          if (cursorCellChar) cursorCellChar.value = braille.CellChar || braille.cellChar || "";
+          if (cursorCellCodePoint) cursorCellCodePoint.value = braille.CellCodePoint || braille.cellCodePoint || "";
+          if (cursorTable) cursorTable.value = o.Table || o.table || "";
+          if (cursorTimestamp) cursorTimestamp.value = ts;
+          if (cursorSourceText) cursorSourceText.value = sourceText;
+        }
 
         if (type === "brailleLine") {
           if (brailleUnicode) brailleUnicode.value = braille.UnicodeText || braille.unicodeText || "";
@@ -963,19 +969,20 @@
           return `brailleLine ok=${ok} table=${table} text=${brailleText}`;
         }
         if (type === "cursorContext") {
-          if (cursorCellIndex) cursorCellIndex.value = typeof cursor.CellIndex !== "undefined" ? String(cursor.CellIndex) : (typeof cursor.cellIndex !== "undefined" ? String(cursor.cellIndex) : "");
-          if (cursorTextIndex) cursorTextIndex.value = typeof cursor.TextIndex !== "undefined" ? String(cursor.TextIndex) : (typeof cursor.textIndex !== "undefined" ? String(cursor.textIndex) : "");
-          if (cursorCharacter) cursorCharacter.value = cursor.Character || cursor.character || "";
-          if (cursorWord) cursorWord.value = cursor.Word || cursor.word || "";
-          if (cursorCellChar) cursorCellChar.value = braille.CellChar || braille.cellChar || "";
-          if (cursorCellCodePoint) cursorCellCodePoint.value = braille.CellCodePoint || braille.cellCodePoint || "";
-          if (cursorTable) cursorTable.value = o.Table || o.table || "";
-          if (cursorTimestamp) cursorTimestamp.value = ts;
-          if (cursorSourceText) cursorSourceText.value = sourceText;
+          setLatestContextMeta("cursorContext");
+          renderLatestContextFields();
           const cell = typeof cursor.CellIndex !== "undefined" ? cursor.CellIndex : (typeof cursor.cellIndex !== "undefined" ? cursor.cellIndex : "?");
           const textIndex = typeof cursor.TextIndex !== "undefined" ? cursor.TextIndex : (typeof cursor.textIndex !== "undefined" ? cursor.textIndex : "?");
           const ch = cursor.Character || cursor.character || "?";
           return `cursorContext ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
+        }
+        if (type === "chordContext") {
+          setLatestContextMeta("chordContext");
+          renderLatestContextFields();
+          const cell = typeof cursor.CellIndex !== "undefined" ? cursor.CellIndex : (typeof cursor.cellIndex !== "undefined" ? cursor.cellIndex : "?");
+          const textIndex = typeof cursor.TextIndex !== "undefined" ? cursor.TextIndex : (typeof cursor.textIndex !== "undefined" ? cursor.textIndex : "?");
+          const ch = cursor.Character || cursor.character || "?";
+          return `chordContext ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
         }
         if (typeof o.MsgType !== "undefined") {
           return `keyEvent MsgType=${o.MsgType} UnitId=${o.UnitId} ButtonIndex=${o.ButtonIndex} IsPress=${o.IsPress} Name=${o.Name ?? ""} DotsMask=${o.DotsMask ?? ""}`;
@@ -1001,3 +1008,4 @@
   </script>
 </body>
 </html>
+
