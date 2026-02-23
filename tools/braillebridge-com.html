@@ -357,7 +357,7 @@
         <section class="card">
           <div class="hd">
             <div>
-              <h2>HTTP API</h2>
+              <h2>API</h2>
               <div class="hint"></div>
             </div>
             <div class="pill">
@@ -403,7 +403,7 @@
         <section class="card">
           <div class="hd">
             <div>
-              <h2>WebSocket (SSoC)</h2>
+              <h2>WebSocket</h2>
               <div class="hint"></div>
             </div>
             <div class="inline">
@@ -453,8 +453,7 @@
         <section class="card">
           <div class="hd">
             <div>
-              <h2>Latest brailleLine</h2>
-              <div class="hint">Rendered from incoming WS message</div>
+              <h2>Brailleline</h2>
             </div>
             <div class="pill">
               <span>WS</span>
@@ -478,6 +477,16 @@
                   <input id="brailleTimestamp" type="text" readonly />
                 </div>
               </div>
+              <div class="row">
+                <div>
+                  <label for="brailleCaretPosition">CaretPosition</label>
+                  <input id="brailleCaretPosition" type="text" readonly />
+                </div>
+                <div>
+                  <label for="brailleLineLength">LineLength</label>
+                  <input id="brailleLineLength" type="text" readonly />
+                </div>
+              </div>
               <div>
                 <label for="brailleSourceText">SourceText</label>
                 <textarea id="brailleSourceText" readonly></textarea>
@@ -490,7 +499,7 @@
         <section class="card">
           <div class="hd">
             <div>
-              <h2>Latest Contexts</h2>
+              <h2>Contexts</h2>
             </div>
             <div class="pill">
               <span>WS</span>
@@ -564,9 +573,9 @@
         <div class="hd">
           <div>
             <h2>Log</h2>
-            <div class="hint">Incoming events (JSON)</div>
           </div>
           <div class="inline">
+            <button class="btn" id="toggleLogBtn" title="Show or hide log">Show log</button>
             <button class="btn" id="copyLogBtn" title="Copy log to clipboard">Copy log</button>
             <button class="btn danger" id="clearLogBtn" title="Clear log">Clear log</button>
             <div class="pill">
@@ -576,7 +585,7 @@
             </div>
           </div>
         </div>
-        <div class="bd">
+        <div class="bd" id="logCardBody" hidden>
           <div class="log" id="log"></div>
         </div>
       </section>
@@ -621,6 +630,8 @@
       const brailleUnicode = el("brailleUnicode");
       const brailleTable = el("brailleTable");
       const brailleTimestamp = el("brailleTimestamp");
+      const brailleCaretPosition = el("brailleCaretPosition");
+      const brailleLineLength = el("brailleLineLength");
       const brailleSourceText = el("brailleSourceText");
 
       const cursorCellIndex = el("cursorCellIndex");
@@ -637,6 +648,8 @@
       const latestContextTypePill = el("latestContextTypePill");
 
       const log = el("log");
+      const logCardBody = el("logCardBody");
+      const toggleLogBtn = el("toggleLogBtn");
       const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
       const copyLogBtn = el("copyLogBtn");
       const clearLogBtn = el("clearLogBtn");
@@ -670,7 +683,20 @@
         const dd = String(d.getDate()).padStart(2, "0");
         const hh = String(d.getHours()).padStart(2, "0");
         const mi = String(d.getMinutes()).padStart(2, "0");
-        return `${dd}.${mm}.${yy} ${hh}:${mi}`;
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        return `${yy}.${mm}.${dd} ${hh}:${mi}:${ss}`;
+      }
+      function formatUtcTimestamp(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (Number.isNaN(d.getTime())) return String(value);
+        const yy = String(d.getUTCFullYear()).slice(-2);
+        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(d.getUTCDate()).padStart(2, "0");
+        const hh = String(d.getUTCHours()).padStart(2, "0");
+        const mi = String(d.getUTCMinutes()).padStart(2, "0");
+        const ss = String(d.getUTCSeconds()).padStart(2, "0");
+        return `${yy}.${mm}.${dd} ${hh}:${mi}:${ss}`;
       }
       function appendLog(line) {
         const maxLines = 1200; // cap to avoid runaway memory
@@ -689,6 +715,10 @@
           log.removeChild(log.lastChild);
         }
         log.scrollTop = 0;
+      }
+      function setLogVisible(visible) {
+        if (logCardBody) logCardBody.hidden = !visible;
+        if (toggleLogBtn) toggleLogBtn.textContent = visible ? "Hide log" : "Show log";
       }
       function setHttpStatus(ok, text) {
         httpDot.classList.toggle("ok", !!ok);
@@ -718,6 +748,13 @@
         log.textContent = "";
         appendLog("UI: log cleared");
       });
+      if (toggleLogBtn) {
+        toggleLogBtn.addEventListener("click", () => {
+          const visible = !!(logCardBody && !logCardBody.hidden);
+          setLogVisible(!visible);
+        });
+      }
+      setLogVisible(false);
 
       // Base URL labels
       function refreshBaseLabels() {
@@ -953,7 +990,7 @@
           if (cursorCellChar) cursorCellChar.value = braille.CellChar || braille.cellChar || "";
           if (cursorCellCodePoint) cursorCellCodePoint.value = braille.CellCodePoint || braille.cellCodePoint || "";
           if (cursorTable) cursorTable.value = o.Table || o.table || "";
-          if (cursorTimestamp) cursorTimestamp.value = ts;
+          if (cursorTimestamp) cursorTimestamp.value = formatUtcTimestamp(ts);
           if (cursorSourceText) cursorSourceText.value = sourceText;
         }
 
@@ -961,8 +998,12 @@
           if (brailleUnicode) brailleUnicode.value = braille.UnicodeText || braille.unicodeText || "";
           const activeTable = meta.ActiveTable || meta.activeTable || braille.Table || braille.table || "";
           const createdUtc = meta.CreatedUtc || meta.createdUtc || ts;
+          const caretPosition = typeof meta.CaretPosition !== "undefined" ? meta.CaretPosition : meta.caretPosition;
+          const lineLength = typeof meta.LineLength !== "undefined" ? meta.LineLength : meta.lineLength;
           if (brailleTable) brailleTable.value = activeTable;
-          if (brailleTimestamp) brailleTimestamp.value = createdUtc;
+          if (brailleTimestamp) brailleTimestamp.value = formatUtcTimestamp(createdUtc);
+          if (brailleCaretPosition) brailleCaretPosition.value = typeof caretPosition !== "undefined" ? String(caretPosition) : "";
+          if (brailleLineLength) brailleLineLength.value = typeof lineLength !== "undefined" ? String(lineLength) : "";
           if (brailleSourceText) brailleSourceText.value = sourceText;
           const brailleText = braille.UnicodeText || braille.unicodeText || "(no braille)";
           const table = activeTable || "(no table)";
