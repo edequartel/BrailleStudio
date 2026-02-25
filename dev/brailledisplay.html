@@ -1,0 +1,342 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>MediaPipe – Index Fingers on Braille Line</title>
+<style>
+  body { font-family: system-ui; background:#0b0e14; color:#e9effa; margin:16px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .videoWrap { position:relative; width:800px; height:600px; border-radius:12px; overflow:hidden; border:1px solid #223; }
+  video, canvas { position:absolute; width:100%; height:100%; object-fit:cover; }
+  .panel { min-width:320px; max-width:520px; padding:12px; border:1px solid #223; border-radius:12px; background:#0f1420; }
+  .panel h3 { margin:0 0 10px; font-size:16px; }
+  label { display:block; margin:10px 0 4px; font-size:13px; opacity:.95; }
+  input[type="range"] { width:100%; }
+  select, button { width:100%; padding:8px; border-radius:10px; border:1px solid #223; background:#0b0e14; color:#e9effa; }
+  button { cursor:pointer; margin-top:10px; }
+  .status { margin-top:12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space:pre; }
+  .hint { font-size:13px; opacity:.85; line-height:1.35; }
+</style>
+</head>
+<body>
+
+<h2>Index Fingers tracking on Braille display (bottom ROI)</h2>
+
+<div class="row">
+  <div class="videoWrap">
+    <video id="video" playsinline></video>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="panel">
+    <h3>Controls</h3>
+
+    <div class="hint">
+      Tip: because your braille display sits against the <b>front edge</b> of the laptop,
+      we treat the <b>bottom band</b> of the image as the “braille line” zone.
+      Only index fingertips inside that band are considered “on the line”.
+    </div>
+
+    <label for="cameraSelect">Camera</label>
+    <select id="cameraSelect"></select>
+    <button id="restartBtn">Restart camera</button>
+
+    <label for="roiHeight">Braille band height (% of image)</label>
+    <input id="roiHeight" type="range" min="10" max="60" value="28" />
+
+    <label for="roiOffset">Band offset from bottom (px)</label>
+    <input id="roiOffset" type="range" min="0" max="120" value="10" />
+
+    <label for="cells">Braille cells (for mapping x → cellIndex)</label>
+    <input id="cells" type="range" min="10" max="80" value="40" />
+    <div class="hint" id="cellsLabel">40 cells</div>
+
+    <label for="smoothing">Smoothing (0 = none, 0.9 = heavy)</label>
+    <input id="smoothing" type="range" min="0" max="90" value="65" />
+
+    <label for="mirror">Mirror view (selfie)</label>
+    <select id="mirror">
+      <option value="1" selected>On</option>
+      <option value="0">Off</option>
+    </select>
+
+    <div class="status" id="status">Waiting…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+
+const cameraSelect = document.getElementById("cameraSelect");
+const restartBtn = document.getElementById("restartBtn");
+
+const roiHeightEl = document.getElementById("roiHeight");
+const roiOffsetEl = document.getElementById("roiOffset");
+const cellsEl = document.getElementById("cells");
+const cellsLabel = document.getElementById("cellsLabel");
+const smoothingEl = document.getElementById("smoothing");
+const mirrorEl = document.getElementById("mirror");
+
+cellsLabel.textContent = `${cellsEl.value} cells`;
+cellsEl.addEventListener("input", () => cellsLabel.textContent = `${cellsEl.value} cells`);
+
+let camera = null;
+let selectedDeviceId = null;
+
+// --- helpers ---
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+// Exponential smoothing state per hand label
+const smoothState = {
+  Left:  { x:null, y:null, lastSeen:0 },
+  Right: { x:null, y:null, lastSeen:0 },
+  Unknown: { x:null, y:null, lastSeen:0 }
+};
+
+function smoothPoint(label, x, y, alpha){ // alpha ~ 0.0..0.9 ; higher = more smoothing
+  const s = smoothState[label] || smoothState.Unknown;
+  const now = performance.now();
+  const maxStaleMs = 350; // reset if hand disappears for a bit
+
+  if (s.x === null || (now - s.lastSeen) > maxStaleMs) {
+    s.x = x; s.y = y;
+  } else {
+    // alpha is "memory"; convert to blend factor:
+    const t = 1 - alpha; // 0.1 -> small updates, 1.0 -> no smoothing
+    s.x = lerp(s.x, x, t);
+    s.y = lerp(s.y, y, t);
+  }
+  s.lastSeen = now;
+  smoothState[label] = s;
+  return { x: s.x, y: s.y };
+}
+
+function drawCircle(x,y,r, stroke=false){
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  if (stroke) ctx.stroke(); else ctx.fill();
+}
+
+function toCellIndex(xPx, roiX, roiW, cellCount){
+  const rel = clamp((xPx - roiX) / roiW, 0, 0.999999);
+  return Math.floor(rel * cellCount);
+}
+
+function listHands(results){
+  // MediaPipe gives multiHandLandmarks + multiHandedness
+  const out = [];
+  const lms = results.multiHandLandmarks || [];
+  const handed = results.multiHandedness || [];
+  for (let i=0; i<lms.length; i++){
+    const label = (handed[i]?.label) || "Unknown"; // "Left" / "Right"
+    out.push({ label, landmarks: lms[i] });
+  }
+  return out;
+}
+
+// --- MediaPipe Hands ---
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,              // track both index fingers
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+  // Read controls
+  const mirror = mirrorEl.value === "1";
+  const roiHeightPct = parseInt(roiHeightEl.value, 10) / 100;
+  const roiOffsetPx  = parseInt(roiOffsetEl.value, 10);
+  const cellCount    = parseInt(cellsEl.value, 10);
+  const alpha        = parseInt(smoothingEl.value, 10) / 100; // 0..0.9
+
+  // Clear + draw camera frame (optionally mirrored)
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if (mirror) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  }
+
+  // Define "braille line" band near bottom (ROI)
+  const roiH = Math.floor(canvas.height * roiHeightPct);
+  const roiY = clamp(canvas.height - roiH - roiOffsetPx, 0, canvas.height - 1);
+  const roiX = 0;
+  const roiW = canvas.width;
+
+  // Draw ROI band
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "white";
+  ctx.fillRect(roiX, roiY, roiW, roiH);
+  ctx.restore();
+
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(roiX + 1, roiY + 1, roiW - 2, roiH - 2);
+
+  // Draw cell grid lines (light)
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 1;
+  for (let c=1; c<cellCount; c++){
+    const x = roiX + (c / cellCount) * roiW;
+    ctx.beginPath();
+    ctx.moveTo(x, roiY);
+    ctx.lineTo(x, roiY + roiH);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const handsFound = listHands(results);
+  if (!handsFound.length) {
+    statusEl.textContent = "No hands detected";
+    return;
+  }
+
+  // Track index tips in ROI
+  const tracked = [];
+  for (const h of handsFound) {
+    const idxTip = h.landmarks[8]; // index fingertip
+    let x = idxTip.x * canvas.width;
+    let y = idxTip.y * canvas.height;
+
+    // If mirrored, x must be flipped because we flipped the drawn frame
+    if (mirror) x = canvas.width - x;
+
+    const onBrailleBand = (y >= roiY && y <= (roiY + roiH));
+    if (!onBrailleBand) continue;
+
+    // smooth
+    const sp = smoothPoint(h.label, x, y, alpha);
+
+    const cellIndex = toCellIndex(sp.x, roiX, roiW, cellCount);
+    tracked.push({
+      label: h.label,
+      x: sp.x,
+      y: sp.y,
+      cellIndex
+    });
+  }
+
+  // Visualize tracked points
+  for (const t of tracked) {
+    // Different sizes for clarity
+    ctx.fillStyle = "white";
+    drawCircle(t.x, t.y, 8);
+
+    // Label
+    ctx.font = "14px ui-monospace, SFMono-Regular, Menlo, monospace";
+    ctx.fillStyle = "white";
+    const tag = `${t.label} index • cell ${t.cellIndex}`;
+    ctx.fillText(tag, t.x + 12, t.y - 10);
+  }
+
+  // If two index fingers are present, also draw a line between them
+  if (tracked.length >= 2) {
+    const a = tracked[0], b = tracked[1];
+    ctx.strokeStyle = "lime";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+
+  // Status payload (ready to use for websocket etc.)
+  statusEl.textContent = JSON.stringify({
+    roi: { y: roiY, h: roiH, offsetPx: roiOffsetPx, heightPct: roiHeightPct },
+    cells: cellCount,
+    mirror,
+    trackedIndexFingers: tracked.map(t => ({
+      hand: t.label,
+      x: Math.round(t.x),
+      y: Math.round(t.y),
+      cellIndex: t.cellIndex
+    }))
+  }, null, 2);
+});
+
+// --- Camera selection / start ---
+async function populateCameras(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === "videoinput");
+  cameraSelect.innerHTML = "";
+  cams.forEach((c, i) => {
+    const opt = document.createElement("option");
+    opt.value = c.deviceId;
+    opt.textContent = c.label || `Camera ${i+1}`;
+    cameraSelect.appendChild(opt);
+  });
+  if (!selectedDeviceId && cams[0]) selectedDeviceId = cams[0].deviceId;
+  if (selectedDeviceId) cameraSelect.value = selectedDeviceId;
+}
+
+async function startCamera(){
+  // Stop prior camera_utils camera if exists
+  if (camera && camera.stop) {
+    try { camera.stop(); } catch {}
+    camera = null;
+  }
+
+  // Request stream with preferred device
+  const constraints = {
+    audio: false,
+    video: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true
+  };
+
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  video.srcObject = stream;
+  await video.play();
+
+  // Use MediaPipe Camera helper (feeds frames to Hands)
+  camera = new Camera(video, {
+    onFrame: async () => { await hands.send({ image: video }); },
+    width: 800,
+    height: 600
+  });
+  camera.start();
+}
+
+cameraSelect.addEventListener("change", async () => {
+  selectedDeviceId = cameraSelect.value;
+});
+
+restartBtn.addEventListener("click", async () => {
+  try {
+    await startCamera();
+  } catch (e) {
+    statusEl.textContent = "Failed to restart camera:\n" + (e?.message || e);
+  }
+});
+
+(async function init(){
+  try {
+    // First permission, then labels become available
+    await navigator.mediaDevices.getUserMedia({ video:true, audio:false }).then(s => s.getTracks().forEach(t => t.stop()));
+    await populateCameras();
+    await startCamera();
+  } catch (e) {
+    statusEl.textContent = "Camera init failed:\n" + (e?.message || e);
+  }
+})();
+</script>
+
+</body>
+</html>
