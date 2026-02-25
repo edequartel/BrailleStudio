@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Invisible Theremin — MediaPipe Hands + WebAudio</title>
+<style>
+  body { font-family: system-ui; background:#0b0e14; color:#e9effa; margin:16px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .videoWrap { position:relative; width:800px; height:600px; border-radius:14px; overflow:hidden; border:1px solid #223; }
+  video, canvas { position:absolute; width:100%; height:100%; object-fit:cover; }
+  .panel { min-width:340px; max-width:560px; padding:12px; border:1px solid #223; border-radius:14px; background:#0f1420; }
+  button, select, input[type="range"]{
+    width:100%; padding:10px; border-radius:12px; border:1px solid #223;
+    background:#0b0e14; color:#e9effa; font-size:14px;
+  }
+  button{ cursor:pointer; margin-top:10px; font-weight:700; }
+  label{ display:block; margin:10px 0 6px; font-size:13px; opacity:.95; }
+  .big { font-size:42px; font-weight:900; letter-spacing:0.5px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space:pre; }
+  .pill { display:inline-block; padding:4px 10px; border:1px solid #223; border-radius:999px; margin-right:8px; }
+  .hint { font-size:13px; opacity:.85; line-height:1.4; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+</style>
+</head>
+<body>
+
+<h2>✨ Invisible Theremin (Air Instrument) — MediaPipe Hands</h2>
+
+<div class="row">
+  <div class="videoWrap">
+    <video id="video" playsinline muted></video>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="hint">
+      Controls (instant wow):
+      <br>• <b>Right hand height</b> → pitch (higher = higher note)
+      <br>• <b>Left hand distance</b> (palm z) → volume (closer = louder)
+      <br>• <b>Pinch</b> (thumb+index) on either hand → toggle <b>Vibrato</b>
+      <br>• <b>Hands together</b> → <b>Mute</b>
+      <br><br>
+      Tip: Start audio with the button (browser requirement).
+    </div>
+
+    <button id="startBtn">▶ Start Audio</button>
+
+    <div style="margin-top:12px">
+      <span class="pill" id="audioPill">Audio: OFF</span>
+      <span class="pill" id="vibPill">Vibrato: OFF</span>
+      <span class="pill" id="mutePill">Mute: OFF</span>
+    </div>
+
+    <label>Mirror view (selfie)</label>
+    <select id="mirror">
+      <option value="1" selected>On</option>
+      <option value="0">Off</option>
+    </select>
+
+    <div class="grid2">
+      <div>
+        <label>Waveform</label>
+        <select id="wave">
+          <option value="sine" selected>sine</option>
+          <option value="triangle">triangle</option>
+          <option value="square">square</option>
+          <option value="sawtooth">sawtooth</option>
+        </select>
+      </div>
+      <div>
+        <label>Scale</label>
+        <select id="scale">
+          <option value="chromatic" selected>Chromatic</option>
+          <option value="major">Major</option>
+          <option value="pentatonic">Pentatonic</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Pitch range (Hz)</label>
+    <input id="pitchMax" type="range" min="440" max="1760" value="880" />
+    <div class="mono" id="readout" style="margin-top:10px">Waiting…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const startBtn = document.getElementById("startBtn");
+const audioPill = document.getElementById("audioPill");
+const vibPill = document.getElementById("vibPill");
+const mutePill = document.getElementById("mutePill");
+
+const mirrorEl = document.getElementById("mirror");
+const waveEl = document.getElementById("wave");
+const scaleEl = document.getElementById("scale");
+const pitchMaxEl = document.getElementById("pitchMax");
+const readout = document.getElementById("readout");
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function dist2D(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+
+// ---------- Audio engine ----------
+let audioCtx = null;
+let osc = null;
+let gain = null;
+let filter = null;
+
+// vibrato
+let vibOsc = null;
+let vibGain = null;
+let vibratoOn = false;
+let mutedByHands = false;
+
+// smoothing
+let smoothPitch = 220;
+let smoothVol = 0;
+
+function setPill(el, label, on){
+  el.textContent = `${label}: ${on ? "ON" : "OFF"}`;
+  el.style.borderColor = on ? "lime" : "#223";
+}
+
+function ensureAudio(){
+  if (audioCtx) return;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  osc = audioCtx.createOscillator();
+  gain = audioCtx.createGain();
+  filter = audioCtx.createBiquadFilter();
+
+  filter.type = "lowpass";
+  filter.frequency.value = 6000;
+
+  osc.type = waveEl.value;
+  osc.frequency.value = 220;
+
+  gain.gain.value = 0; // start silent
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  // vibrato: LFO -> osc.frequency
+  vibOsc = audioCtx.createOscillator();
+  vibGain = audioCtx.createGain();
+  vibOsc.type = "sine";
+  vibOsc.frequency.value = 6;      // vibrato speed
+  vibGain.gain.value = 0;          // depth (Hz), 0 when off
+  vibOsc.connect(vibGain);
+  vibGain.connect(osc.frequency);
+
+  osc.start();
+  vibOsc.start();
+
+  setPill(audioPill, "Audio", true);
+}
+
+function setVibrato(on){
+  vibratoOn = on;
+  if (vibGain) vibGain.gain.value = on ? 18 : 0; // depth in Hz
+  setPill(vibPill, "Vibrato", on);
+}
+
+function setMute(on){
+  mutedByHands = on;
+  setPill(mutePill, "Mute", on);
+  if (gain) {
+    // hard mute quickly
+    gain.gain.setTargetAtTime(on ? 0 : smoothVol, audioCtx.currentTime, 0.01);
+  }
+}
+
+startBtn.addEventListener("click", async () => {
+  ensureAudio();
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+  startBtn.textContent = "Audio running ✅";
+  startBtn.disabled = true;
+});
+
+// keep oscillator type updated
+waveEl.addEventListener("change", () => { if (osc) osc.type = waveEl.value; });
+
+// ---------- Music mapping ----------
+function quantizeToScale(freq, scaleName){
+  // Quantize by snapping to nearest MIDI note in a scale.
+  // This gives a more “musical” feel.
+  const A4 = 440;
+  const midi = 69 + 12 * Math.log2(freq / A4);
+  const base = Math.round(midi);
+
+  if (scaleName === "chromatic") return midiToFreq(base);
+
+  // C major scale degrees (relative semitones): 0,2,4,5,7,9,11
+  const major = [0,2,4,5,7,9,11];
+  const penta = [0,2,4,7,9];
+
+  const scale = (scaleName === "pentatonic") ? penta : major;
+
+  // Find nearest note that matches scale in any octave
+  const octave = Math.floor(base / 12);
+  let best = base;
+  let bestDist = Infinity;
+
+  for (let o = octave - 1; o <= octave + 1; o++){
+    for (const s of scale){
+      const cand = o*12 + s; // relative to C
+      const d = Math.abs(cand - base);
+      if (d < bestDist){ bestDist = d; best = cand; }
+    }
+  }
+  return midiToFreq(best);
+}
+
+function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+// ---------- Gesture logic ----------
+const PINCH_THRESHOLD = 0.055;     // normalized distance
+const HANDS_TOGETHER_THRESH = 0.18; // normalized distance between palms
+
+let pinchLatch = false; // prevents toggling every frame
+
+function getHanded(results){
+  // returns array of {label:"Left"/"Right", lms:[...]}
+  const out = [];
+  const lmsArr = results.multiHandLandmarks || [];
+  const handArr = results.multiHandedness || [];
+  for (let i=0; i<lmsArr.length; i++){
+    out.push({ label: handArr[i]?.label || "Unknown", lms: lmsArr[i] });
+  }
+  return out;
+}
+
+function landmarkToPx(lm, mirror){
+  let x = lm.x * canvas.width;
+  let y = lm.y * canvas.height;
+  if (mirror) x = canvas.width - x;
+  return {x,y};
+}
+
+function pinchActive(lms){
+  const t = lms[4];  // thumb tip
+  const i = lms[8];  // index tip
+  const d = Math.hypot(t.x - i.x, t.y - i.y);
+  return d < PINCH_THRESHOLD;
+}
+
+// ---------- MediaPipe ----------
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+  const mirror = mirrorEl.value === "1";
+
+  // draw camera frame
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (mirror) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  }
+
+  const handsFound = getHanded(results);
+  if (!handsFound.length) {
+    readout.textContent = "No hands detected";
+    if (gain && audioCtx && !mutedByHands) gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+    return;
+  }
+
+  // Identify left/right hands (MediaPipe labels)
+  const left = handsFound.find(h => h.label === "Left");
+  const right = handsFound.find(h => h.label === "Right");
+
+  // Hands-together mute based on palm centers (landmark 0 wrist or 9 MCP). Use wrist for simplicity.
+  if (left && right) {
+    const d = dist2D(left.lms[0].x, left.lms[0].y, right.lms[0].x, right.lms[0].y);
+    setMute(d < HANDS_TOGETHER_THRESH);
+  } else {
+    setMute(false);
+  }
+
+  // Pinch toggles vibrato (either hand pinch)
+  const anyPinch = (left && pinchActive(left.lms)) || (right && pinchActive(right.lms));
+  if (anyPinch && !pinchLatch) {
+    pinchLatch = true;
+    setVibrato(!vibratoOn);
+  }
+  if (!anyPinch && pinchLatch) pinchLatch = false;
+
+  // Pitch: Right hand index tip height (higher -> higher pitch)
+  // Use whichever is available: prefer Right hand, fallback to any hand.
+  const pitchHand = right || left || handsFound[0];
+  const idxTip = pitchHand.lms[8];
+  const y = idxTip.y; // 0 at top, 1 at bottom
+  const pitchMin = 110;
+  const pitchMax = parseInt(pitchMaxEl.value, 10);
+  let targetPitch = lerp(pitchMax, pitchMin, clamp(y, 0, 1)); // invert
+
+  // Optional musical quantization
+  targetPitch = quantizeToScale(targetPitch, scaleEl.value);
+
+  // Volume: Left hand palm z (closer -> louder). If no left hand, use right hand.
+  const volHand = left || right || handsFound[0];
+  // MediaPipe z: negative is closer to camera (usually). Range depends; we clamp.
+  const z = volHand.lms[0].z; // wrist z
+  // Map z in [-0.25 .. 0.05] to volume [1..0.05]
+  const zn = clamp((z - 0.05) / (-0.30), 0, 1); // normalize
+  let targetVol = lerp(0.05, 1.0, zn);
+
+  // If muted by hands, force volume 0
+  if (mutedByHands) targetVol = 0;
+
+  // Smooth (to reduce jitter)
+  smoothPitch = lerp(smoothPitch, targetPitch, 0.22);
+  smoothVol = lerp(smoothVol, targetVol, 0.25);
+
+  // Apply to audio if running
+  if (audioCtx && osc && gain) {
+    osc.type = waveEl.value;
+    // smooth frequency changes
+    osc.frequency.setTargetAtTime(smoothPitch, audioCtx.currentTime, 0.02);
+    gain.gain.setTargetAtTime(smoothVol, audioCtx.currentTime, 0.03);
+
+    // Optional filter “brightness” follows pitch a bit
+    if (filter) {
+      const f = clamp(smoothPitch * 6, 700, 9000);
+      filter.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.03);
+    }
+  }
+
+  // Draw key points and text overlays
+  function drawPoint(lm, r){
+    const p = landmarkToPx(lm, mirror);
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.fillStyle = "white"; ctx.fill();
+  }
+
+  // Show index tips
+  if (left) drawPoint(left.lms[8], 7);
+  if (right) drawPoint(right.lms[8], 7);
+
+  // Show a big “PITCH” pointer
+  const ppx = landmarkToPx(idxTip, mirror);
+  ctx.save();
+  ctx.strokeStyle = "lime";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(ppx.x, ppx.y);
+  ctx.lineTo(ppx.x, ppx.y - 40);
+  ctx.stroke();
+  ctx.fillStyle = "lime";
+  ctx.font = "16px ui-monospace, SFMono-Regular, Menlo, monospace";
+  ctx.fillText(`PITCH`, ppx.x + 10, ppx.y - 45);
+  ctx.restore();
+
+  readout.textContent = JSON.stringify({
+    audio: !!audioCtx,
+    vibratoOn,
+    mutedByHands,
+    pitchHand: pitchHand.label,
+    volHand: volHand.label,
+    pitchHz: Math.round(smoothPitch),
+    volume: Number(smoothVol.toFixed(2)),
+    pinch: anyPinch,
+    handsDetected: handsFound.map(h => h.label)
+  }, null, 2);
+});
+
+// Start camera (no device picker here; keep it simple and reliable)
+const camera = new Camera(video, {
+  onFrame: async () => { await hands.send({ image: video }); },
+  width: 800,
+  height: 600
+});
+camera.start();
+</script>
+
+</body>
+</html>
