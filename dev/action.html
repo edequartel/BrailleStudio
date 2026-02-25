@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>MediaPipe Pinch Gesture</title>
+<style>
+body { font-family: system-ui; background:#0b0e14; color:#e9effa; margin:16px; }
+.videoWrap { position:relative; width:800px; height:600px; border-radius:12px; overflow:hidden; }
+video, canvas { position:absolute; width:100%; height:100%; object-fit:cover; }
+.status { margin-top:12px; font-family:monospace; }
+</style>
+</head>
+<body>
+
+<h2>Index Tip + Pinch Gesture</h2>
+
+<div class="videoWrap">
+  <video id="video" playsinline></video>
+  <canvas id="canvas" width="800" height="600"></canvas>
+</div>
+
+<div class="status" id="status">Waiting...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const status = document.getElementById("status");
+
+let pinchActive = false;
+const PINCH_THRESHOLD = 0.05; // adjust if needed
+
+const hands = new Hands({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 1,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
+
+  if (!results.multiHandLandmarks?.length) {
+    status.textContent = "No hand detected";
+    return;
+  }
+
+  const landmarks = results.multiHandLandmarks[0];
+
+  const thumbTip = landmarks[4];
+  const indexTip = landmarks[8];
+
+  // Convert to pixels
+  const tx = thumbTip.x * canvas.width;
+  const ty = thumbTip.y * canvas.height;
+
+  const ix = indexTip.x * canvas.width;
+  const iy = indexTip.y * canvas.height;
+
+  // Draw fingertip dots
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.arc(tx, ty, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(ix, iy, 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Distance in normalized space
+  const dx = thumbTip.x - indexTip.x;
+  const dy = thumbTip.y - indexTip.y;
+  const distance = Math.sqrt(dx*dx + dy*dy);
+
+  const isPinch = distance < PINCH_THRESHOLD;
+
+  // Visual feedback
+  ctx.strokeStyle = isPinch ? "lime" : "red";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(ix, iy);
+  ctx.stroke();
+
+  // Trigger only on pinch start (not every frame)
+  if (isPinch && !pinchActive) {
+    pinchActive = true;
+    console.log("PINCH START");
+  }
+
+  if (!isPinch && pinchActive) {
+    pinchActive = false;
+    console.log("PINCH END");
+  }
+
+  status.textContent = JSON.stringify({
+    pinch: isPinch,
+    distance: distance.toFixed(4)
+  }, null, 2);
+});
+
+const camera = new Camera(video, {
+  onFrame: async () => {
+    await hands.send({image: video});
+  },
+  width: 800,
+  height: 600
+});
+
+camera.start();
+</script>
+
+</body>
+</html>

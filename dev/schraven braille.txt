@@ -1,0 +1,98 @@
+# KAARTENSET (José Schraven-lijn) – voor braillekaartjes
+# Print/embos: 1 item per kaart (exact zo overnemen)
+
+[LETTERS – FASE 1]
+m
+k
+s
+p
+r
+n
+t
+b
+l
+a
+
+[KLINKERS – FASE 2]
+e
+i
+o
+
+[DUBBELE KLINKERS – FASE 3]
+aa
+ee
+oo
+
+[MEDEKLINKERS – FASE 4]
+d
+v
+h
+w
+f
+g
+j
+
+[TWEETEKENKLANKEN – FASE 5]
+oe
+ie
+ui
+eu
+ou
+ij
+
+[WOORDEN – START (klankzuiver, met fase-1 letters)]
+ram
+man
+pan
+tas
+bal
+kam
+lam
+mat
+rat
+bas
+bar
+
+[WOORDEN – KLINKER E/I/O (fase 2)]
+pen
+men
+pet
+ten
+vis
+mis
+pit
+sip
+bos
+los
+som
+pop
+
+[WOORDEN – DUBBELE KLINKERS (fase 3)]
+maan
+raam
+paal
+teen
+been
+meer
+boom
+boot
+noot
+roos
+
+[WOORDEN – TWEETEKENKLANKEN (fase 5)]
+boek
+doek
+soep
+fiet
+(gebruik liever: fiets) 
+fiets
+dier
+vier
+huis
+muis
+neus
+koud
+goud
+bij
+rij
+mijn

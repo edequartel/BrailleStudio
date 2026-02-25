@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>MediaPipe Hands - coords</title>
+  <style>
+    body { font-family: system-ui; margin: 12px; }
+    video, canvas { width: 640px; height: 480px; border: 1px solid #ccc; display:block; }
+    pre { background:#f6f6f6; padding:10px; width:640px; }
+  </style>
+</head>
+<body>
+  <h3>MediaPipe Hands coordinates</h3>
+  <video id="video" playsinline></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <pre id="out">Waiting...</pre>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const out = document.getElementById("out");
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7
+    });
+
+    hands.onResults((results) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (!results.multiHandLandmarks?.length) {
+        out.textContent = "No hands";
+        return;
+      }
+
+      // Example: read index fingertip (8) of first hand
+      const lm = results.multiHandLandmarks[0][8];
+      const px = Math.round(lm.x * canvas.width);
+      const py = Math.round(lm.y * canvas.height);
+
+      // Draw a dot where the index tip is
+      ctx.beginPath();
+      ctx.arc(px, py, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      out.textContent = JSON.stringify({
+        hand: 0,
+        finger: "indexTip",
+        normalized: { x: lm.x, y: lm.y, z: lm.z },
+        pixel: { x: px, y: py }
+      }, null, 2);
+    });
+
+    const camera = new Camera(video, {
+      onFrame: async () => { await hands.send({ image: video }); },
+      width: 640,
+      height: 480
+    });
+
+    camera.start();
+  </script>
+</body>
+</html>

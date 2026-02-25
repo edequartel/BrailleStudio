@@ -1,0 +1,603 @@
+eith curl -X GET 'https://spotify-client-tau.vercel.app/api/spotify-token.js' i get token
+
+  "access_token": "BQAbJUDpFSQOUAJ7vsaREUyERysadIG2RBVnLwM6zB21_2jAKyvkk2X4z25Rj1ikykWn2eGs2xrN4c9LHzMOgKekOvfQMA56zHZVQu1ZFn3bOivgrTWRA28GPDlrpBsw5-d34GE9gTo",
+  "token_type": "Bearer",
+  "expires_in": 3600
+with tolen i het
+curl -X GET 'https://spotify-client-tau.vercel.app/api/spotify-token.js'
+i get
+{
+  "available_markets": [
+    "AD",
+    "AE",
+    "AG",
+    "AL",
+    "AM",
+    "AR",
+    "AT",
+    "AU",
+    "BA",
+    "BB",
+    "BE",
+    "BF",
+    "BG",
+    "BH",
+    "BJ",
+    "BO",
+    "BR",
+    "BS",
+    "BT",
+    "BW",
+    "BZ",
+    "CA",
+    "CH",
+    "CL",
+    "CO",
+    "CR",
+    "CV",
+    "CW",
+    "CY",
+    "CZ",
+    "DE",
+    "DK",
+    "DM",
+    "DO",
+    "DZ",
+    "EC",
+    "EE",
+    "EG",
+    "ES",
+    "FI",
+    "FJ",
+    "FM",
+    "FR",
+    "GB",
+    "GD",
+    "GE",
+    "GH",
+    "GM",
+    "GR",
+    "GT",
+    "GW",
+    "GY",
+    "HK",
+    "HN",
+    "HR",
+    "HT",
+    "HU",
+    "ID",
+    "IE",
+    "IL",
+    "IN",
+    "IS",
+    "IT",
+    "JM",
+    "JO",
+    "JP",
+    "KE",
+    "KI",
+    "KN",
+    "KR",
+    "KW",
+    "LB",
+    "LC",
+    "LI",
+    "LR",
+    "LS",
+    "LT",
+    "LU",
+    "LV",
+    "MA",
+    "MC",
+    "ME",
+    "MG",
+    "MH",
+    "MK",
+    "ML",
+    "MT",
+    "MU",
+    "MV",
+    "MW",
+    "MX",
+    "MY",
+    "MZ",
+    "NA",
+    "NE",
+    "NG",
+    "NI",
+    "NL",
+    "NO",
+    "NR",
+    "NZ",
+    "OM",
+    "PA",
+    "PE",
+    "PG",
+    "PH",
+    "PL",
+    "PR",
+    "PS",
+    "PT",
+    "PW",
+    "PY",
+    "QA",
+    "RO",
+    "RS",
+    "SA",
+    "SB",
+    "SC",
+    "SE",
+    "SG",
+    "SI",
+    "SK",
+    "SL",
+    "SM",
+    "SN",
+    "SR",
+    "ST",
+    "SV",
+    "TH",
+    "TL",
+    "TN",
+    "TO",
+    "TR",
+    "TT",
+    "TV",
+    "TW",
+    "UA",
+    "US",
+    "UY",
+    "VC",
+    "VN",
+    "VU",
+    "WS",
+    "XK",
+    "ZA"
+  ],
+  "copyrights": [],
+  "description": "Brain Bananas is de biologiepodcast die elke Basisstof uit Biologie voor Jou H helder, rustig en begrijpelijk uitlegt. Perfect voor leerlingen én voor iedereen die biologie graag in duidelijke stukjes leert.",
+  "html_description": "Brain Bananas is de biologiepodcast die elke Basisstof uit Biologie voor Jou H helder, rustig en begrijpelijk uitlegt.<br/>Perfect voor leerlingen én voor iedereen die biologie graag in duidelijke stukjes leert.",
+  "explicit": false,
+  "external_urls": {
+    "spotify": "https://open.spotify.com/show/5JUFSxufmPADG79MFqtGA0"
+  },
+  "href": "https://api.spotify.com/v1/shows/5JUFSxufmPADG79MFqtGA0?locale=en-GB%2Cen%3Bq%3D0.9",
+  "id": "5JUFSxufmPADG79MFqtGA0",
+  "images": [
+    {
+      "height": 640,
+      "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+      "width": 640
+    },
+    {
+      "height": 300,
+      "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+      "width": 300
+    },
+    {
+      "height": 64,
+      "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+      "width": 64
+    }
+  ],
+  "is_externally_hosted": false,
+  "languages": [
+    "nl"
+  ],
+  "media_type": "audio",
+  "name": "Brain Bananas H",
+  "publisher": "Brain Bananas",
+  "type": "show",
+  "uri": "spotify:show:5JUFSxufmPADG79MFqtGA0",
+  "total_episodes": 10,
+  "episodes": {
+    "href": "https://api.spotify.com/v1/shows/5JUFSxufmPADG79MFqtGA0/episodes?offset=0&limit=50&locale=en-GB,en;q%3D0.9",
+    "limit": 50,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total": 10,
+    "items": [
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/4zySOmllVDAvBpuXgNHmXc/clip_331034_391034.mp3",
+        "description": "H T3B3 Monohybride kruisingen",
+        "html_description": "<p>H T3B3 Monohybride kruisingen</p>",
+        "duration_ms": 931189,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/52ZQ4CX3DOrAAGMlG9WXbs"
+        },
+        "href": "https://api.spotify.com/v1/episodes/52ZQ4CX3DOrAAGMlG9WXbs",
+        "id": "52ZQ4CX3DOrAAGMlG9WXbs",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T3B3 Monohybride kruisingen",
+        "release_date": "2026-01-08",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:52ZQ4CX3DOrAAGMlG9WXbs"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/15lgMom5dAKxuwEkrTyJm8/clip_454693_514693.mp3",
+        "description": "H3 T3B2 Genenparen",
+        "html_description": "<p>H3 T3B2 Genenparen</p>",
+        "duration_ms": 796908,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/2wiNVgF92s8XX4VLaP1zmn"
+        },
+        "href": "https://api.spotify.com/v1/episodes/2wiNVgF92s8XX4VLaP1zmn",
+        "id": "2wiNVgF92s8XX4VLaP1zmn",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H3 T3B2 Genenparen",
+        "release_date": "2026-01-06",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:2wiNVgF92s8XX4VLaP1zmn"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/1JElrT8UTy9Btw4rqsCmr9/clip_309333_369333.mp3",
+        "description": "H T3 Erfelijkheid en evolutie - samenvatting",
+        "html_description": "<p>H T3 Erfelijkheid en evolutie - samenvatting</p>",
+        "duration_ms": 862017,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/7v2Ww9ZcMsFMvHLbQGUdMB"
+        },
+        "href": "https://api.spotify.com/v1/episodes/7v2Ww9ZcMsFMvHLbQGUdMB",
+        "id": "7v2Ww9ZcMsFMvHLbQGUdMB",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T3 Erfelijkheid en evolutie - samenvatting",
+        "release_date": "2025-12-11",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:7v2Ww9ZcMsFMvHLbQGUdMB"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/47qO8gQOTDb3GdBkJles2L/clip_309624_369624.mp3",
+        "description": "H T3B1 Genotype en fenotype",
+        "html_description": "<p>H T3B1 Genotype en fenotype</p>",
+        "duration_ms": 377974,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/4zafBtR6bw6mMwDRRemKfN"
+        },
+        "href": "https://api.spotify.com/v1/episodes/4zafBtR6bw6mMwDRRemKfN",
+        "id": "4zafBtR6bw6mMwDRRemKfN",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T3B1 Genotype en fenotype",
+        "release_date": "2025-12-11",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:4zafBtR6bw6mMwDRRemKfN"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/2W3N2QOJZ6gxT0rqukwGJu/clip_343898_403898.mp3",
+        "description": "H T2 Samenvatting - Voortplanting en seksualiteit",
+        "html_description": "<p>H T2 Samenvatting - Voortplanting en seksualiteit</p>",
+        "duration_ms": 981414,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/3UZ85gQgICejUyby2mOn3V"
+        },
+        "href": "https://api.spotify.com/v1/episodes/3UZ85gQgICejUyby2mOn3V",
+        "id": "3UZ85gQgICejUyby2mOn3V",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2 Samenvatting - Voortplanting en seksualiteit",
+        "release_date": "2025-12-04",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:3UZ85gQgICejUyby2mOn3V"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/1urtYSNGJbb9WdOnW2tz03/clip_528141_588141.mp3",
+        "description": "H T2B6 SOA's en geboorteregeling",
+        "html_description": "<p>H T2B6 SOA&#39;s en geboorteregeling</p>",
+        "duration_ms": 752465,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/6MdnO4oPp4E7CTAZFZysHN"
+        },
+        "href": "https://api.spotify.com/v1/episodes/6MdnO4oPp4E7CTAZFZysHN",
+        "id": "6MdnO4oPp4E7CTAZFZysHN",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2B6 SOA's en geboorteregeling",
+        "release_date": "2025-11-27",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:6MdnO4oPp4E7CTAZFZysHN"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/4lRaR0gO714tmoJmNrtNFI/clip_192301_252301.mp3",
+        "description": "H T2B5 Seksualiteit",
+        "html_description": "<p>H T2B5 Seksualiteit</p>",
+        "duration_ms": 740298,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/34mMBTzSwxuD88CBaCr7xK"
+        },
+        "href": "https://api.spotify.com/v1/episodes/34mMBTzSwxuD88CBaCr7xK",
+        "id": "34mMBTzSwxuD88CBaCr7xK",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2B5 Seksualiteit",
+        "release_date": "2025-11-27",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:34mMBTzSwxuD88CBaCr7xK"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/5rttj2atILirwmw2j0a3tT/clip_394879_454879.mp3",
+        "description": "H T2B2 Geslachtelijke voortplanting",
+        "html_description": "<p>H T2B2 Geslachtelijke voortplanting</p>",
+        "duration_ms": 772527,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/0WJYhgxc3FTRoJ7xSy1OVh"
+        },
+        "href": "https://api.spotify.com/v1/episodes/0WJYhgxc3FTRoJ7xSy1OVh",
+        "id": "0WJYhgxc3FTRoJ7xSy1OVh",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2B2 Geslachtelijke voortplanting",
+        "release_date": "2025-11-27",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:0WJYhgxc3FTRoJ7xSy1OVh"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/1k85AQStOzAz1HnPOnEtAu/clip_435394_495394.mp3",
+        "description": "H T2B1 Ongeslachtelijke voortplanting",
+        "html_description": "<p>H T2B1 Ongeslachtelijke voortplanting</p>",
+        "duration_ms": 719748,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/4dKH3VJ6rJpsvnxTUv0NkU"
+        },
+        "href": "https://api.spotify.com/v1/episodes/4dKH3VJ6rJpsvnxTUv0NkU",
+        "id": "4dKH3VJ6rJpsvnxTUv0NkU",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2B1 Ongeslachtelijke voortplanting",
+        "release_date": "2025-11-27",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:4dKH3VJ6rJpsvnxTUv0NkU"
+      },
+      {
+        "audio_preview_url": "https://podz-content.spotifycdn.com/audio/clips/12xxV7qxRnRjFcaHmJPVYm/clip_535916_595916.mp3",
+        "description": "H T2B3/4 Menstruatie en zwangerschap, de hormoonestafette",
+        "html_description": "<p>H T2B3/4 Menstruatie en zwangerschap, de hormoonestafette</p>",
+        "duration_ms": 871653,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/3wgqQg0lq5cK1JF1U638vp"
+        },
+        "href": "https://api.spotify.com/v1/episodes/3wgqQg0lq5cK1JF1U638vp",
+        "id": "3wgqQg0lq5cK1JF1U638vp",
+        "images": [
+          {
+            "url": "https://i.scdn.co/image/ab6765630000ba8afc3de23bc1b9083dd894e593",
+            "height": 640,
+            "width": 640
+          },
+          {
+            "url": "https://i.scdn.co/image/ab67656300005f1ffc3de23bc1b9083dd894e593",
+            "height": 300,
+            "width": 300
+          },
+          {
+            "url": "https://i.scdn.co/image/ab6765630000f68dfc3de23bc1b9083dd894e593",
+            "height": 64,
+            "width": 64
+          }
+        ],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "language": "nl",
+        "languages": [
+          "nl"
+        ],
+        "name": "H T2B3/4 De hormoonestafette",
+        "release_date": "2025-11-27",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:3wgqQg0lq5cK1JF1U638vp"
+      }
+    ]
+  }
+}

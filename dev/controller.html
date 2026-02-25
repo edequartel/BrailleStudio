@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrailleBridge Controller</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin: 16px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    input, button, textarea { font-size: 18px; padding: 10px; }
+    input { flex: 1; min-width: 220px; }
+    textarea { width: 100%; height: 120px; }
+    button { border: 0; border-radius: 10px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-top: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>BrailleBridge (iPhone)</h2>
+
+  <div class="row">
+    <input id="host" placeholder="ws://192.168.0.20:5000/ws" />
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+  </div>
+
+  <div class="row">
+    <input id="text" placeholder="Type text to display..." />
+    <button id="send" disabled>Send</button>
+  </div>
+
+  <div class="card">
+    <div><b>Log</b></div>
+    <div id="status" class="mono">Not connected.</div>
+  </div>
+
+  <script>
+    let ws = null;
+
+    const host = document.getElementById('host');
+    const text = document.getElementById('text');
+    const status = document.getElementById('status');
+    const btnConnect = document.getElementById('connect');
+    const btnDisconnect = document.getElementById('disconnect');
+    const btnSend = document.getElementById('send');
+
+    // Helpful default: same hostname as the webserver, but WS on :5000
+    // (Works if you open this page from http://<laptop-ip>:8000/controller.html)
+    const guess = () => {
+      const h = location.hostname;
+      if (h && h !== "localhost") return `ws://${h}:5000/ws`;
+      return `ws://192.168.0.20:5000/ws`; // change once, then it stays in iPhone autofill
+    };
+    host.value = guess();
+
+    function log(line) {
+      status.textContent = line + "\n" + status.textContent;
+    }
+
+    function setUi(connected) {
+      btnSend.disabled = !connected;
+      btnDisconnect.disabled = !connected;
+      btnConnect.disabled = connected;
+    }
+
+    btnConnect.onclick = () => {
+      try {
+        ws = new WebSocket(host.value.trim());
+      } catch (e) {
+        log("Bad WS URL.");
+        return;
+      }
+
+      ws.onopen = () => { log("✅ Connected"); setUi(true); };
+      ws.onclose = () => { log("🛑 Disconnected"); setUi(false); ws = null; };
+      ws.onerror = () => log("⚠️ WS error (check IP/port/firewall/path)");
+      ws.onmessage = (ev) => log("⬅️ " + ev.data);
+    };
+
+    btnDisconnect.onclick = () => {
+      if (ws) ws.close();
+    };
+
+    btnSend.onclick = () => {
+      if (!ws) return;
+      const payload = JSON.stringify({ type: "display", text: text.value });
+      ws.send(payload);
+      log("➡️ " + payload);
+      text.value = "";
+      text.focus();
+    };
+
+    // Press Enter to send
+    text.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); btnSend.click(); }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MediaPipe — Both Hands + Dual Pinch</title>
+
+<style>
+body { font-family: system-ui; background:#0b0e14; color:#e9effa; margin:16px; }
+h2 { margin-bottom:10px; }
+.videoWrap {
+  position:relative;
+  width:840px;
+  height:630px;
+  border-radius:14px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.2);
+}
+video, canvas {
+  position:absolute;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.panel {
+  margin-top:12px;
+  background:rgba(255,255,255,0.06);
+  padding:10px;
+  border-radius:12px;
+  font-family:monospace;
+  white-space:pre-wrap;
+}
+button {
+  padding:8px 14px;
+  margin-bottom:10px;
+  border-radius:8px;
+  border:0;
+  background:#2a3350;
+  color:white;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<h2>Both Hands — Index Tip + Pinch Detection</h2>
+
+<button id="startBtn">Start Camera</button>
+
+<div class="videoWrap">
+  <video id="video" playsinline></video>
+  <canvas id="canvas" width="840" height="630"></canvas>
+</div>
+
+<div class="panel" id="output">Waiting...</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const output = document.getElementById("output");
+
+let stream = null;
+
+const PINCH_THRESHOLD = 0.05;
+
+// Track pinch state per hand
+let pinchState = {
+  Left: false,
+  Right: false
+};
+
+const hands = new Hands({
+  locateFile: (file) =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(results.image,0,0,canvas.width,canvas.height);
+
+  if (!results.multiHandLandmarks) {
+    output.textContent = "No hands detected";
+    return;
+  }
+
+  const dataOut = [];
+
+  results.multiHandLandmarks.forEach((landmarks, i) => {
+
+    const handedness = results.multiHandedness[i].label; // "Left" or "Right"
+
+    const thumbTip = landmarks[4];
+    const indexTip = landmarks[8];
+
+    // Distance in normalized space
+    const dx = thumbTip.x - indexTip.x;
+    const dy = thumbTip.y - indexTip.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const isPinch = dist < PINCH_THRESHOLD;
+
+    // Pixel positions
+    const tx = thumbTip.x * canvas.width;
+    const ty = thumbTip.y * canvas.height;
+    const ix = indexTip.x * canvas.width;
+    const iy = indexTip.y * canvas.height;
+
+    // Color per hand
+    const color = handedness === "Left" ? "cyan" : "orange";
+
+    // Draw fingertips
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(tx, ty, 8, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(ix, iy, 10, 0, Math.PI*2);
+    ctx.fill();
+
+    // Draw line between thumb and index
+    ctx.strokeStyle = isPinch ? "lime" : color;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(ix, iy);
+    ctx.stroke();
+
+    // Detect pinch start / end
+    if (isPinch && !pinchState[handedness]) {
+      pinchState[handedness] = true;
+      console.log(handedness + " PINCH START");
+    }
+    if (!isPinch && pinchState[handedness]) {
+      pinchState[handedness] = false;
+      console.log(handedness + " PINCH END");
+    }
+
+    dataOut.push({
+      hand: handedness,
+      pinch: isPinch,
+      distance: Number(dist.toFixed(4)),
+      indexTip: {
+        x: Number(indexTip.x.toFixed(3)),
+        y: Number(indexTip.y.toFixed(3))
+      }
+    });
+
+  });
+
+  output.textContent = JSON.stringify(dataOut, null, 2);
+
+});
+
+async function startCamera() {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { width:1280, height:720 }
+  });
+  video.srcObject = stream;
+  await video.play();
+
+  requestAnimationFrame(processFrame);
+}
+
+async function processFrame() {
+  await hands.send({image: video});
+  requestAnimationFrame(processFrame);
+}
+
+document.getElementById("startBtn").addEventListener("click", startCamera);
+</script>
+
+</body>
+</html>
