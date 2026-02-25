@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MediaPipe – Finger Counter (both hands, big sum)</title>
+<style>
+  body { font-family: system-ui; background:#0b0e14; color:#e9effa; margin:16px; }
+  .row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .videoWrap { position:relative; width:800px; height:600px; border-radius:12px; overflow:hidden; border:1px solid #223; }
+  video, canvas { position:absolute; width:100%; height:100%; object-fit:cover; }
+
+  .panel { min-width:340px; max-width:560px; padding:12px; border:1px solid #223; border-radius:12px; background:#0f1420; }
+  label { display:block; margin:10px 0 4px; font-size:13px; opacity:.95; }
+  select { width:100%; padding:8px; border-radius:10px; border:1px solid #223; background:#0b0e14; color:#e9effa; }
+
+  /* Bigger chips */
+  .chip { display:inline-block; padding:6px 14px; border:1px solid #223; border-radius:999px; margin-right:8px; font-size:20px; }
+
+  /* EXTRA GROTE SOM – leesbaar op afstand */
+  .big {
+    font-size: 120px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin: 12px 0 6px;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  /* Rekenkundige somregel */
+  .sum {
+    font-size: 42px;
+    font-weight: 600;
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: 0.95;
+  }
+
+  .status { margin-top:12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space:pre; }
+  .hint { font-size:13px; opacity:.85; line-height:1.35; }
+</style>
+</head>
+<body>
+
+<h2>Vingers tellen (links + rechts) – alleen als alle opgestoken vingers zichtbaar zijn</h2>
+
+<div class="row">
+  <div class="videoWrap">
+    <video id="video" playsinline></video>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="panel">
+    <div class="hint">
+      De som wordt pas getoond als alle <b>opgestoken</b> vingers (incl. duim) volledig in beeld zijn.
+      Als één opgestoken fingertip is afgesneden/occluded, blijft de som op <b>—</b>.
+    </div>
+
+    <label>Mirror view (selfie)</label>
+    <select id="mirror">
+      <option value="1" selected>On</option>
+      <option value="0">Off</option>
+    </select>
+
+    <div style="text-align:center; margin:12px 0 10px">
+      <span class="chip" id="leftChip">Left: —</span>
+      <span class="chip" id="rightChip">Right: —</span>
+    </div>
+
+    <div class="big" id="total">—</div>
+    <div class="sum" id="sumLine">—</div>
+
+    <div class="status" id="status">Waiting…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const mirrorEl = document.getElementById("mirror");
+
+const leftChip = document.getElementById("leftChip");
+const rightChip = document.getElementById("rightChip");
+const totalEl = document.getElementById("total");
+const sumLineEl = document.getElementById("sumLine");
+const statusEl = document.getElementById("status");
+
+// ---------- Visibility helpers ----------
+function inFrame01(p, margin=0.02){
+  return p && Number.isFinite(p.x) && Number.isFinite(p.y) &&
+         p.x >= margin && p.x <= 1 - margin &&
+         p.y >= margin && p.y <= 1 - margin;
+}
+function dist01(a,b){
+  const dx = a.x - b.x, dy = a.y - b.y;
+  return Math.hypot(dx,dy);
+}
+function tipClearlyVisible(lms, tipIdx){
+  if (!lms?.[tipIdx] || !lms?.[0]) return false;
+  if (!inFrame01(lms[tipIdx], 0.03)) return false;
+  return dist01(lms[tipIdx], lms[0]) > 0.10;
+}
+
+// ---------- Finger logic ----------
+function isFingerUpVertical(lms, tip, pip) {
+  return lms[tip].y < lms[pip].y; // y downwards
+}
+function thumbUp(lms, handednessLabel) {
+  const tip = lms[4], ip = lms[3];
+  if (handednessLabel === "Right") return tip.x < ip.x;
+  if (handednessLabel === "Left")  return tip.x > ip.x;
+  return Math.abs(tip.x - ip.x) > 0.03;
+}
+
+function computeFingersUp(lms, handednessLabel){
+  const up = {
+    thumb: thumbUp(lms, handednessLabel),
+    index: isFingerUpVertical(lms, 8, 6),
+    middle: isFingerUpVertical(lms, 12, 10),
+    ring: isFingerUpVertical(lms, 16, 14),
+    pinky: isFingerUpVertical(lms, 20, 18),
+  };
+  const count = Object.values(up).reduce((a,b)=>a+(b?1:0),0);
+  return { up, count };
+}
+
+function gateAllRaisedTipsVisible(lms, up){
+  const required = [];
+  if (up.thumb) required.push({ name:"thumb", tip:4 });
+  if (up.index) required.push({ name:"index", tip:8 });
+  if (up.middle) required.push({ name:"middle", tip:12 });
+  if (up.ring) required.push({ name:"ring", tip:16 });
+  if (up.pinky) required.push({ name:"pinky", tip:20 });
+
+  const missing = [];
+  for (const r of required){
+    if (!tipClearlyVisible(lms, r.tip)) missing.push(r.name);
+  }
+  return { ok: missing.length === 0, required: required.map(r=>r.name), missing };
+}
+
+function drawRaisedTips(lms, up, mirror){
+  const tipMap = [
+    { tip:4, on: up.thumb },
+    { tip:8, on: up.index },
+    { tip:12, on: up.middle },
+    { tip:16, on: up.ring },
+    { tip:20, on: up.pinky },
+  ];
+  ctx.save();
+  ctx.fillStyle = "white";
+  for (const t of tipMap){
+    if (!t.on) continue;
+    if (!inFrame01(lms[t.tip], 0.03)) continue;
+    let x = lms[t.tip].x * canvas.width;
+    let y = lms[t.tip].y * canvas.height;
+    if (mirror) x = canvas.width - x;
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- MediaPipe ----------
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+  const mirror = mirrorEl.value === "1";
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Draw frame
+  if (mirror) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  }
+
+  const lmsArr = results.multiHandLandmarks || [];
+  const handedArr = results.multiHandedness || [];
+
+  // Collect per hand label
+  const perHand = { Left: null, Right: null };
+  for (let i=0; i<lmsArr.length; i++){
+    const label = handedArr[i]?.label || "Unknown"; // Left / Right
+    if (label !== "Left" && label !== "Right") continue;
+    perHand[label] = { lms: lmsArr[i], label };
+  }
+
+  // Evaluate each hand independently with strict visibility gate
+  function evalHand(hand){
+    if (!hand) return { present:false };
+    const { up, count } = computeFingersUp(hand.lms, hand.label);
+    const gate = gateAllRaisedTipsVisible(hand.lms, up);
+    return { present:true, up, count, gate };
+  }
+
+  const left = evalHand(perHand.Left);
+  const right = evalHand(perHand.Right);
+
+  // If a hand is NOT present, it contributes 0 and is considered OK.
+  const leftOk = !left.present || left.gate.ok;
+  const rightOk = !right.present || right.gate.ok;
+
+  // Visualize raised tips for hands that pass gate
+  if (left.present && left.gate.ok) drawRaisedTips(perHand.Left.lms, left.up, mirror);
+  if (right.present && right.gate.ok) drawRaisedTips(perHand.Right.lms, right.up, mirror);
+
+  // Chips
+  leftChip.textContent  = `Left: ${left.present ? (left.gate.ok ? left.count : "—") : "0"}`;
+  rightChip.textContent = `Right: ${right.present ? (right.gate.ok ? right.count : "—") : "0"}`;
+
+  if (leftOk && rightOk) {
+    const leftCount = left.present ? left.count : 0;
+    const rightCount = right.present ? right.count : 0;
+    const total = leftCount + rightCount;
+
+    totalEl.textContent = String(total);
+    sumLineEl.textContent = `${leftCount} + ${rightCount} = ${total}`;
+  } else {
+    totalEl.textContent = "—";
+    sumLineEl.textContent = "Wacht… (opgestoken vingers moeten volledig in beeld)";
+  }
+
+  statusEl.textContent = JSON.stringify({
+    left: left.present ? { count:left.count, gate:left.gate, fingersUp:left.up } : null,
+    right: right.present ? { count:right.count, gate:right.gate, fingersUp:right.up } : null,
+    display: { leftOk, rightOk, totalShown: (leftOk && rightOk) }
+  }, null, 2);
+});
+
+const camera = new Camera(video, {
+  onFrame: async () => { await hands.send({ image: video }); },
+  width: 800,
+  height: 600
+});
+camera.start();
+</script>
+
+</body>
+</html>

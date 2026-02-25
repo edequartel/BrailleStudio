@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MediaPipe – Paper Corner Touch (Index Finger)</title>
+<style>
+  body{font-family:system-ui;background:#0b0e14;color:#e9effa;margin:16px}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .videoWrap{position:relative;width:800px;height:600px;border-radius:12px;overflow:hidden;border:1px solid #223}
+  video,canvas{position:absolute;width:100%;height:100%;object-fit:cover}
+  .panel{min-width:320px;max-width:520px;padding:12px;border:1px solid #223;border-radius:12px;background:#0f1420}
+  .panel h3{margin:0 0 10px;font-size:16px}
+  label{display:block;margin:10px 0 4px;font-size:13px;opacity:.95}
+  input[type="range"],select,button{width:100%}
+  select,button{padding:8px;border-radius:10px;border:1px solid #223;background:#0b0e14;color:#e9effa}
+  button{cursor:pointer;margin-top:10px}
+  .status{margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}
+  .hint{font-size:13px;opacity:.85;line-height:1.35}
+</style>
+</head>
+<body>
+
+<h2>Paper Corner Touch (Index finger) – MediaPipe Hands</h2>
+
+<div class="row">
+  <div class="videoWrap">
+    <video id="video" playsinline></video>
+    <canvas id="canvas" width="800" height="600"></canvas>
+  </div>
+
+  <div class="panel">
+    <h3>Setup</h3>
+    <div class="hint">
+      Dit script gebruikt <b>4 “virtuele” hoeken</b> die jij afstelt met sliders.
+      Leg je vel papier in beeld, schuif de hoeken zodat ze precies op de papierhoeken liggen.
+      Daarna detecteert het of je <b>wijsvingertop</b> een hoek “aanraakt”.
+      <br><br>
+      Gebruik bij voorkeur via <b>http://localhost</b> (niet via file://) i.v.m. camera permissies.
+    </div>
+
+    <label>Camera</label>
+    <select id="cameraSelect"></select>
+    <button id="restartBtn">Restart camera</button>
+
+    <label>Mirror view (selfie)</label>
+    <select id="mirror">
+      <option value="1" selected>On</option>
+      <option value="0">Off</option>
+    </select>
+
+    <h3 style="margin-top:14px;">Paper corners (percent of image)</h3>
+
+    <label>Top-Left X (%)</label>
+    <input id="tlx" type="range" min="0" max="100" value="20" />
+    <label>Top-Left Y (%)</label>
+    <input id="tly" type="range" min="0" max="100" value="20" />
+
+    <label>Top-Right X (%)</label>
+    <input id="trx" type="range" min="0" max="100" value="80" />
+    <label>Top-Right Y (%)</label>
+    <input id="try" type="range" min="0" max="100" value="20" />
+
+    <label>Bottom-Right X (%)</label>
+    <input id="brx" type="range" min="0" max="100" value="80" />
+    <label>Bottom-Right Y (%)</label>
+    <input id="bry" type="range" min="0" max="100" value="80" />
+
+    <label>Bottom-Left X (%)</label>
+    <input id="blx" type="range" min="0" max="100" value="20" />
+    <label>Bottom-Left Y (%)</label>
+    <input id="bly" type="range" min="0" max="100" value="80" />
+
+    <label>Touch radius (px)</label>
+    <input id="touchR" type="range" min="10" max="80" value="35" />
+
+    <label>Debounce (ms) – minimale tijd tussen “touch events”</label>
+    <input id="debounce" type="range" min="0" max="1500" value="350" />
+
+    <div class="status" id="status">Waiting…</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const statusEl = document.getElementById("status");
+
+const cameraSelect = document.getElementById("cameraSelect");
+const restartBtn = document.getElementById("restartBtn");
+const mirrorEl = document.getElementById("mirror");
+
+const tlx = document.getElementById("tlx"), tly = document.getElementById("tly");
+const trx = document.getElementById("trx"), tryy = document.getElementById("try");
+const brx = document.getElementById("brx"), bry = document.getElementById("bry");
+const blx = document.getElementById("blx"), bly = document.getElementById("bly");
+
+const touchREl = document.getElementById("touchR");
+const debounceEl = document.getElementById("debounce");
+
+let camera = null;
+let selectedDeviceId = null;
+
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function dist(ax,ay,bx,by){ const dx=ax-bx, dy=ay-by; return Math.hypot(dx,dy); }
+
+function readCornersPx(){
+  // read % sliders -> px in canvas
+  const c = {
+    TL: { x: (parseInt(tlx.value,10)/100)*canvas.width,  y: (parseInt(tly.value,10)/100)*canvas.height },
+    TR: { x: (parseInt(trx.value,10)/100)*canvas.width,  y: (parseInt(tryy.value,10)/100)*canvas.height },
+    BR: { x: (parseInt(brx.value,10)/100)*canvas.width,  y: (parseInt(bry.value,10)/100)*canvas.height },
+    BL: { x: (parseInt(blx.value,10)/100)*canvas.width,  y: (parseInt(bly.value,10)/100)*canvas.height },
+  };
+  return c;
+}
+
+function drawCorner(name, p, active){
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = active ? "lime" : "white";
+  ctx.fillStyle = "white";
+  // circle
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 10, 0, Math.PI*2);
+  ctx.stroke();
+  // label
+  ctx.font = "14px ui-monospace, SFMono-Regular, Menlo, monospace";
+  ctx.fillText(name, p.x + 14, p.y - 10);
+  ctx.restore();
+}
+
+function drawPaperOutline(corners){
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(corners.TL.x, corners.TL.y);
+  ctx.lineTo(corners.TR.x, corners.TR.y);
+  ctx.lineTo(corners.BR.x, corners.BR.y);
+  ctx.lineTo(corners.BL.x, corners.BL.y);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Touch state (per corner)
+const lastTouchAt = { TL:0, TR:0, BR:0, BL:0 };
+
+function maybeEmitTouch(cornerName, now, debounceMs){
+  if (now - lastTouchAt[cornerName] >= debounceMs){
+    lastTouchAt[cornerName] = now;
+    console.log("TOUCH", cornerName, new Date().toISOString());
+  }
+}
+
+// --- MediaPipe Hands ---
+const hands = new Hands({
+  locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+hands.setOptions({
+  maxNumHands: 2,
+  modelComplexity: 1,
+  minDetectionConfidence: 0.7,
+  minTrackingConfidence: 0.7
+});
+
+hands.onResults((results) => {
+  const mirror = mirrorEl.value === "1";
+  const corners = readCornersPx();
+  const touchR = parseInt(touchREl.value,10);
+  const debounceMs = parseInt(debounceEl.value,10);
+  const now = performance.now();
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw camera frame (mirrored optionally)
+  if (mirror) {
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(results.image, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+  }
+
+  // draw paper shape
+  drawPaperOutline(corners);
+
+  // collect index fingertip(s)
+  const tips = [];
+  const lms = results.multiHandLandmarks || [];
+  for (let i=0; i<lms.length; i++){
+    const indexTip = lms[i][8];
+    let x = indexTip.x * canvas.width;
+    let y = indexTip.y * canvas.height;
+    if (mirror) x = canvas.width - x;
+    tips.push({ x, y });
+  }
+
+  // draw fingertips
+  ctx.save();
+  ctx.fillStyle = "white";
+  for (const t of tips){
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 8, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // determine which corners are touched by any fingertip
+  const touched = { TL:false, TR:false, BR:false, BL:false };
+  const dists = { TL:Infinity, TR:Infinity, BR:Infinity, BL:Infinity };
+
+  for (const t of tips){
+    for (const key of ["TL","TR","BR","BL"]){
+      const d = dist(t.x, t.y, corners[key].x, corners[key].y);
+      if (d < dists[key]) dists[key] = d;
+      if (d <= touchR) touched[key] = true;
+    }
+  }
+
+  // draw corners with active highlight + touch radius rings
+  for (const key of ["TL","TR","BR","BL"]){
+    // touch radius ring
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.strokeStyle = touched[key] ? "lime" : "white";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(corners[key].x, corners[key].y, touchR, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+
+    drawCorner(key, corners[key], touched[key]);
+
+    if (touched[key]) maybeEmitTouch(key, now, debounceMs);
+  }
+
+  statusEl.textContent = JSON.stringify({
+    mirror,
+    touchRadiusPx: touchR,
+    debounceMs,
+    fingertips: tips.map(t => ({ x: Math.round(t.x), y: Math.round(t.y) })),
+    corners: Object.fromEntries(Object.entries(corners).map(([k,v]) => [k, { x: Math.round(v.x), y: Math.round(v.y) }])),
+    touched,
+    minDistancePx: Object.fromEntries(Object.entries(dists).map(([k,v]) => [k, Math.round(v)]))
+  }, null, 2);
+});
+
+// --- Camera selection / start ---
+async function populateCameras(){
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter(d => d.kind === "videoinput");
+  cameraSelect.innerHTML = "";
+  cams.forEach((c, i) => {
+    const opt = document.createElement("option");
+    opt.value = c.deviceId;
+    opt.textContent = c.label || `Camera ${i+1}`;
+    cameraSelect.appendChild(opt);
+  });
+  if (!selectedDeviceId && cams[0]) selectedDeviceId = cams[0].deviceId;
+  if (selectedDeviceId) cameraSelect.value = selectedDeviceId;
+}
+
+async function startCamera(){
+  if (camera && camera.stop) {
+    try { camera.stop(); } catch {}
+    camera = null;
+  }
+
+  const constraints = {
+    audio: false,
+    video: selectedDeviceId ? { deviceId: { exact: selectedDeviceId } } : true
+  };
+
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  video.srcObject = stream;
+  await video.play();
+
+  camera = new Camera(video, {
+    onFrame: async () => { await hands.send({ image: video }); },
+    width: 800,
+    height: 600
+  });
+  camera.start();
+}
+
+cameraSelect.addEventListener("change", () => {
+  selectedDeviceId = cameraSelect.value;
+});
+
+restartBtn.addEventListener("click", async () => {
+  try { await startCamera(); }
+  catch(e){ statusEl.textContent = "Failed to restart camera:\n" + (e?.message || e); }
+});
+
+(async function init(){
+  try {
+    // permission warm-up so camera labels appear
+    await navigator.mediaDevices.getUserMedia({ video:true, audio:false })
+      .then(s => s.getTracks().forEach(t => t.stop()));
+    await populateCameras();
+    await startCamera();
+  } catch (e) {
+    statusEl.textContent = "Camera init failed:\n" + (e?.message || e);
+  }
+})();
+</script>
+
+</body>
+</html>
