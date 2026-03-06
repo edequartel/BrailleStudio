@@ -96,6 +96,10 @@
       flex-wrap: wrap;
     }
 
+    .row.log-actions {
+      justify-content: flex-end;
+    }
+
     .field {
       display: grid;
       gap: 4px;
@@ -122,10 +126,37 @@
       font-size: 13px;
     }
 
-    .status {
-      font-size: 12px;
-      color: var(--muted);
-      font-family: var(--mono);
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+      display: inline-block;
+    }
+
+    .status-dot.ok {
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+    }
+    
+    .mode-indicator {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 4px;
+    }
+
+    .mode-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18);
+    }
+
+    .mode-dot.on {
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
     }
 
     .log {
@@ -155,26 +186,6 @@
     <div id="brailleMonitorComponent"></div>
 
     <div class="card" aria-label="Braille display websocket client">
-      <div class="grid">
-        <div class="field">
-          <label for="wsUrl">WebSocket URL</label>
-          <input id="wsUrl" class="input" type="text" value="ws://localhost:5000/ws" />
-        </div>
-        <div class="row">
-          <button class="btn" id="wsConnectBtn" type="button">Connect</button>
-          <button class="btn ghost" id="wsDisconnectBtn" type="button">Disconnect</button>
-          <span class="status" id="wsStatus">disconnected</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <label for="wsEditorMode">
-          <input id="wsEditorMode" type="checkbox" />
-          editor mode
-        </label>
-        <button class="btn" id="wsSendEditorModeBtn" type="button">Send setEditorMode</button>
-      </div>
-
       <div class="grid">
         <div class="field">
           <label for="wsInputKind">editorInput kind</label>
@@ -211,7 +222,6 @@
 
       <div class="row">
         <button class="btn" id="wsSendInputBtn" type="button">Send editorInput</button>
-        <button class="btn ghost" id="wsClearLogBtn" type="button">Clear log</button>
       </div>
 
       <div class="field">
@@ -219,9 +229,25 @@
         <input id="wsLatestEvent" class="input" type="text" readonly />
       </div>
 
-      <div class="field">
-        <label for="wsLog">WebSocket log</label>
+      <div class="row log-actions">
+        <button class="btn ghost" id="wsToggleLogBtn" type="button">Open log</button>
+        <button class="btn ghost" id="wsClearLogBtn" type="button">Clear log</button>
+      </div>
+
+      <div class="field" id="wsLogField" hidden>
+        <label for="wsLog">Log</label>
         <pre id="wsLog" class="log"></pre>
+      </div>
+
+      <div class="row">
+        <span class="mode-indicator">
+          <span class="mode-dot" id="wsEditorModeDot" aria-hidden="true"></span>
+        </span>
+        <button class="btn" id="wsEditorModeOnBtn" type="button">EditorMode ON</button>
+        <button class="btn ghost" id="wsEditorModeOffBtn" type="button">EditorMode OFF</button>
+        <span class="status-dot" id="wsStatus" aria-label="WebSocket disconnected" title="disconnected"></span>
+        <button class="btn" id="wsConnectBtn" type="button">Connect</button>
+        <button class="btn ghost" id="wsDisconnectBtn" type="button">Disconnect</button>
       </div>
     </div>
   </main>
@@ -251,12 +277,12 @@
       applyTheme(cur === "dark" ? "light" : "dark");
     });
 
-    const wsUrlEl = document.getElementById("wsUrl");
     const wsConnectBtn = document.getElementById("wsConnectBtn");
     const wsDisconnectBtn = document.getElementById("wsDisconnectBtn");
     const wsStatusEl = document.getElementById("wsStatus");
-    const wsEditorMode = document.getElementById("wsEditorMode");
-    const wsSendEditorModeBtn = document.getElementById("wsSendEditorModeBtn");
+    const wsEditorModeDot = document.getElementById("wsEditorModeDot");
+    const wsEditorModeOnBtn = document.getElementById("wsEditorModeOnBtn");
+    const wsEditorModeOffBtn = document.getElementById("wsEditorModeOffBtn");
     const wsInputKind = document.getElementById("wsInputKind");
     const wsTextField = document.getElementById("wsTextField");
     const wsBrailleField = document.getElementById("wsBrailleField");
@@ -265,15 +291,23 @@
     const wsBrailleInput = document.getElementById("wsBrailleInput");
     const wsKeyInput = document.getElementById("wsKeyInput");
     const wsSendInputBtn = document.getElementById("wsSendInputBtn");
+    const wsToggleLogBtn = document.getElementById("wsToggleLogBtn");
     const wsClearLogBtn = document.getElementById("wsClearLogBtn");
     const wsLatestEvent = document.getElementById("wsLatestEvent");
+    const wsLogField = document.getElementById("wsLogField");
     const wsLog = document.getElementById("wsLog");
+    const wsUrl = "ws://localhost:5000/ws";
     const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
       ? window.BrailleMonitor.init({ containerId: "brailleMonitorComponent", showInfo: false })
       : null;
     let lastSsocLineId = null;
 
     let ws = null;
+    let editorModeEnabled = false;
+
+    if (monitor && typeof monitor.setBrailleUnicode === "function") {
+      monitor.setBrailleUnicode("", "");
+    }
 
     function appendWsLog(line) {
       const now = new Date().toISOString();
@@ -282,7 +316,24 @@
     }
 
     function setWsStatus(text) {
-      wsStatusEl.textContent = text;
+      const isConnected = String(text || "").toLowerCase() === "connected";
+      wsStatusEl.classList.toggle("ok", isConnected);
+      wsStatusEl.setAttribute("aria-label", "WebSocket " + text);
+      wsStatusEl.setAttribute("title", String(text || ""));
+    }
+
+    function setEditorModeIndicator(enabled) {
+      const on = !!enabled;
+      wsEditorModeDot.classList.toggle("on", on);
+    }
+
+    function sendEditorMode(enabled) {
+      editorModeEnabled = !!enabled;
+      setEditorModeIndicator(editorModeEnabled);
+      sendWsJson(
+        { type: "command", command: "setEditorMode", enabled: editorModeEnabled },
+        "setEditorMode"
+      );
     }
 
     function renderInputKind() {
@@ -368,21 +419,15 @@
         return;
       }
 
-      const url = String(wsUrlEl.value || "").trim();
-      if (!url) {
-        appendWsLog("Missing WebSocket URL");
-        return;
-      }
-
       try {
-        ws = new WebSocket(url);
+        ws = new WebSocket(wsUrl);
       } catch (err) {
         appendWsLog(`WS create failed: ${String(err)}`);
         return;
       }
 
       setWsStatus("connecting...");
-      appendWsLog(`WS connect ${url}`);
+      appendWsLog(`WS connect ${wsUrl}`);
 
       ws.addEventListener("open", () => {
         setWsStatus("connected");
@@ -419,20 +464,20 @@
       ws.close(1000, "client close");
       ws = null;
       setWsStatus("disconnected");
+      if (monitor && typeof monitor.setBrailleUnicode === "function") {
+        monitor.setBrailleUnicode("", "");
+      }
     }
 
     wsInputKind.addEventListener("change", renderInputKind);
     renderInputKind();
+    setEditorModeIndicator(editorModeEnabled);
 
     wsConnectBtn.addEventListener("click", connectWs);
     wsDisconnectBtn.addEventListener("click", disconnectWs);
 
-    wsSendEditorModeBtn.addEventListener("click", () => {
-      sendWsJson(
-        { type: "command", command: "setEditorMode", enabled: !!wsEditorMode.checked },
-        "setEditorMode"
-      );
-    });
+    wsEditorModeOnBtn.addEventListener("click", () => sendEditorMode(true));
+    wsEditorModeOffBtn.addEventListener("click", () => sendEditorMode(false));
 
     wsSendInputBtn.addEventListener("click", () => {
       const kind = wsInputKind.value;
@@ -452,6 +497,15 @@
     wsClearLogBtn.addEventListener("click", () => {
       wsLog.textContent = "";
     });
+
+    wsToggleLogBtn.addEventListener("click", () => {
+      const isOpen = !wsLogField.hidden;
+      wsLogField.hidden = isOpen;
+      wsToggleLogBtn.textContent = isOpen ? "Open log" : "Close log";
+    });
+
+    // Auto-connect on page load
+    connectWs();
   </script>
 </body>
 </html>

@@ -330,8 +330,43 @@
       function rebuildCells() {
         monitorP.innerHTML = "";
 
-        if (!currentText && !currentBrailleUnicode) {
-          monitorP.textContent = "(leeg)";
+        const sourceIsEmpty = !String(currentText ?? "").trim();
+        const brailleChars = Array.from(String(currentBrailleUnicode ?? ""));
+        const brailleIsEmpty =
+          brailleChars.length === 0 ||
+          brailleChars.every((ch) => ch === BRAILLE_BLANK || /\s/.test(ch));
+        const ssocLooksEmpty = renderFromSsoc && sourceIsEmpty && brailleIsEmpty;
+
+        if ((!currentText && !currentBrailleUnicode) || ssocLooksEmpty) {
+          if (renderFromSsoc) {
+            const placeholderText = "leeg";
+            const placeholderCells = textToBrailleCells(placeholderText, { lang: currentLang });
+
+            for (let i = 0; i < placeholderText.length; i++) {
+              const ch = placeholderText[i] || " ";
+              const brailleCell = placeholderCells[i] || BRAILLE_BLANK;
+
+              const cell = document.createElement("span");
+              cell.className = "monitor-cell monitor-cell--stack";
+              cell.dataset.index = String(i);
+              cell.setAttribute("role", "option");
+              cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
+
+              const brailleEl = document.createElement("span");
+              brailleEl.className = "monitor-cell__braille";
+              brailleEl.textContent = brailleCell;
+              cell.appendChild(brailleEl);
+
+              const printEl = document.createElement("span");
+              printEl.className = "monitor-cell__print";
+              printEl.textContent = visiblePrintChar(ch);
+              cell.appendChild(printEl);
+
+              monitorP.appendChild(cell);
+            }
+            return;
+          }
+          monitorP.textContent = "leeg";
           return;
         }
 
@@ -347,15 +382,16 @@
         }
 
         for (let i = 0; i < renderLen; i++) {
-          const ch = currentText[i] || " ";
-          const printChar = visiblePrintChar(ch);
+          const hasSourceChar = i < currentText.length;
+          const ch = hasSourceChar ? (currentText[i] || " ") : "";
+          const printChar = hasSourceChar ? visiblePrintChar(ch) : "";
           const brailleCell = brailleCells[i] || BRAILLE_BLANK;
 
           const cell = document.createElement("span");
           cell.className = "monitor-cell monitor-cell--stack";
           cell.dataset.index = String(i);
           cell.setAttribute("role", "option");
-          cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
+          cell.setAttribute("aria-label", "Cel " + i + " teken " + (ch || "(geen teken)"));
 
           const brailleEl = document.createElement("span");
           brailleEl.className = "monitor-cell__braille";
