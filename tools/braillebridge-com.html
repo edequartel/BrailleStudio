@@ -495,7 +495,7 @@
           </div>
         </section>
 
-        <!-- Right: Latest cursorContext / chordContext -->
+        <!-- Right: Latest context events -->
         <section class="card">
           <div class="hd">
             <div>
@@ -511,12 +511,52 @@
             <div class="split">
               <div class="row">
                 <div>
-                  <label for="latestContextType">Latest Context Type</label>
+                  <label for="latestContextType">Latest Type</label>
                   <input id="latestContextType" type="text" readonly />
                 </div>
                 <div>
                   <label for="latestContextSamMsgType">Latest Sam.MsgType</label>
                   <input id="latestContextSamMsgType" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="latestContextOk">Ok</label>
+                  <input id="latestContextOk" type="text" readonly />
+                </div>
+                <div>
+                  <label for="latestContextTimestamp">TimestampUtc</label>
+                  <input id="latestContextTimestamp" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="latestContextSamUnitId">Latest Sam.UnitId</label>
+                  <input id="latestContextSamUnitId" type="text" readonly />
+                </div>
+                <div>
+                  <label for="latestContextSamStrip">Latest Sam.Strip</label>
+                  <input id="latestContextSamStrip" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="latestContextSamParam">Latest Sam.Param</label>
+                  <input id="latestContextSamParam" type="text" readonly />
+                </div>
+                <div>
+                  <label for="latestContextPayloadPress">Payload Press</label>
+                  <input id="latestContextPayloadPress" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label for="latestContextPayloadName">Payload Name</label>
+                  <input id="latestContextPayloadName" type="text" readonly />
+                </div>
+                <div>
+                  <label for="latestContextPayloadKey">Payload Key</label>
+                  <input id="latestContextPayloadKey" type="text" readonly />
                 </div>
               </div>
               <div class="row">
@@ -645,6 +685,14 @@
       const cursorSourceText = el("cursorSourceText");
       const latestContextType = el("latestContextType");
       const latestContextSamMsgType = el("latestContextSamMsgType");
+      const latestContextOk = el("latestContextOk");
+      const latestContextTimestamp = el("latestContextTimestamp");
+      const latestContextSamUnitId = el("latestContextSamUnitId");
+      const latestContextSamStrip = el("latestContextSamStrip");
+      const latestContextSamParam = el("latestContextSamParam");
+      const latestContextPayloadPress = el("latestContextPayloadPress");
+      const latestContextPayloadName = el("latestContextPayloadName");
+      const latestContextPayloadKey = el("latestContextPayloadKey");
       const latestContextTypePill = el("latestContextTypePill");
 
       const log = el("log");
@@ -974,12 +1022,44 @@
         const meta = o.Meta || o.meta || {};
         const cursor = o.Cursor || o.cursor || {};
         const sam = o.Sam || o.sam || {};
+        const payload = o.Payload || o.payload || {};
+
+        function getSamValues() {
+          const msgType = typeof sam.MsgType !== "undefined" ? sam.MsgType : (typeof sam.msgType !== "undefined" ? sam.msgType : o.MsgType);
+          const unitId = typeof sam.UnitId !== "undefined" ? sam.UnitId : (typeof sam.unitId !== "undefined" ? sam.unitId : o.UnitId);
+          const strip = typeof sam.Strip !== "undefined" ? sam.Strip : (typeof sam.strip !== "undefined" ? sam.strip : o.Strip);
+          const param = typeof sam.Param !== "undefined" ? sam.Param : (typeof sam.param !== "undefined" ? sam.param : o.Param);
+          return { msgType, unitId, strip, param };
+        }
 
         function setLatestContextMeta(kind) {
+          const samValues = getSamValues();
           if (latestContextType) latestContextType.value = kind || "";
           if (latestContextTypePill) latestContextTypePill.textContent = kind || "context";
-          const samMsgType = typeof sam.MsgType !== "undefined" ? sam.MsgType : sam.msgType;
-          if (latestContextSamMsgType) latestContextSamMsgType.value = typeof samMsgType !== "undefined" ? String(samMsgType) : "";
+          if (latestContextSamMsgType) latestContextSamMsgType.value = typeof samValues.msgType !== "undefined" ? String(samValues.msgType) : "";
+          if (latestContextOk) latestContextOk.value = typeof ok !== "undefined" ? String(ok) : "";
+          if (latestContextTimestamp) latestContextTimestamp.value = formatUtcTimestamp(ts);
+          if (latestContextSamUnitId) latestContextSamUnitId.value = typeof samValues.unitId !== "undefined" ? String(samValues.unitId) : "";
+          if (latestContextSamStrip) latestContextSamStrip.value = typeof samValues.strip !== "undefined" ? String(samValues.strip) : "";
+          if (latestContextSamParam) latestContextSamParam.value = typeof samValues.param !== "undefined" ? String(samValues.param) : "";
+        }
+
+        function clearPayloadFields() {
+          if (latestContextPayloadPress) latestContextPayloadPress.value = "";
+          if (latestContextPayloadName) latestContextPayloadName.value = "";
+          if (latestContextPayloadKey) latestContextPayloadKey.value = "";
+        }
+
+        function clearCursorBrailleFields() {
+          if (cursorCellIndex) cursorCellIndex.value = "";
+          if (cursorTextIndex) cursorTextIndex.value = "";
+          if (cursorCharacter) cursorCharacter.value = "";
+          if (cursorWord) cursorWord.value = "";
+          if (cursorCellChar) cursorCellChar.value = "";
+          if (cursorCellCodePoint) cursorCellCodePoint.value = "";
+          if (cursorTable) cursorTable.value = "";
+          if (cursorTimestamp) cursorTimestamp.value = "";
+          if (cursorSourceText) cursorSourceText.value = "";
         }
 
         function renderLatestContextFields() {
@@ -1009,23 +1089,48 @@
           const table = activeTable || "(no table)";
           return `brailleLine ok=${ok} table=${table} text=${brailleText}`;
         }
-        if (type === "cursorContext") {
-          setLatestContextMeta("cursorContext");
+        if (type === "cursor" || type === "cursorContext") {
+          setLatestContextMeta("cursor");
+          clearPayloadFields();
           renderLatestContextFields();
           const cell = typeof cursor.CellIndex !== "undefined" ? cursor.CellIndex : (typeof cursor.cellIndex !== "undefined" ? cursor.cellIndex : "?");
           const textIndex = typeof cursor.TextIndex !== "undefined" ? cursor.TextIndex : (typeof cursor.textIndex !== "undefined" ? cursor.textIndex : "?");
           const ch = cursor.Character || cursor.character || "?";
-          return `cursorContext ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
+          return `cursor ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
         }
-        if (type === "chordContext") {
-          setLatestContextMeta("chordContext");
+        if (type === "chord" || type === "chordContext") {
+          setLatestContextMeta("chord");
+          clearPayloadFields();
           renderLatestContextFields();
           const cell = typeof cursor.CellIndex !== "undefined" ? cursor.CellIndex : (typeof cursor.cellIndex !== "undefined" ? cursor.cellIndex : "?");
           const textIndex = typeof cursor.TextIndex !== "undefined" ? cursor.TextIndex : (typeof cursor.textIndex !== "undefined" ? cursor.textIndex : "?");
           const ch = cursor.Character || cursor.character || "?";
-          return `chordContext ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
+          return `chord ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
+        }
+        if (type === "thumbKey") {
+          setLatestContextMeta("thumbKey");
+          clearCursorBrailleFields();
+          if (latestContextPayloadName) latestContextPayloadName.value = payload.Name || payload.name || "";
+          if (latestContextPayloadKey) latestContextPayloadKey.value = "";
+          const press = typeof payload.Press !== "undefined" ? payload.Press : payload.press;
+          if (latestContextPayloadPress) latestContextPayloadPress.value = typeof press !== "undefined" ? String(press) : "";
+          return `thumbKey ok=${ok} name=${payload.Name || payload.name || ""} press=${typeof press !== "undefined" ? String(press) : ""}`;
+        }
+        if (type === "editorKey") {
+          setLatestContextMeta("editorKey");
+          clearCursorBrailleFields();
+          if (latestContextPayloadName) latestContextPayloadName.value = "";
+          if (latestContextPayloadKey) latestContextPayloadKey.value = payload.Key || payload.key || "";
+          const press = typeof payload.Press !== "undefined" ? payload.Press : payload.press;
+          if (latestContextPayloadPress) latestContextPayloadPress.value = typeof press !== "undefined" ? String(press) : "";
+          return `editorKey ok=${ok} key=${payload.Key || payload.key || ""} press=${typeof press !== "undefined" ? String(press) : ""}`;
         }
         if (typeof o.MsgType !== "undefined") {
+          setLatestContextMeta("rawKey");
+          clearCursorBrailleFields();
+          if (latestContextPayloadName) latestContextPayloadName.value = o.Name ?? "";
+          if (latestContextPayloadKey) latestContextPayloadKey.value = o.EditorCommand ?? "";
+          if (latestContextPayloadPress) latestContextPayloadPress.value = typeof o.IsPress !== "undefined" ? String(o.IsPress) : "";
           return `keyEvent MsgType=${o.MsgType} UnitId=${o.UnitId} ButtonIndex=${o.ButtonIndex} IsPress=${o.IsPress} Name=${o.Name ?? ""} DotsMask=${o.DotsMask ?? ""}`;
         }
         return JSON.stringify(o);
@@ -1044,7 +1149,7 @@
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
       appendLog("Spec: POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
-      appendLog("Spec: WS brailleLine/cursorContext/keyEvent in, editorInput/setEditorMode out.");
+      appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key), editorInput/setEditorMode out.");
     })();
   </script>
 </body>
