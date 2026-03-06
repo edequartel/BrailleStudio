@@ -1,0 +1,457 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Braille Display</title>
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --fg: #111827;
+      --panel: #ffffff;
+      --panel2: #f9fafb;
+      --border: rgba(10,20,40,.12);
+      --muted: #6b7280;
+      --radius: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --panel: #0f172a;
+      --panel2: #101b27;
+      --border: rgba(255,255,255,.10);
+      --muted: #94a3b8;
+      --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+      color: var(--fg);
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      color: var(--fg);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .btn.ghost { background: transparent; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    #brailleMonitorComponent {
+      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: grid;
+      gap: 4px;
+      min-width: 180px;
+      flex: 1;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .input,
+    .select,
+    .log {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel2);
+      color: var(--fg);
+      padding: 8px 10px;
+      font-family: var(--sans);
+      font-size: 13px;
+    }
+
+    .status {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .log {
+      font-family: var(--mono);
+      min-height: 150px;
+      max-height: 280px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="top">
+      <h1>Braille Display</h1>
+      <div class="row">
+        <button class="btn" id="themeBtn" type="button">Theme</button>
+        <a class="btn ghost" href="../index.html">Back</a>
+      </div>
+    </div>
+
+    <div id="brailleMonitorComponent"></div>
+
+    <div class="card" aria-label="Braille display websocket client">
+      <div class="grid">
+        <div class="field">
+          <label for="wsUrl">WebSocket URL</label>
+          <input id="wsUrl" class="input" type="text" value="ws://localhost:5000/ws" />
+        </div>
+        <div class="row">
+          <button class="btn" id="wsConnectBtn" type="button">Connect</button>
+          <button class="btn ghost" id="wsDisconnectBtn" type="button">Disconnect</button>
+          <span class="status" id="wsStatus">disconnected</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="wsEditorMode">
+          <input id="wsEditorMode" type="checkbox" />
+          editor mode
+        </label>
+        <button class="btn" id="wsSendEditorModeBtn" type="button">Send setEditorMode</button>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="wsInputKind">editorInput kind</label>
+          <select id="wsInputKind" class="select">
+            <option value="text">text</option>
+            <option value="braille">braille</option>
+            <option value="key">key</option>
+          </select>
+        </div>
+
+        <div class="field" id="wsTextField">
+          <label for="wsTextInput">text</label>
+          <input id="wsTextInput" class="input" type="text" value="hello" />
+        </div>
+
+        <div class="field" id="wsBrailleField" hidden>
+          <label for="wsBrailleInput">braille unicode</label>
+          <input id="wsBrailleInput" class="input" type="text" value="&#x2801;" />
+        </div>
+
+        <div class="field" id="wsKeyField" hidden>
+          <label for="wsKeyInput">key</label>
+          <select id="wsKeyInput" class="select">
+            <option>Backspace</option>
+            <option>Space</option>
+            <option>Enter</option>
+            <option>ArrowLeft</option>
+            <option>ArrowRight</option>
+            <option>ArrowUp</option>
+            <option>ArrowDown</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn" id="wsSendInputBtn" type="button">Send editorInput</button>
+        <button class="btn ghost" id="wsClearLogBtn" type="button">Clear log</button>
+      </div>
+
+      <div class="field">
+        <label for="wsLatestEvent">Latest event summary</label>
+        <input id="wsLatestEvent" class="input" type="text" readonly />
+      </div>
+
+      <div class="field">
+        <label for="wsLog">WebSocket log</label>
+        <pre id="wsLog" class="log"></pre>
+      </div>
+    </div>
+  </main>
+
+  <script src="../components/braille-monitor/braillemonitor.js"></script>
+  <script>
+    "use strict";
+
+    const THEME_KEY = "bs_theme";
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem(THEME_KEY, theme);
+    }
+
+    function getInitialTheme() {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    applyTheme(getInitialTheme());
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    const wsUrlEl = document.getElementById("wsUrl");
+    const wsConnectBtn = document.getElementById("wsConnectBtn");
+    const wsDisconnectBtn = document.getElementById("wsDisconnectBtn");
+    const wsStatusEl = document.getElementById("wsStatus");
+    const wsEditorMode = document.getElementById("wsEditorMode");
+    const wsSendEditorModeBtn = document.getElementById("wsSendEditorModeBtn");
+    const wsInputKind = document.getElementById("wsInputKind");
+    const wsTextField = document.getElementById("wsTextField");
+    const wsBrailleField = document.getElementById("wsBrailleField");
+    const wsKeyField = document.getElementById("wsKeyField");
+    const wsTextInput = document.getElementById("wsTextInput");
+    const wsBrailleInput = document.getElementById("wsBrailleInput");
+    const wsKeyInput = document.getElementById("wsKeyInput");
+    const wsSendInputBtn = document.getElementById("wsSendInputBtn");
+    const wsClearLogBtn = document.getElementById("wsClearLogBtn");
+    const wsLatestEvent = document.getElementById("wsLatestEvent");
+    const wsLog = document.getElementById("wsLog");
+    const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
+      ? window.BrailleMonitor.init({ containerId: "brailleMonitorComponent", showInfo: false })
+      : null;
+    let lastSsocLineId = null;
+
+    let ws = null;
+
+    function appendWsLog(line) {
+      const now = new Date().toISOString();
+      wsLog.textContent += `[${now}] ${line}\n`;
+      wsLog.scrollTop = wsLog.scrollHeight;
+    }
+
+    function setWsStatus(text) {
+      wsStatusEl.textContent = text;
+    }
+
+    function renderInputKind() {
+      const kind = wsInputKind.value;
+      wsTextField.hidden = kind !== "text";
+      wsBrailleField.hidden = kind !== "braille";
+      wsKeyField.hidden = kind !== "key";
+    }
+
+    function wsIsOpen() {
+      return ws && ws.readyState === WebSocket.OPEN;
+    }
+
+    function sendWsJson(payload, label) {
+      if (!wsIsOpen()) {
+        appendWsLog("WS not connected");
+        return;
+      }
+      ws.send(JSON.stringify(payload));
+      appendWsLog(`WS -> ${label}: ${JSON.stringify(payload)}`);
+    }
+
+    // Only this function is allowed to update the BrailleMonitor content.
+    // Source of truth: server brailleLine (SSOC) event from BrailleBridge.
+    function applySsocBrailleLine(msg) {
+      if (!monitor) return false;
+
+      const eventType = msg?.Type ?? msg?.type;
+      if (eventType !== "brailleLine") return false;
+      if (msg?.ok !== true) return false;
+
+      const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : null;
+      const unicodeText = typeof msg?.braille?.unicodeText === "string" ? msg.braille.unicodeText : null;
+      if (sourceText == null || unicodeText == null) return false;
+
+      const lineId = msg?.meta?.lineId;
+      if (lineId != null && lineId === lastSsocLineId) return true;
+
+      monitor.setBrailleUnicode(unicodeText, sourceText);
+      if (lineId != null) lastSsocLineId = lineId;
+      return true;
+    }
+
+    function prettyIncomingMessage(msg) {
+      const eventType = msg.Type ?? msg.type;
+
+      if (eventType === "thumbKey") {
+        return `thumbKey name=${msg.Payload?.Name ?? "?"} press=${msg.Payload?.Press}`;
+      }
+      if (eventType === "editorKey") {
+        return `editorKey key=${msg.Payload?.Key ?? "?"} press=${msg.Payload?.Press}`;
+      }
+      if (eventType === "cursor" || eventType === "chord") {
+        return `${eventType} char=${msg.Cursor?.Character ?? ""} word=${msg.Cursor?.Word ?? ""}`;
+      }
+      if (eventType === "brailleLine") {
+        const src = msg.sourceText ?? "";
+        const uni = msg.braille?.unicodeText ?? "";
+        return `brailleLine table=${msg.meta?.activeTable ?? ""} text="${src}" braille="${uni}"`;
+      }
+      if (typeof msg.MsgType === "number" && typeof msg.UnitId === "number") {
+        return `rawKey kind=${msg.Kind ?? "?"} press=${msg.IsPress} rawParam=${msg.RawParam ?? "?"}`;
+      }
+      return `unknown ${JSON.stringify(msg)}`;
+    }
+
+    function handleWsText(text) {
+      try {
+        const msg = JSON.parse(text);
+        applySsocBrailleLine(msg);
+        const summary = prettyIncomingMessage(msg);
+        wsLatestEvent.value = summary;
+        appendWsLog(`WS <- ${summary}`);
+      } catch {
+        wsLatestEvent.value = "text frame";
+        appendWsLog(`WS <- TEXT ${text}`);
+      }
+    }
+
+    function connectWs() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        appendWsLog("WS already connecting/connected");
+        return;
+      }
+
+      const url = String(wsUrlEl.value || "").trim();
+      if (!url) {
+        appendWsLog("Missing WebSocket URL");
+        return;
+      }
+
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        appendWsLog(`WS create failed: ${String(err)}`);
+        return;
+      }
+
+      setWsStatus("connecting...");
+      appendWsLog(`WS connect ${url}`);
+
+      ws.addEventListener("open", () => {
+        setWsStatus("connected");
+        appendWsLog("WS open");
+      });
+
+      ws.addEventListener("close", (ev) => {
+        setWsStatus("disconnected");
+        appendWsLog(`WS close code=${ev.code} reason=${ev.reason || "-"}`);
+      });
+
+      ws.addEventListener("error", () => {
+        setWsStatus("error");
+        appendWsLog("WS error");
+      });
+
+      ws.addEventListener("message", async (ev) => {
+        const data = ev.data;
+        if (typeof data === "string") {
+          handleWsText(data);
+          return;
+        }
+        if (data instanceof Blob) {
+          const text = await data.text();
+          handleWsText(text);
+          return;
+        }
+        appendWsLog("WS <- non-text frame");
+      });
+    }
+
+    function disconnectWs() {
+      if (!ws) return;
+      ws.close(1000, "client close");
+      ws = null;
+      setWsStatus("disconnected");
+    }
+
+    wsInputKind.addEventListener("change", renderInputKind);
+    renderInputKind();
+
+    wsConnectBtn.addEventListener("click", connectWs);
+    wsDisconnectBtn.addEventListener("click", disconnectWs);
+
+    wsSendEditorModeBtn.addEventListener("click", () => {
+      sendWsJson(
+        { type: "command", command: "setEditorMode", enabled: !!wsEditorMode.checked },
+        "setEditorMode"
+      );
+    });
+
+    wsSendInputBtn.addEventListener("click", () => {
+      const kind = wsInputKind.value;
+      let input;
+
+      if (kind === "text") {
+        input = { kind: "text", text: wsTextInput.value };
+      } else if (kind === "braille") {
+        input = { kind: "braille", unicode: wsBrailleInput.value };
+      } else {
+        input = { kind: "key", key: wsKeyInput.value };
+      }
+
+      sendWsJson({ type: "command", command: "editorInput", input }, "editorInput");
+    });
+
+    wsClearLogBtn.addEventListener("click", () => {
+      wsLog.textContent = "";
+    });
+  </script>
+</body>
+</html>
