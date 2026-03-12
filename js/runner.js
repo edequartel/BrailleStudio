@@ -1210,9 +1210,10 @@
         if (!brailleMonitor || typeof brailleMonitor.setBrailleUnicode !== "function") return;
         const unicode = evt?.brailleUnicode ?? "";
         const sourceText = evt?.sourceText ?? "";
+        const caretPosition = Number.isInteger(evt?.caretPosition) ? evt.caretPosition : null;
         if (!unicode) return;
         log("[runner] brailleLine ws", { json: evt?.raw ?? null });
-        brailleMonitor.setBrailleUnicode(unicode, sourceText);
+        brailleMonitor.setBrailleUnicode(unicode, sourceText, { caretPosition });
       });
       BrailleBridge.on("connected", () => log("[runner] BrailleBridge connected"));
       BrailleBridge.on("disconnected", () => {});

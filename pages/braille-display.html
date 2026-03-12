@@ -296,14 +296,26 @@
     const wsLatestEvent = document.getElementById("wsLatestEvent");
     const wsLogField = document.getElementById("wsLogField");
     const wsLog = document.getElementById("wsLog");
-    const wsUrl = "ws://localhost:5000/ws";
+
+    const WS_URL = "ws://localhost:5000/ws";
+    const VALID_EDITOR_KEYS = [
+      "Backspace",
+      "Space",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown"
+    ];
+
     const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
       ? window.BrailleMonitor.init({ containerId: "brailleMonitorComponent", showInfo: false })
       : null;
-    let lastSsocLineId = null;
 
     let ws = null;
     let editorModeEnabled = false;
+    let lastSsocLineId = null;
+    let lastSsocCaretPosition = null;
 
     if (monitor && typeof monitor.setBrailleUnicode === "function") {
       monitor.setBrailleUnicode("", "");
@@ -318,22 +330,12 @@
     function setWsStatus(text) {
       const isConnected = String(text || "").toLowerCase() === "connected";
       wsStatusEl.classList.toggle("ok", isConnected);
-      wsStatusEl.setAttribute("aria-label", "WebSocket " + text);
+      wsStatusEl.setAttribute("aria-label", `WebSocket ${text}`);
       wsStatusEl.setAttribute("title", String(text || ""));
     }
 
     function setEditorModeIndicator(enabled) {
-      const on = !!enabled;
-      wsEditorModeDot.classList.toggle("on", on);
-    }
-
-    function sendEditorMode(enabled) {
-      editorModeEnabled = !!enabled;
-      setEditorModeIndicator(editorModeEnabled);
-      sendWsJson(
-        { type: "command", command: "setEditorMode", enabled: editorModeEnabled },
-        "setEditorMode"
-      );
+      wsEditorModeDot.classList.toggle("on", !!enabled);
     }
 
     function renderInputKind() {
@@ -344,58 +346,117 @@
     }
 
     function wsIsOpen() {
-      return ws && ws.readyState === WebSocket.OPEN;
+      return !!ws && ws.readyState === WebSocket.OPEN;
     }
 
-    function sendWsJson(payload, label) {
+    function eventTypeOf(msg) {
+      return msg?.Type ?? msg?.type;
+    }
+
+    function eventOkOf(msg) {
+      return msg?.ok ?? msg?.Ok;
+    }
+
+    function isRawKeyEvent(msg) {
+      return typeof msg?.MsgType === "number" && typeof msg?.UnitId === "number" && eventTypeOf(msg) == null;
+    }
+
+    function sendWsCommand(payload, label) {
       if (!wsIsOpen()) {
-        appendWsLog("WS not connected");
-        return;
+        appendWsLog(`WS command blocked (${label}): socket not connected`);
+        return false;
       }
       ws.send(JSON.stringify(payload));
       appendWsLog(`WS -> ${label}: ${JSON.stringify(payload)}`);
+      return true;
     }
 
-    // Only this function is allowed to update the BrailleMonitor content.
-    // Source of truth: server brailleLine (SSOC) event from BrailleBridge.
+    function sendEditorMode(enabled) {
+      editorModeEnabled = !!enabled;
+      setEditorModeIndicator(editorModeEnabled);
+      sendWsCommand(
+        {
+          type: "command",
+          command: "setEditorMode",
+          enabled: editorModeEnabled
+        },
+        "setEditorMode"
+      );
+    }
+
+    function buildEditorInputCommand() {
+      const kind = wsInputKind.value;
+      let input = null;
+
+      if (kind === "text") {
+        input = { kind: "text", text: wsTextInput.value };
+      } else if (kind === "braille") {
+        input = { kind: "braille", unicode: wsBrailleInput.value };
+      } else if (kind === "key") {
+        const key = wsKeyInput.value;
+        if (!VALID_EDITOR_KEYS.includes(key)) {
+          throw new Error(`Invalid key "${key}" for editorInput`);
+        }
+        input = { kind: "key", key };
+      } else {
+        throw new Error(`Invalid editorInput kind "${kind}"`);
+      }
+
+      return {
+        type: "command",
+        command: "editorInput",
+        input
+      };
+    }
+
+    // Only this function is allowed to update BrailleMonitor content.
     function applySsocBrailleLine(msg) {
-      if (!monitor) return false;
+      if (!monitor || typeof monitor.setBrailleUnicode !== "function") return false;
+      if (eventTypeOf(msg) !== "brailleLine") return false;
+      if (eventOkOf(msg) !== true) return false;
 
-      const eventType = msg?.Type ?? msg?.type;
-      if (eventType !== "brailleLine") return false;
-      if (msg?.ok !== true) return false;
-
-      const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : null;
       const unicodeText = typeof msg?.braille?.unicodeText === "string" ? msg.braille.unicodeText : null;
-      if (sourceText == null || unicodeText == null) return false;
+      if (unicodeText == null) return false;
 
+      const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : "";
+      const caretPosition = Number.isInteger(msg?.meta?.caretPosition) ? msg.meta.caretPosition : null;
       const lineId = msg?.meta?.lineId;
-      if (lineId != null && lineId === lastSsocLineId) return true;
+      if (
+        typeof lineId === "number" &&
+        lineId === lastSsocLineId &&
+        caretPosition === lastSsocCaretPosition
+      ) {
+        return true;
+      }
 
-      monitor.setBrailleUnicode(unicodeText, sourceText);
-      if (lineId != null) lastSsocLineId = lineId;
+      monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition });
+      if (typeof lineId === "number") lastSsocLineId = lineId;
+      lastSsocCaretPosition = caretPosition;
       return true;
     }
 
     function prettyIncomingMessage(msg) {
-      const eventType = msg.Type ?? msg.type;
+      const eventType = eventTypeOf(msg);
 
       if (eventType === "thumbKey") {
-        return `thumbKey name=${msg.Payload?.Name ?? "?"} press=${msg.Payload?.Press}`;
+        return `thumbKey name=${msg?.Payload?.Name ?? "?"} press=${msg?.Payload?.Press}`;
       }
       if (eventType === "editorKey") {
-        return `editorKey key=${msg.Payload?.Key ?? "?"} press=${msg.Payload?.Press}`;
+        return `editorKey key=${msg?.Payload?.Key ?? "?"} press=${msg?.Payload?.Press}`;
       }
       if (eventType === "cursor" || eventType === "chord") {
-        return `${eventType} char=${msg.Cursor?.Character ?? ""} word=${msg.Cursor?.Word ?? ""}`;
+        const char = msg?.Cursor?.Character ?? "";
+        const word = msg?.Cursor?.Word ?? "";
+        const cell = msg?.Braille?.CellChar ?? "";
+        return `${eventType} char=${char} word=${word} cell=${cell}`;
       }
       if (eventType === "brailleLine") {
-        const src = msg.sourceText ?? "";
-        const uni = msg.braille?.unicodeText ?? "";
-        return `brailleLine table=${msg.meta?.activeTable ?? ""} text="${src}" braille="${uni}"`;
+        const src = typeof msg?.sourceText === "string" ? msg.sourceText : "";
+        const uni = typeof msg?.braille?.unicodeText === "string" ? msg.braille.unicodeText : "";
+        return `brailleLine table=${msg?.meta?.activeTable ?? ""} text="${src}" braille="${uni}"`;
       }
-      if (typeof msg.MsgType === "number" && typeof msg.UnitId === "number") {
-        return `rawKey kind=${msg.Kind ?? "?"} press=${msg.IsPress} rawParam=${msg.RawParam ?? "?"}`;
+      if (isRawKeyEvent(msg)) {
+        return `rawKey kind=${msg?.Kind ?? "?"} press=${msg?.IsPress} rawParam=${msg?.RawParam ?? "?"}`;
       }
       return `unknown ${JSON.stringify(msg)}`;
     }
@@ -419,32 +480,36 @@
         return;
       }
 
+      let socket;
       try {
-        ws = new WebSocket(wsUrl);
+        socket = new WebSocket(WS_URL);
       } catch (err) {
         appendWsLog(`WS create failed: ${String(err)}`);
         return;
       }
 
+      ws = socket;
       setWsStatus("connecting...");
-      appendWsLog(`WS connect ${wsUrl}`);
+      appendWsLog(`WS connect ${WS_URL}`);
 
-      ws.addEventListener("open", () => {
+      socket.addEventListener("open", () => {
+        if (ws !== socket) return;
         setWsStatus("connected");
         appendWsLog("WS open");
       });
 
-      ws.addEventListener("close", (ev) => {
+      socket.addEventListener("close", (ev) => {
+        if (ws === socket) ws = null;
         setWsStatus("disconnected");
         appendWsLog(`WS close code=${ev.code} reason=${ev.reason || "-"}`);
       });
 
-      ws.addEventListener("error", () => {
+      socket.addEventListener("error", () => {
         setWsStatus("error");
         appendWsLog("WS error");
       });
 
-      ws.addEventListener("message", async (ev) => {
+      socket.addEventListener("message", async (ev) => {
         const data = ev.data;
         if (typeof data === "string") {
           handleWsText(data);
@@ -463,6 +528,8 @@
       if (!ws) return;
       ws.close(1000, "client close");
       ws = null;
+      lastSsocLineId = null;
+      lastSsocCaretPosition = null;
       setWsStatus("disconnected");
       if (monitor && typeof monitor.setBrailleUnicode === "function") {
         monitor.setBrailleUnicode("", "");
@@ -480,18 +547,12 @@
     wsEditorModeOffBtn.addEventListener("click", () => sendEditorMode(false));
 
     wsSendInputBtn.addEventListener("click", () => {
-      const kind = wsInputKind.value;
-      let input;
-
-      if (kind === "text") {
-        input = { kind: "text", text: wsTextInput.value };
-      } else if (kind === "braille") {
-        input = { kind: "braille", unicode: wsBrailleInput.value };
-      } else {
-        input = { kind: "key", key: wsKeyInput.value };
+      try {
+        const payload = buildEditorInputCommand();
+        sendWsCommand(payload, "editorInput");
+      } catch (err) {
+        appendWsLog(`editorInput blocked: ${String(err?.message || err)}`);
       }
-
-      sendWsJson({ type: "command", command: "editorInput", input }, "editorInput");
     });
 
     wsClearLogBtn.addEventListener("click", () => {
@@ -504,7 +565,6 @@
       wsToggleLogBtn.textContent = isOpen ? "Open log" : "Close log";
     });
 
-    // Auto-connect on page load
     connectWs();
   </script>
 </body>

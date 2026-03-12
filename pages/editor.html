@@ -186,6 +186,16 @@
       font-family: var(--mono);
     }
 
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 760px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
     textarea { min-height: 140px; resize: vertical; }
   </style>
 </head>
@@ -198,7 +208,7 @@
           <h1>Editor</h1>
         </div>
         <div class="actions">
-          <a class="btn" href="./index.html">Home</a>
+          <a class="btn" href="../index.html">Home</a>
           <button class="btn good" id="wsReconnectBtn" type="button">Reconnect</button>
         </div>
       </div>
@@ -219,6 +229,18 @@
           <div class="bd">
             <label for="brailleLine">UnicodeText</label>
             <textarea id="brailleLine" readonly></textarea>
+            <div class="row">
+              <div>
+                <label for="brailleTable">Table</label>
+                <input id="brailleTable" type="text" readonly />
+              </div>
+              <div>
+                <label for="brailleCaret">CaretPosition</label>
+                <input id="brailleCaret" type="text" readonly />
+              </div>
+            </div>
+            <label for="sourceText" style="margin-top:10px;">SourceText</label>
+            <textarea id="sourceText" readonly></textarea>
           </div>
         </section>
 
@@ -257,82 +279,160 @@
       const wsUrl = "ws://localhost:5000/ws";
       const wsDot = document.getElementById("wsDot");
       const brailleLine = document.getElementById("brailleLine");
+      const brailleTable = document.getElementById("brailleTable");
+      const brailleCaret = document.getElementById("brailleCaret");
+      const sourceText = document.getElementById("sourceText");
       const editorInput = document.getElementById("editorInput");
       const wsReconnectBtn = document.getElementById("wsReconnectBtn");
+      const VALID_EDITOR_KEYS = new Set([
+        "Backspace",
+        "Space",
+        "Enter",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown"
+      ]);
 
       let ws = null;
-      let lastValue = "";
-
+      let suppressInputEvent = false;
       brailleLine.value = "";
+      brailleTable.value = "";
+      brailleCaret.value = "";
+      sourceText.value = "";
 
       function setWsStatus(ok) {
         wsDot.classList.toggle("ok", !!ok);
       }
 
-      function connect() {
-        if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-          return;
+      function wsIsOpen() {
+        return !!ws && ws.readyState === WebSocket.OPEN;
+      }
+
+      function eventTypeOf(msg) {
+        return msg?.Type ?? msg?.type;
+      }
+
+      function eventOkOf(msg) {
+        return msg?.Ok ?? msg?.ok;
+      }
+
+      function sendCommand(payload) {
+        if (!wsIsOpen()) return false;
+        ws.send(JSON.stringify(payload));
+        return true;
+      }
+
+      function sendEditorInput(input) {
+        return sendCommand({ type: "command", command: "editorInput", input });
+      }
+
+      function applyBrailleLineEvent(obj) {
+        if (eventTypeOf(obj) !== "brailleLine") return false;
+        if (eventOkOf(obj) !== true) return false;
+
+        const unicode = typeof obj?.braille?.unicodeText === "string" ? obj.braille.unicodeText : "";
+        const src = typeof obj?.sourceText === "string" ? obj.sourceText : "";
+        const table = typeof obj?.meta?.activeTable === "string" ? obj.meta.activeTable : "";
+        const caret = Number.isInteger(obj?.meta?.caretPosition) ? obj.meta.caretPosition : null;
+        const hasSourceText = typeof obj?.sourceText === "string";
+
+        brailleLine.value = unicode;
+        sourceText.value = src;
+        brailleTable.value = table;
+        brailleCaret.value = caret == null ? "" : String(caret);
+
+        // Keep editor input aligned with SSOC and move caret to server position.
+        if (hasSourceText && editorInput.value !== src) {
+          editorInput.value = src;
         }
+        if (caret != null) {
+          const nextPos = Math.max(0, Math.min(caret, editorInput.value.length));
+          if (typeof editorInput.setSelectionRange === "function") {
+            editorInput.setSelectionRange(nextPos, nextPos);
+          }
+        }
+        return true;
+      }
+
+      function connect() {
+        if (wsIsOpen()) return;
+        if (ws && ws.readyState === WebSocket.CONNECTING) return;
+        if (ws) {
+          try { ws.close(1000, "reconnect"); } catch {}
+        }
+
         ws = new WebSocket(wsUrl);
+
         ws.addEventListener("open", () => {
           setWsStatus(true);
-          const msg = { type: "command", command: "setEditorMode", enabled: true };
-          ws.send(JSON.stringify(msg));
+          sendCommand({ type: "command", command: "setEditorMode", enabled: true });
         });
-        ws.addEventListener("close", () => setWsStatus(false));
-        ws.addEventListener("error", () => setWsStatus(false));
+
+        ws.addEventListener("close", () => {
+          setWsStatus(false);
+          ws = null;
+        });
+
+        ws.addEventListener("error", () => {
+          setWsStatus(false);
+        });
+
         ws.addEventListener("message", async (ev) => {
           let text = "";
           if (typeof ev.data === "string") text = ev.data;
           else if (ev.data instanceof Blob) text = await ev.data.text();
           else if (ev.data instanceof ArrayBuffer) text = new TextDecoder().decode(ev.data);
           if (!text) return;
+
           try {
             const obj = JSON.parse(text);
-            const type = obj.Type || obj.type;
-            if (type === "brailleLine") {
-              const braille = obj.Braille || obj.braille || {};
-              brailleLine.value = braille.UnicodeText || braille.unicodeText || "";
-            }
+            applyBrailleLineEvent(obj);
           } catch {}
         });
       }
 
-      function sendEditorInput(payload) {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        const msg = { type: "command", command: "editorInput", input: payload };
-        ws.send(JSON.stringify(msg));
-      }
-
       editorInput.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace") {
-          sendEditorInput({ kind: "key", key: "Backspace" });
-          return;
-        }
-        if (e.key === " ") {
-          sendEditorInput({ kind: "key", key: "Space" });
-          return;
-        }
-        if (e.key === "Enter") {
+        let mappedKey = null;
+        if (e.key === "Backspace") mappedKey = "Backspace";
+        else if (e.key === " ") mappedKey = "Space";
+        else if (e.key === "Enter") mappedKey = "Enter";
+        else if (e.key === "ArrowLeft") mappedKey = "ArrowLeft";
+        else if (e.key === "ArrowRight") mappedKey = "ArrowRight";
+        else if (e.key === "ArrowUp") mappedKey = "ArrowUp";
+        else if (e.key === "ArrowDown") mappedKey = "ArrowDown";
+
+        if (!mappedKey || !VALID_EDITOR_KEYS.has(mappedKey)) return;
+
+        if (mappedKey === "Enter") {
           e.preventDefault();
-          sendEditorInput({ kind: "key", key: "Enter" });
+        }
+        if (mappedKey === "Enter" || mappedKey === "Backspace") {
+          suppressInputEvent = true;
+        }
+        sendEditorInput({ kind: "key", key: mappedKey });
+
+        if (mappedKey === "Enter") {
           editorInput.value = "";
-          lastValue = "";
-          return;
         }
       });
 
-      editorInput.addEventListener("input", () => {
-        const value = editorInput.value || "";
-        if (value.length > lastValue.length) {
-          const added = value.slice(lastValue.length);
-          if (added) sendEditorInput({ kind: "text", text: added });
+      editorInput.addEventListener("input", (e) => {
+        if (suppressInputEvent) {
+          suppressInputEvent = false;
+          return;
         }
-        lastValue = value;
+        const data = typeof e.data === "string" ? e.data : "";
+        if (data) {
+          sendEditorInput({ kind: "text", text: data });
+        }
       });
 
       wsReconnectBtn.addEventListener("click", () => {
-        try { ws && ws.close(1000, "reconnect"); } catch {}
+        if (ws) {
+          try { ws.close(1000, "reconnect"); } catch {}
+          ws = null;
+        }
         connect();
       });
 

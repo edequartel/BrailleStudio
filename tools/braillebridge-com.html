@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BrailleBridge tool</title>
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
 
   <style>
     @font-face {
@@ -351,6 +352,22 @@
 
   <main>
     <div class="wrap">
+      <section class="card" style="margin-bottom:14px;">
+        <div class="hd">
+          <div>
+            <h2>BrailleMonitor</h2>
+          </div>
+          <div class="pill">
+            <span>WS</span>
+            <span class="dot ok"></span>
+            <span>brailleLine</span>
+          </div>
+        </div>
+        <div class="bd">
+          <div id="brailleMonitorComponent"></div>
+        </div>
+      </section>
+
       <div class="grid">
 
         <!-- Left: HTTP controls -->
@@ -383,17 +400,6 @@
             </div>
             <div class="inline" style="margin-top:8px;">
               <button class="btn" id="getTablesBtn">GET /tables</button>
-            </div>
-
-            <div style="margin-top:12px;">
-              <div class="row">
-                <div>
-                  <input id="brailleTextValue" type="text" value="aap Aap AAP 123" />
-                </div>
-                <div class="inline">
-                  <button class="btn" id="postBrailleBtn">POST /braille</button>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -430,19 +436,38 @@
               <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
               <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
             </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="wsSendBackspaceBtn">Send Backspace</button>
-              <button class="btn" id="wsSendSpaceBtn">Send Space</button>
-              <button class="btn" id="wsSendEnterBtn">Send Enter</button>
-            </div>
 
             <div class="row" style="margin-top:12px;">
               <div>
-                <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?"></input>
+                <select id="wsInputKind">
+                  <option value="text">text</option>
+                  <option value="braille">braille</option>
+                  <option value="key">key</option>
+                </select>
               </div>
-              <div class="inline">
-                <button class="btn" id="wsSendInputBtn">Send Text</button>
-              </div>
+            </div>
+
+            <div id="wsTextField" style="margin-top:10px;">
+              <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?" />
+            </div>
+            <div id="wsBrailleField" style="margin-top:10px;" hidden>
+              <label for="wsBrailleValue">braille unicode</label>
+              <input id="wsBrailleValue" type="text" value="&#x2801;" />
+            </div>
+            <div id="wsKeyField" style="margin-top:10px;" hidden>
+              <label for="wsKeyValue">key</label>
+              <select id="wsKeyValue">
+                <option>Backspace</option>
+                <option>Space</option>
+                <option>Enter</option>
+                <option>ArrowLeft</option>
+                <option>ArrowRight</option>
+                <option>ArrowUp</option>
+                <option>ArrowDown</option>
+              </select>
+            </div>
+            <div class="inline" style="margin-top:10px;">
+              <button class="btn" id="wsSendInputBtn">Send editorInput</button>
             </div>
 
 
@@ -632,6 +657,7 @@
     </div>
   </main>
 
+  <script src="../components/braille-monitor/braillemonitor.js"></script>
   <script>
     (function () {
       const el = (id) => document.getElementById(id);
@@ -642,8 +668,6 @@
       const httpBaseLabel = el("httpBaseLabel");
       const wsBaseLabel = el("wsBaseLabel");
 
-      const brailleTextValue = el("brailleTextValue");
-      const postBrailleBtn = el("postBrailleBtn");
       const getPathsBtn = el("getPathsBtn");
       const getPingBtn = el("getPingBtn");
       const getClearBtn = el("getClearBtn");
@@ -658,12 +682,15 @@
       const wsConnectBtn = el("wsConnectBtn");
       const wsDisconnectBtn = el("wsDisconnectBtn");
       const wsSendInputBtn = el("wsSendInputBtn");
+      const wsInputKind = el("wsInputKind");
+      const wsTextField = el("wsTextField");
+      const wsBrailleField = el("wsBrailleField");
+      const wsKeyField = el("wsKeyField");
       const wsTextValue = el("wsTextValue");
+      const wsBrailleValue = el("wsBrailleValue");
+      const wsKeyValue = el("wsKeyValue");
       const wsSendModeBtn = el("wsSendModeBtn");
       const wsSendModeDisableBtn = el("wsSendModeDisableBtn");
-      const wsSendBackspaceBtn = el("wsSendBackspaceBtn");
-      const wsSendSpaceBtn = el("wsSendSpaceBtn");
-      const wsSendEnterBtn = el("wsSendEnterBtn");
       const editorModeDot = el("editorModeDot");
       const editorModeText = el("editorModeText");
 
@@ -701,6 +728,12 @@
       const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
       const copyLogBtn = el("copyLogBtn");
       const clearLogBtn = el("clearLogBtn");
+      const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
+        ? window.BrailleMonitor.init({ containerId: "brailleMonitorComponent", showInfo: false })
+        : null;
+      if (monitor && typeof monitor.setBrailleUnicode === "function") {
+        monitor.setBrailleUnicode("", "");
+      }
 
       // Theme follows index.html
       const THEME_KEY = "bs_theme";
@@ -882,7 +915,6 @@
       }
 
       // Hook up HTTP buttons
-      postBrailleBtn.addEventListener("click", () => httpPostText("/braille", brailleTextValue.value, "text/plain; charset=utf-8"));
       getPathsBtn.addEventListener("click", () => httpGet("/paths"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
@@ -894,6 +926,73 @@
       // WebSocket
       let ws = null;
       let lastWsJsonLog = null;
+      let lastSsocLineId = null;
+      let lastSsocCaretPosition = null;
+      const VALID_EDITOR_KEYS = [
+        "Backspace",
+        "Space",
+        "Enter",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown"
+      ];
+
+      function wsIsOpen() {
+        return !!ws && ws.readyState === WebSocket.OPEN;
+      }
+
+      function eventTypeOf(msg) {
+        return msg?.Type ?? msg?.type;
+      }
+
+      function eventOkOf(msg) {
+        return msg?.ok ?? msg?.Ok;
+      }
+
+      // Only this function is allowed to update BrailleMonitor content.
+      function applySsocBrailleLine(msg) {
+        if (!monitor || typeof monitor.setBrailleUnicode !== "function") return false;
+        if (eventTypeOf(msg) !== "brailleLine") return false;
+        if (eventOkOf(msg) !== true) return false;
+
+        const unicodeText = typeof msg?.braille?.unicodeText === "string" ? msg.braille.unicodeText : null;
+        if (unicodeText == null) return false;
+
+        const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : "";
+        const caretPosition = Number.isInteger(msg?.meta?.caretPosition) ? msg.meta.caretPosition : null;
+        const lineId = msg?.meta?.lineId;
+
+        if (
+          typeof lineId === "number" &&
+          lineId === lastSsocLineId &&
+          caretPosition === lastSsocCaretPosition
+        ) {
+          return true;
+        }
+
+        monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition });
+        if (typeof lineId === "number") lastSsocLineId = lineId;
+        lastSsocCaretPosition = caretPosition;
+        return true;
+      }
+
+      function renderWsInputKind() {
+        const kind = wsInputKind ? wsInputKind.value : "text";
+        if (wsTextField) wsTextField.hidden = kind !== "text";
+        if (wsBrailleField) wsBrailleField.hidden = kind !== "braille";
+        if (wsKeyField) wsKeyField.hidden = kind !== "key";
+      }
+
+      function wsSendJson(payload, label) {
+        if (!wsIsOpen()) {
+          appendLog(`WS: not connected (${label})`);
+          return false;
+        }
+        ws.send(JSON.stringify(payload));
+        appendLog(`WS -> ${label}: ${JSON.stringify(payload)}`);
+        return true;
+      }
 
       function wsConnect() {
         const url = wsBase.value.trim();
@@ -950,56 +1049,51 @@
         }
         appendLog("WS → close");
         try { ws.close(1000, "client closed"); } catch {}
+        lastSsocLineId = null;
+        lastSsocCaretPosition = null;
+        if (monitor && typeof monitor.setBrailleUnicode === "function") {
+          monitor.setBrailleUnicode("", "");
+        }
       }
 
       function wsSendEditorInput() {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          appendLog("WS: not connected");
+        const kind = wsInputKind ? wsInputKind.value : "text";
+        let input;
+
+        if (kind === "text") {
+          input = { kind: "text", text: wsTextValue ? wsTextValue.value : "" };
+        } else if (kind === "braille") {
+          input = { kind: "braille", unicode: wsBrailleValue ? wsBrailleValue.value : "" };
+        } else if (kind === "key") {
+          const key = wsKeyValue ? wsKeyValue.value : "";
+          if (!VALID_EDITOR_KEYS.includes(key)) {
+            appendLog(`WS: invalid editorInput key "${key}"`);
+            return;
+          }
+          input = { kind: "key", key };
+        } else {
+          appendLog(`WS: invalid editorInput kind "${kind}"`);
           return;
         }
-        const text = (wsTextValue && wsTextValue.value ? wsTextValue.value : "").trim();
-        const payload = { kind: "text", text };
-        const msg = { type: "command", command: "editorInput", input: payload };
-        appendLog("WS -> send editorInput: " + JSON.stringify(msg));
-        ws.send(JSON.stringify(msg));
+
+        wsSendJson({ type: "command", command: "editorInput", input }, "editorInput");
       }
 
       function wsSendEditorMode() {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          appendLog("WS: not connected");
-          return;
-        }
-        const msg = { type: "command", command: "setEditorMode", enabled: true };
-        appendLog("WS -> send setEditorMode: " + JSON.stringify(msg));
-        ws.send(JSON.stringify(msg));
+        wsSendJson({ type: "command", command: "setEditorMode", enabled: true }, "setEditorMode");
         setEditorModeStatus(true);
       }
 
       function wsSendEditorModeDisable() {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          appendLog("WS: not connected");
-          return;
-        }
-        const msg = { type: "command", command: "setEditorMode", enabled: false };
-        appendLog("WS -> send setEditorMode: " + JSON.stringify(msg));
-        ws.send(JSON.stringify(msg));
+        wsSendJson({ type: "command", command: "setEditorMode", enabled: false }, "setEditorMode");
         setEditorModeStatus(false);
-      }
-
-      function wsSendEditorKey(key) {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-          appendLog("WS: not connected");
-          return;
-        }
-        const msg = { type: "command", command: "editorInput", input: { kind: "key", key } };
-        appendLog("WS -> send editorInput: " + JSON.stringify(msg));
-        ws.send(JSON.stringify(msg));
       }
 
       function handleWsText(text) {
         // Try parse JSON
         try {
           const obj = JSON.parse(text);
+          applySsocBrailleLine(obj);
           // Update UI fields via prettyIncomingMessage, but log full JSON payload.
           prettyIncomingMessage(obj);
           const pretty = JSON.stringify(obj, null, 2);
@@ -1075,7 +1169,8 @@
         }
 
         if (type === "brailleLine") {
-          if (brailleUnicode) brailleUnicode.value = braille.UnicodeText || braille.unicodeText || "";
+          const unicodeText = braille.UnicodeText || braille.unicodeText || "";
+          if (brailleUnicode) brailleUnicode.value = unicodeText;
           const activeTable = meta.ActiveTable || meta.activeTable || braille.Table || braille.table || "";
           const createdUtc = meta.CreatedUtc || meta.createdUtc || ts;
           const caretPosition = typeof meta.CaretPosition !== "undefined" ? meta.CaretPosition : meta.caretPosition;
@@ -1085,11 +1180,11 @@
           if (brailleCaretPosition) brailleCaretPosition.value = typeof caretPosition !== "undefined" ? String(caretPosition) : "";
           if (brailleLineLength) brailleLineLength.value = typeof lineLength !== "undefined" ? String(lineLength) : "";
           if (brailleSourceText) brailleSourceText.value = sourceText;
-          const brailleText = braille.UnicodeText || braille.unicodeText || "(no braille)";
+          const brailleText = unicodeText || "(no braille)";
           const table = activeTable || "(no table)";
           return `brailleLine ok=${ok} table=${table} text=${brailleText}`;
         }
-        if (type === "cursor" || type === "cursorContext") {
+        if (type === "cursor") {
           setLatestContextMeta("cursor");
           clearPayloadFields();
           renderLatestContextFields();
@@ -1098,7 +1193,7 @@
           const ch = cursor.Character || cursor.character || "?";
           return `cursor ok=${ok} cell=${cell} textIndex=${textIndex} char=${ch}`;
         }
-        if (type === "chord" || type === "chordContext") {
+        if (type === "chord") {
           setLatestContextMeta("chord");
           clearPayloadFields();
           renderLatestContextFields();
@@ -1140,18 +1235,16 @@
       wsConnectBtn.addEventListener("click", wsConnect);
       wsDisconnectBtn.addEventListener("click", wsDisconnect);
       wsSendInputBtn.addEventListener("click", wsSendEditorInput);
+      if (wsInputKind) wsInputKind.addEventListener("change", renderWsInputKind);
       wsSendModeBtn.addEventListener("click", wsSendEditorMode);
       wsSendModeDisableBtn.addEventListener("click", wsSendEditorModeDisable);
-      wsSendBackspaceBtn.addEventListener("click", () => wsSendEditorKey("Backspace"));
-      wsSendSpaceBtn.addEventListener("click", () => wsSendEditorKey("Space"));
-      wsSendEnterBtn.addEventListener("click", () => wsSendEditorKey("Enter"));
+      renderWsInputKind();
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: POST /braille, GET /ping, GET /clear, GET /devices, GET /tables.");
+      appendLog("Spec: GET /ping, GET /clear, GET /devices, GET /tables, GET /paths.");
       appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key), editorInput/setEditorMode out.");
     })();
   </script>
 </body>
 </html>
-

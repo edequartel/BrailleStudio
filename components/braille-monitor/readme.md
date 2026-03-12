@@ -1,6 +1,6 @@
 # How to use the BrailleMonitor component
 
-The BrailleMonitor component renders a visual, clickable representation of a braille display and thumb keys. It is reusable and self-rendering.
+The BrailleMonitor component renders a visual, clickable representation of a braille display. It is reusable and self-rendering.
 
 ## 1. Required files
 
@@ -31,7 +31,6 @@ JavaScript
 This:
 - creates the monitor UI
 - renders braille cells
-- shows thumbkey simulator buttons
 
 ## 3. Cursor routing (cell clicks)
 
@@ -49,7 +48,7 @@ Typical use:
 - select a letter or word
 - validate answers in learning activities
 
-## 4. Thumb key mapping
+## 4. Thumb key mapping (BrailleBridge events only)
 
   const monitor = BrailleMonitor.init({
     containerId: “brailleMonitorComponent”,
@@ -63,7 +62,6 @@ Typical use:
   });
 
 Works for:
-- mouse clicks on the simulator buttons
 - real thumb key events from BrailleBridge (if connected)
 
 ## 5. Updating the displayed text
@@ -79,7 +77,9 @@ Clear the monitor:
 
 If BrailleBridge provides SSoC braille output, render it 1:1:
 
-  monitor.setBrailleUnicode(ssoc.Braille.UnicodeText, ssoc.SourceText);
+  monitor.setBrailleUnicode(ssoc.Braille.UnicodeText, ssoc.SourceText, {
+    caretPosition: ssoc.meta?.caretPosition
+  });
 
 ## 6. Show or hide the info text
 

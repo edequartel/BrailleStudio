@@ -22,7 +22,7 @@
  *
  * ADDED IN THIS VERSION:
  * - setLang(lang): switch language after init and re-render (safe for Settings page)
- * - setBrailleUnicode(unicodeText, sourceText): render braille 1:1 from SSoC
+ * - setBrailleUnicode(unicodeText, sourceText, { caretPosition }): render braille 1:1 from SSoC
  */
 
 (function (global) {
@@ -266,10 +266,10 @@
 
       const baseId = opts.containerId;
       const monitorId = makeId(baseId, "monitor");
-      const thumbRowId = makeId(baseId, "thumbRow");
 
       let currentText = "";
       let currentBrailleUnicode = "";
+      let currentCaretPosition = null;
       let renderFromSsoc = false;
       let currentLang = opts.lang ? String(opts.lang) : null;
 
@@ -282,28 +282,7 @@
       monitorP.setAttribute("role", "listbox");
       monitorP.setAttribute("aria-label", "Braillemonitor");
 
-      const thumbRow = document.createElement("div");
-      thumbRow.id = thumbRowId;
-      thumbRow.className = "button-row thumb-row";
-
-      const thumbDefs = [
-        { key: "leftthumb", label: "•" },
-        { key: "middleleftthumb", label: "••" },
-        { key: "middlerightthumb", label: "••" },
-        { key: "rightthumb", label: "•" }
-      ];
-
-      thumbDefs.forEach((def) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "thumb-key";
-        btn.dataset.thumb = def.key;
-        btn.textContent = def.label;
-        thumbRow.appendChild(btn);
-      });
-
       wrapper.appendChild(monitorP);
-      wrapper.appendChild(thumbRow);
 
       if (opts.showInfo) {
         const info = document.createElement("p");
@@ -350,7 +329,13 @@
               cell.className = "monitor-cell monitor-cell--stack";
               cell.dataset.index = String(i);
               cell.setAttribute("role", "option");
+              cell.setAttribute("aria-selected", "false");
               cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
+
+              if (currentCaretPosition === i) {
+                cell.classList.add("monitor-cell--caret");
+                cell.setAttribute("aria-selected", "true");
+              }
 
               const brailleEl = document.createElement("span");
               brailleEl.className = "monitor-cell__braille";
@@ -391,7 +376,13 @@
           cell.className = "monitor-cell monitor-cell--stack";
           cell.dataset.index = String(i);
           cell.setAttribute("role", "option");
+          cell.setAttribute("aria-selected", "false");
           cell.setAttribute("aria-label", "Cel " + i + " teken " + (ch || "(geen teken)"));
+
+          if (currentCaretPosition === i) {
+            cell.classList.add("monitor-cell--caret");
+            cell.setAttribute("aria-selected", "true");
+          }
 
           const brailleEl = document.createElement("span");
           brailleEl.className = "monitor-cell__braille";
@@ -446,26 +437,9 @@
         }
       }
 
-      function flashThumbButton(nameLower) {
-        const selector = "#" + thumbRowId + ' .thumb-key[data-thumb="' + nameLower.toLowerCase() + '"]';
-        const btn = document.querySelector(selector);
-        if (!btn) return;
-        btn.classList.add("active");
-        setTimeout(() => btn.classList.remove("active"), 150);
-      }
-
-      thumbRow.querySelectorAll(".thumb-key").forEach((btn) => {
-        const nameLower = (btn.dataset.thumb || "").toLowerCase();
-        btn.addEventListener("click", () => {
-          invokeThumbAction(nameLower);
-          flashThumbButton(nameLower);
-        });
-      });
-
       if (global.BrailleBridge && typeof global.BrailleBridge.on === "function") {
         global.BrailleBridge.on("thumbkey", (evt) => {
           const nameLower = (evt.nameLower || "").toLowerCase();
-          flashThumbButton(nameLower);
           invokeThumbAction(nameLower);
         });
       }
@@ -473,13 +447,27 @@
       function setText(text) {
         renderFromSsoc = false;
         currentBrailleUnicode = "";
+        currentCaretPosition = null;
         currentText = text != null ? String(text) : "";
         rebuildCells();
       }
 
-      function setBrailleUnicode(unicodeText, sourceText) {
+      function parseCaretPosition(value) {
+        const n = typeof value === "number" ? value : Number(value);
+        if (!Number.isInteger(n)) return null;
+        return n >= 0 ? n : null;
+      }
+
+      function setBrailleUnicode(unicodeText, sourceText, options) {
         renderFromSsoc = true;
         currentBrailleUnicode = unicodeText != null ? String(unicodeText) : "";
+        const caretCandidate =
+          typeof options === "number"
+            ? options
+            : options && typeof options === "object"
+            ? options.caretPosition
+            : null;
+        currentCaretPosition = parseCaretPosition(caretCandidate);
 
         if (sourceText != null) {
           currentText = String(sourceText);
@@ -493,6 +481,11 @@
 
       function clear() { setText(""); }
 
+      function setCaretPosition(caretPosition) {
+        currentCaretPosition = parseCaretPosition(caretPosition);
+        rebuildCells();
+      }
+
       function setLang(lang) {
         currentLang = lang ? String(lang) : null;
         rebuildCells();
@@ -500,7 +493,7 @@
 
       setText("");
 
-      return { monitorId, thumbRowId, containerId: baseId, setText, setBrailleUnicode, clear, setLang };
+      return { monitorId, containerId: baseId, setText, setBrailleUnicode, clear, setLang, setCaretPosition };
     }
   };
 

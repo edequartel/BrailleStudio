@@ -305,11 +305,14 @@
       const msgTypeRaw = msg.type ?? msg.Type ?? "";
       const msgType = String(msgTypeRaw).toLowerCase();
       if (msgType === "brailleline") {
+        const rawCaret = msg?.meta?.caretPosition ?? msg?.Meta?.CaretPosition ?? msg?.caretPosition ?? msg?.CaretPosition;
+        const caretPosition = Number.isInteger(rawCaret) ? rawCaret : null;
         const evt = {
           ...normalBase,
           type: "brailleLine",
           sourceText: msg.SourceText ?? msg.sourceText ?? "",
-          brailleUnicode: msg?.Braille?.UnicodeText ?? msg?.braille?.unicodeText ?? ""
+          brailleUnicode: msg?.Braille?.UnicodeText ?? msg?.braille?.unicodeText ?? "",
+          caretPosition
         };
         this.emit("brailleline", evt);
         return;
