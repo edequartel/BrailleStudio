@@ -1,6 +1,8 @@
-# BrailleBridge WebSocket Client Contract
+﻿# BrailleBridge WebSocket Client Contract
 
-Last updated: 2026-03-06
+Version: 2.1
+
+Last updated: 2026-03-13
 
 ## 1) Endpoint
 
@@ -14,10 +16,12 @@ Last updated: 2026-03-06
   - `editorKey` (device editor command key press)
   - `cursor` (cursor-routing context)
   - `chord` (braille chord context)
-  - `brailleLine` (current display line/state)
+  - `brailleLine` (current display line/state, including authoritative caret and 40-cell display projection)
   - optional raw key event (only when UI checkbox **sent raw keys** is enabled)
 - Client -> Server:
   - command messages (`setEditorMode`, `editorInput`)
+  - caret commands (`setCaret`, `moveCaret`, `setCaretFromCell`, `setCaretVisibility`, `setCaretStyle`)
+  - cursor-routing simulation command (`cursorRouting`)
 
 ## 3) Server -> Client event contracts
 
@@ -41,7 +45,7 @@ These use a shared top-level structure:
 ```
 
 Notes:
-- `cursor` and `chord` currently keep their historical shape without `Payload` (see sections 3.3 and 3.4).
+- `cursor` and `chord` currently keep their historical shape without `Payload` (see sections 3.3 and 3.5).
 - `thumbKey` uses `Payload` (see 3.2).
 
 ### Shared `Sam`
@@ -105,7 +109,7 @@ type ThumbKeyEvent = {
     "Word": "Hello"
   },
   "Braille": {
-    "CellChar": "⠨",
+    "CellChar": "\u2828",
     "CellCodePoint": "U+2828",
     "IsCapitalSign": true,
     "IsNumberSign": false,
@@ -188,60 +192,40 @@ type EditorKeyEvent = {
 
 Shape is the same as `cursor`, but:
 - `Type` is `"chord"`
-- Context represents typed braille chord information
-
-```json
-{
-  "Type": "chord",
-  "Ok": true,
-  "TimestampUtc": "2026-03-06T08:06:02.1026420Z",
-  "SourceText": "",
-  "Table": "nl-NL-g0.utb",
-  "Cursor": {
-    "CellIndex": -1,
-    "TextIndex": -1,
-    "Character": "a",
-    "CharacterCodePoint": "U+0061",
-    "Word": ""
-  },
-  "Braille": {
-    "CellChar": "⠁",
-    "CellCodePoint": "U+2801",
-    "IsCapitalSign": false,
-    "IsNumberSign": false,
-    "IsCapitalWordSign": false,
-    "CapitalSignActive": false,
-    "CapitalWordSignActive": false,
-    "NumberSignActive": false
-  },
-  "Sam": {
-    "MsgType": 8,
-    "UnitId": 1,
-    "Strip": 0,
-    "Param": 1
-  }
-}
-```
+- context represents typed braille chord information
 
 ## 3.6 `brailleLine` event
 
-This event currently uses camelCase keys.
+This event uses camelCase keys.
 
 ```json
 {
   "type": "brailleLine",
   "ok": true,
-  "sourceText": "Hello braille",
+  "sourceText": "Hello braille                           ",
   "braille": {
-    "unicodeText": "⠨⠓⠑⠇⠇⠕ ⠃⠗⠁⠊⠇⠇⠑"
+    "unicodeText": "\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280a\u2807\u2807\u2811\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"
+  },
+  "caret": {
+    "textIndex": 12,
+    "cellIndex": 13
+  },
+  "caretVisible": true,
+  "caretStyle": {
+    "dots": [7, 8],
+    "blink": false,
+    "blinkPeriodMs": 500
   },
   "meta": {
     "activeTable": "nl-NL-g0.utb",
     "charSize": 0,
     "lineId": 123,
-    "createdUtc": "2026-03-06T08:26:01.0000000Z",
+    "createdUtc": "2026-03-12T08:26:01.0000000Z",
     "lineLength": 14,
-    "caretPosition": 5
+    "brailleDisplayCells": 40,
+    "sscoTextLength": 12,
+    "sscoBrailleLength": 14,
+    "caretPosition": 13
   }
 }
 ```
@@ -254,41 +238,46 @@ type BrailleLineEvent = {
   braille: {
     unicodeText: string;
   };
+  caret: {
+    textIndex: number;
+    cellIndex?: number;
+  };
+  caretVisible: boolean;
+  caretStyle: {
+    dots: number[];
+    blink: boolean;
+    blinkPeriodMs: number;
+  };
   meta: {
     activeTable: string;
     charSize: number;
     lineId: number;
     createdUtc: string;
     lineLength: number;
+    brailleDisplayCells: 40;
+    sscoTextLength: number;
+    sscoBrailleLength: number;
     caretPosition?: number;
   };
 };
 ```
 
+Caret notes:
+- `caret.textIndex` is canonical and authoritative.
+- `caret.cellIndex` reflects display cell-space (0..39).
+- `meta.caretPosition` reflects cell-space caret.
+- `sourceText` and `braille.unicodeText` are sent as fixed-width 40-cell projections (padded/truncated).
+- precharacters/signs (for example capital sign/number sign) are part of braille representation and are not separate text-character steps for logical caret movement.
+
 ## 3.7 Optional raw key event (debug/diagnostics)
 
 Only sent when the BrailleBridge UI checkbox **sent raw keys** is enabled.
 
-```json
-{
-  "MsgType": 8,
-  "UnitId": 1,
-  "Strip": 0,
-  "ButtonIndex": 15,
-  "RawParam": 15,
-  "IsPress": true,
-  "Kind": 3,
-  "CursorIndex": 0,
-  "Name": null,
-  "DotsMask": 15,
-  "UnicodeCell": "⠏",
-  "EditorCommand": null
-}
-```
-
 ## 4) Client -> Server commands
 
-All commands use lowercase `type: "command"` and lowercase `command`.
+Commands can be sent in either form:
+- envelope form: `{"type":"command","command":"..."}`
+- direct form: `{"type":"setCaret", ...}`
 
 ## 4.1 Set editor mode
 
@@ -304,6 +293,11 @@ All commands use lowercase `type: "command"` and lowercase `command`.
 
 `kind` can be: `text`, `braille`, `key`
 
+Behavior:
+- `text` appends to current SSoC text by default.
+- `text` with `replace: true` (or `"true"`) replaces current SSoC text.
+- `braille` is back-translated and appended to current SSoC text.
+
 Text:
 ```json
 {
@@ -311,7 +305,8 @@ Text:
   "command": "editorInput",
   "input": {
     "kind": "text",
-    "text": "hello"
+    "text": "hello",
+    "replace": true
   }
 }
 ```
@@ -323,7 +318,7 @@ Braille:
   "command": "editorInput",
   "input": {
     "kind": "braille",
-    "unicode": "⠁"
+    "unicode": "\u2801"
   }
 }
 ```
@@ -349,9 +344,228 @@ Valid `key` values:
 - `ArrowUp`
 - `ArrowDown`
 
+## 4.3 setCaret (absolute text index)
+
+Direct:
+```json
+{
+  "type": "setCaret",
+  "textIndex": 12
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaret",
+  "textIndex": 12
+}
+```
+
+Behavior:
+- `textIndex` is clamped to `[0..sourceText.length]`.
+- server updates canonical caret.
+- server derives cell index from latest mapping.
+- server broadcasts a fresh authoritative `brailleLine`.
+
+## 4.4 moveCaret (relative)
+
+Direct:
+```json
+{
+  "type": "moveCaret",
+  "by": -1,
+  "unit": "character"
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "moveCaret",
+  "by": 1,
+  "unit": "character"
+}
+```
+
+Behavior:
+- supported units: `character`, `cell`.
+- `unit: "character"`:
+  - movement is relative to canonical `caret.textIndex`.
+  - result is clamped to `[0..sourceText.length]`.
+  - sign/precharacter aware: braille precharacters (capital sign/number sign) are treated as modifiers, not standalone text-character steps.
+- `unit: "cell"`:
+  - movement is relative to display `caret.cellIndex`.
+  - result is clamped to `[0..39]`.
+- server broadcasts a fresh authoritative `brailleLine`.
+
+## 4.5 setCaretFromCell (optional, implemented)
+
+Direct:
+```json
+{
+  "type": "setCaretFromCell",
+  "cellIndex": 8
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaretFromCell",
+  "cellIndex": 8
+}
+```
+
+Behavior:
+- `cellIndex` is clamped to `[0..39]`.
+- server maps cell -> canonical text index using latest mapping.
+- server recomputes derived cell index and broadcasts `brailleLine`.
+
+## 4.6 setCaretVisibility
+
+Direct:
+```json
+{
+  "type": "setCaretVisibility",
+  "visible": true
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaretVisibility",
+  "visible": true
+}
+```
+
+Behavior:
+- controls caret visibility independently from editor mode.
+- when `visible` is true, caret is rendered at its cell position even on empty cells.
+
+## 4.7 setCaretStyle
+
+Direct:
+```json
+{
+  "type": "setCaretStyle",
+  "dots": [7, 8],
+  "blink": true,
+  "blinkPeriodMs": 500
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaretStyle",
+  "dots": [7, 8],
+  "blink": true,
+  "blinkPeriodMs": 500
+}
+```
+
+Behavior:
+- `dots`: braille dots used for caret overlay indicator.
+- `blink`: enable/disable caret blinking.
+- `blinkPeriodMs`: blink interval in milliseconds.
+
+Validation and resilience:
+- malformed caret messages are ignored safely (no process crash).
+- unknown caret commands are ignored safely.
+
+## 4.8 Postman WebSocket examples (copy/paste)
+
+In Postman:
+1. Open a WebSocket request to `ws://localhost:5000/ws`
+2. Click **Connect**
+3. Send one JSON message per frame (examples below)
+
+Enable editor mode:
+```json
+{"type":"command","command":"setEditorMode","enabled":true}
+```
+
+Replace line content:
+```json
+{"type":"command","command":"editorInput","input":{"kind":"text","text":"Hello braille","replace":true}}
+```
+
+Append text:
+```json
+{"type":"command","command":"editorInput","input":{"kind":"text","text":" world"}}
+```
+
+Insert braille cell input:
+```json
+{"type":"command","command":"editorInput","input":{"kind":"braille","unicode":"\u2801"}}
+```
+
+Send editor key:
+```json
+{"type":"command","command":"editorInput","input":{"kind":"key","key":"Backspace"}}
+```
+
+Set caret by canonical text index:
+```json
+{"type":"setCaret","textIndex":5}
+```
+
+Move caret left by one character:
+```json
+{"type":"moveCaret","by":-1,"unit":"character"}
+```
+
+Move caret right by one character:
+```json
+{"type":"moveCaret","by":1,"unit":"character"}
+```
+
+Move caret right by one display cell:
+```json
+{"type":"moveCaret","by":1,"unit":"cell"}
+```
+
+Set caret from braille cell index:
+```json
+{"type":"setCaretFromCell","cellIndex":3}
+```
+
+Simulate cursor-routing key press on cell 3 (same behavior as hardware cursor-routing press):
+```json
+{"type":"cursorRouting","cellIndex":3}
+```
+
+Show caret:
+```json
+{"type":"setCaretVisibility","visible":true}
+```
+
+Set caret style:
+```json
+{"type":"setCaretStyle","dots":[7,8],"blink":true,"blinkPeriodMs":500}
+```
+
+Equivalent caret command using command-envelope form:
+```json
+{"type":"command","command":"setCaret","textIndex":5}
+```
+
+After each valid content/caret command, expect an authoritative `brailleLine` event from server including:
+- `sourceText`
+- `braille.unicodeText`
+- `caret.textIndex`
+- `caret.cellIndex`
+
 ## 5) Practical client parsing recommendation
 
-Because the current wire format is mixed-case (`Type` vs `type`), parse by checking both:
+Because current wire format is mixed-case (`Type` vs `type`), parse by checking both:
 
 - `const eventType = msg.Type ?? msg.type;`
 
@@ -365,5 +579,6 @@ Then branch:
 ## 6) Stability notes
 
 - `keyActionContext` is not sent anymore.
-- Raw key events are opt-in (`sent raw keys` checkbox).
-- `thumbKey` is now envelope-style to align with context events.
+- raw key events are opt-in (`sent raw keys` checkbox).
+- `thumbKey` is envelope-style to align with context events.
+- `brailleLine` uses a fixed 40-cell display projection for text and braille strings.
