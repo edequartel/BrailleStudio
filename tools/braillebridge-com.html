@@ -928,6 +928,7 @@
       let lastWsJsonLog = null;
       let lastSsocLineId = null;
       let lastSsocCaretPosition = null;
+      let lastSsocCaretVisible = null;
       const VALID_EDITOR_KEYS = [
         "Backspace",
         "Space",
@@ -961,19 +962,22 @@
 
         const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : "";
         const caretPosition = Number.isInteger(msg?.meta?.caretPosition) ? msg.meta.caretPosition : null;
+        const caretVisible = typeof msg?.caretVisible === "boolean" ? msg.caretVisible : true;
         const lineId = msg?.meta?.lineId;
 
         if (
           typeof lineId === "number" &&
           lineId === lastSsocLineId &&
-          caretPosition === lastSsocCaretPosition
+          caretPosition === lastSsocCaretPosition &&
+          caretVisible === lastSsocCaretVisible
         ) {
           return true;
         }
 
-        monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition });
+        monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition, caretVisible });
         if (typeof lineId === "number") lastSsocLineId = lineId;
         lastSsocCaretPosition = caretPosition;
+        lastSsocCaretVisible = caretVisible;
         return true;
       }
 
@@ -1051,6 +1055,7 @@
         try { ws.close(1000, "client closed"); } catch {}
         lastSsocLineId = null;
         lastSsocCaretPosition = null;
+        lastSsocCaretVisible = null;
         if (monitor && typeof monitor.setBrailleUnicode === "function") {
           monitor.setBrailleUnicode("", "");
         }

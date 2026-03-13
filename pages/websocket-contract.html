@@ -269,6 +269,7 @@
     let ws = null;
     let lastLineId = null;
     let lastCaretPosition = null;
+    let lastCaretVisible = null;
 
     function logLine(line) {
       const next = "[" + new Date().toISOString() + "] " + line + "\n";
@@ -309,10 +310,21 @@
       if (!(msg && msg.ok === true && msg.braille && typeof msg.braille.unicodeText === "string")) return;
       const lineId = msg.meta && msg.meta.lineId;
       const caretPosition = msg.meta && Number.isInteger(msg.meta.caretPosition) ? msg.meta.caretPosition : null;
-      if (typeof lineId === "number" && lineId === lastLineId && caretPosition === lastCaretPosition) return;
-      monitor.setBrailleUnicode(msg.braille.unicodeText, typeof msg.sourceText === "string" ? msg.sourceText : "", { caretPosition: caretPosition });
+      const caretVisible = typeof msg.caretVisible === "boolean" ? msg.caretVisible : true;
+      if (
+        typeof lineId === "number" &&
+        lineId === lastLineId &&
+        caretPosition === lastCaretPosition &&
+        caretVisible === lastCaretVisible
+      ) return;
+      monitor.setBrailleUnicode(
+        msg.braille.unicodeText,
+        typeof msg.sourceText === "string" ? msg.sourceText : "",
+        { caretPosition: caretPosition, caretVisible: caretVisible }
+      );
       if (typeof lineId === "number") lastLineId = lineId;
       lastCaretPosition = caretPosition;
+      lastCaretVisible = caretVisible;
     }
 
     function sendJsonPayload(payload, label) {
@@ -623,6 +635,9 @@
       if (!ws) return;
       ws.close(1000, "client close");
       ws = null;
+      lastLineId = null;
+      lastCaretPosition = null;
+      lastCaretVisible = null;
       setStatus("disconnected", false);
       if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
     }

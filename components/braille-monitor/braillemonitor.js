@@ -22,7 +22,7 @@
  *
  * ADDED IN THIS VERSION:
  * - setLang(lang): switch language after init and re-render (safe for Settings page)
- * - setBrailleUnicode(unicodeText, sourceText, { caretPosition }): render braille 1:1 from SSoC
+ * - setBrailleUnicode(unicodeText, sourceText, { caretPosition, caretVisible }): render braille 1:1 from SSoC
  */
 
 (function (global) {
@@ -270,6 +270,7 @@
       let currentText = "";
       let currentBrailleUnicode = "";
       let currentCaretPosition = null;
+      let currentCaretVisible = true;
       let renderFromSsoc = false;
       let currentLang = opts.lang ? String(opts.lang) : null;
 
@@ -332,7 +333,7 @@
               cell.setAttribute("aria-selected", "false");
               cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
 
-              if (currentCaretPosition === i) {
+              if (currentCaretVisible && currentCaretPosition === i) {
                 cell.classList.add("monitor-cell--caret");
                 cell.setAttribute("aria-selected", "true");
               }
@@ -379,7 +380,7 @@
           cell.setAttribute("aria-selected", "false");
           cell.setAttribute("aria-label", "Cel " + i + " teken " + (ch || "(geen teken)"));
 
-          if (currentCaretPosition === i) {
+          if (currentCaretVisible && currentCaretPosition === i) {
             cell.classList.add("monitor-cell--caret");
             cell.setAttribute("aria-selected", "true");
           }
@@ -448,6 +449,7 @@
         renderFromSsoc = false;
         currentBrailleUnicode = "";
         currentCaretPosition = null;
+        currentCaretVisible = true;
         currentText = text != null ? String(text) : "";
         rebuildCells();
       }
@@ -468,6 +470,10 @@
             ? options.caretPosition
             : null;
         currentCaretPosition = parseCaretPosition(caretCandidate);
+        currentCaretVisible =
+          options && typeof options === "object" && typeof options.caretVisible === "boolean"
+            ? options.caretVisible
+            : true;
 
         if (sourceText != null) {
           currentText = String(sourceText);
@@ -483,6 +489,7 @@
 
       function setCaretPosition(caretPosition) {
         currentCaretPosition = parseCaretPosition(caretPosition);
+        currentCaretVisible = true;
         rebuildCells();
       }
 
