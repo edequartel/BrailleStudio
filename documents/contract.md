@@ -199,6 +199,12 @@ Shape is the same as `cursor`, but:
 
 This event uses camelCase keys.
 
+Example log line:
+
+```text
+15:48:59  WS OUT  {"type":"brailleLine","ok":true,"sourceText":"Hello braille!                          ","braille":{"unicodeText":"\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280A\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"},"caret":{"textIndex":8,"cellIndex":9},"caretVisible":true,"caretStyle":{"dots":[7,8],"blink":false,"blinkPeriodMs":500},"meta":{"activeTable":"nl-NL-g0.utb","charSize":4,"lineId":502,"createdUtc":"2026-03-13T14:48:59.5300729Z","lineLength":15,"brailleDisplayCells":40,"sscoTextLength":14,"sscoBrailleLength":15,"caretPosition":9}}
+```
+
 ```json
 {
   "type": "brailleLine",
@@ -267,6 +273,7 @@ Caret notes:
 - `caret.textIndex` is canonical and authoritative.
 - `caret.cellIndex` reflects display cell-space insertion position (0..40).
 - `meta.caretPosition` reflects cell-space caret.
+- `caretVisible: true` means caret is on/visible; `caretVisible: false` means caret is off/hidden.
 - `sourceText` and `braille.unicodeText` are sent as fixed-width 40-cell projections (padded/truncated).
 - precharacters/signs (for example capital sign/number sign) are part of braille representation and are not separate text-character steps for logical caret movement.
 
@@ -295,10 +302,13 @@ Commands can be sent in either form:
 `kind` can be: `text`, `braille`, `key`
 
 Behavior:
-- `text` appends to current SSoC text by default.
-- when editor mode is enabled and insert mode is enabled (`setEditorInsertMode`), `text` is inserted at current caret position (no overwrite).
-- `text` with `replace: true` (or `"true"`) replaces current SSoC text.
-- `braille` is back-translated and appended to current SSoC text.
+- when editor mode is enabled:
+  - `setEditorInsertMode: true` -> `text` is inserted at current caret position.
+  - `setEditorInsertMode: false` -> `text` overwrites from current caret position.
+  - edit position is derived from current SSoC braille caret position (cell-space mapping).
+- when editor mode is disabled, `editorInput` is ignored (no SSoC mutation).
+- `text` with `replace: true` (or `"true"`) replaces current SSoC text (editor mode only).
+- `braille` is back-translated and appended to current SSoC text (editor mode only).
 
 Text:
 ```json
@@ -337,6 +347,10 @@ Key:
 }
 ```
 
+Key behavior:
+- `ArrowLeft` / `ArrowRight` / `ArrowUp` / `ArrowDown`: caret navigation in both editor mode and non-editor mode.
+- `Backspace` / `Space` / `Enter`: SSoC mutation, editor mode only.
+
 Valid `key` values:
 - `Backspace`
 - `Space`
@@ -356,6 +370,14 @@ Direct:
 }
 ```
 
+Direct (OFF):
+```json
+{
+  "type": "setEditorInsertMode",
+  "enabled": false
+}
+```
+
 Envelope:
 ```json
 {
@@ -365,10 +387,19 @@ Envelope:
 }
 ```
 
+Envelope (OFF):
+```json
+{
+  "type": "command",
+  "command": "setEditorInsertMode",
+  "enabled": false
+}
+```
+
 Behavior:
 - controls handling of `editorInput` with `kind: "text"` while editor mode is enabled.
-- `enabled: true`: insert text at caret position (no overwrite).
-- `enabled: false`: keep default append behavior.
+- `enabled: true`: insert text at caret position.
+- `enabled: false`: overwrite text from caret position.
 
 ## 4.3 setCaret (absolute text index)
 
@@ -394,6 +425,7 @@ Behavior:
 - server updates canonical caret.
 - server derives cell index from latest mapping.
 - server broadcasts a fresh authoritative `brailleLine`.
+- works in both editor mode and non-editor mode.
 
 ## 4.4 moveCaret (relative)
 
@@ -425,7 +457,9 @@ Behavior:
 - `unit: "cell"`:
   - movement is relative to display `caret.cellIndex`.
   - result is clamped to `[0..40]`.
+  - `40` means caret at end-of-display insertion position (after the 40th cell).
 - server broadcasts a fresh authoritative `brailleLine`.
+- works in both editor mode and non-editor mode.
 
 ## 4.5 setCaretFromCell (optional, implemented)
 
@@ -448,8 +482,10 @@ Envelope:
 
 Behavior:
 - `cellIndex` is clamped to `[0..40]`.
+- `cellIndex: 40` places caret at display end insertion position.
 - server maps cell -> canonical text index using latest mapping.
 - server recomputes derived cell index and broadcasts `brailleLine`.
+- works in both editor mode and non-editor mode.
 
 ## 4.6 setCaretVisibility
 
@@ -591,6 +627,11 @@ Enable editor insert mode (text inserts at caret):
 {"type":"command","command":"setEditorInsertMode","enabled":true}
 ```
 
+Disable editor insert mode (back to append behavior):
+```json
+{"type":"command","command":"setEditorInsertMode","enabled":false}
+```
+
 Replace line content:
 ```json
 {"type":"command","command":"editorInput","input":{"kind":"text","text":"Hello braille","replace":true}}
@@ -629,6 +670,11 @@ Move caret right by one character:
 Move caret right by one display cell:
 ```json
 {"type":"moveCaret","by":1,"unit":"cell"}
+```
+
+Set caret to display end (cell 40):
+```json
+{"type":"setCaretFromCell","cellIndex":40}
 ```
 
 Set caret from braille cell index:
