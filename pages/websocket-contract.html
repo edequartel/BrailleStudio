@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WebSocket Contract Explorer</title>
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
+  <style>
+    :root {
+      --bg: #f3f5f8;
+      --fg: #0f172a;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --border: rgba(2, 6, 23, 0.14);
+      --muted: #64748b;
+      --ok: #16a34a;
+      --warn: #dc2626;
+      --radius: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #071018;
+      --fg: #e2e8f0;
+      --panel: #0f1a26;
+      --panel-soft: #13202e;
+      --border: rgba(255, 255, 255, 0.12);
+      --muted: #94a3b8;
+      --shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--fg);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(34, 197, 94, 0.12), transparent 60%),
+        radial-gradient(1000px 550px at 100% 0%, rgba(59, 130, 246, 0.12), transparent 56%),
+        var(--bg);
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel-soft));
+      box-shadow: var(--shadow);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+      color: var(--fg);
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn.ghost { background: transparent; }
+    .btn.send { border-color: rgba(22, 163, 74, 0.5); }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--warn);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+    }
+
+    .dot.ok {
+      background: var(--ok);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    .log {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      line-height: 1.35;
+      height: calc(10 * 1.35em);
+      overflow: auto;
+      padding: 10px;
+      background: var(--panel-soft);
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .msg {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .msg h3 { font-size: 15px; }
+    .msg .kind { color: var(--muted); font-size: 12px; }
+
+    .json {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-soft);
+      color: var(--fg);
+      padding: 10px;
+      font-family: var(--mono);
+      font-size: 12px;
+      resize: vertical;
+    }
+
+    .json.readonly { min-height: 140px; }
+
+    .latest {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-soft);
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .section-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div>
+        <h1>WebSocket Contract Explorer</h1>
+        <p class="meta">Source: <code>documents/contract.md</code> (v2.1, updated 2026-03-13)</p>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="themeBtn">Theme</button>
+        <a class="btn ghost" href="../index.html">Back</a>
+      </div>
+    </header>
+
+    <section class="card" aria-label="Braille monitor">
+      <h2>BrailleMonitor</h2>
+      <div id="brailleMonitorComponent"></div>
+    </section>
+
+    <section class="card" aria-label="Connection controls">
+      <div class="row">
+        <strong>Endpoint:</strong>
+        <code>ws://localhost:5000/ws</code>
+      </div>
+      <div class="row">
+        <span class="status">
+          <span id="wsDot" class="dot" aria-hidden="true"></span>
+          <span id="wsLabel">disconnected</span>
+        </span>
+        <button type="button" class="btn" id="connectBtn">Connect</button>
+        <button type="button" class="btn ghost" id="disconnectBtn">Disconnect</button>
+        <button type="button" class="btn ghost" id="clearLogBtn">Clear Log</button>
+      </div>
+      <div class="latest" id="latestEvent">Latest: -</div>
+      <pre class="log" id="wsLog"></pre>
+    </section>
+
+    <section class="card" aria-label="Client to server messages">
+      <h2>Client -> Server possibilities</h2>
+      <div class="section-grid" id="clientCommands"></div>
+    </section>
+
+    <section class="card" aria-label="Server to client messages">
+      <h2>Server -> Client possibilities</h2>
+      <div class="section-grid" id="serverEvents"></div>
+    </section>
+  </main>
+
+  <script src="../components/braille-monitor/braillemonitor.js"></script>
+  <script>
+    "use strict";
+
+    const THEME_KEY = "bs_theme";
+    const WS_URL = "ws://localhost:5000/ws";
+    const serverEventsEl = document.getElementById("serverEvents");
+    const clientCommandsEl = document.getElementById("clientCommands");
+    const wsLog = document.getElementById("wsLog");
+    const latestEvent = document.getElementById("latestEvent");
+    const wsDot = document.getElementById("wsDot");
+    const wsLabel = document.getElementById("wsLabel");
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem(THEME_KEY, theme);
+    }
+
+    function initialTheme() {
+      const saved = localStorage.getItem(THEME_KEY);
+      if (saved === "light" || saved === "dark") return saved;
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+
+    applyTheme(initialTheme());
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      applyTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
+      ? window.BrailleMonitor.init({
+          containerId: "brailleMonitorComponent",
+          showInfo: false,
+          onCursorClick(info) {
+            sendCursorRouting(info && info.index);
+          }
+        })
+      : null;
+
+    let ws = null;
+    let lastLineId = null;
+    let lastCaretPosition = null;
+
+    function logLine(line) {
+      const next = "[" + new Date().toISOString() + "] " + line + "\n";
+      wsLog.textContent = next + wsLog.textContent;
+      wsLog.scrollTop = 0;
+    }
+
+    function setStatus(text, connected) {
+      wsLabel.textContent = text;
+      wsDot.classList.toggle("ok", !!connected);
+    }
+
+    function isOpen() {
+      return !!ws && ws.readyState === WebSocket.OPEN;
+    }
+
+    function eventTypeOf(msg) {
+      return msg && (msg.Type || msg.type);
+    }
+
+    function isRawKeyEvent(msg) {
+      return msg && typeof msg.MsgType === "number" && typeof msg.UnitId === "number" && eventTypeOf(msg) == null;
+    }
+
+    function summarize(msg) {
+      const t = eventTypeOf(msg);
+      if (t === "thumbKey") return "thumbKey name=" + (msg.Payload && msg.Payload.Name) + " press=" + (msg.Payload && msg.Payload.Press);
+      if (t === "editorKey") return "editorKey key=" + (msg.Payload && msg.Payload.Key) + " press=" + (msg.Payload && msg.Payload.Press);
+      if (t === "cursor" || t === "chord") return t + " char=" + (msg.Cursor && msg.Cursor.Character) + " word=" + (msg.Cursor && msg.Cursor.Word);
+      if (t === "brailleLine") return "brailleLine caret.textIndex=" + (msg.caret && msg.caret.textIndex) + " caret.cellIndex=" + (msg.caret && msg.caret.cellIndex);
+      if (isRawKeyEvent(msg)) return "rawKey kind=" + msg.Kind + " press=" + msg.IsPress + " rawParam=" + msg.RawParam;
+      return "unknown event";
+    }
+
+    function applyBrailleLine(msg) {
+      if (!monitor || typeof monitor.setBrailleUnicode !== "function") return;
+      if (eventTypeOf(msg) !== "brailleLine") return;
+      if (!(msg && msg.ok === true && msg.braille && typeof msg.braille.unicodeText === "string")) return;
+      const lineId = msg.meta && msg.meta.lineId;
+      const caretPosition = msg.meta && Number.isInteger(msg.meta.caretPosition) ? msg.meta.caretPosition : null;
+      if (typeof lineId === "number" && lineId === lastLineId && caretPosition === lastCaretPosition) return;
+      monitor.setBrailleUnicode(msg.braille.unicodeText, typeof msg.sourceText === "string" ? msg.sourceText : "", { caretPosition: caretPosition });
+      if (typeof lineId === "number") lastLineId = lineId;
+      lastCaretPosition = caretPosition;
+    }
+
+    function sendJsonPayload(payload, label) {
+      if (!isOpen()) {
+        logLine("blocked " + label + ": websocket not connected");
+        return;
+      }
+      ws.send(JSON.stringify(payload));
+      logLine("WS -> " + label);
+    }
+
+    function sendCursorRouting(cellIndex) {
+      if (!Number.isInteger(cellIndex)) {
+        logLine("cursorRouting blocked: invalid cellIndex");
+        return;
+      }
+      if (!isOpen()) {
+        logLine("cursorRouting blocked: websocket not connected");
+        return;
+      }
+      const payload = { type: "cursorRouting", cellIndex: cellIndex };
+      ws.send(JSON.stringify(payload));
+      logLine("WS -> cursorRouting");
+    }
+
+    function createServerEventCard(item) {
+      const block = document.createElement("article");
+      block.className = "msg";
+      block.innerHTML = "<h3>" + item.name + "</h3><div class=\"kind\">" + item.kind + "</div>";
+      return block;
+    }
+
+    function createClientCommandCard(item) {
+      const block = document.createElement("article");
+      block.className = "msg";
+      block.innerHTML = "<h3>" + item.name + "</h3><div class=\"kind\">" + item.kind + "</div>";
+      const row = document.createElement("div");
+      row.className = "row";
+      if (Array.isArray(item.actions) && item.actions.length > 0) {
+        item.actions.forEach((action) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn send";
+          btn.textContent = action.label;
+          btn.addEventListener("click", () => {
+            if (Array.isArray(action.sequence) && action.sequence.length > 0) {
+              action.sequence.forEach((payload, idx) => {
+                sendJsonPayload(payload, item.name + " " + action.label + " #" + (idx + 1));
+              });
+            } else {
+              sendJsonPayload(action.sample, item.name + " " + action.label);
+            }
+          });
+          row.appendChild(btn);
+        });
+      } else {
+        const sendBtn = document.createElement("button");
+        sendBtn.type = "button";
+        sendBtn.className = "btn send";
+        sendBtn.textContent = "Send";
+        sendBtn.addEventListener("click", () => sendJsonPayload(item.sample, item.name));
+        row.appendChild(sendBtn);
+      }
+      block.appendChild(row);
+      return block;
+    }
+
+    const serverEventSamples = [
+      {
+        name: "thumbKey",
+        kind: "shape: envelope; fields: Payload.Name, Payload.Press",
+        sample: {
+          Type: "thumbKey",
+          Ok: true,
+          TimestampUtc: "2026-03-06T08:25:01.0000000Z",
+          Payload: { Name: "LeftThumb", Press: true },
+          Sam: { MsgType: 11, UnitId: 1, Strip: 0, Param: 0 }
+        }
+      },
+      {
+        name: "editorKey",
+        kind: "shape: envelope; fields: Payload.Key, Payload.Press",
+        sample: {
+          Type: "editorKey",
+          Ok: true,
+          TimestampUtc: "2026-03-06T09:25:01.0000000Z",
+          Payload: { Key: "Backspace", Press: true },
+          Sam: { MsgType: 8, UnitId: 1, Strip: 0, Param: 2097152 }
+        }
+      },
+      {
+        name: "cursor",
+        kind: "shape: historical; position: Cursor.CellIndex, Cursor.TextIndex",
+        sample: {
+          Type: "cursor",
+          Ok: true,
+          TimestampUtc: "2026-03-06T08:25:35.0180473Z",
+          SourceText: "Hello braill",
+          Table: "nl-NL-g0.utb",
+          Cursor: { CellIndex: 0, TextIndex: 0, Character: "H", CharacterCodePoint: "U+0048", Word: "Hello" },
+          Braille: {
+            CellChar: "\u2828",
+            CellCodePoint: "U+2828",
+            IsCapitalSign: true,
+            IsNumberSign: false,
+            IsCapitalWordSign: false,
+            CapitalSignActive: false,
+            CapitalWordSignActive: false,
+            NumberSignActive: false
+          },
+          Sam: { MsgType: 9, UnitId: 1, Strip: 0, Param: 0 }
+        }
+      },
+      {
+        name: "chord",
+        kind: "shape: same as cursor; position: Cursor.CellIndex, Cursor.TextIndex",
+        sample: {
+          Type: "chord",
+          Ok: true,
+          TimestampUtc: "2026-03-06T08:25:35.0180473Z",
+          SourceText: "Hello braill",
+          Table: "nl-NL-g0.utb",
+          Cursor: { CellIndex: 1, TextIndex: 0, Character: "H", CharacterCodePoint: "U+0048", Word: "Hello" },
+          Braille: {
+            CellChar: "\u2828",
+            CellCodePoint: "U+2828",
+            IsCapitalSign: true,
+            IsNumberSign: false,
+            IsCapitalWordSign: false,
+            CapitalSignActive: false,
+            CapitalWordSignActive: false,
+            NumberSignActive: false
+          },
+          Sam: { MsgType: 9, UnitId: 1, Strip: 0, Param: 0 }
+        }
+      },
+      {
+        name: "brailleLine",
+        kind: "shape: camelCase; position: caret.textIndex, caret.cellIndex, meta.caretPosition",
+        sample: {
+          type: "brailleLine",
+          ok: true,
+          sourceText: "Hello braille                           ",
+          braille: { unicodeText: "\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280a\u2807\u2807\u2811\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800" },
+          caret: { textIndex: 12, cellIndex: 13 },
+          caretVisible: true,
+          caretStyle: { dots: [7, 8], blink: false, blinkPeriodMs: 500 },
+          meta: {
+            activeTable: "nl-NL-g0.utb",
+            charSize: 0,
+            lineId: 123,
+            createdUtc: "2026-03-12T08:26:01.0000000Z",
+            lineLength: 14,
+            brailleDisplayCells: 40,
+            sscoTextLength: 12,
+            sscoBrailleLength: 14,
+            caretPosition: 13
+          }
+        }
+      },
+      {
+        name: "raw key (optional)",
+        kind: "shape: raw key; fields: Kind, IsPress, RawParam (optional)",
+        sample: {
+          MsgType: 8,
+          UnitId: 1,
+          Strip: 0,
+          Param: 2097152,
+          Kind: "EditorKey",
+          IsPress: true,
+          RawParam: 2097152
+        }
+      }
+    ];
+
+    const clientCommandSamples = [
+      {
+        name: "setEditorMode",
+        kind: "command; field: enabled (boolean)",
+        actions: [
+          { label: "Send ON", sample: { type: "command", command: "setEditorMode", enabled: true } },
+          { label: "Send OFF", sample: { type: "command", command: "setEditorMode", enabled: false } }
+        ]
+      },
+      {
+        name: "setEditorInsertMode (direct)",
+        kind: "field: enabled (boolean)",
+        actions: [
+          { label: "Insert ON", sample: { type: "setEditorInsertMode", enabled: true } },
+          { label: "Insert OFF", sample: { type: "setEditorInsertMode", enabled: false } }
+        ]
+      },
+      {
+        name: "editorInput text",
+        kind: "command; input shape: kind=text, text, replace?",
+        actions: [
+          { label: "Send", sample: { type: "command", command: "editorInput", input: { kind: "text", text: "hello", replace: true } } },
+          { label: "Send aap text", sample: { type: "command", command: "editorInput", input: { kind: "text", text: "aap Aap AAP 123 .,!" } } }
+        ]
+      },
+      {
+        name: "editorInput braille",
+        kind: "command; input shape: kind=braille, unicode",
+        actions: [
+          {
+            label: "Mode ON + Send \u2801",
+            sequence: [
+              { type: "command", command: "setEditorMode", enabled: true },
+              { type: "command", command: "editorInput", input: { kind: "braille", unicode: "\u2801" } }
+            ]
+          },
+          { label: "Send \u2801", sample: { type: "command", command: "editorInput", input: { kind: "braille", unicode: "\u2801" } } }
+        ]
+      },
+      {
+        name: "editorInput key (Backspace)",
+        kind: "command; input shape: kind=key, key",
+        actions: [
+          { label: "Send Backspace", sample: { type: "command", command: "editorInput", input: { kind: "key", key: "Backspace" } } }
+        ]
+      },
+      { name: "setCaret (direct)", kind: "caret -> textIndex=12 (canonieke tekstpositie)", sample: { type: "setCaret", textIndex: 12 } },
+      { name: "moveCaret (direct)", kind: "caret -> huidige positie + by (-1) per unit=character", sample: { type: "moveCaret", by: -1, unit: "character" } },
+      { name: "setCaretFromCell (direct)", kind: "caret -> cellIndex=8 (display/braille positie)", sample: { type: "setCaretFromCell", cellIndex: 8 } },
+      {
+        name: "setCaretVisibility (direct)",
+        kind: "field: visible (boolean)",
+        actions: [
+          { label: "Visible ON", sample: { type: "setCaretVisibility", visible: true } },
+          { label: "Visible OFF", sample: { type: "setCaretVisibility", visible: false } }
+        ]
+      },
+      {
+        name: "setCaretStyle (direct)",
+        kind: "shape: dots[], blink, blinkPeriodMs",
+        actions: [
+          { label: "Blink ON", sample: { type: "setCaretStyle", dots: [7, 8], blink: true, blinkPeriodMs: 500 } },
+          { label: "Blink OFF", sample: { type: "setCaretStyle", dots: [7, 8], blink: false, blinkPeriodMs: 500 } }
+        ]
+      },
+      { name: "getBrailleLine (direct)", kind: "antwoord bevat caret positie: textIndex + cellIndex", sample: { type: "getBrailleLine" } },
+      { name: "setCaretToEnd (direct)", kind: "caret -> einde (textIndex=sscoTextLength, cellIndex=meta.caretPosition)", sample: { type: "setCaretToEnd" } },
+      { name: "setCaretToBegin (direct)", kind: "caret -> begin (textIndex=0, cellIndex via mapping)", sample: { type: "setCaretToBegin" } },
+      { name: "cursorRouting (direct)", kind: "caret -> cellIndex=3 (simulate routing key)", sample: { type: "cursorRouting", cellIndex: 3 } }
+    ];
+
+    serverEventSamples.forEach((item) => serverEventsEl.appendChild(createServerEventCard(item)));
+    clientCommandSamples.forEach((item) => clientCommandsEl.appendChild(createClientCommandCard(item)));
+
+    function connect() {
+      if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        logLine("already connecting/connected");
+        return;
+      }
+      let socket;
+      try {
+        socket = new WebSocket(WS_URL);
+      } catch (err) {
+        logLine("connect failed: " + String(err));
+        return;
+      }
+      ws = socket;
+      setStatus("connecting...", false);
+      logLine("WS connect " + WS_URL);
+
+      socket.addEventListener("open", () => {
+        if (ws !== socket) return;
+        setStatus("connected", true);
+        logLine("WS open");
+        sendJsonPayload({ type: "getBrailleLine" }, "auto getBrailleLine");
+      });
+
+      socket.addEventListener("close", (ev) => {
+        if (ws === socket) ws = null;
+        setStatus("disconnected", false);
+        logLine("WS close code=" + ev.code + " reason=" + (ev.reason || "-"));
+      });
+
+      socket.addEventListener("error", () => {
+        setStatus("error", false);
+        logLine("WS error");
+      });
+
+      socket.addEventListener("message", async (ev) => {
+        let text = "";
+        if (typeof ev.data === "string") {
+          text = ev.data;
+        } else if (ev.data instanceof Blob) {
+          text = await ev.data.text();
+        } else {
+          logLine("WS <- non-text frame");
+          return;
+        }
+        try {
+          const msg = JSON.parse(text);
+          applyBrailleLine(msg);
+          const summary = summarize(msg);
+          latestEvent.textContent = "Latest: " + summary;
+          logLine("WS <- " + summary);
+        } catch {
+          latestEvent.textContent = "Latest: text frame";
+          logLine("WS <- text frame");
+        }
+      });
+    }
+
+    function disconnect() {
+      if (!ws) return;
+      ws.close(1000, "client close");
+      ws = null;
+      setStatus("disconnected", false);
+      if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
+    }
+
+    function isTypingTarget(target) {
+      if (!target || !(target instanceof Element)) return false;
+      const tag = target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return true;
+      return !!target.closest("input, textarea, select, button, [contenteditable='true']");
+    }
+
+    function sendEditorKeyInput(keyName, label) {
+      sendJsonPayload(
+        { type: "command", command: "editorInput", input: { kind: "key", key: keyName } },
+        label || ("hardware " + keyName)
+      );
+    }
+
+    function onHardwareEditorKeyDown(ev) {
+      if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      if (ev.key === "Backspace") {
+        ev.preventDefault();
+        sendEditorKeyInput("Backspace", "hardware Backspace");
+      } else if (ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        sendJsonPayload({ type: "moveCaret", by: -1, unit: "character" }, "hardware ArrowLeft");
+      } else if (ev.key === "ArrowRight") {
+        ev.preventDefault();
+        sendJsonPayload({ type: "moveCaret", by: 1, unit: "character" }, "hardware ArrowRight");
+      } else if (ev.key === " ") {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "command", command: "editorInput", input: { kind: "text", text: " " } },
+          "hardware Space"
+        );
+      } else if (ev.key.length === 1) {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "command", command: "editorInput", input: { kind: "text", text: ev.key } },
+          "hardware text " + ev.key
+        );
+      }
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", connect);
+    document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+    document.getElementById("clearLogBtn").addEventListener("click", () => { wsLog.textContent = ""; });
+    window.addEventListener("keydown", onHardwareEditorKeyDown);
+
+    setStatus("disconnected", false);
+    latestEvent.textContent = "Latest: -";
+    if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
+    connect();
+  </script>
+</body>
+</html>

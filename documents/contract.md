@@ -19,8 +19,9 @@ Last updated: 2026-03-13
   - `brailleLine` (current display line/state, including authoritative caret and 40-cell display projection)
   - optional raw key event (only when UI checkbox **sent raw keys** is enabled)
 - Client -> Server:
-  - command messages (`setEditorMode`, `editorInput`)
-  - caret commands (`setCaret`, `moveCaret`, `setCaretFromCell`, `setCaretVisibility`, `setCaretStyle`)
+  - command messages (`setEditorMode`, `setEditorInsertMode`, `editorInput`)
+  - caret commands (`setCaret`, `moveCaret`, `setCaretFromCell`, `setCaretVisibility`, `setCaretStyle`, `setCaretToEnd`, `setCaretToBegin`)
+  - query command (`getBrailleLine`)
   - cursor-routing simulation command (`cursorRouting`)
 
 ## 3) Server -> Client event contracts
@@ -264,7 +265,7 @@ type BrailleLineEvent = {
 
 Caret notes:
 - `caret.textIndex` is canonical and authoritative.
-- `caret.cellIndex` reflects display cell-space (0..39).
+- `caret.cellIndex` reflects display cell-space insertion position (0..40).
 - `meta.caretPosition` reflects cell-space caret.
 - `sourceText` and `braille.unicodeText` are sent as fixed-width 40-cell projections (padded/truncated).
 - precharacters/signs (for example capital sign/number sign) are part of braille representation and are not separate text-character steps for logical caret movement.
@@ -295,6 +296,7 @@ Commands can be sent in either form:
 
 Behavior:
 - `text` appends to current SSoC text by default.
+- when editor mode is enabled and insert mode is enabled (`setEditorInsertMode`), `text` is inserted at current caret position (no overwrite).
 - `text` with `replace: true` (or `"true"`) replaces current SSoC text.
 - `braille` is back-translated and appended to current SSoC text.
 
@@ -343,6 +345,30 @@ Valid `key` values:
 - `ArrowRight`
 - `ArrowUp`
 - `ArrowDown`
+
+## 4.2b setEditorInsertMode (editor text insert at caret)
+
+Direct:
+```json
+{
+  "type": "setEditorInsertMode",
+  "enabled": true
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setEditorInsertMode",
+  "enabled": true
+}
+```
+
+Behavior:
+- controls handling of `editorInput` with `kind: "text"` while editor mode is enabled.
+- `enabled: true`: insert text at caret position (no overwrite).
+- `enabled: false`: keep default append behavior.
 
 ## 4.3 setCaret (absolute text index)
 
@@ -398,7 +424,7 @@ Behavior:
   - sign/precharacter aware: braille precharacters (capital sign/number sign) are treated as modifiers, not standalone text-character steps.
 - `unit: "cell"`:
   - movement is relative to display `caret.cellIndex`.
-  - result is clamped to `[0..39]`.
+  - result is clamped to `[0..40]`.
 - server broadcasts a fresh authoritative `brailleLine`.
 
 ## 4.5 setCaretFromCell (optional, implemented)
@@ -421,7 +447,7 @@ Envelope:
 ```
 
 Behavior:
-- `cellIndex` is clamped to `[0..39]`.
+- `cellIndex` is clamped to `[0..40]`.
 - server maps cell -> canonical text index using latest mapping.
 - server recomputes derived cell index and broadcasts `brailleLine`.
 
@@ -480,7 +506,75 @@ Validation and resilience:
 - malformed caret messages are ignored safely (no process crash).
 - unknown caret commands are ignored safely.
 
-## 4.8 Postman WebSocket examples (copy/paste)
+## 4.8 getBrailleLine (fetch current physical braille display line)
+
+Direct:
+```json
+{
+  "type": "getBrailleLine"
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "getBrailleLine"
+}
+```
+
+Behavior:
+- returns one authoritative `brailleLine` event for the current display state.
+- does not mutate content, caret, or editor mode.
+
+## 4.9 setCaretToEnd (End-key style caret placement)
+
+Direct:
+```json
+{
+  "type": "setCaretToEnd"
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaretToEnd"
+}
+```
+
+Behavior:
+- places caret at the logical end of current SSoC content.
+- canonical target is `caret.textIndex = meta.sscoTextLength`.
+- display cell is derived from latest text<->braille mapping for that text end (sign/precharacter aware, including extra number/capital sign cells), using insertion-position semantics (`0..40`).
+- this command is independent from editor mode.
+- server broadcasts a fresh authoritative `brailleLine`.
+
+## 4.10 setCaretToBegin (Home-key style caret placement)
+
+Direct:
+```json
+{
+  "type": "setCaretToBegin"
+}
+```
+
+Envelope:
+```json
+{
+  "type": "command",
+  "command": "setCaretToBegin"
+}
+```
+
+Behavior:
+- places caret at the logical begin of current SSoC content.
+- canonical target is `caret.textIndex = 0`.
+- display cell is derived from latest text<->braille mapping.
+- server broadcasts a fresh authoritative `brailleLine`.
+
+## 4.11 Postman WebSocket examples (copy/paste)
 
 In Postman:
 1. Open a WebSocket request to `ws://localhost:5000/ws`
@@ -490,6 +584,11 @@ In Postman:
 Enable editor mode:
 ```json
 {"type":"command","command":"setEditorMode","enabled":true}
+```
+
+Enable editor insert mode (text inserts at caret):
+```json
+{"type":"command","command":"setEditorInsertMode","enabled":true}
 ```
 
 Replace line content:
@@ -552,12 +651,47 @@ Set caret style:
 {"type":"setCaretStyle","dots":[7,8],"blink":true,"blinkPeriodMs":500}
 ```
 
+Move caret to end (End-key style):
+```json
+{"type":"setCaretToEnd"}
+```
+
+Move caret to begin (Home-key style):
+```json
+{"type":"setCaretToBegin"}
+```
+
+Fetch current authoritative braille line (without changing state):
+```json
+{"type":"getBrailleLine"}
+```
+
 Equivalent caret command using command-envelope form:
 ```json
 {"type":"command","command":"setCaret","textIndex":5}
 ```
 
-After each valid content/caret command, expect an authoritative `brailleLine` event from server including:
+Equivalent getBrailleLine using command-envelope form:
+```json
+{"type":"command","command":"getBrailleLine"}
+```
+
+Equivalent setCaretToEnd using command-envelope form:
+```json
+{"type":"command","command":"setCaretToEnd"}
+```
+
+Equivalent setEditorInsertMode using command-envelope form:
+```json
+{"type":"command","command":"setEditorInsertMode","enabled":true}
+```
+
+Equivalent setCaretToBegin using command-envelope form:
+```json
+{"type":"command","command":"setCaretToBegin"}
+```
+
+After each valid content/caret/query command, expect an authoritative `brailleLine` event from server including:
 - `sourceText`
 - `braille.unicodeText`
 - `caret.textIndex`
