@@ -1,8 +1,8 @@
 ﻿# BrailleBridge WebSocket Client Contract
 
-Version: 2.1
+Version: 2.2
 
-Last updated: 2026-03-16
+Last updated: 2026-03-17
 
 ## 1) Endpoint
 
@@ -16,7 +16,7 @@ Last updated: 2026-03-16
   - `editorKey` (device editor command key press)
   - `cursor` (cursor-routing context)
   - `chord` (braille chord context)
-  - `brailleLine` (current display line/state, including authoritative caret and 40-cell display projection)
+  - `brailleLine` (current display line/state, including authoritative caret, on/off status flags, and 40-cell display projection)
   - optional raw key event (only when UI checkbox **sent raw keys** is enabled)
 - Client -> Server:
   - command messages (`setEditorMode`, `setEditorInsertMode`, `editorInput`)
@@ -202,7 +202,7 @@ This event uses camelCase keys.
 Example log line:
 
 ```text
-15:48:59  WS OUT  {"type":"brailleLine","ok":true,"sourceText":"Hello braille!                          ","braille":{"unicodeText":"\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280A\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"},"caret":{"textIndex":8,"cellIndex":9},"caretVisible":true,"caretStyle":{"dots":[7,8],"blink":false,"blinkPeriodMs":500},"meta":{"activeTable":"nl-NL-g0.utb","charSize":4,"lineId":502,"createdUtc":"2026-03-13T14:48:59.5300729Z","lineLength":15,"brailleDisplayCells":40,"sscoTextLength":14,"sscoBrailleLength":15,"caretTextPosition":8,"caretCellPosition":9}}
+06:29:58  WS OUT  {"type":"brailleLine","ok":true,"sourceText":"Hello braille!                          ","braille":{"unicodeText":"\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280A\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"},"caret":{"textIndex":14,"cellIndex":15},"caretVisible":true,"caretStyle":{"dots":[7,8],"blink":false,"blinkPeriodMs":500},"status":{"editorMode":"off","insertMode":"off","blink":"off","caret":"on"},"meta":{"activeTable":"nl-NL-g0.utb","charSize":4,"lineId":1,"createdUtc":"2026-03-17T05:29:35.2148386Z","lineLength":15,"brailleDisplayCells":40,"sscoTextLength":14,"sscoBrailleLength":15,"caretTextPosition":14,"caretCellPosition":15}}
 ```
 
 ```json
@@ -222,6 +222,12 @@ Example log line:
     "dots": [7, 8],
     "blink": false,
     "blinkPeriodMs": 500
+  },
+  "status": {
+    "editorMode": "off",
+    "insertMode": "off",
+    "blink": "off",
+    "caret": "on"
   },
   "meta": {
     "activeTable": "nl-NL-g0.utb",
@@ -256,6 +262,12 @@ type BrailleLineEvent = {
     blink: boolean;
     blinkPeriodMs: number;
   };
+  status: {
+    editorMode: "on" | "off";
+    insertMode: "on" | "off";
+    blink: "on" | "off";
+    caret: "on" | "off";
+  };
   meta: {
     activeTable: string;
     charSize: number;
@@ -265,8 +277,8 @@ type BrailleLineEvent = {
     brailleDisplayCells: 40;
     sscoTextLength: number;
     sscoBrailleLength: number;
-    caretTextPosition?: number;
-    caretCellPosition?: number;
+    caretTextPosition: number;
+    caretCellPosition: number;
   };
 };
 ```
@@ -274,10 +286,15 @@ type BrailleLineEvent = {
 Caret notes:
 - `caret.textIndex` is canonical and authoritative.
 - `caret.cellIndex` reflects display cell-space insertion position (0..40).
-- `meta.caretTextPosition` reflects text-space caret.
-- `meta.caretCellPosition` reflects cell-space caret.
-- `meta.caretTextPosition` and `meta.caretCellPosition` can differ and should both be processed by clients.
+- `meta.caretTextPosition` is the authoritative SSoC text caret.
+- `meta.caretCellPosition` is the authoritative SSoC braille caret (cell-space, 0..40).
+- clients should use both meta caret fields as the authoritative pair.
+- `caret.textIndex` / `caret.cellIndex` are included as convenience mirrors of the same positions.
 - `caretVisible: true` means caret is on/visible; `caretVisible: false` means caret is off/hidden.
+- `status.editorMode` mirrors editor mode as `"on"` / `"off"`.
+- `status.insertMode` mirrors insert mode as `"on"` / `"off"`.
+- `status.blink` mirrors `caretStyle.blink` as `"on"` / `"off"`.
+- `status.caret` mirrors `caretVisible` as `"on"` / `"off"`.
 - `sourceText` and `braille.unicodeText` are sent as fixed-width 40-cell projections (padded/truncated).
 - precharacters/signs (for example capital sign/number sign) are part of braille representation and are not separate text-character steps for logical caret movement.
 
@@ -756,6 +773,10 @@ After each valid content/caret/query command, expect an authoritative `brailleLi
 - `braille.unicodeText`
 - `caret.textIndex`
 - `caret.cellIndex`
+- `status.editorMode`
+- `status.insertMode`
+- `status.blink`
+- `status.caret`
 
 ## 5) Practical client parsing recommendation
 
