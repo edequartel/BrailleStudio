@@ -2,7 +2,7 @@
 
 Version: 2.1
 
-Last updated: 2026-03-13
+Last updated: 2026-03-16
 
 ## 1) Endpoint
 
@@ -202,7 +202,7 @@ This event uses camelCase keys.
 Example log line:
 
 ```text
-15:48:59  WS OUT  {"type":"brailleLine","ok":true,"sourceText":"Hello braille!                          ","braille":{"unicodeText":"\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280A\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"},"caret":{"textIndex":8,"cellIndex":9},"caretVisible":true,"caretStyle":{"dots":[7,8],"blink":false,"blinkPeriodMs":500},"meta":{"activeTable":"nl-NL-g0.utb","charSize":4,"lineId":502,"createdUtc":"2026-03-13T14:48:59.5300729Z","lineLength":15,"brailleDisplayCells":40,"sscoTextLength":14,"sscoBrailleLength":15,"caretPosition":9}}
+15:48:59  WS OUT  {"type":"brailleLine","ok":true,"sourceText":"Hello braille!                          ","braille":{"unicodeText":"\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280A\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800"},"caret":{"textIndex":8,"cellIndex":9},"caretVisible":true,"caretStyle":{"dots":[7,8],"blink":false,"blinkPeriodMs":500},"meta":{"activeTable":"nl-NL-g0.utb","charSize":4,"lineId":502,"createdUtc":"2026-03-13T14:48:59.5300729Z","lineLength":15,"brailleDisplayCells":40,"sscoTextLength":14,"sscoBrailleLength":15,"caretTextPosition":8,"caretCellPosition":9}}
 ```
 
 ```json
@@ -232,7 +232,8 @@ Example log line:
     "brailleDisplayCells": 40,
     "sscoTextLength": 12,
     "sscoBrailleLength": 14,
-    "caretPosition": 13
+    "caretTextPosition": 12,
+    "caretCellPosition": 13
   }
 }
 ```
@@ -264,7 +265,8 @@ type BrailleLineEvent = {
     brailleDisplayCells: 40;
     sscoTextLength: number;
     sscoBrailleLength: number;
-    caretPosition?: number;
+    caretTextPosition?: number;
+    caretCellPosition?: number;
   };
 };
 ```
@@ -272,7 +274,9 @@ type BrailleLineEvent = {
 Caret notes:
 - `caret.textIndex` is canonical and authoritative.
 - `caret.cellIndex` reflects display cell-space insertion position (0..40).
-- `meta.caretPosition` reflects cell-space caret.
+- `meta.caretTextPosition` reflects text-space caret.
+- `meta.caretCellPosition` reflects cell-space caret.
+- `meta.caretTextPosition` and `meta.caretCellPosition` can differ and should both be processed by clients.
 - `caretVisible: true` means caret is on/visible; `caretVisible: false` means caret is off/hidden.
 - `sourceText` and `braille.unicodeText` are sent as fixed-width 40-cell projections (padded/truncated).
 - precharacters/signs (for example capital sign/number sign) are part of braille representation and are not separate text-character steps for logical caret movement.
@@ -302,13 +306,12 @@ Commands can be sent in either form:
 `kind` can be: `text`, `braille`, `key`
 
 Behavior:
-- when editor mode is enabled:
-  - `setEditorInsertMode: true` -> `text` is inserted at current caret position.
-  - `setEditorInsertMode: false` -> `text` overwrites from current caret position.
-  - edit position is derived from current SSoC braille caret position (cell-space mapping).
-- when editor mode is disabled, `editorInput` is ignored (no SSoC mutation).
-- `text` with `replace: true` (or `"true"`) replaces current SSoC text (editor mode only).
-- `braille` is back-translated and appended to current SSoC text (editor mode only).
+- `editorInput` is accepted in both editor mode and non-editor mode.
+- `setEditorInsertMode: true` -> `text` is inserted at current caret position.
+- `setEditorInsertMode: false` -> `text` overwrites from current caret position.
+- edit position is derived from canonical SSoC text caret position (`caret.textIndex` / `meta.caretTextPosition`).
+- `text` with `replace: true` (or `"true"`) replaces current SSoC text.
+- `braille` is back-translated and appended to current SSoC text.
 
 Text:
 ```json
@@ -397,7 +400,7 @@ Envelope (OFF):
 ```
 
 Behavior:
-- controls handling of `editorInput` with `kind: "text"` while editor mode is enabled.
+- controls handling of `editorInput` with `kind: "text"` in both editor mode and non-editor mode.
 - `enabled: true`: insert text at caret position.
 - `enabled: false`: overwrite text from caret position.
 
@@ -563,6 +566,17 @@ Behavior:
 - returns one authoritative `brailleLine` event for the current display state.
 - does not mutate content, caret, or editor mode.
 
+Typical log sequence:
+
+```text
+16:02:32  WS IN   {"type":"getBrailleLine"}
+16:02:32  WS OUT  {"type":"brailleLine", ...}
+```
+
+Note:
+- `WS IN {"type":"getBrailleLine"}` is the client request.
+- the server response is `WS OUT {"type":"brailleLine", ...}`.
+
 ## 4.9 setCaretToEnd (End-key style caret placement)
 
 Direct:
@@ -627,7 +641,7 @@ Enable editor insert mode (text inserts at caret):
 {"type":"command","command":"setEditorInsertMode","enabled":true}
 ```
 
-Disable editor insert mode (back to append behavior):
+Disable editor insert mode (text overwrite behavior):
 ```json
 {"type":"command","command":"setEditorInsertMode","enabled":false}
 ```

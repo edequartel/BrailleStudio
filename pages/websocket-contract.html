@@ -174,6 +174,45 @@
       font-size: 13px;
     }
 
+    .insert-state {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-soft);
+      padding: 8px 10px;
+      font-size: 13px;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mode-states {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .pill.on {
+      color: #14532d;
+      border-color: rgba(22, 163, 74, 0.55);
+      background: rgba(22, 163, 74, 0.12);
+    }
+
+    .pill.off {
+      color: #7f1d1d;
+      border-color: rgba(220, 38, 38, 0.55);
+      background: rgba(220, 38, 38, 0.12);
+    }
+
     @media (max-width: 980px) {
       .section-grid { grid-template-columns: 1fr; }
     }
@@ -195,6 +234,7 @@
     <section class="card" aria-label="Braille monitor">
       <h2>BrailleMonitor</h2>
       <div id="brailleMonitorComponent"></div>
+      <div class="latest" id="caretInfo">Caret: caretTextPosition=-, caretCellPosition=-</div>
     </section>
 
     <section class="card" aria-label="Connection controls">
@@ -212,6 +252,24 @@
         <button type="button" class="btn ghost" id="clearLogBtn">Clear Log</button>
       </div>
       <div class="latest" id="latestEvent">Latest: -</div>
+      <div class="mode-states" id="modeStates">
+        <div class="insert-state" id="editorModeInfo">
+          <span>Editor mode (F2):</span>
+          <span class="pill off" id="editorModePill">OFF</span>
+        </div>
+        <div class="insert-state" id="insertModeInfo">
+          <span>Insert mode (Insert):</span>
+          <span class="pill off" id="insertModePill">OFF</span>
+        </div>
+        <div class="insert-state" id="blinkModeInfo">
+          <span>Blink (F3):</span>
+          <span class="pill off" id="blinkModePill">OFF</span>
+        </div>
+        <div class="insert-state" id="caretModeInfo">
+          <span>Caret (F4):</span>
+          <span class="pill on" id="caretModePill">ON</span>
+        </div>
+      </div>
       <pre class="log" id="wsLog"></pre>
     </section>
 
@@ -236,6 +294,11 @@
     const clientCommandsEl = document.getElementById("clientCommands");
     const wsLog = document.getElementById("wsLog");
     const latestEvent = document.getElementById("latestEvent");
+    const editorModePill = document.getElementById("editorModePill");
+    const insertModePill = document.getElementById("insertModePill");
+    const blinkModePill = document.getElementById("blinkModePill");
+    const caretModePill = document.getElementById("caretModePill");
+    const caretInfo = document.getElementById("caretInfo");
     const wsDot = document.getElementById("wsDot");
     const wsLabel = document.getElementById("wsLabel");
 
@@ -268,8 +331,13 @@
 
     let ws = null;
     let lastLineId = null;
-    let lastCaretPosition = null;
+    let lastCaretTextPosition = null;
+    let lastCaretCellPosition = null;
     let lastCaretVisible = null;
+    let editorModeEnabled = false;
+    let insertModeEnabled = false;
+    let caretBlinkEnabled = false;
+    let caretVisibleEnabled = true;
 
     function logLine(line) {
       const next = "[" + new Date().toISOString() + "] " + line + "\n";
@@ -286,6 +354,38 @@
       return !!ws && ws.readyState === WebSocket.OPEN;
     }
 
+    function setInsertMode(enabled) {
+      insertModeEnabled = !!enabled;
+      if (!insertModePill) return;
+      insertModePill.textContent = insertModeEnabled ? "ON" : "OFF";
+      insertModePill.classList.toggle("on", insertModeEnabled);
+      insertModePill.classList.toggle("off", !insertModeEnabled);
+    }
+
+    function setEditorMode(enabled) {
+      editorModeEnabled = !!enabled;
+      if (!editorModePill) return;
+      editorModePill.textContent = editorModeEnabled ? "ON" : "OFF";
+      editorModePill.classList.toggle("on", editorModeEnabled);
+      editorModePill.classList.toggle("off", !editorModeEnabled);
+    }
+
+    function setCaretBlink(enabled) {
+      caretBlinkEnabled = !!enabled;
+      if (!blinkModePill) return;
+      blinkModePill.textContent = caretBlinkEnabled ? "ON" : "OFF";
+      blinkModePill.classList.toggle("on", caretBlinkEnabled);
+      blinkModePill.classList.toggle("off", !caretBlinkEnabled);
+    }
+
+    function setCaretVisibleState(enabled) {
+      caretVisibleEnabled = !!enabled;
+      if (!caretModePill) return;
+      caretModePill.textContent = caretVisibleEnabled ? "ON" : "OFF";
+      caretModePill.classList.toggle("on", caretVisibleEnabled);
+      caretModePill.classList.toggle("off", !caretVisibleEnabled);
+    }
+
     function eventTypeOf(msg) {
       return msg && (msg.Type || msg.type);
     }
@@ -299,7 +399,12 @@
       if (t === "thumbKey") return "thumbKey name=" + (msg.Payload && msg.Payload.Name) + " press=" + (msg.Payload && msg.Payload.Press);
       if (t === "editorKey") return "editorKey key=" + (msg.Payload && msg.Payload.Key) + " press=" + (msg.Payload && msg.Payload.Press);
       if (t === "cursor" || t === "chord") return t + " char=" + (msg.Cursor && msg.Cursor.Character) + " word=" + (msg.Cursor && msg.Cursor.Word);
-      if (t === "brailleLine") return "brailleLine caret.textIndex=" + (msg.caret && msg.caret.textIndex) + " caret.cellIndex=" + (msg.caret && msg.caret.cellIndex);
+      if (t === "brailleLine") {
+        return "brailleLine caret.textIndex=" + (msg.caret && msg.caret.textIndex) +
+          " caret.cellIndex=" + (msg.caret && msg.caret.cellIndex) +
+          " meta.caretTextPosition=" + (msg.meta && msg.meta.caretTextPosition) +
+          " meta.caretCellPosition=" + (msg.meta && msg.meta.caretCellPosition);
+      }
       if (isRawKeyEvent(msg)) return "rawKey kind=" + msg.Kind + " press=" + msg.IsPress + " rawParam=" + msg.RawParam;
       return "unknown event";
     }
@@ -309,21 +414,37 @@
       if (eventTypeOf(msg) !== "brailleLine") return;
       if (!(msg && msg.ok === true && msg.braille && typeof msg.braille.unicodeText === "string")) return;
       const lineId = msg.meta && msg.meta.lineId;
-      const caretPosition = msg.meta && Number.isInteger(msg.meta.caretPosition) ? msg.meta.caretPosition : null;
+      const caretTextPosition = msg.meta && Number.isInteger(msg.meta.caretTextPosition)
+        ? msg.meta.caretTextPosition
+        : (msg.caret && Number.isInteger(msg.caret.textIndex) ? msg.caret.textIndex : null);
+      const caretCellPosition = msg.meta && Number.isInteger(msg.meta.caretCellPosition)
+        ? msg.meta.caretCellPosition
+        : (msg.caret && Number.isInteger(msg.caret.cellIndex) ? msg.caret.cellIndex : null);
       const caretVisible = typeof msg.caretVisible === "boolean" ? msg.caretVisible : true;
+      setCaretVisibleState(caretVisible);
+      if (msg.caretStyle && typeof msg.caretStyle.blink === "boolean") {
+        setCaretBlink(msg.caretStyle.blink);
+      }
       if (
         typeof lineId === "number" &&
         lineId === lastLineId &&
-        caretPosition === lastCaretPosition &&
+        caretTextPosition === lastCaretTextPosition &&
+        caretCellPosition === lastCaretCellPosition &&
         caretVisible === lastCaretVisible
       ) return;
       monitor.setBrailleUnicode(
         msg.braille.unicodeText,
         typeof msg.sourceText === "string" ? msg.sourceText : "",
-        { caretPosition: caretPosition, caretVisible: caretVisible }
+        { caretPosition: caretCellPosition, textCaretPosition: caretTextPosition, caretVisible: caretVisible }
       );
+      if (caretInfo) {
+        caretInfo.textContent =
+          "Caret: caretTextPosition=" + (caretTextPosition == null ? "-" : caretTextPosition) +
+          ", caretCellPosition=" + (caretCellPosition == null ? "-" : caretCellPosition);
+      }
       if (typeof lineId === "number") lastLineId = lineId;
-      lastCaretPosition = caretPosition;
+      lastCaretTextPosition = caretTextPosition;
+      lastCaretCellPosition = caretCellPosition;
       lastCaretVisible = caretVisible;
     }
 
@@ -331,6 +452,38 @@
       if (!isOpen()) {
         logLine("blocked " + label + ": websocket not connected");
         return;
+      }
+      const directType = payload && payload.type;
+      const envelopeCommand = payload && payload.command;
+      const isEditorModeCmd =
+        (directType === "setEditorMode") ||
+        (directType === "command" && envelopeCommand === "setEditorMode");
+      const isInsertCmd =
+        directType === "setEditorInsertMode" ||
+        (directType === "command" && envelopeCommand === "setEditorInsertMode");
+      const isCaretStyleCmd =
+        directType === "setCaretStyle" ||
+        (directType === "command" && envelopeCommand === "setCaretStyle");
+      const isCaretVisibilityCmd =
+        directType === "setCaretVisibility" ||
+        (directType === "command" && envelopeCommand === "setCaretVisibility");
+      if (isEditorModeCmd) {
+        const enabled = !!(payload && payload.enabled);
+        setEditorMode(enabled);
+        logLine("WS CMD  setEditorMode enabled=" + (enabled ? "True" : "False"));
+      }
+      if (isInsertCmd) {
+        const enabled = !!(payload && payload.enabled);
+        setInsertMode(enabled);
+        logLine("WS CMD  setEditorInsertMode enabled=" + (enabled ? "True" : "False"));
+      }
+      if (isCaretStyleCmd && typeof payload.blink === "boolean") {
+        setCaretBlink(payload.blink);
+        logLine("WS CMD  setCaretStyle blink=" + (payload.blink ? "True" : "False"));
+      }
+      if (isCaretVisibilityCmd && typeof payload.visible === "boolean") {
+        setCaretVisibleState(payload.visible);
+        logLine("WS CMD  setCaretVisibility visible=" + (payload.visible ? "True" : "False"));
       }
       ws.send(JSON.stringify(payload));
       logLine("WS -> " + label);
@@ -361,6 +514,18 @@
       const block = document.createElement("article");
       block.className = "msg";
       block.innerHTML = "<h3>" + item.name + "</h3><div class=\"kind\">" + item.kind + "</div>";
+      if (item.name === "setEditorInsertMode (direct)") {
+        const hint = document.createElement("div");
+        hint.className = "meta";
+        hint.textContent = "06:57:35  WS CMD  setEditorInsertMode enabled=False";
+        block.appendChild(hint);
+      }
+      if (item.name === "setEditorMode") {
+        const hint = document.createElement("div");
+        hint.className = "meta";
+        hint.textContent = "Keyboard: F2 toggles setEditorMode ON/OFF";
+        block.appendChild(hint);
+      }
       const row = document.createElement("div");
       row.className = "row";
       if (Array.isArray(item.actions) && item.actions.length > 0) {
@@ -463,25 +628,26 @@
       },
       {
         name: "brailleLine",
-        kind: "shape: camelCase; position: caret.textIndex, caret.cellIndex, meta.caretPosition",
+        kind: "shape: camelCase; position: caret.textIndex, caret.cellIndex, meta.caretTextPosition, meta.caretCellPosition",
         sample: {
           type: "brailleLine",
           ok: true,
-          sourceText: "Hello braille                           ",
-          braille: { unicodeText: "\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280a\u2807\u2807\u2811\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800" },
-          caret: { textIndex: 12, cellIndex: 13 },
+          sourceText: "Hello braille!                          ",
+          braille: { unicodeText: "\u2828\u2813\u2811\u2807\u2807\u2815\u2800\u2803\u2817\u2801\u280a\u2807\u2807\u2811\u2816\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800\u2800" },
+          caret: { textIndex: 14, cellIndex: 15 },
           caretVisible: true,
           caretStyle: { dots: [7, 8], blink: false, blinkPeriodMs: 500 },
           meta: {
             activeTable: "nl-NL-g0.utb",
-            charSize: 0,
-            lineId: 123,
-            createdUtc: "2026-03-12T08:26:01.0000000Z",
-            lineLength: 14,
+            charSize: 4,
+            lineId: 1,
+            createdUtc: "2026-03-17T05:29:35.2148386Z",
+            lineLength: 15,
             brailleDisplayCells: 40,
-            sscoTextLength: 12,
-            sscoBrailleLength: 14,
-            caretPosition: 13
+            sscoTextLength: 14,
+            sscoBrailleLength: 15,
+            caretTextPosition: 14,
+            caretCellPosition: 15
           }
         }
       },
@@ -566,7 +732,7 @@
         ]
       },
       { name: "getBrailleLine (direct)", kind: "antwoord bevat caret positie: textIndex + cellIndex", sample: { type: "getBrailleLine" } },
-      { name: "setCaretToEnd (direct)", kind: "caret -> einde (textIndex=sscoTextLength, cellIndex=meta.caretPosition)", sample: { type: "setCaretToEnd" } },
+      { name: "setCaretToEnd (direct)", kind: "caret -> einde (textIndex=sscoTextLength, cellIndex=meta.caretCellPosition)", sample: { type: "setCaretToEnd" } },
       { name: "setCaretToBegin (direct)", kind: "caret -> begin (textIndex=0, cellIndex via mapping)", sample: { type: "setCaretToBegin" } },
       { name: "cursorRouting (direct)", kind: "caret -> cellIndex=3 (simulate routing key)", sample: { type: "cursorRouting", cellIndex: 3 } }
     ];
@@ -636,8 +802,10 @@
       ws.close(1000, "client close");
       ws = null;
       lastLineId = null;
-      lastCaretPosition = null;
+      lastCaretTextPosition = null;
+      lastCaretCellPosition = null;
       lastCaretVisible = null;
+      if (caretInfo) caretInfo.textContent = "Caret: caretTextPosition=-, caretCellPosition=-";
       setStatus("disconnected", false);
       if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
     }
@@ -661,6 +829,30 @@
       if (ev.key === "Backspace") {
         ev.preventDefault();
         sendEditorKeyInput("Backspace", "hardware Backspace");
+      } else if (ev.key === "F2") {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "command", command: "setEditorMode", enabled: !editorModeEnabled },
+          "hardware F2 toggle editor mode"
+        );
+      } else if (ev.key === "Insert") {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "setEditorInsertMode", enabled: !insertModeEnabled },
+          "hardware Insert toggle"
+        );
+      } else if (ev.key === "F3") {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "setCaretStyle", dots: [7, 8], blink: !caretBlinkEnabled, blinkPeriodMs: 500 },
+          "hardware F3 toggle blink"
+        );
+      } else if (ev.key === "F4") {
+        ev.preventDefault();
+        sendJsonPayload(
+          { type: "setCaretVisibility", visible: !caretVisibleEnabled },
+          "hardware F4 toggle caret visibility"
+        );
       } else if (ev.key === "ArrowLeft") {
         ev.preventDefault();
         sendJsonPayload({ type: "moveCaret", by: -1, unit: "character" }, "hardware ArrowLeft");
@@ -688,7 +880,12 @@
     window.addEventListener("keydown", onHardwareEditorKeyDown);
 
     setStatus("disconnected", false);
+    setEditorMode(false);
+    setInsertMode(false);
+    setCaretBlink(false);
+    setCaretVisibleState(true);
     latestEvent.textContent = "Latest: -";
+    if (caretInfo) caretInfo.textContent = "Caret: caretTextPosition=-, caretCellPosition=-";
     if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
     connect();
   </script>

@@ -22,7 +22,8 @@
  *
  * ADDED IN THIS VERSION:
  * - setLang(lang): switch language after init and re-render (safe for Settings page)
- * - setBrailleUnicode(unicodeText, sourceText, { caretPosition, caretVisible }): render braille 1:1 from SSoC
+ * - setBrailleUnicode(unicodeText, sourceText, { caretPosition, textCaretPosition, caretVisible }):
+ *   render braille 1:1 from SSoC with separate cell/text caret highlights
  */
 
 (function (global) {
@@ -270,6 +271,7 @@
       let currentText = "";
       let currentBrailleUnicode = "";
       let currentCaretPosition = null;
+      let currentTextCaretPosition = null;
       let currentCaretVisible = true;
       let renderFromSsoc = false;
       let currentLang = opts.lang ? String(opts.lang) : null;
@@ -337,6 +339,9 @@
                 cell.classList.add("monitor-cell--caret");
                 cell.setAttribute("aria-selected", "true");
               }
+              if (currentCaretVisible && currentTextCaretPosition === i) {
+                cell.classList.add("monitor-cell--text-caret");
+              }
 
               const brailleEl = document.createElement("span");
               brailleEl.className = "monitor-cell__braille";
@@ -383,6 +388,9 @@
           if (currentCaretVisible && currentCaretPosition === i) {
             cell.classList.add("monitor-cell--caret");
             cell.setAttribute("aria-selected", "true");
+          }
+          if (currentCaretVisible && currentTextCaretPosition === i) {
+            cell.classList.add("monitor-cell--text-caret");
           }
 
           const brailleEl = document.createElement("span");
@@ -449,6 +457,7 @@
         renderFromSsoc = false;
         currentBrailleUnicode = "";
         currentCaretPosition = null;
+        currentTextCaretPosition = null;
         currentCaretVisible = true;
         currentText = text != null ? String(text) : "";
         rebuildCells();
@@ -469,7 +478,12 @@
             : options && typeof options === "object"
             ? options.caretPosition
             : null;
+        const textCaretCandidate =
+          options && typeof options === "object"
+            ? options.textCaretPosition
+            : null;
         currentCaretPosition = parseCaretPosition(caretCandidate);
+        currentTextCaretPosition = parseCaretPosition(textCaretCandidate);
         currentCaretVisible =
           options && typeof options === "object" && typeof options.caretVisible === "boolean"
             ? options.caretVisible
@@ -489,6 +503,7 @@
 
       function setCaretPosition(caretPosition) {
         currentCaretPosition = parseCaretPosition(caretPosition);
+        currentTextCaretPosition = null;
         currentCaretVisible = true;
         rebuildCells();
       }

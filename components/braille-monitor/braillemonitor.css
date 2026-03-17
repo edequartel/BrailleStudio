@@ -100,6 +100,18 @@
   line-height: 1;
   font-size: 1.05em;
   font-family: "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  padding: 0.04rem 0.08rem;
+}
+
+.braille-monitor-cells .monitor-cell.monitor-cell--text-caret .monitor-cell__print {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #2563eb;
+  box-shadow:
+    inset 0 0 0 1px rgba(37, 99, 235, 0.55),
+    0 0 0 1px rgba(59, 130, 246, 0.28),
+    0 2px 5px rgba(37, 99, 235, 0.18);
 }
 
 
@@ -174,5 +186,14 @@ html[data-theme="dark"] .mono-box.braille-monitor-cells {
 
   .small {
     color: #aab3c5;
+  }
+
+  .braille-monitor-cells .monitor-cell.monitor-cell--text-caret .monitor-cell__print {
+    background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
+    border-color: #93c5fd;
+    box-shadow:
+      inset 0 0 0 1px rgba(147, 197, 253, 0.55),
+      0 0 0 1px rgba(147, 197, 253, 0.28),
+      0 2px 6px rgba(30, 58, 138, 0.32);
   }
 }
