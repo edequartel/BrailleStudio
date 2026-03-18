@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WebSocket Contract Explorer</title>
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
+  <link rel="stylesheet" href="../components/mode-toggles/mode-toggles.css" />
   <style>
     :root {
       --bg: #f3f5f8;
@@ -174,45 +175,6 @@
       font-size: 13px;
     }
 
-    .insert-state {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: var(--panel-soft);
-      padding: 8px 10px;
-      font-size: 13px;
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .mode-states {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .pill {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 2px 8px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-
-    .pill.on {
-      color: #14532d;
-      border-color: rgba(22, 163, 74, 0.55);
-      background: rgba(22, 163, 74, 0.12);
-    }
-
-    .pill.off {
-      color: #7f1d1d;
-      border-color: rgba(220, 38, 38, 0.55);
-      background: rgba(220, 38, 38, 0.12);
-    }
-
     @media (max-width: 980px) {
       .section-grid { grid-template-columns: 1fr; }
     }
@@ -252,25 +214,12 @@
         <button type="button" class="btn ghost" id="clearLogBtn">Clear Log</button>
       </div>
       <div class="latest" id="latestEvent">Latest: -</div>
-      <div class="mode-states" id="modeStates">
-        <div class="insert-state" id="editorModeInfo">
-          <span>Editor mode (F2):</span>
-          <span class="pill off" id="editorModePill">OFF</span>
-        </div>
-        <div class="insert-state" id="insertModeInfo">
-          <span>Insert mode (Insert):</span>
-          <span class="pill off" id="insertModePill">OFF</span>
-        </div>
-        <div class="insert-state" id="blinkModeInfo">
-          <span>Blink (F3):</span>
-          <span class="pill off" id="blinkModePill">OFF</span>
-        </div>
-        <div class="insert-state" id="caretModeInfo">
-          <span>Caret (F4):</span>
-          <span class="pill on" id="caretModePill">ON</span>
-        </div>
-      </div>
       <pre class="log" id="wsLog"></pre>
+    </section>
+
+    <section class="card" aria-label="Keyboard toggles">
+      <h2>Keyboard Toggles</h2>
+      <div id="modeTogglesComponent"></div>
     </section>
 
     <section class="card" aria-label="Client to server messages">
@@ -285,6 +234,7 @@
   </main>
 
   <script src="../components/braille-monitor/braillemonitor.js"></script>
+  <script src="../components/mode-toggles/mode-toggles.js"></script>
   <script>
     "use strict";
 
@@ -294,10 +244,6 @@
     const clientCommandsEl = document.getElementById("clientCommands");
     const wsLog = document.getElementById("wsLog");
     const latestEvent = document.getElementById("latestEvent");
-    const editorModePill = document.getElementById("editorModePill");
-    const insertModePill = document.getElementById("insertModePill");
-    const blinkModePill = document.getElementById("blinkModePill");
-    const caretModePill = document.getElementById("caretModePill");
     const caretInfo = document.getElementById("caretInfo");
     const wsDot = document.getElementById("wsDot");
     const wsLabel = document.getElementById("wsLabel");
@@ -328,6 +274,9 @@
           }
         })
       : null;
+    const modeToggles = window.ModeToggles
+      ? new window.ModeToggles({ containerId: "modeTogglesComponent" })
+      : null;
 
     let ws = null;
     let lastLineId = null;
@@ -338,6 +287,7 @@
     let insertModeEnabled = false;
     let caretBlinkEnabled = false;
     let caretVisibleEnabled = true;
+    let deleteKeyDownSent = false;
 
     function logLine(line) {
       const next = "[" + new Date().toISOString() + "] " + line + "\n";
@@ -356,34 +306,30 @@
 
     function setInsertMode(enabled) {
       insertModeEnabled = !!enabled;
-      if (!insertModePill) return;
-      insertModePill.textContent = insertModeEnabled ? "ON" : "OFF";
-      insertModePill.classList.toggle("on", insertModeEnabled);
-      insertModePill.classList.toggle("off", !insertModeEnabled);
+      if (modeToggles && typeof modeToggles.setInsertMode === "function") {
+        modeToggles.setInsertMode(insertModeEnabled);
+      }
     }
 
     function setEditorMode(enabled) {
       editorModeEnabled = !!enabled;
-      if (!editorModePill) return;
-      editorModePill.textContent = editorModeEnabled ? "ON" : "OFF";
-      editorModePill.classList.toggle("on", editorModeEnabled);
-      editorModePill.classList.toggle("off", !editorModeEnabled);
+      if (modeToggles && typeof modeToggles.setEditorMode === "function") {
+        modeToggles.setEditorMode(editorModeEnabled);
+      }
     }
 
     function setCaretBlink(enabled) {
       caretBlinkEnabled = !!enabled;
-      if (!blinkModePill) return;
-      blinkModePill.textContent = caretBlinkEnabled ? "ON" : "OFF";
-      blinkModePill.classList.toggle("on", caretBlinkEnabled);
-      blinkModePill.classList.toggle("off", !caretBlinkEnabled);
+      if (modeToggles && typeof modeToggles.setBlink === "function") {
+        modeToggles.setBlink(caretBlinkEnabled);
+      }
     }
 
     function setCaretVisibleState(enabled) {
       caretVisibleEnabled = !!enabled;
-      if (!caretModePill) return;
-      caretModePill.textContent = caretVisibleEnabled ? "ON" : "OFF";
-      caretModePill.classList.toggle("on", caretVisibleEnabled);
-      caretModePill.classList.toggle("off", !caretVisibleEnabled);
+      if (modeToggles && typeof modeToggles.setCaret === "function") {
+        modeToggles.setCaret(caretVisibleEnabled);
+      }
     }
 
     function eventTypeOf(msg) {
@@ -824,8 +770,26 @@
       );
     }
 
+    function isDeleteKeyEvent(ev) {
+      return ev.key === "Delete" || ev.code === "Delete" || ev.key === "Del" || ev.keyCode === 46 || ev.which === 46;
+    }
+
+    function handleDeleteHotkey(ev) {
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return false;
+      if (!isDeleteKeyEvent(ev)) return false;
+      ev.preventDefault();
+      sendEditorKeyInput("Delete", "hardware Delete");
+      return true;
+    }
+
     function onHardwareEditorKeyDown(ev) {
-      if (ev.defaultPrevented || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      if (ev.repeat) return;
+      deleteKeyDownSent = false;
+      if (handleDeleteHotkey(ev)) {
+        deleteKeyDownSent = true;
+        return;
+      }
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
       if (ev.key === "Backspace") {
         ev.preventDefault();
         sendEditorKeyInput("Backspace", "hardware Backspace");
@@ -874,10 +838,16 @@
       }
     }
 
+    function onHardwareEditorKeyUp(ev) {
+      if (deleteKeyDownSent) return;
+      handleDeleteHotkey(ev);
+    }
+
     document.getElementById("connectBtn").addEventListener("click", connect);
     document.getElementById("disconnectBtn").addEventListener("click", disconnect);
     document.getElementById("clearLogBtn").addEventListener("click", () => { wsLog.textContent = ""; });
-    window.addEventListener("keydown", onHardwareEditorKeyDown);
+    document.addEventListener("keydown", onHardwareEditorKeyDown, true);
+    document.addEventListener("keyup", onHardwareEditorKeyUp, true);
 
     setStatus("disconnected", false);
     setEditorMode(false);

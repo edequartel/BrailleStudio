@@ -1,8 +1,8 @@
 ﻿# BrailleBridge WebSocket Client Contract
 
-Version: 2.2
+Version: 2.3
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 
 ## 1) Endpoint
 
@@ -182,7 +182,7 @@ type EditorKeyEvent = {
   Ok: boolean;
   TimestampUtc: string;
   Payload: {
-    Key: "Backspace" | "Space" | "Enter" | "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown";
+    Key: "Backspace" | "Delete" | "DEL" | "Space" | "Enter" | "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown";
     Press: boolean;
   };
   Sam: Sam;
@@ -362,17 +362,21 @@ Key:
   "command": "editorInput",
   "input": {
     "kind": "key",
-    "key": "Backspace"
+    "key": "Delete"
   }
 }
 ```
 
 Key behavior:
 - `ArrowLeft` / `ArrowRight` / `ArrowUp` / `ArrowDown`: caret navigation in both editor mode and non-editor mode.
-- `Backspace` / `Space` / `Enter`: SSoC mutation, editor mode only.
+- `Backspace` / `Delete` / `Space` / `Enter`: SSoC mutation, editor mode only.
+- `Backspace`: removes the character before the canonical caret.
+- `Delete`: removes the character at the canonical caret.
+- For delete-at-caret, clients may send `"Delete"` or `"DEL"`.
 
 Valid `key` values:
 - `Backspace`
+- `Delete` (or `DEL`)
 - `Space`
 - `Enter`
 - `ArrowLeft`
@@ -681,6 +685,11 @@ Insert braille cell input:
 Send editor key:
 ```json
 {"type":"command","command":"editorInput","input":{"kind":"key","key":"Backspace"}}
+```
+
+Send delete-at-caret key:
+```json
+{"type":"command","command":"editorInput","input":{"kind":"key","key":"Delete"}}
 ```
 
 Set caret by canonical text index:
