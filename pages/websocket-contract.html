@@ -72,6 +72,10 @@
       gap: 10px;
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .meta {
       color: var(--muted);
       font-size: 13px;
@@ -175,8 +179,30 @@
       font-size: 13px;
     }
 
+    .bridge-alert {
+      border: 1px solid rgba(220, 38, 38, 0.45);
+      border-radius: 10px;
+      background: rgba(220, 38, 38, 0.1);
+      padding: 10px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .bridge-alert[hidden] {
+      display: none;
+    }
+
+    #bridgeAlertText {
+      line-height: 1.35;
+      min-height: calc(2 * 1.35em);
+    }
+
     @media (max-width: 980px) {
       .section-grid { grid-template-columns: 1fr; }
+      .bridge-alert { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -185,7 +211,6 @@
     <header class="top">
       <div>
         <h1>WebSocket Contract Explorer</h1>
-        <p class="meta">Source: <code>documents/contract.md</code> (v2.1, updated 2026-03-13)</p>
       </div>
       <div class="row">
         <button type="button" class="btn" id="themeBtn">Theme</button>
@@ -193,10 +218,12 @@
       </div>
     </header>
 
-    <section class="card" aria-label="Braille monitor">
-      <h2>BrailleMonitor</h2>
+    <section aria-label="Braille monitor">
       <div id="brailleMonitorComponent"></div>
-      <div class="latest" id="caretInfo">Caret: caretTextPosition=-, caretCellPosition=-</div>
+    </section>
+
+    <section class="card" aria-label="Keyboard toggles">
+      <div id="modeTogglesComponent"></div>
     </section>
 
     <section class="card" aria-label="Connection controls">
@@ -211,23 +238,25 @@
         </span>
         <button type="button" class="btn" id="connectBtn">Connect</button>
         <button type="button" class="btn ghost" id="disconnectBtn">Disconnect</button>
+        <button type="button" class="btn ghost" id="toggleLogBtn">Show Log</button>
+        <button type="button" class="btn ghost" id="toggleClientSectionBtn">Show Client Card</button>
+        <button type="button" class="btn ghost" id="toggleServerSectionBtn">Show Server Card</button>
         <button type="button" class="btn ghost" id="clearLogBtn">Clear Log</button>
       </div>
+      <div class="bridge-alert" id="bridgeAlert" role="status" aria-live="polite">
+        <span id="bridgeAlertText">Geen verbinding met BrailleBridge. Start BrailleBridge en klik daarna op Connect.</span>
+        <a class="btn" id="startBrailleBridgeBtn" href="braillebridge://" title="Start BrailleBridge">Start BrailleBridge</a>
+      </div>
       <div class="latest" id="latestEvent">Latest: -</div>
-      <pre class="log" id="wsLog"></pre>
+      <pre class="log" id="wsLog" hidden></pre>
     </section>
 
-    <section class="card" aria-label="Keyboard toggles">
-      <h2>Keyboard Toggles</h2>
-      <div id="modeTogglesComponent"></div>
-    </section>
-
-    <section class="card" aria-label="Client to server messages">
+    <section class="card" id="clientSection" aria-label="Client to server messages" hidden>
       <h2>Client -> Server possibilities</h2>
       <div class="section-grid" id="clientCommands"></div>
     </section>
 
-    <section class="card" aria-label="Server to client messages">
+    <section class="card" id="serverSection" aria-label="Server to client messages" hidden>
       <h2>Server -> Client possibilities</h2>
       <div class="section-grid" id="serverEvents"></div>
     </section>
@@ -240,13 +269,21 @@
 
     const THEME_KEY = "bs_theme";
     const WS_URL = "ws://localhost:5000/ws";
+    const AUTO_RECONNECT_MS = 2000;
+    const clientSection = document.getElementById("clientSection");
+    const serverSection = document.getElementById("serverSection");
     const serverEventsEl = document.getElementById("serverEvents");
     const clientCommandsEl = document.getElementById("clientCommands");
+    const toggleClientSectionBtn = document.getElementById("toggleClientSectionBtn");
+    const toggleServerSectionBtn = document.getElementById("toggleServerSectionBtn");
     const wsLog = document.getElementById("wsLog");
     const latestEvent = document.getElementById("latestEvent");
-    const caretInfo = document.getElementById("caretInfo");
     const wsDot = document.getElementById("wsDot");
     const wsLabel = document.getElementById("wsLabel");
+    const toggleLogBtn = document.getElementById("toggleLogBtn");
+    const bridgeAlert = document.getElementById("bridgeAlert");
+    const bridgeAlertText = document.getElementById("bridgeAlertText");
+    const BRIDGE_OFFLINE_MESSAGE = "Geen verbinding met BrailleBridge. Start BrailleBridge en klik daarna op Connect.";
 
     function applyTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
@@ -279,6 +316,9 @@
       : null;
 
     let ws = null;
+    let logVisible = false;
+    let reconnectTimer = null;
+    let autoConnectEnabled = true;
     let lastLineId = null;
     let lastCaretTextPosition = null;
     let lastCaretCellPosition = null;
@@ -295,13 +335,50 @@
       wsLog.scrollTop = 0;
     }
 
+    function setLogVisible(visible) {
+      logVisible = !!visible;
+      wsLog.hidden = !logVisible;
+      if (toggleLogBtn) toggleLogBtn.textContent = logVisible ? "Hide Log" : "Show Log";
+    }
+
+    function setClientCardsVisible(visible) {
+      const isVisible = !!visible;
+      if (clientSection) clientSection.hidden = !isVisible;
+      if (toggleClientSectionBtn) toggleClientSectionBtn.textContent = isVisible ? "Hide Client Card" : "Show Client Card";
+    }
+
+    function setServerCardsVisible(visible) {
+      const isVisible = !!visible;
+      if (serverSection) serverSection.hidden = !isVisible;
+      if (toggleServerSectionBtn) toggleServerSectionBtn.textContent = isVisible ? "Hide Server Card" : "Show Server Card";
+    }
+
     function setStatus(text, connected) {
       wsLabel.textContent = text;
       wsDot.classList.toggle("ok", !!connected);
+      if (bridgeAlert) bridgeAlert.hidden = !!connected;
+      if (bridgeAlertText && !connected) {
+        bridgeAlertText.textContent = BRIDGE_OFFLINE_MESSAGE;
+      }
     }
 
     function isOpen() {
       return !!ws && ws.readyState === WebSocket.OPEN;
+    }
+
+    function clearReconnectTimer() {
+      if (!reconnectTimer) return;
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
+    function scheduleReconnect() {
+      if (!autoConnectEnabled || reconnectTimer || isOpen()) return;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (!autoConnectEnabled || isOpen()) return;
+        connect("auto-reconnect");
+      }, AUTO_RECONNECT_MS);
     }
 
     function setInsertMode(enabled) {
@@ -383,11 +460,6 @@
         typeof msg.sourceText === "string" ? msg.sourceText : "",
         { caretPosition: caretCellPosition, textCaretPosition: caretTextPosition, caretVisible: caretVisible }
       );
-      if (caretInfo) {
-        caretInfo.textContent =
-          "Caret: caretTextPosition=" + (caretTextPosition == null ? "-" : caretTextPosition) +
-          ", caretCellPosition=" + (caretCellPosition == null ? "-" : caretCellPosition);
-      }
       if (typeof lineId === "number") lastLineId = lineId;
       lastCaretTextPosition = caretTextPosition;
       lastCaretCellPosition = caretCellPosition;
@@ -686,16 +758,21 @@
     serverEventSamples.forEach((item) => serverEventsEl.appendChild(createServerEventCard(item)));
     clientCommandSamples.forEach((item) => clientCommandsEl.appendChild(createClientCommandCard(item)));
 
-    function connect() {
+    function connect(reason) {
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
         logLine("already connecting/connected");
         return;
       }
+      if (reason !== "auto-reconnect") {
+        autoConnectEnabled = true;
+      }
+      clearReconnectTimer();
       let socket;
       try {
         socket = new WebSocket(WS_URL);
       } catch (err) {
         logLine("connect failed: " + String(err));
+        scheduleReconnect();
         return;
       }
       ws = socket;
@@ -704,6 +781,7 @@
 
       socket.addEventListener("open", () => {
         if (ws !== socket) return;
+        clearReconnectTimer();
         setStatus("connected", true);
         logLine("WS open");
         sendJsonPayload({ type: "getBrailleLine" }, "auto getBrailleLine");
@@ -713,11 +791,13 @@
         if (ws === socket) ws = null;
         setStatus("disconnected", false);
         logLine("WS close code=" + ev.code + " reason=" + (ev.reason || "-"));
+        scheduleReconnect();
       });
 
       socket.addEventListener("error", () => {
         setStatus("error", false);
         logLine("WS error");
+        scheduleReconnect();
       });
 
       socket.addEventListener("message", async (ev) => {
@@ -744,6 +824,8 @@
     }
 
     function disconnect() {
+      autoConnectEnabled = false;
+      clearReconnectTimer();
       if (!ws) return;
       ws.close(1000, "client close");
       ws = null;
@@ -751,7 +833,6 @@
       lastCaretTextPosition = null;
       lastCaretCellPosition = null;
       lastCaretVisible = null;
-      if (caretInfo) caretInfo.textContent = "Caret: caretTextPosition=-, caretCellPosition=-";
       setStatus("disconnected", false);
       if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
     }
@@ -823,6 +904,12 @@
       } else if (ev.key === "ArrowRight") {
         ev.preventDefault();
         sendJsonPayload({ type: "moveCaret", by: 1, unit: "character" }, "hardware ArrowRight");
+      } else if (ev.key === "Home") {
+        ev.preventDefault();
+        sendJsonPayload({ type: "setCaretToBegin" }, "hardware Home setCaretToBegin");
+      } else if (ev.key === "End") {
+        ev.preventDefault();
+        sendJsonPayload({ type: "setCaretToEnd" }, "hardware End setCaretToEnd");
       } else if (ev.key === " ") {
         ev.preventDefault();
         sendJsonPayload(
@@ -843,19 +930,30 @@
       handleDeleteHotkey(ev);
     }
 
-    document.getElementById("connectBtn").addEventListener("click", connect);
+    document.getElementById("connectBtn").addEventListener("click", () => connect("manual"));
     document.getElementById("disconnectBtn").addEventListener("click", disconnect);
+    if (toggleLogBtn) {
+      toggleLogBtn.addEventListener("click", () => setLogVisible(!logVisible));
+    }
+    if (toggleClientSectionBtn) {
+      toggleClientSectionBtn.addEventListener("click", () => setClientCardsVisible(clientSection && clientSection.hidden));
+    }
+    if (toggleServerSectionBtn) {
+      toggleServerSectionBtn.addEventListener("click", () => setServerCardsVisible(serverSection && serverSection.hidden));
+    }
     document.getElementById("clearLogBtn").addEventListener("click", () => { wsLog.textContent = ""; });
     document.addEventListener("keydown", onHardwareEditorKeyDown, true);
     document.addEventListener("keyup", onHardwareEditorKeyUp, true);
 
+    setLogVisible(false);
+    setClientCardsVisible(false);
+    setServerCardsVisible(false);
     setStatus("disconnected", false);
     setEditorMode(false);
     setInsertMode(false);
     setCaretBlink(false);
     setCaretVisibleState(true);
     latestEvent.textContent = "Latest: -";
-    if (caretInfo) caretInfo.textContent = "Caret: caretTextPosition=-, caretCellPosition=-";
     if (monitor && typeof monitor.setBrailleUnicode === "function") monitor.setBrailleUnicode("", "");
     connect();
   </script>
