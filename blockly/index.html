@@ -15,11 +15,11 @@
     }
 
     #header {
-      height: 64px;
+      min-height: 64px;
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 0 16px;
+      padding: 8px 16px;
       box-sizing: border-box;
       border-bottom: 1px solid #d9dce3;
       background: white;
@@ -56,10 +56,16 @@
       border: 1px solid #c8d5ff;
     }
 
+    .filebtn {
+      background: #f4f4f5;
+      color: #111827;
+      border: 1px solid #d1d5db;
+    }
+
     #main {
       display: grid;
       grid-template-columns: 1fr 340px;
-      height: calc(100vh - 64px);
+      height: calc(100vh - 80px);
     }
 
     #blocklyDiv {
@@ -125,9 +131,8 @@
       padding: 10px;
     }
 
-    .note {
-      color: #4b5563;
-      font-size: 13px;
+    #fileInput {
+      display: none;
     }
   </style>
 </head>
@@ -137,6 +142,11 @@
 
     <button id="runBtn" class="topbtn">🚩 Start</button>
     <button id="stopBtn" class="topbtn">⛔ Stop</button>
+
+    <button id="saveBtn" class="topbtn filebtn">💾 Save</button>
+    <button id="loadBtn" class="topbtn filebtn">📂 Load</button>
+    <button id="newBtn" class="topbtn filebtn">🆕 New</button>
+    <input id="fileInput" type="file" accept=".xml,.blockly, text/xml, application/xml">
 
     <button id="simulateChordBtn" class="topbtn eventbtn">Chord 1</button>
     <button id="simulateThumbBtn" class="topbtn eventbtn">Thumb Left</button>
@@ -153,7 +163,7 @@
     <div id="sidebar">
       <div class="panel">
         <h3>What this demo is</h3>
-        <p>This version really dispatches simulated events and runs matching Blockly stacks in the browser.</p>
+        <p>This version dispatches simulated events, runs matching Blockly stacks, and can save/load the workspace as local files.</p>
       </div>
 
       <div class="panel">
@@ -227,9 +237,6 @@
       log.scrollTop = log.scrollHeight;
     }
 
-    // ---------------------------
-    // Runtime state
-    // ---------------------------
     const runtimeState = {
       text: '',
       caret: 0,
@@ -249,15 +256,11 @@ stopped     : ${runtimeState.stopped}`;
 
     renderState();
 
-    // ---------------------------
     // Event blocks
-    // ---------------------------
     Blockly.Blocks['event_when_started'] = {
       init: function() {
-        this.appendDummyInput()
-          .appendField("when started");
-        this.appendStatementInput("DO")
-          .appendField("do");
+        this.appendDummyInput().appendField("when started");
+        this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
         this.setTooltip("Runs when the activity starts");
@@ -270,8 +273,7 @@ stopped     : ${runtimeState.stopped}`;
           .appendField("when chord")
           .appendField(new Blockly.FieldTextInput("1"), "DOTS")
           .appendField("received");
-        this.appendStatementInput("DO")
-          .appendField("do");
+        this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
         this.setTooltip("Runs when a braille chord is received");
@@ -289,8 +291,7 @@ stopped     : ${runtimeState.stopped}`;
             ["down", "down"]
           ]), "KEY")
           .appendField("received");
-        this.appendStatementInput("DO")
-          .appendField("do");
+        this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
         this.setTooltip("Runs when a thumb key event is received");
@@ -302,8 +303,7 @@ stopped     : ${runtimeState.stopped}`;
         this.appendDummyInput()
           .appendField("when cursor routing at cell")
           .appendField(new Blockly.FieldNumber(5, 0, 39, 1), "CELL");
-        this.appendStatementInput("DO")
-          .appendField("do");
+        this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
         this.setTooltip("Runs when cursor routing is pressed at a cell");
@@ -322,17 +322,14 @@ stopped     : ${runtimeState.stopped}`;
             ["enter", "enter"]
           ]), "KEY")
           .appendField("received");
-        this.appendStatementInput("DO")
-          .appendField("do");
+        this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
         this.setTooltip("Runs when an editor key event is received");
       }
     };
 
-    // ---------------------------
     // Action blocks
-    // ---------------------------
     Blockly.Blocks['bb_set_text'] = {
       init: function() {
         this.appendValueInput("TEXT")
@@ -394,9 +391,6 @@ stopped     : ${runtimeState.stopped}`;
       }
     };
 
-    // ---------------------------
-    // Workspace
-    // ---------------------------
     const workspace = Blockly.inject('blocklyDiv', {
       toolbox: document.getElementById('toolbox'),
       trashcan: true,
@@ -554,9 +548,6 @@ stopped     : ${runtimeState.stopped}`;
       workspace
     );
 
-    // ---------------------------
-    // Helpers to evaluate blocks
-    // ---------------------------
     function getValueFromInput(block, inputName) {
       const target = block.getInputTargetBlock(inputName);
       if (!target) return null;
@@ -671,9 +662,70 @@ stopped     : ${runtimeState.stopped}`;
       }
     }
 
-    // ---------------------------
-    // Buttons
-    // ---------------------------
+    // Save / Load / New
+    function saveWorkspaceToFile() {
+      const xmlDom = Blockly.Xml.workspaceToDom(workspace);
+      const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+      const blob = new Blob([xmlText], { type: 'text/xml' });
+      const url = URL.createObjectURL(blob);
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const filename = `braille-activity-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xml`;
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      URL.revokeObjectURL(url);
+      addLog(`Workspace saved to local file: ${filename}`);
+    }
+
+    function loadWorkspaceFromText(xmlText) {
+      try {
+        const xmlDom = Blockly.utils.xml.textToDom(xmlText);
+        workspace.clear();
+        Blockly.Xml.domToWorkspace(xmlDom, workspace);
+        addLog('Workspace loaded from local file');
+      } catch (err) {
+        addLog(`Load failed: ${err.message}`);
+        alert('Could not load the Blockly file.');
+      }
+    }
+
+    function handleFileLoad(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => loadWorkspaceFromText(e.target.result);
+      reader.onerror = () => {
+        addLog('Load failed: could not read file');
+        alert('Could not read the selected file.');
+      };
+      reader.readAsText(file);
+
+      event.target.value = '';
+    }
+
+    function newWorkspace() {
+      const ok = confirm('Clear the current workspace?');
+      if (!ok) return;
+      workspace.clear();
+      addLog('Workspace cleared');
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveWorkspaceToFile);
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      document.getElementById('fileInput').click();
+    });
+    document.getElementById('fileInput').addEventListener('change', handleFileLoad);
+    document.getElementById('newBtn').addEventListener('click', newWorkspace);
+
+    // Runtime buttons
     document.getElementById('runBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
       renderState();
