@@ -1,11 +1,3 @@
-Here is a full updated version with the safer event blocks applied:
-	•	removed setHat(true)
-	•	event blocks are top-level blocks with:
-	•	setPreviousStatement(false)
-	•	setNextStatement(false)
-	•	changed renderer to geras
-	•	kept variables, logic, save/load, and simulated events
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -170,11 +162,6 @@ Here is a full updated version with the safer event blocks applied:
 
     <div id="sidebar">
       <div class="panel">
-        <h3>What this demo is</h3>
-        <p>This version adds variables, state-value blocks, and simple logic execution.</p>
-      </div>
-
-      <div class="panel">
         <h3>Runtime state</h3>
         <div id="statusBox"></div>
       </div>
@@ -296,9 +283,6 @@ variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
     }
 
-    // ---------------------------
-    // Safer custom event blocks
-    // ---------------------------
     Blockly.Blocks['event_when_started'] = {
       init: function() {
         this.appendDummyInput().appendField("when started");
@@ -400,9 +384,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
-    // ---------------------------
-    // Action blocks
-    // ---------------------------
     Blockly.Blocks['bb_set_text'] = {
       init: function() {
         this.appendValueInput("TEXT").appendField("set text");
@@ -458,9 +439,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
-    // ---------------------------
-    // Reporter blocks
-    // ---------------------------
     Blockly.Blocks['state_current_cursor_position'] = {
       init: function() {
         this.appendDummyInput().appendField("current cursor position");
@@ -501,7 +479,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
-    // Use geras instead of zelos
     workspace = Blockly.inject('blocklyDiv', {
       toolbox: document.getElementById('toolbox'),
       trashcan: true,
@@ -1047,5 +1024,3 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
   </script>
 </body>
 </html>
-
-If this still hangs, the next clean fix is to switch the toolbox from XML to JSON.
