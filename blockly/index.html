@@ -1,3 +1,11 @@
+Here is the full version again, with:
+	•	Variables
+	•	Logic
+	•	Event/value blocks on the left
+	•	cursor position changed
+	•	thumb key pressed
+	•	save/load/new
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -64,8 +72,8 @@
 
     #main {
       display: grid;
-      grid-template-columns: 1fr 340px;
-      height: calc(100vh - 80px);
+      grid-template-columns: 1fr 360px;
+      height: calc(100vh - 82px);
     }
 
     #blocklyDiv {
@@ -104,7 +112,7 @@
 
     #log {
       width: 100%;
-      min-height: 280px;
+      min-height: 260px;
       resize: none;
       box-sizing: border-box;
       font-family: Consolas, monospace;
@@ -113,11 +121,6 @@
       border-radius: 8px;
       padding: 10px;
       background: white;
-    }
-
-    .small {
-      font-size: 12px;
-      color: #5b6475;
     }
 
     #statusBox {
@@ -129,6 +132,11 @@
       border: 1px solid #cfd6e6;
       border-radius: 8px;
       padding: 10px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #5b6475;
     }
 
     #fileInput {
@@ -146,7 +154,7 @@
     <button id="saveBtn" class="topbtn filebtn">💾 Save</button>
     <button id="loadBtn" class="topbtn filebtn">📂 Load</button>
     <button id="newBtn" class="topbtn filebtn">🆕 New</button>
-    <input id="fileInput" type="file" accept=".xml,.blockly, text/xml, application/xml">
+    <input id="fileInput" type="file" accept=".xml,.blockly,text/xml,application/xml">
 
     <button id="simulateChordBtn" class="topbtn eventbtn">Chord 1</button>
     <button id="simulateThumbBtn" class="topbtn eventbtn">Thumb Left</button>
@@ -163,7 +171,7 @@
     <div id="sidebar">
       <div class="panel">
         <h3>What this demo is</h3>
-        <p>This version dispatches simulated events, runs matching Blockly stacks, and can save/load the workspace as local files.</p>
+        <p>This version adds variables, state-value blocks, and simple logic execution.</p>
       </div>
 
       <div class="panel">
@@ -177,8 +185,8 @@
       </div>
 
       <div class="panel">
-        <h3>Next step later</h3>
-        <p class="small">Later you can replace this in-browser runtime with generated Python or your BrailleBridge WebSocket gateway.</p>
+        <h3>Tip</h3>
+        <p class="small">Open the Variables category and create your own variables like score, tries, or level.</p>
       </div>
     </div>
   </div>
@@ -188,7 +196,9 @@
       <block type="event_when_started"></block>
       <block type="event_when_chord"></block>
       <block type="event_when_thumb_key"></block>
+      <block type="event_when_thumb_key_pressed"></block>
       <block type="event_when_cursor_routing"></block>
+      <block type="event_when_cursor_position_changed"></block>
       <block type="event_when_editor_key"></block>
     </category>
 
@@ -204,6 +214,8 @@
       <block type="controls_if"></block>
       <block type="logic_compare"></block>
       <block type="logic_boolean"></block>
+      <block type="logic_operation"></block>
+      <block type="logic_negate"></block>
     </category>
 
     <category name="Loops" colour="#FFAB19">
@@ -216,16 +228,28 @@
       </block>
     </category>
 
+    <category name="Variables" custom="VARIABLE" colour="#FF8C1A"></category>
+
+    <category name="State values" colour="#9966FF">
+      <block type="state_current_cursor_position"></block>
+      <block type="state_last_thumb_key"></block>
+      <block type="state_last_chord"></block>
+      <block type="state_last_editor_key"></block>
+      <block type="state_last_cursor_cell"></block>
+    </category>
+
     <category name="Math" colour="#9966FF">
       <block type="math_number">
         <field name="NUM">1</field>
       </block>
+      <block type="math_arithmetic"></block>
     </category>
 
     <category name="Text" colour="#5CB1D6">
       <block type="text">
         <field name="TEXT">hello braille</field>
       </block>
+      <block type="text_join"></block>
     </category>
   </xml>
 
@@ -242,28 +266,41 @@
       caret: 0,
       editorMode: 'off',
       insertMode: 'off',
-      stopped: false
+      stopped: false,
+      lastThumbKey: '',
+      lastChord: '',
+      lastEditorKey: '',
+      lastCursorCell: -1
     };
 
+    const variableValues = {};
+
     function renderState() {
+      const varLines = workspace
+        ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
+        : [];
+
       document.getElementById('statusBox').textContent =
-`text        : ${runtimeState.text}
-caret       : ${runtimeState.caret}
-editor mode : ${runtimeState.editorMode}
-insert mode : ${runtimeState.insertMode}
-stopped     : ${runtimeState.stopped}`;
+`text            : ${runtimeState.text}
+caret           : ${runtimeState.caret}
+editor mode     : ${runtimeState.editorMode}
+insert mode     : ${runtimeState.insertMode}
+last thumb key  : ${runtimeState.lastThumbKey}
+last chord      : ${runtimeState.lastChord}
+last editor key : ${runtimeState.lastEditorKey}
+last cursor cell: ${runtimeState.lastCursorCell}
+stopped         : ${runtimeState.stopped}
+
+variables:
+${varLines.length ? varLines.join('\n') : '(none)'}`;
     }
 
-    renderState();
-
-    // Event blocks
     Blockly.Blocks['event_when_started'] = {
       init: function() {
         this.appendDummyInput().appendField("when started");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
-        this.setTooltip("Runs when the activity starts");
       }
     };
 
@@ -276,7 +313,6 @@ stopped     : ${runtimeState.stopped}`;
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
-        this.setTooltip("Runs when a braille chord is received");
       }
     };
 
@@ -294,7 +330,16 @@ stopped     : ${runtimeState.stopped}`;
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
-        this.setTooltip("Runs when a thumb key event is received");
+      }
+    };
+
+    Blockly.Blocks['event_when_thumb_key_pressed'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when any thumb key pressed");
+        this.appendStatementInput("DO").appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
       }
     };
 
@@ -306,7 +351,16 @@ stopped     : ${runtimeState.stopped}`;
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
-        this.setTooltip("Runs when cursor routing is pressed at a cell");
+      }
+    };
+
+    Blockly.Blocks['event_when_cursor_position_changed'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when cursor position changed");
+        this.appendStatementInput("DO").appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
       }
     };
 
@@ -325,16 +379,12 @@ stopped     : ${runtimeState.stopped}`;
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
         this.setHat(true);
-        this.setTooltip("Runs when an editor key event is received");
       }
     };
 
-    // Action blocks
     Blockly.Blocks['bb_set_text'] = {
       init: function() {
-        this.appendValueInput("TEXT")
-          .setCheck("String")
-          .appendField("set text");
+        this.appendValueInput("TEXT").appendField("set text");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour("#4C97FF");
@@ -343,9 +393,7 @@ stopped     : ${runtimeState.stopped}`;
 
     Blockly.Blocks['bb_move_caret'] = {
       init: function() {
-        this.appendValueInput("DELTA")
-          .setCheck("Number")
-          .appendField("move caret by");
+        this.appendValueInput("DELTA").appendField("move caret by");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour("#4C97FF");
@@ -354,9 +402,7 @@ stopped     : ${runtimeState.stopped}`;
 
     Blockly.Blocks['bb_wait'] = {
       init: function() {
-        this.appendValueInput("SECONDS")
-          .setCheck("Number")
-          .appendField("wait seconds");
+        this.appendValueInput("SECONDS").appendField("wait seconds");
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour("#4C97FF");
@@ -391,6 +437,46 @@ stopped     : ${runtimeState.stopped}`;
       }
     };
 
+    Blockly.Blocks['state_current_cursor_position'] = {
+      init: function() {
+        this.appendDummyInput().appendField("current cursor position");
+        this.setOutput(true, null);
+        this.setColour("#9966FF");
+      }
+    };
+
+    Blockly.Blocks['state_last_thumb_key'] = {
+      init: function() {
+        this.appendDummyInput().appendField("last thumb key");
+        this.setOutput(true, null);
+        this.setColour("#9966FF");
+      }
+    };
+
+    Blockly.Blocks['state_last_chord'] = {
+      init: function() {
+        this.appendDummyInput().appendField("last chord");
+        this.setOutput(true, null);
+        this.setColour("#9966FF");
+      }
+    };
+
+    Blockly.Blocks['state_last_editor_key'] = {
+      init: function() {
+        this.appendDummyInput().appendField("last editor key");
+        this.setOutput(true, null);
+        this.setColour("#9966FF");
+      }
+    };
+
+    Blockly.Blocks['state_last_cursor_cell'] = {
+      init: function() {
+        this.appendDummyInput().appendField("last cursor cell");
+        this.setOutput(true, null);
+        this.setColour("#9966FF");
+      }
+    };
+
     const workspace = Blockly.inject('blocklyDiv', {
       toolbox: document.getElementById('toolbox'),
       trashcan: true,
@@ -417,6 +503,24 @@ stopped     : ${runtimeState.stopped}`;
       }
     });
 
+    function initVariableValues() {
+      for (const v of workspace.getAllVariables()) {
+        if (!(v.getId() in variableValues)) {
+          variableValues[v.getId()] = 0;
+        }
+      }
+      renderState();
+    }
+
+    if (workspace.getAllVariables().length === 0) {
+      workspace.createVariable('score');
+    }
+    initVariableValues();
+
+    workspace.addChangeListener(() => {
+      initVariableValues();
+    });
+
     const startXml = `
       <xml xmlns="https://developers.google.com/blockly/xml">
         <block type="event_when_started" x="40" y="40">
@@ -428,144 +532,225 @@ stopped     : ${runtimeState.stopped}`;
                 </shadow>
               </value>
               <next>
-                <block type="bb_set_editor_mode">
-                  <field name="MODE">on</field>
+                <block type="variables_set">
+                  <field name="VAR">score</field>
+                  <value name="VALUE">
+                    <shadow type="math_number">
+                      <field name="NUM">0</field>
+                    </shadow>
+                  </value>
+                  <next>
+                    <block type="bb_set_editor_mode">
+                      <field name="MODE">on</field>
+                    </block>
+                  </next>
                 </block>
               </next>
             </block>
           </statement>
         </block>
 
-        <block type="event_when_chord" x="40" y="220">
-          <field name="DOTS">1</field>
+        <block type="event_when_thumb_key_pressed" x="40" y="250">
           <statement name="DO">
-            <block type="bb_set_text">
-              <value name="TEXT">
-                <shadow type="text">
-                  <field name="TEXT">Good job</field>
-                </shadow>
+            <block type="controls_if">
+              <value name="IF0">
+                <block type="logic_compare">
+                  <field name="OP">EQ</field>
+                  <value name="A">
+                    <block type="state_last_thumb_key"></block>
+                  </value>
+                  <value name="B">
+                    <block type="text">
+                      <field name="TEXT">left</field>
+                    </block>
+                  </value>
+                </block>
               </value>
-              <next>
+              <statement name="DO0">
                 <block type="bb_move_caret">
                   <value name="DELTA">
                     <shadow type="math_number">
-                      <field name="NUM">1</field>
+                      <field name="NUM">-1</field>
                     </shadow>
+                  </value>
+                </block>
+              </statement>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_cursor_position_changed" x="420" y="40">
+          <statement name="DO">
+            <block type="controls_if">
+              <value name="IF0">
+                <block type="logic_compare">
+                  <field name="OP">LT</field>
+                  <value name="A">
+                    <block type="state_current_cursor_position"></block>
+                  </value>
+                  <value name="B">
+                    <block type="math_number">
+                      <field name="NUM">3</field>
+                    </block>
+                  </value>
+                </block>
+              </value>
+              <statement name="DO0">
+                <block type="bb_set_text">
+                  <value name="TEXT">
+                    <block type="text_join" items="2">
+                      <value name="ADD0">
+                        <block type="text">
+                          <field name="TEXT">Cursor is now at </field>
+                        </block>
+                      </value>
+                      <value name="ADD1">
+                        <block type="state_current_cursor_position"></block>
+                      </value>
+                    </block>
+                  </value>
+                </block>
+              </statement>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_chord" x="420" y="290">
+          <field name="DOTS">1</field>
+          <statement name="DO">
+            <block type="variables_change">
+              <field name="VAR">score</field>
+              <value name="VALUE">
+                <shadow type="math_number">
+                  <field name="NUM">1</field>
+                </shadow>
+              </value>
+              <next>
+                <block type="bb_set_text">
+                  <value name="TEXT">
+                    <block type="text_join" items="2">
+                      <value name="ADD0">
+                        <block type="text">
+                          <field name="TEXT">Score increased. Cursor: </field>
+                        </block>
+                      </value>
+                      <value name="ADD1">
+                        <block type="state_current_cursor_position"></block>
+                      </value>
+                    </block>
                   </value>
                 </block>
               </next>
             </block>
           </statement>
         </block>
-
-        <block type="event_when_thumb_key" x="40" y="390">
-          <field name="KEY">left</field>
-          <statement name="DO">
-            <block type="bb_move_caret">
-              <value name="DELTA">
-                <shadow type="math_number">
-                  <field name="NUM">-1</field>
-                </shadow>
-              </value>
-            </block>
-          </statement>
-        </block>
-
-        <block type="event_when_thumb_key" x="40" y="560">
-          <field name="KEY">right</field>
-          <statement name="DO">
-            <block type="bb_move_caret">
-              <value name="DELTA">
-                <shadow type="math_number">
-                  <field name="NUM">1</field>
-                </shadow>
-              </value>
-            </block>
-          </statement>
-        </block>
-
-        <block type="event_when_cursor_routing" x="430" y="40">
-          <field name="CELL">5</field>
-          <statement name="DO">
-            <block type="bb_set_text">
-              <value name="TEXT">
-                <shadow type="text">
-                  <field name="TEXT">Cursor at cell 5</field>
-                </shadow>
-              </value>
-            </block>
-          </statement>
-        </block>
-
-        <block type="event_when_cursor_routing" x="430" y="220">
-          <field name="CELL">10</field>
-          <statement name="DO">
-            <block type="bb_set_text">
-              <value name="TEXT">
-                <shadow type="text">
-                  <field name="TEXT">Cursor at cell 10</field>
-                </shadow>
-              </value>
-              <next>
-                <block type="bb_set_insert_mode">
-                  <field name="MODE">on</field>
-                </block>
-              </next>
-            </block>
-          </statement>
-        </block>
-
-        <block type="event_when_editor_key" x="430" y="420">
-          <field name="KEY">home</field>
-          <statement name="DO">
-            <block type="bb_set_text">
-              <value name="TEXT">
-                <shadow type="text">
-                  <field name="TEXT">Home pressed</field>
-                </shadow>
-              </value>
-            </block>
-          </statement>
-        </block>
-
-        <block type="event_when_editor_key" x="430" y="590">
-          <field name="KEY">end</field>
-          <statement name="DO">
-            <block type="bb_set_text">
-              <value name="TEXT">
-                <shadow type="text">
-                  <field name="TEXT">End pressed</field>
-                </shadow>
-              </value>
-            </block>
-          </statement>
-        </block>
       </xml>
     `;
-
     Blockly.Xml.domToWorkspace(
       Blockly.utils.xml.textToDom(startXml),
       workspace
     );
+    initVariableValues();
 
-    function getValueFromInput(block, inputName) {
-      const target = block.getInputTargetBlock(inputName);
-      if (!target) return null;
-
-      if (target.type === 'text') {
-        return target.getFieldValue('TEXT');
-      }
-
-      if (target.type === 'math_number') {
-        return Number(target.getFieldValue('NUM'));
-      }
-
-      return null;
+    function getVariableIdFromBlock(block) {
+      const field = block.getField('VAR');
+      const model = field?.getVariable();
+      return model ? model.getId() : null;
     }
 
     function highlightTemporarily(blockId) {
       workspace.highlightBlock(blockId);
-      setTimeout(() => workspace.highlightBlock(null), 250);
+      setTimeout(() => workspace.highlightBlock(null), 180);
+    }
+
+    function coerceNumber(value) {
+      const n = Number(value);
+      return Number.isNaN(n) ? 0 : n;
+    }
+
+    function evalValueBlock(block) {
+      if (!block) return null;
+
+      switch (block.type) {
+        case 'text':
+          return block.getFieldValue('TEXT');
+
+        case 'math_number':
+          return Number(block.getFieldValue('NUM'));
+
+        case 'logic_boolean':
+          return block.getFieldValue('BOOL') === 'TRUE';
+
+        case 'state_current_cursor_position':
+          return runtimeState.caret;
+
+        case 'state_last_thumb_key':
+          return runtimeState.lastThumbKey;
+
+        case 'state_last_chord':
+          return runtimeState.lastChord;
+
+        case 'state_last_editor_key':
+          return runtimeState.lastEditorKey;
+
+        case 'state_last_cursor_cell':
+          return runtimeState.lastCursorCell;
+
+        case 'variables_get': {
+          const variableId = getVariableIdFromBlock(block);
+          return variableId ? (variableValues[variableId] ?? 0) : 0;
+        }
+
+        case 'logic_compare': {
+          const a = evalValueBlock(block.getInputTargetBlock('A'));
+          const b = evalValueBlock(block.getInputTargetBlock('B'));
+          const op = block.getFieldValue('OP');
+          switch (op) {
+            case 'EQ': return a == b;
+            case 'NEQ': return a != b;
+            case 'LT': return a < b;
+            case 'LTE': return a <= b;
+            case 'GT': return a > b;
+            case 'GTE': return a >= b;
+            default: return false;
+          }
+        }
+
+        case 'logic_operation': {
+          const a = Boolean(evalValueBlock(block.getInputTargetBlock('A')));
+          const b = Boolean(evalValueBlock(block.getInputTargetBlock('B')));
+          return block.getFieldValue('OP') === 'AND' ? (a && b) : (a || b);
+        }
+
+        case 'logic_negate':
+          return !Boolean(evalValueBlock(block.getInputTargetBlock('BOOL')));
+
+        case 'math_arithmetic': {
+          const a = coerceNumber(evalValueBlock(block.getInputTargetBlock('A')));
+          const b = coerceNumber(evalValueBlock(block.getInputTargetBlock('B')));
+          switch (block.getFieldValue('OP')) {
+            case 'ADD': return a + b;
+            case 'MINUS': return a - b;
+            case 'MULTIPLY': return a * b;
+            case 'DIVIDE': return b === 0 ? 0 : a / b;
+            case 'POWER': return Math.pow(a, b);
+            default: return 0;
+          }
+        }
+
+        case 'text_join': {
+          const itemCount = block.itemCount_ || 0;
+          let result = '';
+          for (let i = 0; i < itemCount; i++) {
+            const child = block.getInputTargetBlock('ADD' + i);
+            result += String(evalValueBlock(child) ?? '');
+          }
+          return result;
+        }
+
+        default:
+          return null;
+      }
     }
 
     async function executeStatementChain(startBlock) {
@@ -576,23 +761,24 @@ stopped     : ${runtimeState.stopped}`;
 
         switch (current.type) {
           case 'bb_set_text': {
-            const text = getValueFromInput(current, 'TEXT') ?? '';
-            runtimeState.text = String(text);
+            const value = evalValueBlock(current.getInputTargetBlock('TEXT'));
+            runtimeState.text = String(value ?? '');
             addLog(`Action: set text -> "${runtimeState.text}"`);
             renderState();
             break;
           }
 
           case 'bb_move_caret': {
-            const delta = Number(getValueFromInput(current, 'DELTA') ?? 0);
+            const delta = coerceNumber(evalValueBlock(current.getInputTargetBlock('DELTA')));
             runtimeState.caret += delta;
             addLog(`Action: move caret by ${delta} -> ${runtimeState.caret}`);
             renderState();
+            await dispatchEvent({ type: 'cursorPositionChanged', position: runtimeState.caret });
             break;
           }
 
           case 'bb_wait': {
-            const seconds = Number(getValueFromInput(current, 'SECONDS') ?? 0);
+            const seconds = coerceNumber(evalValueBlock(current.getInputTargetBlock('SECONDS')));
             addLog(`Action: wait ${seconds} second(s)`);
             await new Promise(resolve => setTimeout(resolve, seconds * 1000));
             break;
@@ -609,6 +795,55 @@ stopped     : ${runtimeState.stopped}`;
             runtimeState.insertMode = current.getFieldValue('MODE');
             addLog(`Action: set insert mode -> ${runtimeState.insertMode}`);
             renderState();
+            break;
+          }
+
+          case 'variables_set': {
+            const variableId = getVariableIdFromBlock(current);
+            const value = evalValueBlock(current.getInputTargetBlock('VALUE'));
+            if (variableId) {
+              variableValues[variableId] = value;
+              addLog(`Variable set -> ${current.getField('VAR').getText()} = ${value}`);
+              renderState();
+            }
+            break;
+          }
+
+          case 'variables_change': {
+            const variableId = getVariableIdFromBlock(current);
+            const delta = coerceNumber(evalValueBlock(current.getInputTargetBlock('VALUE')));
+            if (variableId) {
+              variableValues[variableId] = coerceNumber(variableValues[variableId] ?? 0) + delta;
+              addLog(`Variable change -> ${current.getField('VAR').getText()} = ${variableValues[variableId]}`);
+              renderState();
+            }
+            break;
+          }
+
+          case 'controls_if': {
+            let handled = false;
+            for (let i = 0; current.getInput('IF' + i); i++) {
+              const cond = Boolean(evalValueBlock(current.getInputTargetBlock('IF' + i)));
+              if (cond) {
+                const branch = current.getInputTargetBlock('DO' + i);
+                if (branch) await executeStatementChain(branch);
+                handled = true;
+                break;
+              }
+            }
+            if (!handled && current.getInput('ELSE')) {
+              const elseBranch = current.getInputTargetBlock('ELSE');
+              if (elseBranch) await executeStatementChain(elseBranch);
+            }
+            break;
+          }
+
+          case 'controls_repeat_ext': {
+            const count = coerceNumber(evalValueBlock(current.getInputTargetBlock('TIMES')));
+            const body = current.getInputTargetBlock('DO');
+            for (let i = 0; i < count && !runtimeState.stopped; i++) {
+              if (body) await executeStatementChain(body);
+            }
             break;
           }
 
@@ -634,9 +869,15 @@ stopped     : ${runtimeState.stopped}`;
           return event.type === 'thumbKey' &&
             block.getFieldValue('KEY') === event.key;
 
+        case 'event_when_thumb_key_pressed':
+          return event.type === 'thumbKey';
+
         case 'event_when_cursor_routing':
           return event.type === 'cursorRouting' &&
             Number(block.getFieldValue('CELL')) === Number(event.cell);
+
+        case 'event_when_cursor_position_changed':
+          return event.type === 'cursorPositionChanged';
 
         case 'event_when_editor_key':
           return event.type === 'editorKey' &&
@@ -648,6 +889,13 @@ stopped     : ${runtimeState.stopped}`;
     }
 
     async function dispatchEvent(event) {
+      if (event.type === 'thumbKey') runtimeState.lastThumbKey = event.key ?? '';
+      if (event.type === 'chord') runtimeState.lastChord = String(event.dots ?? '');
+      if (event.type === 'editorKey') runtimeState.lastEditorKey = event.key ?? '';
+      if (event.type === 'cursorRouting') runtimeState.lastCursorCell = Number(event.cell ?? -1);
+      if (event.type === 'cursorPositionChanged') runtimeState.caret = Number(event.position ?? runtimeState.caret);
+
+      renderState();
       addLog(`Event: ${JSON.stringify(event)}`);
 
       const topBlocks = workspace.getTopBlocks(true);
@@ -662,7 +910,6 @@ stopped     : ${runtimeState.stopped}`;
       }
     }
 
-    // Save / Load / New
     function saveWorkspaceToFile() {
       const xmlDom = Blockly.Xml.workspaceToDom(workspace);
       const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
@@ -671,7 +918,7 @@ stopped     : ${runtimeState.stopped}`;
 
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
-      const filename = `braille-activity-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xml`;
+      const filename = `braille-activity-${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xml`;
 
       const a = document.createElement('a');
       a.href = url;
@@ -689,6 +936,7 @@ stopped     : ${runtimeState.stopped}`;
         const xmlDom = Blockly.utils.xml.textToDom(xmlText);
         workspace.clear();
         Blockly.Xml.domToWorkspace(xmlDom, workspace);
+        initVariableValues();
         addLog('Workspace loaded from local file');
       } catch (err) {
         addLog(`Load failed: ${err.message}`);
@@ -699,7 +947,6 @@ stopped     : ${runtimeState.stopped}`;
     function handleFileLoad(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = e => loadWorkspaceFromText(e.target.result);
       reader.onerror = () => {
@@ -707,14 +954,13 @@ stopped     : ${runtimeState.stopped}`;
         alert('Could not read the selected file.');
       };
       reader.readAsText(file);
-
       event.target.value = '';
     }
 
     function newWorkspace() {
-      const ok = confirm('Clear the current workspace?');
-      if (!ok) return;
+      if (!confirm('Clear the current workspace?')) return;
       workspace.clear();
+      initVariableValues();
       addLog('Workspace cleared');
     }
 
@@ -725,7 +971,6 @@ stopped     : ${runtimeState.stopped}`;
     document.getElementById('fileInput').addEventListener('change', handleFileLoad);
     document.getElementById('newBtn').addEventListener('click', newWorkspace);
 
-    // Runtime buttons
     document.getElementById('runBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
       renderState();
@@ -740,45 +985,42 @@ stopped     : ${runtimeState.stopped}`;
 
     document.getElementById('simulateChordBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'chord', dots: '1' });
     });
 
     document.getElementById('simulateThumbBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'thumbKey', key: 'left' });
     });
 
     document.getElementById('simulateThumbRightBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'thumbKey', key: 'right' });
     });
 
     document.getElementById('simulateCursorBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'cursorRouting', cell: 5 });
     });
 
     document.getElementById('simulateCursor10Btn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'cursorRouting', cell: 10 });
     });
 
     document.getElementById('simulateEditorBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'editorKey', key: 'home' });
     });
 
     document.getElementById('simulateEditorEndBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      renderState();
       await dispatchEvent({ type: 'editorKey', key: 'end' });
     });
+
+    renderState();
   </script>
 </body>
 </html>
+
+The earlier version had a messy duplicate variables_get part; this one is cleaned up.
