@@ -38,7 +38,10 @@
       margin: 0;
       font-family: var(--sans);
       color: var(--fg);
-      background: var(--bg);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(34, 197, 94, 0.12), transparent 60%),
+        radial-gradient(1000px 550px at 100% 0%, rgba(59, 130, 246, 0.12), transparent 56%),
+        var(--bg);
     }
 
     .wrap {
@@ -78,28 +81,6 @@
       font-size: 13px;
     }
 
-    .header-conn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .footer-status {
-      display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      width: 100%;
-      min-height: 20px;
-      text-align: right;
-    }
-
-    .footer-status .header-conn {
-      margin-top: 0;
-    }
-
     .btn {
       appearance: none;
       border: 1px solid var(--border);
@@ -114,10 +95,6 @@
 
     .btn.ghost { background: transparent; }
     .btn.send { border-color: rgba(22, 163, 74, 0.5); }
-    .btn.toggle-on {
-      background: linear-gradient(180deg, rgba(22, 163, 74, 0.16), rgba(22, 163, 74, 0.1));
-      border-color: rgba(22, 163, 74, 0.55);
-    }
 
     .row {
       display: flex;
@@ -236,7 +213,6 @@
         <h1>Editor</h1>
       </div>
       <div class="row">
-        <button type="button" class="btn ghost" id="toggleStatusSectionBtn" aria-pressed="false">Status</button>
         <button type="button" class="btn" id="themeBtn">Theme</button>
         <a class="btn ghost" href="../index.html">Back</a>
       </div>
@@ -250,12 +226,16 @@
       <div id="modeTogglesComponent"></div>
     </section>
 
-    <section class="card" id="statusSection" aria-label="Connection controls" hidden>
+    <section class="card" aria-label="Connection controls">
       <div class="row">
         <strong>Endpoint:</strong>
         <code>ws://localhost:5000/ws</code>
       </div>
       <div class="row">
+        <span class="status">
+          <span id="wsDot" class="dot" aria-hidden="true"></span>
+          <span id="wsLabel">disconnected</span>
+        </span>
         <button type="button" class="btn" id="connectBtn">Connect</button>
         <button type="button" class="btn ghost" id="disconnectBtn">Disconnect</button>
         <button type="button" class="btn ghost" id="toggleLogBtn">Show Log</button>
@@ -280,13 +260,6 @@
       <h2>Server -> Client possibilities</h2>
       <div class="section-grid" id="serverEvents"></div>
     </section>
-
-    <footer class="footer-status" aria-label="Connection status footer">
-      <span class="header-conn" id="headerConn" hidden>
-        <span id="headerConnDot" class="dot ok" aria-hidden="true"></span>
-        <span id="headerConnLabel">connected</span>
-      </span>
-    </footer>
   </main>
 
   <script src="../components/braille-monitor/braillemonitor.js"></script>
@@ -299,18 +272,14 @@
     const AUTO_RECONNECT_MS = 2000;
     const clientSection = document.getElementById("clientSection");
     const serverSection = document.getElementById("serverSection");
-    const statusSection = document.getElementById("statusSection");
     const serverEventsEl = document.getElementById("serverEvents");
     const clientCommandsEl = document.getElementById("clientCommands");
-    const toggleStatusSectionBtn = document.getElementById("toggleStatusSectionBtn");
     const toggleClientSectionBtn = document.getElementById("toggleClientSectionBtn");
     const toggleServerSectionBtn = document.getElementById("toggleServerSectionBtn");
     const wsLog = document.getElementById("wsLog");
     const latestEvent = document.getElementById("latestEvent");
     const wsDot = document.getElementById("wsDot");
     const wsLabel = document.getElementById("wsLabel");
-    const headerConn = document.getElementById("headerConn");
-    const headerConnLabel = document.getElementById("headerConnLabel");
     const toggleLogBtn = document.getElementById("toggleLogBtn");
     const bridgeAlert = document.getElementById("bridgeAlert");
     const bridgeAlertText = document.getElementById("bridgeAlertText");
@@ -372,16 +341,6 @@
       if (toggleLogBtn) toggleLogBtn.textContent = logVisible ? "Hide Log" : "Show Log";
     }
 
-    function setStatusCardVisible(visible) {
-      const isVisible = !!visible;
-      if (statusSection) statusSection.hidden = !isVisible;
-      if (toggleStatusSectionBtn) {
-        toggleStatusSectionBtn.textContent = "Status";
-        toggleStatusSectionBtn.setAttribute("aria-pressed", isVisible ? "true" : "false");
-        toggleStatusSectionBtn.classList.toggle("toggle-on", isVisible);
-      }
-    }
-
     function setClientCardsVisible(visible) {
       const isVisible = !!visible;
       if (clientSection) clientSection.hidden = !isVisible;
@@ -395,10 +354,8 @@
     }
 
     function setStatus(text, connected) {
-      if (wsLabel) wsLabel.textContent = text;
-      if (wsDot) wsDot.classList.toggle("ok", !!connected);
-      if (headerConn) headerConn.hidden = !connected;
-      if (headerConnLabel) headerConnLabel.textContent = text;
+      wsLabel.textContent = text;
+      wsDot.classList.toggle("ok", !!connected);
       if (bridgeAlert) bridgeAlert.hidden = !!connected;
       if (bridgeAlertText && !connected) {
         bridgeAlertText.textContent = BRIDGE_OFFLINE_MESSAGE;
@@ -436,28 +393,6 @@
       if (modeToggles && typeof modeToggles.setEditorMode === "function") {
         modeToggles.setEditorMode(editorModeEnabled);
       }
-    }
-
-    function readEditorModeEnabledFromMessage(msg) {
-      if (!msg || eventTypeOf(msg) !== "brailleLine") return null;
-      const status = msg.status;
-      if (!status || typeof status !== "object" || !("editorMode" in status)) return null;
-      const mode = status.editorMode;
-      if (typeof mode === "string") {
-        const normalized = mode.trim().toLowerCase();
-        if (normalized === "off") return false;
-        if (normalized === "on") return true;
-      }
-      if (typeof mode === "boolean") return mode;
-      return !!mode;
-    }
-
-    function applyEditorModeFromMessage(msg) {
-      const enabled = readEditorModeEnabledFromMessage(msg);
-      if (enabled == null) return;
-      if (editorModeEnabled === enabled) return;
-      setEditorMode(enabled);
-      logLine("WS STATE editorMode=" + (enabled ? "on" : "off"));
     }
 
     function setCaretBlink(enabled) {
@@ -877,7 +812,6 @@
         }
         try {
           const msg = JSON.parse(text);
-          applyEditorModeFromMessage(msg);
           applyBrailleLine(msg);
           const summary = summarize(msg);
           latestEvent.textContent = "Latest: " + summary;
@@ -921,17 +855,6 @@
       return ev.key === "Delete" || ev.code === "Delete" || ev.key === "Del" || ev.keyCode === 46 || ev.which === 46;
     }
 
-    function isBlockedWhenEditorOffKey(ev) {
-      const key = ev && ev.key;
-      if (typeof key === "string" && /^[a-z0-9]$/i.test(key)) return true;
-      if (key === "Insert" || key === "Backspace") return true;
-      return isDeleteKeyEvent(ev);
-    }
-
-    function shouldBlockHardwareEditorInput(ev) {
-      return !editorModeEnabled && isBlockedWhenEditorOffKey(ev);
-    }
-
     function handleDeleteHotkey(ev) {
       if (ev.altKey || ev.ctrlKey || ev.metaKey) return false;
       if (!isDeleteKeyEvent(ev)) return false;
@@ -943,11 +866,6 @@
     function onHardwareEditorKeyDown(ev) {
       if (ev.repeat) return;
       deleteKeyDownSent = false;
-      if (shouldBlockHardwareEditorInput(ev)) {
-        ev.preventDefault();
-        logLine("hardware key blocked while editorMode=off: " + (ev.key || ev.code || "unknown"));
-        return;
-      }
       if (handleDeleteHotkey(ev)) {
         deleteKeyDownSent = true;
         return;
@@ -1009,10 +927,6 @@
 
     function onHardwareEditorKeyUp(ev) {
       if (deleteKeyDownSent) return;
-      if (shouldBlockHardwareEditorInput(ev)) {
-        ev.preventDefault();
-        return;
-      }
       handleDeleteHotkey(ev);
     }
 
@@ -1027,14 +941,10 @@
     if (toggleServerSectionBtn) {
       toggleServerSectionBtn.addEventListener("click", () => setServerCardsVisible(serverSection && serverSection.hidden));
     }
-    if (toggleStatusSectionBtn) {
-      toggleStatusSectionBtn.addEventListener("click", () => setStatusCardVisible(statusSection && statusSection.hidden));
-    }
     document.getElementById("clearLogBtn").addEventListener("click", () => { wsLog.textContent = ""; });
     document.addEventListener("keydown", onHardwareEditorKeyDown, true);
     document.addEventListener("keyup", onHardwareEditorKeyUp, true);
 
-    setStatusCardVisible(false);
     setLogVisible(false);
     setClientCardsVisible(false);
     setServerCardsVisible(false);
