@@ -4,7 +4,12 @@
   <meta charset="utf-8">
   <title>Braille Activity Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+
+  <!-- Blockly core + built-in blocks + messages -->
+  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/en.js"></script>
+
   <style>
     html, body {
       height: 100%;
@@ -172,8 +177,8 @@
       </div>
 
       <div class="panel">
-        <h3>Tip</h3>
-        <p class="small">Open the Variables category and create your own variables like score, tries, or level.</p>
+        <h3>How Start works</h3>
+        <p class="small">Start runs only stacks under a top-level <strong>when started</strong> block. Loose blocks do not run by themselves.</p>
       </div>
     </div>
   </div>
@@ -262,6 +267,7 @@
 
     const variableValues = {};
     let workspace = null;
+    let runGeneration = 0;
 
     function renderState() {
       const varLines = workspace
@@ -283,6 +289,7 @@ variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
     }
 
+    // Custom event blocks
     Blockly.Blocks['event_when_started'] = {
       init: function() {
         this.appendDummyInput().appendField("when started");
@@ -304,7 +311,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when a braille chord is received");
       }
     };
 
@@ -323,7 +329,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when a specific thumb key is received");
       }
     };
 
@@ -335,7 +340,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when any thumb key is pressed");
       }
     };
 
@@ -348,7 +352,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when cursor routing is pressed at a cell");
       }
     };
 
@@ -360,7 +363,6 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when the cursor position changes");
       }
     };
 
@@ -380,10 +382,10 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         this.setColour("#FFBF00");
         this.setPreviousStatement(false);
         this.setNextStatement(false);
-        this.setTooltip("Runs when an editor key event is received");
       }
     };
 
+    // Action blocks
     Blockly.Blocks['bb_set_text'] = {
       init: function() {
         this.appendValueInput("TEXT").appendField("set text");
@@ -439,6 +441,7 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
+    // Reporter blocks
     Blockly.Blocks['state_current_cursor_position'] = {
       init: function() {
         this.appendDummyInput().appendField("current cursor position");
@@ -505,6 +508,13 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     });
 
+    function ensureDefaultVariable() {
+      const names = workspace.getAllVariables().map(v => v.name);
+      if (!names.includes('score')) {
+        workspace.createVariable('score');
+      }
+    }
+
     function initVariableValues() {
       for (const v of workspace.getAllVariables()) {
         if (!(v.getId() in variableValues)) {
@@ -514,14 +524,26 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       renderState();
     }
 
-    if (workspace.getAllVariables().length === 0) {
-      workspace.createVariable('score');
-    }
+    ensureDefaultVariable();
     initVariableValues();
 
     workspace.addChangeListener(() => {
       initVariableValues();
     });
+
+    function getVariableModelByName(name) {
+      return workspace.getAllVariables().find(v => v.name === name) || null;
+    }
+
+    function patchVariableFieldNamesFromXml(dom) {
+      const fields = dom.querySelectorAll('field[name="VAR"]');
+      fields.forEach(field => {
+        const model = getVariableModelByName(field.textContent.trim());
+        if (model) {
+          field.setAttribute('id', model.getId());
+        }
+      });
+    }
 
     const startXml = `
       <xml xmlns="https://developers.google.com/blockly/xml">
@@ -648,11 +670,18 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
         </block>
       </xml>
     `;
-    Blockly.Xml.domToWorkspace(
-      Blockly.utils.xml.textToDom(startXml),
-      workspace
-    );
-    initVariableValues();
+
+    function loadDefaultWorkspace() {
+      workspace.clear();
+      ensureDefaultVariable();
+      const xmlDom = Blockly.utils.xml.textToDom(startXml);
+      patchVariableFieldNamesFromXml(xmlDom);
+      Blockly.Xml.domToWorkspace(xmlDom, workspace);
+      initVariableValues();
+      addLog('Default workspace loaded');
+    }
+
+    loadDefaultWorkspace();
 
     function getVariableIdFromBlock(block) {
       const field = block.getField('VAR');
@@ -755,10 +784,10 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     }
 
-    async function executeStatementChain(startBlock) {
+    async function executeStatementChain(startBlock, generation) {
       let current = startBlock;
 
-      while (current && !runtimeState.stopped) {
+      while (current && !runtimeState.stopped && generation === runGeneration) {
         highlightTemporarily(current.id);
 
         switch (current.type) {
@@ -775,7 +804,7 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
             runtimeState.caret += delta;
             addLog(`Action: move caret by ${delta} -> ${runtimeState.caret}`);
             renderState();
-            await dispatchEvent({ type: 'cursorPositionChanged', position: runtimeState.caret });
+            await dispatchEvent({ type: 'cursorPositionChanged', position: runtimeState.caret }, generation);
             break;
           }
 
@@ -828,14 +857,14 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
               const cond = Boolean(evalValueBlock(current.getInputTargetBlock('IF' + i)));
               if (cond) {
                 const branch = current.getInputTargetBlock('DO' + i);
-                if (branch) await executeStatementChain(branch);
+                if (branch) await executeStatementChain(branch, generation);
                 handled = true;
                 break;
               }
             }
             if (!handled && current.getInput('ELSE')) {
               const elseBranch = current.getInputTargetBlock('ELSE');
-              if (elseBranch) await executeStatementChain(elseBranch);
+              if (elseBranch) await executeStatementChain(elseBranch, generation);
             }
             break;
           }
@@ -843,8 +872,8 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           case 'controls_repeat_ext': {
             const count = coerceNumber(evalValueBlock(current.getInputTargetBlock('TIMES')));
             const body = current.getInputTargetBlock('DO');
-            for (let i = 0; i < count && !runtimeState.stopped; i++) {
-              if (body) await executeStatementChain(body);
+            for (let i = 0; i < count && !runtimeState.stopped && generation === runGeneration; i++) {
+              if (body) await executeStatementChain(body, generation);
             }
             break;
           }
@@ -890,7 +919,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     }
 
-    async function dispatchEvent(event) {
+    async function dispatchEvent(event, generation = runGeneration) {
+      if (generation !== runGeneration || runtimeState.stopped) return;
+
       if (event.type === 'thumbKey') runtimeState.lastThumbKey = event.key ?? '';
       if (event.type === 'chord') runtimeState.lastChord = String(event.dots ?? '');
       if (event.type === 'editorKey') runtimeState.lastEditorKey = event.key ?? '';
@@ -902,11 +933,13 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
 
       const topBlocks = workspace.getTopBlocks(true);
       for (const block of topBlocks) {
+        if (generation !== runGeneration || runtimeState.stopped) return;
+
         if (eventMatches(block, event)) {
           addLog(`Matched block: ${block.type}`);
           const firstStatement = block.getInputTargetBlock('DO');
           if (firstStatement) {
-            await executeStatementChain(firstStatement);
+            await executeStatementChain(firstStatement, generation);
           }
         }
       }
@@ -937,6 +970,8 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       try {
         const xmlDom = Blockly.utils.xml.textToDom(xmlText);
         workspace.clear();
+        ensureDefaultVariable();
+        patchVariableFieldNamesFromXml(xmlDom);
         Blockly.Xml.domToWorkspace(xmlDom, workspace);
         initVariableValues();
         addLog('Workspace loaded from local file');
@@ -961,7 +996,10 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
 
     function newWorkspace() {
       if (!confirm('Clear the current workspace?')) return;
+      runtimeState.stopped = true;
+      runGeneration++;
       workspace.clear();
+      ensureDefaultVariable();
       initVariableValues();
       addLog('Workspace cleared');
     }
@@ -975,49 +1013,67 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
 
     document.getElementById('runBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
+      runGeneration++;
+      const generation = runGeneration;
+      addLog('Run clicked');
       renderState();
-      await dispatchEvent({ type: 'started' });
+      await dispatchEvent({ type: 'started' }, generation);
     });
 
     document.getElementById('stopBtn').addEventListener('click', () => {
       runtimeState.stopped = true;
+      runGeneration++;
       addLog('Runtime stopped');
       renderState();
     });
 
     document.getElementById('simulateChordBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'chord', dots: '1' });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'chord', dots: '1' }, generation);
     });
 
     document.getElementById('simulateThumbBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'thumbKey', key: 'left' });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'thumbKey', key: 'left' }, generation);
     });
 
     document.getElementById('simulateThumbRightBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'thumbKey', key: 'right' });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'thumbKey', key: 'right' }, generation);
     });
 
     document.getElementById('simulateCursorBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'cursorRouting', cell: 5 });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'cursorRouting', cell: 5 }, generation);
     });
 
     document.getElementById('simulateCursor10Btn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'cursorRouting', cell: 10 });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'cursorRouting', cell: 10 }, generation);
     });
 
     document.getElementById('simulateEditorBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'editorKey', key: 'home' });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'editorKey', key: 'home' }, generation);
     });
 
     document.getElementById('simulateEditorEndBtn').addEventListener('click', async () => {
       runtimeState.stopped = false;
-      await dispatchEvent({ type: 'editorKey', key: 'end' });
+      runGeneration++;
+      const generation = runGeneration;
+      await dispatchEvent({ type: 'editorKey', key: 'end' }, generation);
     });
 
     renderState();
