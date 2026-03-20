@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Braille Activity Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      background: #f6f7fb;
+    }
+
+    #header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px;
+      box-sizing: border-box;
+      border-bottom: 1px solid #d9dce3;
+      background: white;
+      flex-wrap: wrap;
+    }
+
+    #title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-right: 18px;
+    }
+
+    .topbtn {
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+
+    #runBtn {
+      background: #34c759;
+      color: white;
+    }
+
+    #stopBtn {
+      background: #ff3b30;
+      color: white;
+    }
+
+    .eventbtn {
+      background: #eef3ff;
+      color: #1f3b82;
+      border: 1px solid #c8d5ff;
+    }
+
+    #main {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      height: calc(100vh - 64px);
+    }
+
+    #blocklyDiv {
+      width: 100%;
+      height: 100%;
+    }
+
+    #sidebar {
+      border-left: 1px solid #d9dce3;
+      background: #ffffff;
+      padding: 12px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: auto;
+    }
+
+    .panel {
+      border: 1px solid #d9dce3;
+      border-radius: 10px;
+      padding: 10px;
+      background: #fafbff;
+    }
+
+    .panel h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+    }
+
+    .panel p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    #log {
+      width: 100%;
+      min-height: 280px;
+      resize: none;
+      box-sizing: border-box;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      border: 1px solid #cfd6e6;
+      border-radius: 8px;
+      padding: 10px;
+      background: white;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #5b6475;
+    }
+
+    #statusBox {
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      background: white;
+      border: 1px solid #cfd6e6;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .note {
+      color: #4b5563;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div id="title">Braille Activity Builder</div>
+
+    <button id="runBtn" class="topbtn">🚩 Start</button>
+    <button id="stopBtn" class="topbtn">⛔ Stop</button>
+
+    <button id="simulateChordBtn" class="topbtn eventbtn">Chord 1</button>
+    <button id="simulateThumbBtn" class="topbtn eventbtn">Thumb Left</button>
+    <button id="simulateThumbRightBtn" class="topbtn eventbtn">Thumb Right</button>
+    <button id="simulateCursorBtn" class="topbtn eventbtn">Cursor Cell 5</button>
+    <button id="simulateCursor10Btn" class="topbtn eventbtn">Cursor Cell 10</button>
+    <button id="simulateEditorBtn" class="topbtn eventbtn">Editor Home</button>
+    <button id="simulateEditorEndBtn" class="topbtn eventbtn">Editor End</button>
+  </div>
+
+  <div id="main">
+    <div id="blocklyDiv"></div>
+
+    <div id="sidebar">
+      <div class="panel">
+        <h3>What this demo is</h3>
+        <p>This version really dispatches simulated events and runs matching Blockly stacks in the browser.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Runtime state</h3>
+        <div id="statusBox"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Event log</h3>
+        <textarea id="log" readonly></textarea>
+      </div>
+
+      <div class="panel">
+        <h3>Next step later</h3>
+        <p class="small">Later you can replace this in-browser runtime with generated Python or your BrailleBridge WebSocket gateway.</p>
+      </div>
+    </div>
+  </div>
+
+  <xml id="toolbox" style="display:none">
+    <category name="Events" colour="#FFBF00">
+      <block type="event_when_started"></block>
+      <block type="event_when_chord"></block>
+      <block type="event_when_thumb_key"></block>
+      <block type="event_when_cursor_routing"></block>
+      <block type="event_when_editor_key"></block>
+    </category>
+
+    <category name="Braille" colour="#4C97FF">
+      <block type="bb_set_text"></block>
+      <block type="bb_move_caret"></block>
+      <block type="bb_wait"></block>
+      <block type="bb_set_editor_mode"></block>
+      <block type="bb_set_insert_mode"></block>
+    </category>
+
+    <category name="Logic" colour="#59C059">
+      <block type="controls_if"></block>
+      <block type="logic_compare"></block>
+      <block type="logic_boolean"></block>
+    </category>
+
+    <category name="Loops" colour="#FFAB19">
+      <block type="controls_repeat_ext">
+        <value name="TIMES">
+          <shadow type="math_number">
+            <field name="NUM">5</field>
+          </shadow>
+        </value>
+      </block>
+    </category>
+
+    <category name="Math" colour="#9966FF">
+      <block type="math_number">
+        <field name="NUM">1</field>
+      </block>
+    </category>
+
+    <category name="Text" colour="#5CB1D6">
+      <block type="text">
+        <field name="TEXT">hello braille</field>
+      </block>
+    </category>
+  </xml>
+
+  <script>
+    function addLog(message) {
+      const log = document.getElementById('log');
+      const now = new Date().toLocaleTimeString();
+      log.value += `[${now}] ${message}\n`;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // ---------------------------
+    // Runtime state
+    // ---------------------------
+    const runtimeState = {
+      text: '',
+      caret: 0,
+      editorMode: 'off',
+      insertMode: 'off',
+      stopped: false
+    };
+
+    function renderState() {
+      document.getElementById('statusBox').textContent =
+`text        : ${runtimeState.text}
+caret       : ${runtimeState.caret}
+editor mode : ${runtimeState.editorMode}
+insert mode : ${runtimeState.insertMode}
+stopped     : ${runtimeState.stopped}`;
+    }
+
+    renderState();
+
+    // ---------------------------
+    // Event blocks
+    // ---------------------------
+    Blockly.Blocks['event_when_started'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when started");
+        this.appendStatementInput("DO")
+          .appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
+        this.setTooltip("Runs when the activity starts");
+      }
+    };
+
+    Blockly.Blocks['event_when_chord'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when chord")
+          .appendField(new Blockly.FieldTextInput("1"), "DOTS")
+          .appendField("received");
+        this.appendStatementInput("DO")
+          .appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
+        this.setTooltip("Runs when a braille chord is received");
+      }
+    };
+
+    Blockly.Blocks['event_when_thumb_key'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when thumb key")
+          .appendField(new Blockly.FieldDropdown([
+            ["left", "left"],
+            ["right", "right"],
+            ["up", "up"],
+            ["down", "down"]
+          ]), "KEY")
+          .appendField("received");
+        this.appendStatementInput("DO")
+          .appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
+        this.setTooltip("Runs when a thumb key event is received");
+      }
+    };
+
+    Blockly.Blocks['event_when_cursor_routing'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when cursor routing at cell")
+          .appendField(new Blockly.FieldNumber(5, 0, 39, 1), "CELL");
+        this.appendStatementInput("DO")
+          .appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
+        this.setTooltip("Runs when cursor routing is pressed at a cell");
+      }
+    };
+
+    Blockly.Blocks['event_when_editor_key'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("when editor key")
+          .appendField(new Blockly.FieldDropdown([
+            ["home", "home"],
+            ["end", "end"],
+            ["backspace", "backspace"],
+            ["delete", "delete"],
+            ["enter", "enter"]
+          ]), "KEY")
+          .appendField("received");
+        this.appendStatementInput("DO")
+          .appendField("do");
+        this.setColour("#FFBF00");
+        this.setHat(true);
+        this.setTooltip("Runs when an editor key event is received");
+      }
+    };
+
+    // ---------------------------
+    // Action blocks
+    // ---------------------------
+    Blockly.Blocks['bb_set_text'] = {
+      init: function() {
+        this.appendValueInput("TEXT")
+          .setCheck("String")
+          .appendField("set text");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#4C97FF");
+      }
+    };
+
+    Blockly.Blocks['bb_move_caret'] = {
+      init: function() {
+        this.appendValueInput("DELTA")
+          .setCheck("Number")
+          .appendField("move caret by");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#4C97FF");
+      }
+    };
+
+    Blockly.Blocks['bb_wait'] = {
+      init: function() {
+        this.appendValueInput("SECONDS")
+          .setCheck("Number")
+          .appendField("wait seconds");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#4C97FF");
+      }
+    };
+
+    Blockly.Blocks['bb_set_editor_mode'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("set editor mode")
+          .appendField(new Blockly.FieldDropdown([
+            ["on", "on"],
+            ["off", "off"]
+          ]), "MODE");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#4C97FF");
+      }
+    };
+
+    Blockly.Blocks['bb_set_insert_mode'] = {
+      init: function() {
+        this.appendDummyInput()
+          .appendField("set insert mode")
+          .appendField(new Blockly.FieldDropdown([
+            ["on", "on"],
+            ["off", "off"]
+          ]), "MODE");
+        this.setPreviousStatement(true, null);
+        this.setNextStatement(true, null);
+        this.setColour("#4C97FF");
+      }
+    };
+
+    // ---------------------------
+    // Workspace
+    // ---------------------------
+    const workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      trashcan: true,
+      scrollbars: true,
+      renderer: 'zelos',
+      move: {
+        scrollbars: true,
+        drag: true,
+        wheel: true
+      },
+      zoom: {
+        controls: true,
+        wheel: true,
+        startScale: 1.0,
+        maxScale: 2,
+        minScale: 0.5,
+        scaleSpeed: 1.1
+      },
+      grid: {
+        spacing: 20,
+        length: 3,
+        colour: '#ddd',
+        snap: true
+      }
+    });
+
+    const startXml = `
+      <xml xmlns="https://developers.google.com/blockly/xml">
+        <block type="event_when_started" x="40" y="40">
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">Welcome to braille</field>
+                </shadow>
+              </value>
+              <next>
+                <block type="bb_set_editor_mode">
+                  <field name="MODE">on</field>
+                </block>
+              </next>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_chord" x="40" y="220">
+          <field name="DOTS">1</field>
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">Good job</field>
+                </shadow>
+              </value>
+              <next>
+                <block type="bb_move_caret">
+                  <value name="DELTA">
+                    <shadow type="math_number">
+                      <field name="NUM">1</field>
+                    </shadow>
+                  </value>
+                </block>
+              </next>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_thumb_key" x="40" y="390">
+          <field name="KEY">left</field>
+          <statement name="DO">
+            <block type="bb_move_caret">
+              <value name="DELTA">
+                <shadow type="math_number">
+                  <field name="NUM">-1</field>
+                </shadow>
+              </value>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_thumb_key" x="40" y="560">
+          <field name="KEY">right</field>
+          <statement name="DO">
+            <block type="bb_move_caret">
+              <value name="DELTA">
+                <shadow type="math_number">
+                  <field name="NUM">1</field>
+                </shadow>
+              </value>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_cursor_routing" x="430" y="40">
+          <field name="CELL">5</field>
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">Cursor at cell 5</field>
+                </shadow>
+              </value>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_cursor_routing" x="430" y="220">
+          <field name="CELL">10</field>
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">Cursor at cell 10</field>
+                </shadow>
+              </value>
+              <next>
+                <block type="bb_set_insert_mode">
+                  <field name="MODE">on</field>
+                </block>
+              </next>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_editor_key" x="430" y="420">
+          <field name="KEY">home</field>
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">Home pressed</field>
+                </shadow>
+              </value>
+            </block>
+          </statement>
+        </block>
+
+        <block type="event_when_editor_key" x="430" y="590">
+          <field name="KEY">end</field>
+          <statement name="DO">
+            <block type="bb_set_text">
+              <value name="TEXT">
+                <shadow type="text">
+                  <field name="TEXT">End pressed</field>
+                </shadow>
+              </value>
+            </block>
+          </statement>
+        </block>
+      </xml>
+    `;
+
+    Blockly.Xml.domToWorkspace(
+      Blockly.utils.xml.textToDom(startXml),
+      workspace
+    );
+
+    // ---------------------------
+    // Helpers to evaluate blocks
+    // ---------------------------
+    function getValueFromInput(block, inputName) {
+      const target = block.getInputTargetBlock(inputName);
+      if (!target) return null;
+
+      if (target.type === 'text') {
+        return target.getFieldValue('TEXT');
+      }
+
+      if (target.type === 'math_number') {
+        return Number(target.getFieldValue('NUM'));
+      }
+
+      return null;
+    }
+
+    function highlightTemporarily(blockId) {
+      workspace.highlightBlock(blockId);
+      setTimeout(() => workspace.highlightBlock(null), 250);
+    }
+
+    async function executeStatementChain(startBlock) {
+      let current = startBlock;
+
+      while (current && !runtimeState.stopped) {
+        highlightTemporarily(current.id);
+
+        switch (current.type) {
+          case 'bb_set_text': {
+            const text = getValueFromInput(current, 'TEXT') ?? '';
+            runtimeState.text = String(text);
+            addLog(`Action: set text -> "${runtimeState.text}"`);
+            renderState();
+            break;
+          }
+
+          case 'bb_move_caret': {
+            const delta = Number(getValueFromInput(current, 'DELTA') ?? 0);
+            runtimeState.caret += delta;
+            addLog(`Action: move caret by ${delta} -> ${runtimeState.caret}`);
+            renderState();
+            break;
+          }
+
+          case 'bb_wait': {
+            const seconds = Number(getValueFromInput(current, 'SECONDS') ?? 0);
+            addLog(`Action: wait ${seconds} second(s)`);
+            await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+            break;
+          }
+
+          case 'bb_set_editor_mode': {
+            runtimeState.editorMode = current.getFieldValue('MODE');
+            addLog(`Action: set editor mode -> ${runtimeState.editorMode}`);
+            renderState();
+            break;
+          }
+
+          case 'bb_set_insert_mode': {
+            runtimeState.insertMode = current.getFieldValue('MODE');
+            addLog(`Action: set insert mode -> ${runtimeState.insertMode}`);
+            renderState();
+            break;
+          }
+
+          default:
+            addLog(`Skipped unsupported block type: ${current.type}`);
+            break;
+        }
+
+        current = current.getNextBlock();
+      }
+    }
+
+    function eventMatches(block, event) {
+      switch (block.type) {
+        case 'event_when_started':
+          return event.type === 'started';
+
+        case 'event_when_chord':
+          return event.type === 'chord' &&
+            block.getFieldValue('DOTS') === String(event.dots);
+
+        case 'event_when_thumb_key':
+          return event.type === 'thumbKey' &&
+            block.getFieldValue('KEY') === event.key;
+
+        case 'event_when_cursor_routing':
+          return event.type === 'cursorRouting' &&
+            Number(block.getFieldValue('CELL')) === Number(event.cell);
+
+        case 'event_when_editor_key':
+          return event.type === 'editorKey' &&
+            block.getFieldValue('KEY') === event.key;
+
+        default:
+          return false;
+      }
+    }
+
+    async function dispatchEvent(event) {
+      addLog(`Event: ${JSON.stringify(event)}`);
+
+      const topBlocks = workspace.getTopBlocks(true);
+      for (const block of topBlocks) {
+        if (eventMatches(block, event)) {
+          addLog(`Matched block: ${block.type}`);
+          const firstStatement = block.getInputTargetBlock('DO');
+          if (firstStatement) {
+            await executeStatementChain(firstStatement);
+          }
+        }
+      }
+    }
+
+    // ---------------------------
+    // Buttons
+    // ---------------------------
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'started' });
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      runtimeState.stopped = true;
+      addLog('Runtime stopped');
+      renderState();
+    });
+
+    document.getElementById('simulateChordBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'chord', dots: '1' });
+    });
+
+    document.getElementById('simulateThumbBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'thumbKey', key: 'left' });
+    });
+
+    document.getElementById('simulateThumbRightBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'thumbKey', key: 'right' });
+    });
+
+    document.getElementById('simulateCursorBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'cursorRouting', cell: 5 });
+    });
+
+    document.getElementById('simulateCursor10Btn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'cursorRouting', cell: 10 });
+    });
+
+    document.getElementById('simulateEditorBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'editorKey', key: 'home' });
+    });
+
+    document.getElementById('simulateEditorEndBtn').addEventListener('click', async () => {
+      runtimeState.stopped = false;
+      renderState();
+      await dispatchEvent({ type: 'editorKey', key: 'end' });
+    });
+  </script>
+</body>
+</html>
