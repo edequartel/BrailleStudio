@@ -1,277 +1,1446 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Braille Activity Builder + WS</title>
+  <meta charset="utf-8">
+  <title>Braille Activity Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
-<script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
-<script src="https://unpkg.com/blockly/msg/en.js"></script>
+  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/en.js"></script>
 
-<style>
-body { margin:0; font-family:Arial; }
-#header { padding:10px; border-bottom:1px solid #ccc; display:flex; gap:8px; flex-wrap:wrap;}
-#blocklyDiv { height:70vh; width:100%; }
-#log { width:100%; height:150px; font-family:monospace; }
-button { padding:6px 10px; }
-</style>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f8faff;
+      --border: #d9e0ea;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #2563eb;
+      --amber: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+    }
+
+    #topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      filter: brightness(0.98);
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+
+    .btn-red {
+      background: var(--red);
+      color: white;
+      border-color: var(--red);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+
+    .btn-soft {
+      background: #eef4ff;
+      color: #1d4ed8;
+      border-color: #c7d7ff;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge.connected {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    #main {
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      min-height: 0;
+    }
+
+    #workspaceWrap {
+      min-width: 0;
+      min-height: 0;
+      padding: 10px;
+    }
+
+    #blocklyDiv {
+      width: 100%;
+      height: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: white;
+    }
+
+    #sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: auto;
+    }
+
+    .card {
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+    }
+
+    .mono {
+      font-family: Consolas, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      min-height: 110px;
+    }
+
+    textarea.mono {
+      width: 100%;
+      resize: vertical;
+      min-height: 170px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #fileInput {
+      display: none;
+    }
+  </style>
 </head>
-
 <body>
+<div id="app">
+  <div id="topbar">
+    <div id="title">Braille Activity Builder</div>
 
-<div id="header">
-  <button id="connectBtn">🔌 Connect</button>
-  <button id="runBtn">🚩 Start</button>
-  <button id="stopBtn">⛔ Stop</button>
-  <button id="saveBtn">💾 Save</button>
-  <button id="loadBtn">📂 Load</button>
-  <button id="newBtn">🆕 New</button>
-  <input id="fileInput" type="file" style="display:none">
+    <button id="connectBtn" class="btn btn-blue">Connect WS</button>
+    <div id="wsBadge" class="badge">Disconnected</div>
+
+    <button id="runBtn" class="btn btn-green">Start</button>
+    <button id="stopBtn" class="btn btn-red">Stop</button>
+
+    <button id="saveBtn" class="btn">Save</button>
+    <button id="loadBtn" class="btn">Load</button>
+    <button id="newBtn" class="btn">New</button>
+    <input id="fileInput" type="file" accept=".xml,.blockly,text/xml,application/xml">
+
+    <div class="spacer"></div>
+
+    <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
+    <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
+    <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
+    <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+  </div>
+
+  <div id="main">
+    <div id="workspaceWrap">
+      <div id="blocklyDiv"></div>
+    </div>
+
+    <div id="sidebar">
+      <div class="card">
+        <h3>Status</h3>
+        <div id="statusBox" class="mono"></div>
+      </div>
+
+      <div class="card">
+        <h3>Last brailleLine</h3>
+        <div id="brailleLineBox" class="mono"></div>
+      </div>
+
+      <div class="card">
+        <h3>Log</h3>
+        <textarea id="logBox" class="mono" readonly></textarea>
+      </div>
+
+      <div class="card">
+        <h3>Tips</h3>
+        <div class="small">
+          Use <strong>Variables</strong> for score, tries, level.<br>
+          Use <strong>State values</strong> to react to cursor position and thumb keys.<br>
+          <strong>Start</strong> only runs stacks under <strong>when started</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="blocklyDiv"></div>
-
-<textarea id="log" readonly></textarea>
-
 <xml id="toolbox" style="display:none">
-  <category name="Events" colour="#FFBF00">
+  <category name="Events" colour="#F59E0B">
     <block type="event_when_started"></block>
-    <block type="event_when_thumb"></block>
-    <block type="event_when_cursor"></block>
+    <block type="event_when_thumb_key"></block>
+    <block type="event_when_any_thumb_key"></block>
+    <block type="event_when_cursor_routing"></block>
+    <block type="event_when_cursor_position_changed"></block>
+    <block type="event_when_chord"></block>
+    <block type="event_when_editor_key"></block>
   </category>
 
-  <category name="Braille" colour="#4C97FF">
+  <category name="BrailleBridge" colour="#2563EB">
     <block type="bb_set_text"></block>
+    <block type="bb_append_text"></block>
+    <block type="bb_send_key"></block>
     <block type="bb_move_caret"></block>
-    <block type="bb_get_line"></block>
+    <block type="bb_set_caret"></block>
+    <block type="bb_set_caret_from_cell"></block>
+    <block type="bb_cursor_routing"></block>
+    <block type="bb_set_editor_mode"></block>
+    <block type="bb_set_insert_mode"></block>
+    <block type="bb_set_caret_visibility"></block>
+    <block type="bb_get_braille_line"></block>
+    <block type="bb_set_caret_to_begin"></block>
+    <block type="bb_set_caret_to_end"></block>
+    <block type="bb_wait"></block>
   </category>
 
-  <category name="Logic" colour="#59C059">
+  <category name="Logic" colour="#16A34A">
     <block type="controls_if"></block>
     <block type="logic_compare"></block>
+    <block type="logic_operation"></block>
+    <block type="logic_negate"></block>
+    <block type="logic_boolean"></block>
   </category>
 
-  <category name="Math" colour="#9966FF">
+  <category name="Loops" colour="#D97706">
+    <block type="controls_repeat_ext">
+      <value name="TIMES">
+        <shadow type="math_number">
+          <field name="NUM">3</field>
+        </shadow>
+      </value>
+    </block>
+  </category>
+
+  <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
+
+  <category name="State values" colour="#7C3AED">
+    <block type="state_text_caret"></block>
+    <block type="state_cell_caret"></block>
+    <block type="state_last_thumb_key"></block>
+    <block type="state_last_cursor_cell"></block>
+    <block type="state_last_chord"></block>
+    <block type="state_last_editor_key"></block>
+    <block type="state_editor_mode"></block>
+    <block type="state_insert_mode"></block>
+  </category>
+
+  <category name="Math" colour="#7C3AED">
     <block type="math_number"></block>
+    <block type="math_arithmetic"></block>
   </category>
 
-  <category name="Text" colour="#5CB1D6">
+  <category name="Text" colour="#0891B2">
     <block type="text"></block>
+    <block type="text_join"></block>
   </category>
 </xml>
 
 <script>
-/* ---------------- LOG ---------------- */
-function log(m){
-  document.getElementById("log").value += m + "\n";
+/* ---------------- UI helpers ---------------- */
+function log(message) {
+  const box = document.getElementById('logBox');
+  const now = new Date().toLocaleTimeString();
+  box.value += `[${now}] ${message}\n`;
+  box.scrollTop = box.scrollHeight;
 }
 
-/* ---------------- WS ---------------- */
-let ws=null;
+function setWsBadge(connected) {
+  const el = document.getElementById('wsBadge');
+  el.textContent = connected ? 'Connected' : 'Disconnected';
+  el.className = 'badge' + (connected ? ' connected' : '');
+}
 
-function connect(){
-  ws = new WebSocket("ws://localhost:5000/ws");
+function renderBrailleLine(msg) {
+  document.getElementById('brailleLineBox').textContent = msg
+    ? JSON.stringify(msg, null, 2)
+    : '';
+}
 
-  ws.onopen = ()=> log("WS connected");
+/* ---------------- Runtime state ---------------- */
+const runtime = {
+  stopped: false,
+  text: '',
+  brailleUnicode: '',
+  textCaret: 0,
+  cellCaret: 0,
+  editorMode: 'off',
+  insertMode: 'off',
+  caretVisible: true,
+  lastThumbKey: '',
+  lastCursorCell: -1,
+  lastChord: '',
+  lastEditorKey: '',
+  activeTable: '',
+  lineId: 0
+};
 
-  ws.onmessage = async (e)=>{
-    const msg = JSON.parse(e.data);
-    const type = msg.Type ?? msg.type;
+const variableValues = {};
+let ws = null;
+let wsConnected = false;
+let runGeneration = 0;
+let workspace = null;
 
-    log("WS OUT " + JSON.stringify(msg));
+function renderStatus() {
+  const varLines = workspace
+    ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
+    : [];
 
-    if(type==="brailleLine"){
-      runtime.text = msg.sourceText;
-      runtime.caret = msg.meta?.caretTextPosition ?? msg.caret?.textIndex;
-    }
+  document.getElementById('statusBox').textContent =
+`ws connected     : ${wsConnected}
+text             : ${runtime.text}
+braille unicode  : ${runtime.brailleUnicode}
+text caret       : ${runtime.textCaret}
+cell caret       : ${runtime.cellCaret}
+editor mode      : ${runtime.editorMode}
+insert mode      : ${runtime.insertMode}
+caret visible    : ${runtime.caretVisible}
+last thumb key   : ${runtime.lastThumbKey}
+last cursor cell : ${runtime.lastCursorCell}
+last chord       : ${runtime.lastChord}
+last editor key  : ${runtime.lastEditorKey}
+active table     : ${runtime.activeTable}
+line id          : ${runtime.lineId}
+stopped          : ${runtime.stopped}
 
-    if(type==="thumbKey"){
-      await dispatch({type:"thumb", key:msg.Payload.Name});
-    }
+variables:
+${varLines.length ? varLines.join('\n') : '(none)'}`;
+}
 
-    if(type==="cursor"){
-      await dispatch({type:"cursor", cell:msg.Cursor.CellIndex});
-    }
+/* ---------------- WebSocket ---------------- */
+function wsEventType(msg) {
+  return msg?.Type ?? msg?.type ?? '';
+}
 
-    if(type==="editorKey"){
-      await dispatch({type:"editor", key:msg.Payload.Key});
+function connectWs() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    log('WS already connected/connecting');
+    return;
+  }
+
+  ws = new WebSocket('ws://localhost:5000/ws');
+
+  ws.onopen = () => {
+    wsConnected = true;
+    setWsBadge(true);
+    renderStatus();
+    log('WS connected to ws://localhost:5000/ws');
+    sendWs({ type: 'getBrailleLine' });
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    setWsBadge(false);
+    renderStatus();
+    log('WS disconnected');
+  };
+
+  ws.onerror = () => {
+    log('WS error');
+  };
+
+  ws.onmessage = async (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      await handleIncomingWs(msg);
+    } catch (err) {
+      log('WS parse error: ' + err.message);
     }
   };
 }
 
-function send(obj){
-  if(ws && ws.readyState===1){
-    ws.send(JSON.stringify(obj));
-    log("WS IN " + JSON.stringify(obj));
+function sendWs(obj) {
+  const json = JSON.stringify(obj);
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    log('WS not connected, skipped: ' + json);
+    return false;
+  }
+  ws.send(json);
+  log('WS IN  ' + json);
+  return true;
+}
+
+function sendEnvelope(command, extra = {}) {
+  return sendWs({ type: 'command', command, ...extra });
+}
+
+async function handleIncomingWs(msg) {
+  log('WS OUT ' + JSON.stringify(msg));
+  const type = wsEventType(msg);
+
+  if (type === 'brailleLine') {
+    runtime.text = msg.sourceText ?? runtime.text;
+    runtime.brailleUnicode = msg.braille?.unicodeText ?? '';
+    runtime.textCaret = msg.meta?.caretTextPosition ?? msg.caret?.textIndex ?? runtime.textCaret;
+    runtime.cellCaret = msg.meta?.caretCellPosition ?? msg.caret?.cellIndex ?? runtime.cellCaret;
+    runtime.editorMode = msg.status?.editorMode ?? runtime.editorMode;
+    runtime.insertMode = msg.status?.insertMode ?? runtime.insertMode;
+    runtime.caretVisible = msg.caretVisible ?? runtime.caretVisible;
+    runtime.activeTable = msg.meta?.activeTable ?? runtime.activeTable;
+    runtime.lineId = msg.meta?.lineId ?? runtime.lineId;
+    renderStatus();
+    renderBrailleLine(msg);
+    return;
+  }
+
+  if (type === 'thumbKey') {
+    const name = msg.Payload?.Name ?? '';
+    const press = !!msg.Payload?.Press;
+    runtime.lastThumbKey = normalizeThumb(name);
+    renderStatus();
+    if (press) {
+      await dispatchEvent({ type: 'thumbKey', key: runtime.lastThumbKey }, runGeneration);
+    }
+    return;
+  }
+
+  if (type === 'editorKey') {
+    const key = msg.Payload?.Key ?? '';
+    const press = !!msg.Payload?.Press;
+    runtime.lastEditorKey = key;
+    renderStatus();
+    if (press) {
+      await dispatchEvent({ type: 'editorKey', key }, runGeneration);
+    }
+    return;
+  }
+
+  if (type === 'cursor') {
+    runtime.lastCursorCell = msg.Cursor?.CellIndex ?? runtime.lastCursorCell;
+    runtime.textCaret = msg.Cursor?.TextIndex ?? runtime.textCaret;
+    renderStatus();
+    await dispatchEvent({
+      type: 'cursorRouting',
+      cell: runtime.lastCursorCell,
+      textIndex: runtime.textCaret
+    }, runGeneration);
+    return;
+  }
+
+  if (type === 'chord') {
+    runtime.lastChord = extractChord(msg);
+    renderStatus();
+    await dispatchEvent({ type: 'chord', dots: runtime.lastChord }, runGeneration);
+    return;
   }
 }
 
-/* ---------------- STATE ---------------- */
-const runtime = {
-  stopped:false,
-  text:"",
-  caret:0
-};
+function normalizeThumb(name) {
+  const s = String(name || '').toLowerCase();
+  if (s.includes('left')) return 'left';
+  if (s.includes('right')) return 'right';
+  if (s.includes('up')) return 'up';
+  if (s.includes('down')) return 'down';
+  return s;
+}
 
-/* ---------------- BLOCKLY ---------------- */
+function extractChord(msg) {
+  if (msg?.Payload?.Name) return String(msg.Payload.Name);
+  if (msg?.Cursor?.Character) return String(msg.Cursor.Character);
+  if (msg?.Braille?.CellChar) return String(msg.Braille.CellChar);
+  return '1';
+}
+
+/* ---------------- Custom blocks ---------------- */
 Blockly.Blocks['event_when_started'] = {
   init() {
-    this.appendDummyInput().appendField("when started");
-    this.appendStatementInput("DO").appendField("do");
-    this.setColour("#FFBF00");
+    this.appendDummyInput().appendField('when started');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
   }
 };
 
-Blockly.Blocks['event_when_thumb'] = {
+Blockly.Blocks['event_when_thumb_key'] = {
   init() {
-    this.appendDummyInput().appendField("when thumb");
-    this.appendStatementInput("DO").appendField("do");
-    this.setColour("#FFBF00");
+    this.appendDummyInput()
+      .appendField('when thumb key')
+      .appendField(new Blockly.FieldDropdown([
+        ['left', 'left'],
+        ['right', 'right'],
+        ['up', 'up'],
+        ['down', 'down']
+      ]), 'KEY')
+      .appendField('pressed');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
   }
 };
 
-Blockly.Blocks['event_when_cursor'] = {
+Blockly.Blocks['event_when_any_thumb_key'] = {
   init() {
-    this.appendDummyInput().appendField("when cursor");
-    this.appendStatementInput("DO").appendField("do");
-    this.setColour("#FFBF00");
+    this.appendDummyInput().appendField('when any thumb key pressed');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
+  }
+};
+
+Blockly.Blocks['event_when_cursor_routing'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('when cursor routing cell')
+      .appendField(new Blockly.FieldNumber(5, 0, 40, 1), 'CELL');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
+  }
+};
+
+Blockly.Blocks['event_when_cursor_position_changed'] = {
+  init() {
+    this.appendDummyInput().appendField('when cursor position changed');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
+  }
+};
+
+Blockly.Blocks['event_when_chord'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('when chord')
+      .appendField(new Blockly.FieldTextInput('1'), 'DOTS')
+      .appendField('received');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
+  }
+};
+
+Blockly.Blocks['event_when_editor_key'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('when editor key')
+      .appendField(new Blockly.FieldDropdown([
+        ['Backspace', 'Backspace'],
+        ['Delete', 'Delete'],
+        ['Enter', 'Enter'],
+        ['ArrowLeft', 'ArrowLeft'],
+        ['ArrowRight', 'ArrowRight'],
+        ['ArrowUp', 'ArrowUp'],
+        ['ArrowDown', 'ArrowDown'],
+        ['Home', 'Home'],
+        ['End', 'End']
+      ]), 'KEY')
+      .appendField('received');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
   }
 };
 
 Blockly.Blocks['bb_set_text'] = {
   init() {
-    this.appendValueInput("TEXT").appendField("set text");
+    this.appendValueInput('TEXT').appendField('replace text with');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour("#4C97FF");
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_append_text'] = {
+  init() {
+    this.appendValueInput('TEXT').appendField('append text');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_send_key'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('send key')
+      .appendField(new Blockly.FieldDropdown([
+        ['Backspace', 'Backspace'],
+        ['Delete', 'Delete'],
+        ['Space', 'Space'],
+        ['Enter', 'Enter'],
+        ['ArrowLeft', 'ArrowLeft'],
+        ['ArrowRight', 'ArrowRight'],
+        ['ArrowUp', 'ArrowUp'],
+        ['ArrowDown', 'ArrowDown']
+      ]), 'KEY');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
   }
 };
 
 Blockly.Blocks['bb_move_caret'] = {
   init() {
-    this.appendValueInput("DELTA").appendField("move caret");
+    this.appendValueInput('DELTA').appendField('move caret by');
+    this.appendDummyInput()
+      .appendField('unit')
+      .appendField(new Blockly.FieldDropdown([
+        ['character', 'character'],
+        ['cell', 'cell']
+      ]), 'UNIT');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour("#4C97FF");
+    this.setColour('#2563EB');
   }
 };
 
-Blockly.Blocks['bb_get_line'] = {
+Blockly.Blocks['bb_set_caret'] = {
   init() {
-    this.appendDummyInput().appendField("get braille line");
+    this.appendValueInput('INDEX').appendField('set caret text index');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour("#4C97FF");
+    this.setColour('#2563EB');
   }
 };
 
-const workspace = Blockly.inject("blocklyDiv", {
-  toolbox: document.getElementById("toolbox")
+Blockly.Blocks['bb_set_caret_from_cell'] = {
+  init() {
+    this.appendValueInput('INDEX').appendField('set caret from cell');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_cursor_routing'] = {
+  init() {
+    this.appendValueInput('INDEX').appendField('simulate cursor routing cell');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_set_editor_mode'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('set editor mode')
+      .appendField(new Blockly.FieldDropdown([
+        ['on', 'on'],
+        ['off', 'off']
+      ]), 'MODE');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_set_insert_mode'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('set insert mode')
+      .appendField(new Blockly.FieldDropdown([
+        ['on', 'on'],
+        ['off', 'off']
+      ]), 'MODE');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_set_caret_visibility'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('set caret visible')
+      .appendField(new Blockly.FieldDropdown([
+        ['true', 'true'],
+        ['false', 'false']
+      ]), 'VISIBLE');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_get_braille_line'] = {
+  init() {
+    this.appendDummyInput().appendField('get braille line');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_set_caret_to_begin'] = {
+  init() {
+    this.appendDummyInput().appendField('set caret to begin');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_set_caret_to_end'] = {
+  init() {
+    this.appendDummyInput().appendField('set caret to end');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_wait'] = {
+  init() {
+    this.appendValueInput('SECONDS').appendField('wait seconds');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['state_text_caret'] = {
+  init() {
+    this.appendDummyInput().appendField('text caret');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_cell_caret'] = {
+  init() {
+    this.appendDummyInput().appendField('cell caret');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_last_thumb_key'] = {
+  init() {
+    this.appendDummyInput().appendField('last thumb key');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_last_cursor_cell'] = {
+  init() {
+    this.appendDummyInput().appendField('last cursor cell');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_last_chord'] = {
+  init() {
+    this.appendDummyInput().appendField('last chord');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_last_editor_key'] = {
+  init() {
+    this.appendDummyInput().appendField('last editor key');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_editor_mode'] = {
+  init() {
+    this.appendDummyInput().appendField('editor mode');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+Blockly.Blocks['state_insert_mode'] = {
+  init() {
+    this.appendDummyInput().appendField('insert mode');
+    this.setOutput(true);
+    this.setColour('#7C3AED');
+  }
+};
+
+/* ---------------- Workspace ---------------- */
+workspace = Blockly.inject('blocklyDiv', {
+  toolbox: document.getElementById('toolbox'),
+  trashcan: true,
+  renderer: 'geras',
+  move: { drag: true, wheel: true, scrollbars: true },
+  zoom: {
+    controls: true,
+    wheel: true,
+    startScale: 1,
+    maxScale: 2,
+    minScale: 0.5,
+    scaleSpeed: 1.1
+  },
+  grid: {
+    spacing: 20,
+    length: 3,
+    colour: '#d1d5db',
+    snap: true
+  }
 });
 
-/* ---------------- EXECUTION ---------------- */
-async function exec(block){
-  while(block && !runtime.stopped){
+function ensureDefaultVariable() {
+  const names = workspace.getAllVariables().map(v => v.name);
+  if (!names.includes('score')) workspace.createVariable('score');
+}
 
-    switch(block.type){
+function initVariableValues() {
+  for (const v of workspace.getAllVariables()) {
+    if (!(v.getId() in variableValues)) {
+      variableValues[v.getId()] = 0;
+    }
+  }
+  renderStatus();
+}
 
-      case "bb_set_text":{
-        const txt = block.getInputTargetBlock("TEXT")?.getFieldValue("TEXT") || "";
-        send({
-          type:"command",
-          command:"editorInput",
-          input:{kind:"text",text:txt,replace:true}
+workspace.addChangeListener(() => {
+  initVariableValues();
+});
+
+ensureDefaultVariable();
+initVariableValues();
+
+function getVariableIdFromBlock(block) {
+  const field = block.getField('VAR');
+  const model = field?.getVariable();
+  return model ? model.getId() : null;
+}
+
+function getVariableModelByName(name) {
+  return workspace.getAllVariables().find(v => v.name === name) || null;
+}
+
+function patchVariableFieldIds(xmlDom) {
+  const fields = xmlDom.querySelectorAll('field[name="VAR"]');
+  fields.forEach(field => {
+    const model = getVariableModelByName(field.textContent.trim());
+    if (model) field.setAttribute('id', model.getId());
+  });
+}
+
+const defaultXmlText = `
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="event_when_started" x="30" y="30">
+    <statement name="DO">
+      <block type="bb_set_editor_mode">
+        <field name="MODE">on</field>
+        <next>
+          <block type="bb_set_insert_mode">
+            <field name="MODE">on</field>
+            <next>
+              <block type="bb_set_text">
+                <value name="TEXT">
+                  <shadow type="text">
+                    <field name="TEXT">Hello braille</field>
+                  </shadow>
+                </value>
+                <next>
+                  <block type="variables_set">
+                    <field name="VAR">score</field>
+                    <value name="VALUE">
+                      <shadow type="math_number">
+                        <field name="NUM">0</field>
+                      </shadow>
+                    </value>
+                    <next>
+                      <block type="bb_get_braille_line"></block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_thumb_key" x="30" y="250">
+    <field name="KEY">left</field>
+    <statement name="DO">
+      <block type="bb_move_caret">
+        <field name="UNIT">character</field>
+        <value name="DELTA">
+          <shadow type="math_number">
+            <field name="NUM">-1</field>
+          </shadow>
+        </value>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_thumb_key" x="30" y="390">
+    <field name="KEY">right</field>
+    <statement name="DO">
+      <block type="bb_move_caret">
+        <field name="UNIT">character</field>
+        <value name="DELTA">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_chord" x="430" y="30">
+    <field name="DOTS">1</field>
+    <statement name="DO">
+      <block type="variables_change">
+        <field name="VAR">score</field>
+        <value name="VALUE">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <next>
+          <block type="bb_append_text">
+            <value name="TEXT">
+              <shadow type="text">
+                <field name="TEXT">!</field>
+              </shadow>
+            </value>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml>
+`;
+
+function loadDefaultWorkspace() {
+  workspace.clear();
+  ensureDefaultVariable();
+  const xmlDom = Blockly.utils.xml.textToDom(defaultXmlText);
+  patchVariableFieldIds(xmlDom);
+  Blockly.Xml.domToWorkspace(xmlDom, workspace);
+  initVariableValues();
+  log('Default workspace loaded');
+}
+
+loadDefaultWorkspace();
+
+/* ---------------- Evaluation ---------------- */
+function highlightBlock(blockId) {
+  workspace.highlightBlock(blockId);
+  setTimeout(() => workspace.highlightBlock(null), 150);
+}
+
+function toNumber(v) {
+  const n = Number(v);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+function evalValue(block) {
+  if (!block) return null;
+
+  switch (block.type) {
+    case 'text':
+      return block.getFieldValue('TEXT');
+
+    case 'math_number':
+      return Number(block.getFieldValue('NUM'));
+
+    case 'logic_boolean':
+      return block.getFieldValue('BOOL') === 'TRUE';
+
+    case 'state_text_caret':
+      return runtime.textCaret;
+
+    case 'state_cell_caret':
+      return runtime.cellCaret;
+
+    case 'state_last_thumb_key':
+      return runtime.lastThumbKey;
+
+    case 'state_last_cursor_cell':
+      return runtime.lastCursorCell;
+
+    case 'state_last_chord':
+      return runtime.lastChord;
+
+    case 'state_last_editor_key':
+      return runtime.lastEditorKey;
+
+    case 'state_editor_mode':
+      return runtime.editorMode;
+
+    case 'state_insert_mode':
+      return runtime.insertMode;
+
+    case 'variables_get': {
+      const id = getVariableIdFromBlock(block);
+      return id ? (variableValues[id] ?? 0) : 0;
+    }
+
+    case 'math_arithmetic': {
+      const a = toNumber(evalValue(block.getInputTargetBlock('A')));
+      const b = toNumber(evalValue(block.getInputTargetBlock('B')));
+      switch (block.getFieldValue('OP')) {
+        case 'ADD': return a + b;
+        case 'MINUS': return a - b;
+        case 'MULTIPLY': return a * b;
+        case 'DIVIDE': return b === 0 ? 0 : a / b;
+        case 'POWER': return Math.pow(a, b);
+        default: return 0;
+      }
+    }
+
+    case 'logic_compare': {
+      const a = evalValue(block.getInputTargetBlock('A'));
+      const b = evalValue(block.getInputTargetBlock('B'));
+      switch (block.getFieldValue('OP')) {
+        case 'EQ': return a == b;
+        case 'NEQ': return a != b;
+        case 'LT': return a < b;
+        case 'LTE': return a <= b;
+        case 'GT': return a > b;
+        case 'GTE': return a >= b;
+        default: return false;
+      }
+    }
+
+    case 'logic_operation': {
+      const a = Boolean(evalValue(block.getInputTargetBlock('A')));
+      const b = Boolean(evalValue(block.getInputTargetBlock('B')));
+      return block.getFieldValue('OP') === 'AND' ? (a && b) : (a || b);
+    }
+
+    case 'logic_negate':
+      return !Boolean(evalValue(block.getInputTargetBlock('BOOL')));
+
+    case 'text_join': {
+      const count = block.itemCount_ || 0;
+      let out = '';
+      for (let i = 0; i < count; i++) {
+        out += String(evalValue(block.getInputTargetBlock('ADD' + i)) ?? '');
+      }
+      return out;
+    }
+
+    default:
+      return null;
+  }
+}
+
+/* ---------------- Execution ---------------- */
+async function executeChain(startBlock, generation) {
+  let current = startBlock;
+
+  while (current && !runtime.stopped && generation === runGeneration) {
+    highlightBlock(current.id);
+
+    switch (current.type) {
+      case 'bb_set_text': {
+        const text = String(evalValue(current.getInputTargetBlock('TEXT')) ?? '');
+        runtime.text = text;
+        renderStatus();
+        sendEnvelope('editorInput', {
+          input: { kind: 'text', text, replace: true }
         });
         break;
       }
 
-      case "bb_move_caret":{
-        const val = Number(block.getInputTargetBlock("DELTA")?.getFieldValue("NUM")||0);
-        send({type:"moveCaret",by:val,unit:"character"});
+      case 'bb_append_text': {
+        const text = String(evalValue(current.getInputTargetBlock('TEXT')) ?? '');
+        runtime.text += text;
+        renderStatus();
+        sendEnvelope('editorInput', {
+          input: { kind: 'text', text }
+        });
         break;
       }
 
-      case "bb_get_line":{
-        send({type:"getBrailleLine"});
+      case 'bb_send_key': {
+        const key = current.getFieldValue('KEY');
+        sendEnvelope('editorInput', {
+          input: { kind: 'key', key }
+        });
         break;
       }
 
-      case "controls_if":{
-        const cond = true;
-        if(cond){
-          await exec(block.getInputTargetBlock("DO0"));
+      case 'bb_move_caret': {
+        const by = toNumber(evalValue(current.getInputTargetBlock('DELTA')));
+        const unit = current.getFieldValue('UNIT');
+        sendWs({ type: 'moveCaret', by, unit });
+        break;
+      }
+
+      case 'bb_set_caret': {
+        const textIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        sendWs({ type: 'setCaret', textIndex });
+        break;
+      }
+
+      case 'bb_set_caret_from_cell': {
+        const cellIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        sendWs({ type: 'setCaretFromCell', cellIndex });
+        break;
+      }
+
+      case 'bb_cursor_routing': {
+        const cellIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        sendWs({ type: 'cursorRouting', cellIndex });
+        break;
+      }
+
+      case 'bb_set_editor_mode': {
+        const enabled = current.getFieldValue('MODE') === 'on';
+        runtime.editorMode = enabled ? 'on' : 'off';
+        renderStatus();
+        sendEnvelope('setEditorMode', { enabled });
+        break;
+      }
+
+      case 'bb_set_insert_mode': {
+        const enabled = current.getFieldValue('MODE') === 'on';
+        runtime.insertMode = enabled ? 'on' : 'off';
+        renderStatus();
+        sendWs({ type: 'setEditorInsertMode', enabled });
+        break;
+      }
+
+      case 'bb_set_caret_visibility': {
+        const visible = current.getFieldValue('VISIBLE') === 'true';
+        runtime.caretVisible = visible;
+        renderStatus();
+        sendWs({ type: 'setCaretVisibility', visible });
+        break;
+      }
+
+      case 'bb_get_braille_line': {
+        sendWs({ type: 'getBrailleLine' });
+        break;
+      }
+
+      case 'bb_set_caret_to_begin': {
+        sendWs({ type: 'setCaretToBegin' });
+        break;
+      }
+
+      case 'bb_set_caret_to_end': {
+        sendWs({ type: 'setCaretToEnd' });
+        break;
+      }
+
+      case 'bb_wait': {
+        const seconds = toNumber(evalValue(current.getInputTargetBlock('SECONDS')));
+        await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+        break;
+      }
+
+      case 'variables_set': {
+        const id = getVariableIdFromBlock(current);
+        const value = evalValue(current.getInputTargetBlock('VALUE'));
+        if (id) {
+          variableValues[id] = value;
+          renderStatus();
         }
         break;
       }
+
+      case 'variables_change': {
+        const id = getVariableIdFromBlock(current);
+        const delta = toNumber(evalValue(current.getInputTargetBlock('VALUE')));
+        if (id) {
+          variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
+          renderStatus();
+        }
+        break;
+      }
+
+      case 'controls_if': {
+        let handled = false;
+        for (let i = 0; current.getInput('IF' + i); i++) {
+          const cond = Boolean(evalValue(current.getInputTargetBlock('IF' + i)));
+          if (cond) {
+            const branch = current.getInputTargetBlock('DO' + i);
+            if (branch) await executeChain(branch, generation);
+            handled = true;
+            break;
+          }
+        }
+        if (!handled && current.getInput('ELSE')) {
+          const elseBranch = current.getInputTargetBlock('ELSE');
+          if (elseBranch) await executeChain(elseBranch, generation);
+        }
+        break;
+      }
+
+      case 'controls_repeat_ext': {
+        const count = toNumber(evalValue(current.getInputTargetBlock('TIMES')));
+        const body = current.getInputTargetBlock('DO');
+        for (let i = 0; i < count && !runtime.stopped && generation === runGeneration; i++) {
+          if (body) await executeChain(body, generation);
+        }
+        break;
+      }
+
+      default:
+        log('Skipped unsupported block: ' + current.type);
+        break;
     }
 
-    block = block.getNextBlock();
+    current = current.getNextBlock();
   }
 }
 
-async function dispatch(event){
-  const blocks = workspace.getTopBlocks(true);
+function eventMatches(block, event) {
+  switch (block.type) {
+    case 'event_when_started':
+      return event.type === 'started';
 
-  for(const b of blocks){
+    case 'event_when_thumb_key':
+      return event.type === 'thumbKey' &&
+        String(block.getFieldValue('KEY')).toLowerCase() === String(event.key).toLowerCase();
 
-    if(b.type==="event_when_started" && event.type==="started"){
-      await exec(b.getInputTargetBlock("DO"));
-    }
+    case 'event_when_any_thumb_key':
+      return event.type === 'thumbKey';
 
-    if(b.type==="event_when_thumb" && event.type==="thumb"){
-      await exec(b.getInputTargetBlock("DO"));
-    }
+    case 'event_when_cursor_routing':
+      return event.type === 'cursorRouting' &&
+        Number(block.getFieldValue('CELL')) === Number(event.cell);
 
-    if(b.type==="event_when_cursor" && event.type==="cursor"){
-      await exec(b.getInputTargetBlock("DO"));
+    case 'event_when_cursor_position_changed':
+      return event.type === 'cursorPositionChanged';
+
+    case 'event_when_chord':
+      return event.type === 'chord' &&
+        String(block.getFieldValue('DOTS')) === String(event.dots);
+
+    case 'event_when_editor_key':
+      return event.type === 'editorKey' &&
+        String(block.getFieldValue('KEY')) === String(event.key);
+
+    default:
+      return false;
+  }
+}
+
+async function dispatchEvent(event, generation = runGeneration) {
+  if (generation !== runGeneration || runtime.stopped) return;
+
+  if (event.type === 'thumbKey') {
+    runtime.lastThumbKey = event.key ?? '';
+  }
+  if (event.type === 'cursorRouting') {
+    runtime.lastCursorCell = Number(event.cell ?? -1);
+    if (typeof event.textIndex === 'number') runtime.textCaret = event.textIndex;
+  }
+  if (event.type === 'cursorPositionChanged') {
+    runtime.textCaret = Number(event.position ?? runtime.textCaret);
+  }
+  if (event.type === 'chord') {
+    runtime.lastChord = String(event.dots ?? '');
+  }
+  if (event.type === 'editorKey') {
+    runtime.lastEditorKey = String(event.key ?? '');
+  }
+
+  renderStatus();
+  log('Event: ' + JSON.stringify(event));
+
+  const topBlocks = workspace.getTopBlocks(true);
+  for (const block of topBlocks) {
+    if (generation !== runGeneration || runtime.stopped) return;
+    if (eventMatches(block, event)) {
+      const first = block.getInputTargetBlock('DO');
+      if (first) await executeChain(first, generation);
     }
   }
 }
 
-/* ---------------- UI ---------------- */
-document.getElementById("connectBtn").onclick = connect;
+/* ---------------- File actions ---------------- */
+function saveWorkspace() {
+  const xmlDom = Blockly.Xml.workspaceToDom(workspace);
+  const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+  const blob = new Blob([xmlText], { type: 'text/xml' });
+  const url = URL.createObjectURL(blob);
 
-document.getElementById("runBtn").onclick = async ()=>{
-  runtime.stopped=false;
-  await dispatch({type:"started"});
-  send({type:"getBrailleLine"});
-};
-
-document.getElementById("stopBtn").onclick = ()=>{
-  runtime.stopped=true;
-};
-
-document.getElementById("saveBtn").onclick = ()=>{
-  const xml = Blockly.Xml.domToPrettyText(
-    Blockly.Xml.workspaceToDom(workspace)
-  );
-  const blob = new Blob([xml]);
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="blocks.xml";
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'braille-activity.xml';
+  document.body.appendChild(a);
   a.click();
-};
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 
-document.getElementById("loadBtn").onclick = ()=>{
-  document.getElementById("fileInput").click();
-};
+  log('Workspace saved');
+}
 
-document.getElementById("fileInput").onchange = e=>{
-  const reader=new FileReader();
-  reader.onload = ()=>{
+function loadWorkspaceFromText(text) {
+  try {
+    const xmlDom = Blockly.utils.xml.textToDom(text);
     workspace.clear();
-    Blockly.Xml.domToWorkspace(
-      Blockly.utils.xml.textToDom(reader.result),
-      workspace
-    );
-  };
-  reader.readAsText(e.target.files[0]);
-};
+    ensureDefaultVariable();
+    patchVariableFieldIds(xmlDom);
+    Blockly.Xml.domToWorkspace(xmlDom, workspace);
+    initVariableValues();
+    log('Workspace loaded');
+  } catch (err) {
+    log('Load failed: ' + err.message);
+    alert('Could not load file');
+  }
+}
 
-document.getElementById("newBtn").onclick = ()=>{
+function newWorkspace() {
+  if (!confirm('Clear current workspace?')) return;
+  runtime.stopped = true;
+  runGeneration++;
   workspace.clear();
-};
+  ensureDefaultVariable();
+  initVariableValues();
+  renderBrailleLine(null);
+  log('Workspace cleared');
+}
 
+/* ---------------- Buttons ---------------- */
+document.getElementById('connectBtn').addEventListener('click', connectWs);
+document.getElementById('runBtn').addEventListener('click', async () => {
+  runtime.stopped = false;
+  runGeneration++;
+  const generation = runGeneration;
+  renderStatus();
+  await dispatchEvent({ type: 'started' }, generation);
+  sendWs({ type: 'getBrailleLine' });
+});
+
+document.getElementById('stopBtn').addEventListener('click', () => {
+  runtime.stopped = true;
+  runGeneration++;
+  renderStatus();
+  log('Runtime stopped');
+});
+
+document.getElementById('saveBtn').addEventListener('click', saveWorkspace);
+document.getElementById('loadBtn').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+document.getElementById('newBtn').addEventListener('click', newWorkspace);
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadWorkspaceFromText(reader.result);
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+document.getElementById('simThumbLeftBtn').addEventListener('click', async () => {
+  runtime.stopped = false;
+  runGeneration++;
+  await dispatchEvent({ type: 'thumbKey', key: 'left' }, runGeneration);
+});
+
+document.getElementById('simThumbRightBtn').addEventListener('click', async () => {
+  runtime.stopped = false;
+  runGeneration++;
+  await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
+});
+
+document.getElementById('simCursor5Btn').addEventListener('click', async () => {
+  runtime.stopped = false;
+  runGeneration++;
+  await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: runtime.textCaret }, runGeneration);
+});
+
+document.getElementById('simChord1Btn').addEventListener('click', async () => {
+  runtime.stopped = false;
+  runGeneration++;
+  await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
+});
+
+renderStatus();
+setWsBadge(false);
 </script>
 </body>
 </html>
