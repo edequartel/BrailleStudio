@@ -1,10 +1,10 @@
-Here is the full version again, with:
-	•	Variables
-	•	Logic
-	•	Event/value blocks on the left
-	•	cursor position changed
-	•	thumb key pressed
-	•	save/load/new
+Here is a full updated version with the safer event blocks applied:
+	•	removed setHat(true)
+	•	event blocks are top-level blocks with:
+	•	setPreviousStatement(false)
+	•	setNextStatement(false)
+	•	changed renderer to geras
+	•	kept variables, logic, save/load, and simulated events
 
 <!doctype html>
 <html lang="en">
@@ -274,6 +274,7 @@ Here is the full version again, with:
     };
 
     const variableValues = {};
+    let workspace = null;
 
     function renderState() {
       const varLines = workspace
@@ -295,12 +296,17 @@ variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
     }
 
+    // ---------------------------
+    // Safer custom event blocks
+    // ---------------------------
     Blockly.Blocks['event_when_started'] = {
       init: function() {
         this.appendDummyInput().appendField("when started");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when the activity starts");
       }
     };
 
@@ -312,7 +318,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField("received");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when a braille chord is received");
       }
     };
 
@@ -329,7 +337,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField("received");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when a specific thumb key is received");
       }
     };
 
@@ -339,7 +349,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField("when any thumb key pressed");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when any thumb key is pressed");
       }
     };
 
@@ -350,7 +362,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField(new Blockly.FieldNumber(5, 0, 39, 1), "CELL");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when cursor routing is pressed at a cell");
       }
     };
 
@@ -360,7 +374,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField("when cursor position changed");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when the cursor position changes");
       }
     };
 
@@ -378,10 +394,15 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
           .appendField("received");
         this.appendStatementInput("DO").appendField("do");
         this.setColour("#FFBF00");
-        this.setHat(true);
+        this.setPreviousStatement(false);
+        this.setNextStatement(false);
+        this.setTooltip("Runs when an editor key event is received");
       }
     };
 
+    // ---------------------------
+    // Action blocks
+    // ---------------------------
     Blockly.Blocks['bb_set_text'] = {
       init: function() {
         this.appendValueInput("TEXT").appendField("set text");
@@ -437,6 +458,9 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
+    // ---------------------------
+    // Reporter blocks
+    // ---------------------------
     Blockly.Blocks['state_current_cursor_position'] = {
       init: function() {
         this.appendDummyInput().appendField("current cursor position");
@@ -477,11 +501,12 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
       }
     };
 
-    const workspace = Blockly.inject('blocklyDiv', {
+    // Use geras instead of zelos
+    workspace = Blockly.inject('blocklyDiv', {
       toolbox: document.getElementById('toolbox'),
       trashcan: true,
       scrollbars: true,
-      renderer: 'zelos',
+      renderer: 'geras',
       move: {
         scrollbars: true,
         drag: true,
@@ -1023,4 +1048,4 @@ ${varLines.length ? varLines.join('\n') : '(none)'}`;
 </body>
 </html>
 
-The earlier version had a messy duplicate variables_get part; this one is cleaned up.
+If this still hangs, the next clean fix is to switch the toolbox from XML to JSON.
