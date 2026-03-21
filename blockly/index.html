@@ -200,6 +200,7 @@
     <div id="title">Braille Activity Builder</div>
 
     <button id="connectBtn" class="btn btn-blue">Connect WS</button>
+    <button id="disconnectBtn" class="btn">Disconnect WS</button>
     <div id="wsBadge" class="badge">Disconnected</div>
 
     <button id="runBtn" class="btn btn-green">Start</button>
@@ -247,6 +248,17 @@
           <strong>Start</strong> only runs stacks under <strong>when started</strong>.
         </div>
       </div>
+
+      <div class="card">
+        <h3>Sounds</h3>
+        <div class="small">Base URL:</div>
+        <div id="soundBaseUrlBox" class="mono"></div>
+        <div class="row">
+          <input id="soundFileInput" type="text" value="voorbeeld.mp3" style="flex:1; min-width:180px; padding:6px 8px;">
+          <button id="playSoundBtn" class="btn">Play file</button>
+          <button id="stopSoundBtn" class="btn">Stop sound</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -254,6 +266,7 @@
 <xml id="toolbox" style="display:none">
   <category name="Events" colour="#F59E0B">
     <block type="event_when_started"></block>
+    <block type="event_when_timer"></block>
     <block type="event_when_thumb_key"></block>
     <block type="event_when_any_thumb_key"></block>
     <block type="event_when_cursor_routing"></block>
@@ -277,6 +290,41 @@
     <block type="bb_set_caret_to_begin"></block>
     <block type="bb_set_caret_to_end"></block>
     <block type="bb_wait"></block>
+    <block type="bb_wait_ms">
+      <value name="MILLISECONDS">
+        <shadow type="math_number">
+          <field name="NUM">250</field>
+        </shadow>
+      </value>
+    </block>
+  </category>
+
+  <category name="Timers" colour="#0EA5E9">
+    <block type="timer_start">
+      <value name="SECONDS">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="timer_stop"></block>
+    <block type="timer_stop_all"></block>
+    <block type="state_last_timer_name"></block>
+    <block type="state_last_timer_tick"></block>
+  </category>
+
+  <category name="Sounds" colour="#10B981">
+    <block type="sound_play_file"></block>
+    <block type="sound_play_url"></block>
+    <block type="sound_stop"></block>
+    <block type="sound_set_volume">
+      <value name="VOLUME">
+        <shadow type="math_number">
+          <field name="NUM">100</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="state_last_sound"></block>
   </category>
 
   <category name="Logic" colour="#16A34A">
@@ -356,15 +404,28 @@ const runtime = {
   lastCursorCell: -1,
   lastChord: '',
   lastEditorKey: '',
+  lastSound: '',
+  lastTimerName: '',
+  lastTimerTick: 0,
   activeTable: '',
   lineId: 0
 };
 
 const variableValues = {};
+const timerHandles = new Map();
+let soundVolume = 1;
+let activeAudio = null;
+const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 let ws = null;
 let wsConnected = false;
+let reconnectTimer = null;
+let autoConnectEnabled = true;
+let pendingStart = false;
+let pendingStartGeneration = 0;
 let runGeneration = 0;
 let workspace = null;
+const WS_URL = 'ws://localhost:5000/ws';
+const AUTO_RECONNECT_MS = 2000;
 
 function renderStatus() {
   const varLines = workspace
@@ -384,6 +445,9 @@ last thumb key   : ${runtime.lastThumbKey}
 last cursor cell : ${runtime.lastCursorCell}
 last chord       : ${runtime.lastChord}
 last editor key  : ${runtime.lastEditorKey}
+last sound       : ${runtime.lastSound}
+last timer name  : ${runtime.lastTimerName}
+last timer tick  : ${runtime.lastTimerTick}
 active table     : ${runtime.activeTable}
 line id          : ${runtime.lineId}
 stopped          : ${runtime.stopped}
@@ -397,36 +461,205 @@ function wsEventType(msg) {
   return msg?.Type ?? msg?.type ?? '';
 }
 
-function connectWs() {
+function wsField(obj, upperName, lowerName) {
+  if (!obj || typeof obj !== 'object') return null;
+  if (obj[upperName] != null) return obj[upperName];
+  if (obj[lowerName] != null) return obj[lowerName];
+  return null;
+}
+
+function wsPayload(msg) {
+  return wsField(msg, 'Payload', 'payload') || {};
+}
+
+function wsCursor(msg) {
+  return wsField(msg, 'Cursor', 'cursor') || {};
+}
+
+function stopTimerByName(name) {
+  const key = String(name || '').trim();
+  if (!key) return;
+  const handle = timerHandles.get(key);
+  if (!handle) return;
+  clearInterval(handle.id);
+  timerHandles.delete(key);
+  log('Timer stopped: ' + key);
+}
+
+function stopAllTimers() {
+  for (const [, handle] of timerHandles) {
+    clearInterval(handle.id);
+  }
+  if (timerHandles.size > 0) {
+    log('All timers stopped (' + timerHandles.size + ')');
+  }
+  timerHandles.clear();
+}
+
+function startTimer(name, seconds, generation) {
+  const key = String(name || '').trim();
+  if (!key) {
+    log('Timer start skipped: empty name');
+    return;
+  }
+  const periodMs = Math.max(50, Math.floor(toNumber(seconds) * 1000));
+  stopTimerByName(key);
+  const state = { id: 0, tick: 0, generation };
+  state.id = setInterval(() => {
+    if (state.generation !== runGeneration || runtime.stopped) return;
+    state.tick += 1;
+    runtime.lastTimerName = key;
+    runtime.lastTimerTick = state.tick;
+    renderStatus();
+    dispatchEvent({ type: 'timer', name: key, tick: state.tick }, state.generation)
+      .catch(err => log('Timer dispatch failed (' + key + '): ' + err.message));
+  }, periodMs);
+  timerHandles.set(key, state);
+  log('Timer started: ' + key + ' every ' + (periodMs / 1000) + 's');
+}
+
+function resolveSoundUrl(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const filename = raw.toLowerCase().endsWith('.mp3') ? raw : (raw + '.mp3');
+  return SOUND_BASE_URL + encodeURIComponent(filename);
+}
+
+function stopSound() {
+  if (!activeAudio) return;
+  try {
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+  } catch {
+    // ignore pause/currentTime errors
+  }
+  activeAudio = null;
+}
+
+async function playSound(input) {
+  const url = resolveSoundUrl(input);
+  if (!url) {
+    log('Sound skipped: empty filename/url');
+    return;
+  }
+  stopSound();
+  const audio = new Audio(url);
+  audio.volume = soundVolume;
+  activeAudio = audio;
+  runtime.lastSound = url;
+  renderStatus();
+  try {
+    await audio.play();
+    log('Sound play: ' + url);
+  } catch (err) {
+    log('Sound failed: ' + err.message);
+  }
+}
+
+function isWsOpen() {
+  return !!ws && ws.readyState === WebSocket.OPEN;
+}
+
+function clearReconnectTimer() {
+  if (!reconnectTimer) return;
+  clearTimeout(reconnectTimer);
+  reconnectTimer = null;
+}
+
+function scheduleReconnect() {
+  if (!autoConnectEnabled || reconnectTimer || isWsOpen()) return;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (!autoConnectEnabled || isWsOpen()) return;
+    connectWs('auto-reconnect');
+  }, AUTO_RECONNECT_MS);
+}
+
+function disconnectWs() {
+  autoConnectEnabled = false;
+  clearReconnectTimer();
+  pendingStart = false;
+  stopAllTimers();
+  stopSound();
+  if (ws) {
+    try {
+      ws.close(1000, 'client close');
+    } catch (err) {
+      log('WS close failed: ' + err.message);
+    }
+  }
+  ws = null;
+  wsConnected = false;
+  setWsBadge(false);
+  renderStatus();
+  log('WS disconnected (manual)');
+}
+
+function connectWs(reason = 'manual') {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     log('WS already connected/connecting');
     return;
   }
 
-  ws = new WebSocket('ws://localhost:5000/ws');
+  if (reason !== 'auto-reconnect') {
+    autoConnectEnabled = true;
+  }
+  clearReconnectTimer();
 
-  ws.onopen = () => {
+  let socket = null;
+  try {
+    socket = new WebSocket(WS_URL);
+  } catch (err) {
+    log('WS connect failed: ' + String(err));
+    scheduleReconnect();
+    return;
+  }
+  ws = socket;
+  log('WS connecting to ' + WS_URL);
+
+  socket.onopen = () => {
+    if (ws !== socket) return;
     wsConnected = true;
+    clearReconnectTimer();
     setWsBadge(true);
     renderStatus();
-    log('WS connected to ws://localhost:5000/ws');
+    log('WS connected to ' + WS_URL);
     sendWs({ type: 'getBrailleLine' });
+    if (pendingStart && pendingStartGeneration === runGeneration && !runtime.stopped) {
+      pendingStart = false;
+      runStartedProgram(runGeneration).catch(err => log('Start failed: ' + err.message));
+    }
   };
 
-  ws.onclose = () => {
+  socket.onclose = (ev) => {
+    if (ws === socket) ws = null;
     wsConnected = false;
     setWsBadge(false);
     renderStatus();
-    log('WS disconnected');
+    log('WS disconnected code=' + ev.code + ' reason=' + (ev.reason || '-'));
+    scheduleReconnect();
   };
 
-  ws.onerror = () => {
+  socket.onerror = () => {
     log('WS error');
+    scheduleReconnect();
   };
 
-  ws.onmessage = async (ev) => {
+  socket.onmessage = async (ev) => {
     try {
-      const msg = JSON.parse(ev.data);
+      let raw = ev.data;
+      if (typeof raw !== 'string') {
+        if (raw && typeof raw.text === 'function') {
+          raw = await raw.text();
+        } else if (raw instanceof ArrayBuffer) {
+          raw = new TextDecoder('utf-8').decode(raw);
+        } else {
+          log('WS ignored non-text message');
+          return;
+        }
+      }
+      const msg = JSON.parse(raw);
       await handleIncomingWs(msg);
     } catch (err) {
       log('WS parse error: ' + err.message);
@@ -454,6 +687,8 @@ async function handleIncomingWs(msg) {
   const type = wsEventType(msg);
 
   if (type === 'brailleLine') {
+    const prevTextCaret = runtime.textCaret;
+    const prevCellCaret = runtime.cellCaret;
     runtime.text = msg.sourceText ?? runtime.text;
     runtime.brailleUnicode = msg.braille?.unicodeText ?? '';
     runtime.textCaret = msg.meta?.caretTextPosition ?? msg.caret?.textIndex ?? runtime.textCaret;
@@ -465,12 +700,20 @@ async function handleIncomingWs(msg) {
     runtime.lineId = msg.meta?.lineId ?? runtime.lineId;
     renderStatus();
     renderBrailleLine(msg);
+    if (runtime.textCaret !== prevTextCaret || runtime.cellCaret !== prevCellCaret) {
+      await dispatchEvent({
+        type: 'cursorPositionChanged',
+        position: runtime.textCaret,
+        cell: runtime.cellCaret
+      }, runGeneration);
+    }
     return;
   }
 
   if (type === 'thumbKey') {
-    const name = msg.Payload?.Name ?? '';
-    const press = !!msg.Payload?.Press;
+    const payload = wsPayload(msg);
+    const name = payload.Name ?? payload.name ?? '';
+    const press = !!(payload.Press ?? payload.press);
     runtime.lastThumbKey = normalizeThumb(name);
     renderStatus();
     if (press) {
@@ -480,8 +723,9 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'editorKey') {
-    const key = msg.Payload?.Key ?? '';
-    const press = !!msg.Payload?.Press;
+    const payload = wsPayload(msg);
+    const key = payload.Key ?? payload.key ?? '';
+    const press = !!(payload.Press ?? payload.press);
     runtime.lastEditorKey = key;
     renderStatus();
     if (press) {
@@ -491,13 +735,19 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'cursor') {
-    runtime.lastCursorCell = msg.Cursor?.CellIndex ?? runtime.lastCursorCell;
-    runtime.textCaret = msg.Cursor?.TextIndex ?? runtime.textCaret;
+    const cursor = wsCursor(msg);
+    runtime.lastCursorCell = cursor.CellIndex ?? cursor.cellIndex ?? runtime.lastCursorCell;
+    runtime.textCaret = cursor.TextIndex ?? cursor.textIndex ?? runtime.textCaret;
     renderStatus();
     await dispatchEvent({
       type: 'cursorRouting',
       cell: runtime.lastCursorCell,
       textIndex: runtime.textCaret
+    }, runGeneration);
+    await dispatchEvent({
+      type: 'cursorPositionChanged',
+      position: runtime.textCaret,
+      cell: runtime.lastCursorCell
     }, runGeneration);
     return;
   }
@@ -520,16 +770,158 @@ function normalizeThumb(name) {
 }
 
 function extractChord(msg) {
-  if (msg?.Payload?.Name) return String(msg.Payload.Name);
-  if (msg?.Cursor?.Character) return String(msg.Cursor.Character);
-  if (msg?.Braille?.CellChar) return String(msg.Braille.CellChar);
+  const payload = wsPayload(msg);
+  const cursor = wsCursor(msg);
+  const braille = wsField(msg, 'Braille', 'braille') || {};
+  if (payload.Name != null) return String(payload.Name);
+  if (payload.name != null) return String(payload.name);
+  if (payload.Dots != null) return String(payload.Dots);
+  if (payload.dots != null) return String(payload.dots);
+  if (cursor.Character != null) return String(cursor.Character);
+  if (cursor.character != null) return String(cursor.character);
+  if (braille.CellChar != null) return String(braille.CellChar);
+  if (braille.cellChar != null) return String(braille.cellChar);
   return '1';
 }
+
+async function runStartedProgram(generation) {
+  if (!workspace) {
+    log('Start blocked: Blockly workspace is not ready');
+    return;
+  }
+  if (generation !== runGeneration || runtime.stopped) return;
+  const startedBlocks = workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started');
+  if (startedBlocks.length === 0) {
+    log('Start warning: no "when started" block found');
+  }
+  await dispatchEvent({ type: 'started' }, generation);
+  sendWs({ type: 'getBrailleLine' });
+}
+
+function bindWsControls() {
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  if (connectBtn && !connectBtn.dataset.wsBound) {
+    connectBtn.addEventListener('click', () => connectWs('manual'));
+    connectBtn.dataset.wsBound = '1';
+  }
+  if (disconnectBtn && !disconnectBtn.dataset.wsBound) {
+    disconnectBtn.addEventListener('click', disconnectWs);
+    disconnectBtn.dataset.wsBound = '1';
+  }
+}
+
+async function onRunClicked() {
+  stopAllTimers();
+  runtime.stopped = false;
+  runGeneration++;
+  const generation = runGeneration;
+  renderStatus();
+
+  if (!workspace) {
+    log('Start blocked: Blockly workspace is not ready');
+    return;
+  }
+
+  if (!isWsOpen()) {
+    pendingStart = true;
+    pendingStartGeneration = generation;
+    log('Start queued: waiting for WS connection');
+    connectWs('manual');
+    return;
+  }
+
+  pendingStart = false;
+  await runStartedProgram(generation);
+}
+
+function onStopClicked() {
+  runtime.stopped = true;
+  runGeneration++;
+  pendingStart = false;
+  stopAllTimers();
+  stopSound();
+  renderStatus();
+  log('Runtime stopped');
+}
+
+function bindAppControls() {
+  const bind = (id, eventName, handler) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const key = `bound_${eventName}`;
+    if (el.dataset[key]) return;
+    el.addEventListener(eventName, handler);
+    el.dataset[key] = '1';
+  };
+
+  bind('runBtn', 'click', onRunClicked);
+  bind('stopBtn', 'click', onStopClicked);
+  bind('saveBtn', 'click', saveWorkspace);
+  bind('loadBtn', 'click', () => document.getElementById('fileInput').click());
+  bind('newBtn', 'click', newWorkspace);
+  bind('fileInput', 'change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => loadWorkspaceFromText(reader.result);
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  bind('simThumbLeftBtn', 'click', async () => {
+    runtime.stopped = false;
+    runGeneration++;
+    await dispatchEvent({ type: 'thumbKey', key: 'left' }, runGeneration);
+  });
+  bind('simThumbRightBtn', 'click', async () => {
+    runtime.stopped = false;
+    runGeneration++;
+    await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
+  });
+  bind('simCursor5Btn', 'click', async () => {
+    runtime.stopped = false;
+    runGeneration++;
+    await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: runtime.textCaret }, runGeneration);
+  });
+  bind('simChord1Btn', 'click', async () => {
+    runtime.stopped = false;
+    runGeneration++;
+    await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
+  });
+  bind('playSoundBtn', 'click', async () => {
+    const input = document.getElementById('soundFileInput');
+    await playSound(input ? input.value : '');
+  });
+  bind('stopSoundBtn', 'click', stopSound);
+
+  const baseUrlBox = document.getElementById('soundBaseUrlBox');
+  if (baseUrlBox && !baseUrlBox.dataset.initialized) {
+    baseUrlBox.textContent = SOUND_BASE_URL;
+    baseUrlBox.dataset.initialized = '1';
+  }
+}
+
+bindWsControls();
+bindAppControls();
+connectWs('manual');
 
 /* ---------------- Custom blocks ---------------- */
 Blockly.Blocks['event_when_started'] = {
   init() {
     this.appendDummyInput().appendField('when started');
+    this.appendStatementInput('DO').appendField('do');
+    this.setColour('#F59E0B');
+    this.setPreviousStatement(false);
+    this.setNextStatement(false);
+  }
+};
+
+Blockly.Blocks['event_when_timer'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('when timer')
+      .appendField(new Blockly.FieldTextInput('timer1'), 'NAME')
+      .appendField('ticks');
     this.appendStatementInput('DO').appendField('do');
     this.setColour('#F59E0B');
     this.setPreviousStatement(false);
@@ -781,6 +1173,86 @@ Blockly.Blocks['bb_wait'] = {
   }
 };
 
+Blockly.Blocks['bb_wait_ms'] = {
+  init() {
+    this.appendValueInput('MILLISECONDS').appendField('wait milliseconds');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['sound_play_file'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('play sound file')
+      .appendField(new Blockly.FieldTextInput('voorbeeld.mp3'), 'FILE');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_play_url'] = {
+  init() {
+    this.appendValueInput('URL').appendField('play sound url');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_stop'] = {
+  init() {
+    this.appendDummyInput().appendField('stop sound');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_set_volume'] = {
+  init() {
+    this.appendValueInput('VOLUME').appendField('set sound volume %');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['timer_start'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('start timer')
+      .appendField(new Blockly.FieldTextInput('timer1'), 'NAME')
+      .appendField('every');
+    this.appendValueInput('SECONDS').appendField('seconds');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['timer_stop'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('stop timer')
+      .appendField(new Blockly.FieldTextInput('timer1'), 'NAME');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['timer_stop_all'] = {
+  init() {
+    this.appendDummyInput().appendField('stop all timers');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
 Blockly.Blocks['state_text_caret'] = {
   init() {
     this.appendDummyInput().appendField('text caret');
@@ -845,6 +1317,30 @@ Blockly.Blocks['state_insert_mode'] = {
   }
 };
 
+Blockly.Blocks['state_last_timer_name'] = {
+  init() {
+    this.appendDummyInput().appendField('last timer name');
+    this.setOutput(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['state_last_timer_tick'] = {
+  init() {
+    this.appendDummyInput().appendField('last timer tick');
+    this.setOutput(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['state_last_sound'] = {
+  init() {
+    this.appendDummyInput().appendField('last sound');
+    this.setOutput(true);
+    this.setColour('#10B981');
+  }
+};
+
 /* ---------------- Workspace ---------------- */
 workspace = Blockly.inject('blocklyDiv', {
   toolbox: document.getElementById('toolbox'),
@@ -866,6 +1362,18 @@ workspace = Blockly.inject('blocklyDiv', {
     snap: true
   }
 });
+
+function resizeBlockly() {
+  if (!workspace) return;
+  Blockly.svgResize(workspace);
+}
+
+window.addEventListener('resize', resizeBlockly);
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => resizeBlockly());
+  ro.observe(document.getElementById('workspaceWrap'));
+}
+setTimeout(resizeBlockly, 0);
 
 function ensureDefaultVariable() {
   const names = workspace.getAllVariables().map(v => v.name);
@@ -916,28 +1424,82 @@ const defaultXmlText = `
           <block type="bb_set_insert_mode">
             <field name="MODE">on</field>
             <next>
-              <block type="bb_set_text">
-                <value name="TEXT">
-                  <shadow type="text">
-                    <field name="TEXT">Hello braille</field>
+              <block type="variables_set">
+                <field name="VAR">score</field>
+                <value name="VALUE">
+                  <shadow type="math_number">
+                    <field name="NUM">0</field>
                   </shadow>
                 </value>
                 <next>
-                  <block type="variables_set">
-                    <field name="VAR">score</field>
-                    <value name="VALUE">
-                      <shadow type="math_number">
-                        <field name="NUM">0</field>
+                  <block type="bb_set_text">
+                    <value name="TEXT">
+                      <shadow type="text">
+                        <field name="TEXT">Timer demo</field>
                       </shadow>
                     </value>
                     <next>
-                      <block type="bb_get_braille_line"></block>
+                      <block type="timer_start">
+                        <field name="NAME">timer1</field>
+                        <value name="SECONDS">
+                          <shadow type="math_number">
+                            <field name="NUM">1</field>
+                          </shadow>
+                        </value>
+                        <next>
+                          <block type="controls_repeat_ext">
+                            <value name="TIMES">
+                              <shadow type="math_number">
+                                <field name="NUM">3</field>
+                              </shadow>
+                            </value>
+                            <statement name="DO">
+                              <block type="bb_append_text">
+                                <value name="TEXT">
+                                  <shadow type="text">
+                                    <field name="TEXT">.</field>
+                                  </shadow>
+                                </value>
+                                <next>
+                                  <block type="bb_wait">
+                                    <value name="SECONDS">
+                                      <shadow type="math_number">
+                                        <field name="NUM">1</field>
+                                      </shadow>
+                                    </value>
+                                  </block>
+                                </next>
+                              </block>
+                            </statement>
+                            <next>
+                              <block type="bb_get_braille_line"></block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
                     </next>
                   </block>
                 </next>
               </block>
             </next>
           </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_timer" x="430" y="30">
+    <field name="NAME">timer1</field>
+    <statement name="DO">
+      <block type="variables_change">
+        <field name="VAR">score</field>
+        <value name="VALUE">
+          <shadow type="math_number">
+            <field name="NUM">1</field>
+          </shadow>
+        </value>
+        <next>
+          <block type="bb_get_braille_line"></block>
         </next>
       </block>
     </statement>
@@ -971,7 +1533,7 @@ const defaultXmlText = `
     </statement>
   </block>
 
-  <block type="event_when_chord" x="430" y="30">
+  <block type="event_when_chord" x="430" y="220">
     <field name="DOTS">1</field>
     <statement name="DO">
       <block type="variables_change">
@@ -1055,6 +1617,15 @@ function evalValue(block) {
 
     case 'state_insert_mode':
       return runtime.insertMode;
+
+    case 'state_last_timer_name':
+      return runtime.lastTimerName;
+
+    case 'state_last_timer_tick':
+      return runtime.lastTimerTick;
+
+    case 'state_last_sound':
+      return runtime.lastSound;
 
     case 'variables_get': {
       const id = getVariableIdFromBlock(block);
@@ -1217,6 +1788,55 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'bb_wait_ms': {
+        const ms = Math.max(0, Math.floor(toNumber(evalValue(current.getInputTargetBlock('MILLISECONDS')))));
+        await new Promise(resolve => setTimeout(resolve, ms));
+        break;
+      }
+
+      case 'sound_play_file': {
+        const file = current.getFieldValue('FILE');
+        await playSound(file);
+        break;
+      }
+
+      case 'sound_play_url': {
+        const url = String(evalValue(current.getInputTargetBlock('URL')) ?? '');
+        await playSound(url);
+        break;
+      }
+
+      case 'sound_stop': {
+        stopSound();
+        break;
+      }
+
+      case 'sound_set_volume': {
+        const percent = Math.max(0, Math.min(100, toNumber(evalValue(current.getInputTargetBlock('VOLUME')))));
+        soundVolume = percent / 100;
+        if (activeAudio) activeAudio.volume = soundVolume;
+        log('Sound volume: ' + percent + '%');
+        break;
+      }
+
+      case 'timer_start': {
+        const name = current.getFieldValue('NAME');
+        const seconds = Math.max(0.05, toNumber(evalValue(current.getInputTargetBlock('SECONDS'))));
+        startTimer(name, seconds, generation);
+        break;
+      }
+
+      case 'timer_stop': {
+        const name = current.getFieldValue('NAME');
+        stopTimerByName(name);
+        break;
+      }
+
+      case 'timer_stop_all': {
+        stopAllTimers();
+        break;
+      }
+
       case 'variables_set': {
         const id = getVariableIdFromBlock(current);
         const value = evalValue(current.getInputTargetBlock('VALUE'));
@@ -1278,6 +1898,10 @@ function eventMatches(block, event) {
     case 'event_when_started':
       return event.type === 'started';
 
+    case 'event_when_timer':
+      return event.type === 'timer' &&
+        String(block.getFieldValue('NAME')) === String(event.name);
+
     case 'event_when_thumb_key':
       return event.type === 'thumbKey' &&
         String(block.getFieldValue('KEY')).toLowerCase() === String(event.key).toLowerCase();
@@ -1307,6 +1931,7 @@ function eventMatches(block, event) {
 
 async function dispatchEvent(event, generation = runGeneration) {
   if (generation !== runGeneration || runtime.stopped) return;
+  if (!workspace) return;
 
   if (event.type === 'thumbKey') {
     runtime.lastThumbKey = event.key ?? '';
@@ -1323,6 +1948,10 @@ async function dispatchEvent(event, generation = runGeneration) {
   }
   if (event.type === 'editorKey') {
     runtime.lastEditorKey = String(event.key ?? '');
+  }
+  if (event.type === 'timer') {
+    runtime.lastTimerName = String(event.name ?? '');
+    runtime.lastTimerTick = Number(event.tick ?? runtime.lastTimerTick);
   }
 
   renderStatus();
@@ -1375,69 +2004,14 @@ function newWorkspace() {
   if (!confirm('Clear current workspace?')) return;
   runtime.stopped = true;
   runGeneration++;
+  stopAllTimers();
+  stopSound();
   workspace.clear();
   ensureDefaultVariable();
   initVariableValues();
   renderBrailleLine(null);
   log('Workspace cleared');
 }
-
-/* ---------------- Buttons ---------------- */
-document.getElementById('connectBtn').addEventListener('click', connectWs);
-document.getElementById('runBtn').addEventListener('click', async () => {
-  runtime.stopped = false;
-  runGeneration++;
-  const generation = runGeneration;
-  renderStatus();
-  await dispatchEvent({ type: 'started' }, generation);
-  sendWs({ type: 'getBrailleLine' });
-});
-
-document.getElementById('stopBtn').addEventListener('click', () => {
-  runtime.stopped = true;
-  runGeneration++;
-  renderStatus();
-  log('Runtime stopped');
-});
-
-document.getElementById('saveBtn').addEventListener('click', saveWorkspace);
-document.getElementById('loadBtn').addEventListener('click', () => {
-  document.getElementById('fileInput').click();
-});
-document.getElementById('newBtn').addEventListener('click', newWorkspace);
-
-document.getElementById('fileInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => loadWorkspaceFromText(reader.result);
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
-document.getElementById('simThumbLeftBtn').addEventListener('click', async () => {
-  runtime.stopped = false;
-  runGeneration++;
-  await dispatchEvent({ type: 'thumbKey', key: 'left' }, runGeneration);
-});
-
-document.getElementById('simThumbRightBtn').addEventListener('click', async () => {
-  runtime.stopped = false;
-  runGeneration++;
-  await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
-});
-
-document.getElementById('simCursor5Btn').addEventListener('click', async () => {
-  runtime.stopped = false;
-  runGeneration++;
-  await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: runtime.textCaret }, runGeneration);
-});
-
-document.getElementById('simChord1Btn').addEventListener('click', async () => {
-  runtime.stopped = false;
-  runGeneration++;
-  await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
-});
 
 renderStatus();
 setWsBadge(false);
