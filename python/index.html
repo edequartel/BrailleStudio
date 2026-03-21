@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BrailleBridge Python Studio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --panel-soft: #f8faff;
+      --border: #d9e0ea;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #2563eb;
+      --amber: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+    }
+
+    #topbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+    }
+
+    #title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-right: 12px;
+    }
+
+    .spacer { flex: 1 1 auto; }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .btn:hover { filter: brightness(0.98); }
+
+    .btn-green {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+
+    .btn-red {
+      background: var(--red);
+      color: white;
+      border-color: var(--red);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+    }
+
+    .btn-soft {
+      background: #eef4ff;
+      color: #1d4ed8;
+      border-color: #c7d7ff;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .badge.connected {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge.loading {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge.stopped {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    #main {
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      min-height: 0;
+    }
+
+    #editorPane {
+      min-height: 0;
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+    }
+
+    #editorLabel {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    #editor {
+      width: 100%;
+      height: 100%;
+      resize: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: Consolas, Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.45;
+      background: white;
+      outline: none;
+      tab-size: 4;
+    }
+
+    #sidebar {
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: auto;
+    }
+
+    .card {
+      background: var(--panel-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+    }
+
+    .mono {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      font-family: Consolas, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      background: white;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    #fileInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="title">BrailleBridge Python Studio</div>
+
+    <button id="connectBtn" class="btn btn-blue">Connect WS</button>
+    <div id="wsBadge" class="badge">Disconnected</div>
+
+    <button id="runBtn" class="btn btn-green">Run</button>
+    <button id="stopBtn" class="btn btn-red">Stop</button>
+
+    <button id="saveBtn" class="btn">Save</button>
+    <button id="loadBtn" class="btn">Load</button>
+    <button id="newBtn" class="btn">New</button>
+    <input id="fileInput" type="file" accept=".py,text/plain">
+
+    <div class="spacer"></div>
+
+    <button id="exampleBtn" class="btn btn-soft">Load Example</button>
+    <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
+    <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
+    <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
+    <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+
+    <div id="pyBadge" class="badge loading">Loading Pyodide...</div>
+  </div>
+
+  <div id="main">
+    <div id="editorPane">
+      <div id="editorLabel">Python script</div>
+      <textarea id="editor" spellcheck="false"></textarea>
+    </div>
+
+    <div id="sidebar">
+      <div class="card">
+        <h3>Status</h3>
+        <div id="statusBox" class="mono"></div>
+      </div>
+
+      <div class="card">
+        <h3>Last brailleLine</h3>
+        <div id="brailleLineBox" class="mono"></div>
+      </div>
+
+      <div class="card">
+        <h3>Log</h3>
+        <textarea id="logBox" class="mono" readonly></textarea>
+      </div>
+
+      <div class="card">
+        <h3>Python API</h3>
+        <div class="small">
+          Use decorators like:<br>
+          <code>@bb.on_started</code><br>
+          <code>@bb.on_thumb_key("left")</code><br>
+          <code>@bb.on_cursor_routing(5)</code><br>
+          <code>@bb.on_chord("1")</code><br>
+          <code>@bb.on_editor_key("Backspace")</code><br><br>
+
+          Commands:<br>
+          <code>bb.set_text(...)</code><br>
+          <code>bb.append_text(...)</code><br>
+          <code>bb.send_key(...)</code><br>
+          <code>bb.set_editor_mode(True)</code><br>
+          <code>bb.set_insert_mode(True)</code><br>
+          <code>bb.set_caret(...)</code><br>
+          <code>bb.move_caret(..., "character")</code><br>
+          <code>bb.set_caret_from_cell(...)</code><br>
+          <code>bb.cursor_routing(...)</code><br>
+          <code>bb.get_braille_line()</code><br>
+          <code>bb.set_caret_visibility(True)</code><br>
+          <code>bb.set_caret_style([7,8], True, 500)</code><br>
+          <code>bb.set_caret_to_begin()</code><br>
+          <code>bb.set_caret_to_end()</code><br>
+          <code>bb.wait_ms(...)</code><br>
+          <code>check_stop()</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const WS_URL = "ws://localhost:5000/ws";
+
+  let pyodide = null;
+  let pyReady = false;
+  let ws = null;
+  let wsConnected = false;
+  let running = false;
+  let stopRequested = false;
+  let currentFileName = null;
+  let userGlobals = null;
+
+  const runtime = {
+    text: "",
+    brailleUnicode: "",
+    textCaret: 0,
+    cellCaret: 0,
+    editorMode: "off",
+    insertMode: "off",
+    caretVisible: true,
+    lastThumbKey: "",
+    lastCursorCell: -1,
+    lastCursorText: -1,
+    lastChord: "",
+    lastEditorKey: "",
+    activeTable: "",
+    lineId: 0
+  };
+
+  const editor = document.getElementById("editor");
+  const logBox = document.getElementById("logBox");
+  const statusBox = document.getElementById("statusBox");
+  const brailleLineBox = document.getElementById("brailleLineBox");
+  const wsBadge = document.getElementById("wsBadge");
+  const pyBadge = document.getElementById("pyBadge");
+  const fileInput = document.getElementById("fileInput");
+
+  function appendLog(text) {
+    logBox.value += text + "\n";
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  function setWsBadge(connected) {
+    wsBadge.textContent = connected ? "Connected" : "Disconnected";
+    wsBadge.className = "badge" + (connected ? " connected" : "");
+  }
+
+  function setPyBadge(text, cls = "") {
+    pyBadge.textContent = text;
+    pyBadge.className = "badge " + cls;
+  }
+
+  function renderStatus() {
+    statusBox.textContent =
+`py ready          : ${pyReady}
+ws connected       : ${wsConnected}
+running            : ${running}
+stop requested     : ${stopRequested}
+file               : ${currentFileName ?? "(unsaved)"}
+
+text               : ${runtime.text}
+braille unicode    : ${runtime.brailleUnicode}
+text caret         : ${runtime.textCaret}
+cell caret         : ${runtime.cellCaret}
+editor mode        : ${runtime.editorMode}
+insert mode        : ${runtime.insertMode}
+caret visible      : ${runtime.caretVisible}
+last thumb key     : ${runtime.lastThumbKey}
+last cursor cell   : ${runtime.lastCursorCell}
+last cursor text   : ${runtime.lastCursorText}
+last chord         : ${runtime.lastChord}
+last editor key    : ${runtime.lastEditorKey}
+active table       : ${runtime.activeTable}
+line id            : ${runtime.lineId}`;
+  }
+
+  function renderBrailleLine(obj) {
+    brailleLineBox.textContent = obj ? JSON.stringify(obj, null, 2) : "";
+  }
+
+  function wsEventType(msg) {
+    return msg?.Type ?? msg?.type ?? "";
+  }
+
+  function normalizeThumb(name) {
+    const s = String(name || "").toLowerCase();
+    if (s.includes("left")) return "left";
+    if (s.includes("right")) return "right";
+    if (s.includes("up")) return "up";
+    if (s.includes("down")) return "down";
+    return s;
+  }
+
+  function extractChord(msg) {
+    if (msg?.Payload?.Name) return String(msg.Payload.Name);
+    if (msg?.Cursor?.Character) return String(msg.Cursor.Character);
+    if (msg?.Braille?.CellChar) return String(msg.Braille.CellChar);
+    return "1";
+  }
+
+  function sendWs(obj) {
+    const json = JSON.stringify(obj);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      appendLog("WS not connected, skipped: " + json);
+      return false;
+    }
+    ws.send(json);
+    appendLog("WS IN  " + json);
+    return true;
+  }
+
+  function sendEnvelope(command, extra = {}) {
+    return sendWs({ type: "command", command, ...extra });
+  }
+
+  function connectWs() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      appendLog("WebSocket already connected/connecting");
+      return;
+    }
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      wsConnected = true;
+      setWsBadge(true);
+      renderStatus();
+      appendLog("WS connected: " + WS_URL);
+      sendWs({ type: "getBrailleLine" });
+    };
+
+    ws.onclose = () => {
+      wsConnected = false;
+      setWsBadge(false);
+      renderStatus();
+      appendLog("WS disconnected");
+    };
+
+    ws.onerror = () => {
+      appendLog("WS error");
+    };
+
+    ws.onmessage = async (ev) => {
+      try {
+        const msg = JSON.parse(ev.data);
+        appendLog("WS OUT " + JSON.stringify(msg));
+        await handleIncomingWs(msg);
+      } catch (err) {
+        appendLog("WS parse error: " + err.message);
+      }
+    };
+  }
+
+  async function handleIncomingWs(msg) {
+    const type = wsEventType(msg);
+
+    if (type === "brailleLine") {
+      runtime.text = msg.sourceText ?? runtime.text;
+      runtime.brailleUnicode = msg.braille?.unicodeText ?? "";
+      runtime.textCaret = msg.meta?.caretTextPosition ?? msg.caret?.textIndex ?? runtime.textCaret;
+      runtime.cellCaret = msg.meta?.caretCellPosition ?? msg.caret?.cellIndex ?? runtime.cellCaret;
+      runtime.editorMode = msg.status?.editorMode ?? runtime.editorMode;
+      runtime.insertMode = msg.status?.insertMode ?? runtime.insertMode;
+      runtime.caretVisible = msg.caretVisible ?? runtime.caretVisible;
+      runtime.activeTable = msg.meta?.activeTable ?? runtime.activeTable;
+      runtime.lineId = msg.meta?.lineId ?? runtime.lineId;
+      renderStatus();
+      renderBrailleLine(msg);
+      await dispatchPythonEvent("brailleLine", msg);
+      return;
+    }
+
+    if (type === "thumbKey") {
+      const key = normalizeThumb(msg.Payload?.Name ?? "");
+      const press = !!msg.Payload?.Press;
+      runtime.lastThumbKey = key;
+      renderStatus();
+      if (press) await dispatchPythonEvent("thumbKey", key);
+      return;
+    }
+
+    if (type === "editorKey") {
+      const key = msg.Payload?.Key ?? "";
+      const press = !!msg.Payload?.Press;
+      runtime.lastEditorKey = key;
+      renderStatus();
+      if (press) await dispatchPythonEvent("editorKey", key);
+      return;
+    }
+
+    if (type === "cursor") {
+      runtime.lastCursorCell = msg.Cursor?.CellIndex ?? runtime.lastCursorCell;
+      runtime.lastCursorText = msg.Cursor?.TextIndex ?? runtime.lastCursorText;
+      runtime.textCaret = runtime.lastCursorText >= 0 ? runtime.lastCursorText : runtime.textCaret;
+      renderStatus();
+      await dispatchPythonEvent("cursorRouting", {
+        cell: runtime.lastCursorCell,
+        textIndex: runtime.lastCursorText
+      });
+      await dispatchPythonEvent("cursorPositionChanged", runtime.textCaret);
+      return;
+    }
+
+    if (type === "chord") {
+      runtime.lastChord = extractChord(msg);
+      renderStatus();
+      await dispatchPythonEvent("chord", runtime.lastChord);
+    }
+  }
+
+  async function initPy() {
+    try {
+      setPyBadge("Loading Pyodide...", "loading");
+      appendLog("Loading Pyodide...");
+      pyodide = await loadPyodide();
+
+      pyodide.setStdout({
+        batched: (msg) => appendLog(msg)
+      });
+      pyodide.setStderr({
+        batched: (msg) => appendLog("ERR: " + msg)
+      });
+
+      pyodide.globals.set("js_send_ws", (payload) => {
+        try {
+          const jsObj = payload.toJs ? payload.toJs({ dict_converter: Object.fromEntries }) : payload;
+          sendWs(jsObj);
+        } catch (err) {
+          appendLog("js_send_ws error: " + err.message);
+        }
+      });
+
+      pyodide.globals.set("js_log", (msg) => appendLog(String(msg)));
+      pyodide.globals.set("js_check_stop", () => stopRequested);
+      pyodide.globals.set("js_wait_ms", async (ms) => {
+        await new Promise(resolve => setTimeout(resolve, Number(ms)));
+      });
+
+      await pyodide.runPythonAsync(`
+from js import js_send_ws, js_log, js_check_stop, js_wait_ms
+import asyncio
+
+class StopRequestedError(Exception):
+    pass
+
+class BrailleBridgeClient:
+    def __init__(self):
+        self._handlers = {
+            "started": [],
+            "thumbKey": [],
+            "cursorRouting": [],
+            "cursorPositionChanged": [],
+            "chord": [],
+            "editorKey": [],
+            "brailleLine": [],
+        }
+
+    # decorators
+    def on_started(self, func):
+        self._handlers["started"].append((None, func))
+        return func
+
+    def on_any_thumb_key(self, func):
+        self._handlers["thumbKey"].append((None, func))
+        return func
+
+    def on_thumb_key(self, key):
+        def deco(func):
+            self._handlers["thumbKey"].append((str(key).lower(), func))
+            return func
+        return deco
+
+    def on_cursor_routing(self, cell=None):
+        def deco(func):
+            self._handlers["cursorRouting"].append((cell, func))
+            return func
+        return deco
+
+    def on_cursor_position_changed(self, func):
+        self._handlers["cursorPositionChanged"].append((None, func))
+        return func
+
+    def on_chord(self, dots=None):
+        def deco(func):
+            self._handlers["chord"].append((dots, func))
+            return func
+        return deco
+
+    def on_editor_key(self, key=None):
+        def deco(func):
+            self._handlers["editorKey"].append((key, func))
+            return func
+        return deco
+
+    def on_braille_line(self, func):
+        self._handlers["brailleLine"].append((None, func))
+        return func
+
+    # outgoing commands
+    def _send(self, obj):
+        js_send_ws(obj)
+
+    def set_editor_mode(self, enabled: bool):
+        self._send({"type": "command", "command": "setEditorMode", "enabled": bool(enabled)})
+
+    def set_insert_mode(self, enabled: bool):
+        self._send({"type": "setEditorInsertMode", "enabled": bool(enabled)})
+
+    def set_text(self, text: str, replace: bool = True):
+        self._send({
+            "type": "command",
+            "command": "editorInput",
+            "input": {"kind": "text", "text": str(text), "replace": bool(replace)}
+        })
+
+    def append_text(self, text: str):
+        self._send({
+            "type": "command",
+            "command": "editorInput",
+            "input": {"kind": "text", "text": str(text)}
+        })
+
+    def send_braille(self, unicode_braille: str):
+        self._send({
+            "type": "command",
+            "command": "editorInput",
+            "input": {"kind": "braille", "unicode": str(unicode_braille)}
+        })
+
+    def send_key(self, key: str):
+        self._send({
+            "type": "command",
+            "command": "editorInput",
+            "input": {"kind": "key", "key": str(key)}
+        })
+
+    def set_caret(self, text_index: int):
+        self._send({"type": "setCaret", "textIndex": int(text_index)})
+
+    def move_caret(self, by: int, unit: str = "character"):
+        self._send({"type": "moveCaret", "by": int(by), "unit": str(unit)})
+
+    def set_caret_from_cell(self, cell_index: int):
+        self._send({"type": "setCaretFromCell", "cellIndex": int(cell_index)})
+
+    def cursor_routing(self, cell_index: int):
+        self._send({"type": "cursorRouting", "cellIndex": int(cell_index)})
+
+    def set_caret_visibility(self, visible: bool):
+        self._send({"type": "setCaretVisibility", "visible": bool(visible)})
+
+    def set_caret_style(self, dots, blink: bool, blink_period_ms: int = 500):
+        self._send({
+            "type": "setCaretStyle",
+            "dots": list(dots),
+            "blink": bool(blink),
+            "blinkPeriodMs": int(blink_period_ms)
+        })
+
+    def get_braille_line(self):
+        self._send({"type": "getBrailleLine"})
+
+    def set_caret_to_begin(self):
+        self._send({"type": "setCaretToBegin"})
+
+    def set_caret_to_end(self):
+        self._send({"type": "setCaretToEnd"})
+
+    async def wait_ms(self, ms: int):
+        check_stop()
+        await js_wait_ms(int(ms))
+        check_stop()
+
+def check_stop():
+    if bool(js_check_stop()):
+        raise StopRequestedError("Stopped by user")
+
+bb = BrailleBridgeClient()
+USER_GLOBALS = {"__name__": "__main__", "bb": bb, "check_stop": check_stop}
+`);
+
+      pyReady = true;
+      setPyBadge("Pyodide ready", "connected");
+      appendLog("Pyodide ready");
+      renderStatus();
+      loadExample();
+    } catch (err) {
+      setPyBadge("Pyodide failed", "stopped");
+      appendLog("Pyodide init error: " + err.message);
+      renderStatus();
+    }
+  }
+
+  async function runScript() {
+    if (!pyReady) {
+      appendLog("Pyodide is not ready");
+      return;
+    }
+    if (running) {
+      appendLog("A script is already running");
+      return;
+    }
+
+    stopRequested = false;
+    running = true;
+    renderStatus();
+    setPyBadge("Running...", "loading");
+    appendLog("=== Run started ===");
+
+    const code = editor.value;
+
+    try {
+      pyodide.globals.set("USER_CODE", code);
+
+      await pyodide.runPythonAsync(`
+bb = BrailleBridgeClient()
+USER_GLOBALS = {"__name__": "__main__", "bb": bb, "check_stop": check_stop}
+
+code = USER_CODE
+exec(code, USER_GLOBALS, USER_GLOBALS)
+
+for _, func in bb._handlers["started"]:
+    check_stop()
+    if asyncio.iscoroutinefunction(func):
+        await func()
+    else:
+        func()
+
+USER_BB = bb
+`);
+
+      userGlobals = pyodide.globals.get("USER_GLOBALS");
+      appendLog("=== Run finished ===");
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes("Stopped by user")) {
+        appendLog("=== Run stopped ===");
+      } else {
+        appendLog("=== Error ===");
+        appendLog(msg);
+      }
+      userGlobals = null;
+    } finally {
+      running = false;
+      renderStatus();
+      setPyBadge("Pyodide ready", "connected");
+    }
+  }
+
+  function stopScript() {
+    if (!running) {
+      appendLog("No script is running");
+      return;
+    }
+    stopRequested = true;
+    renderStatus();
+    setPyBadge("Stopping...", "stopped");
+    appendLog("Stop requested");
+  }
+
+  async function dispatchPythonEvent(type, payload) {
+    if (!pyReady || !userGlobals) return;
+
+    try {
+      pyodide.globals.set("JS_EVENT_TYPE", type);
+      pyodide.globals.set("JS_EVENT_PAYLOAD", payload);
+
+      await pyodide.runPythonAsync(`
+import asyncio
+
+bb = USER_BB
+etype = JS_EVENT_TYPE
+payload = JS_EVENT_PAYLOAD
+
+check_stop()
+
+async def __dispatch():
+    if etype == "thumbKey":
+        for wanted, func in bb._handlers["thumbKey"]:
+            if wanted is None or wanted == str(payload).lower():
+                if asyncio.iscoroutinefunction(func):
+                    await func(payload)
+                else:
+                    func(payload)
+
+    elif etype == "cursorRouting":
+        cell = payload.get("cell")
+        for wanted, func in bb._handlers["cursorRouting"]:
+            if wanted is None or wanted == cell:
+                if asyncio.iscoroutinefunction(func):
+                    await func(payload)
+                else:
+                    func(payload)
+
+    elif etype == "cursorPositionChanged":
+        for _, func in bb._handlers["cursorPositionChanged"]:
+            if asyncio.iscoroutinefunction(func):
+                await func(payload)
+            else:
+                func(payload)
+
+    elif etype == "chord":
+        for wanted, func in bb._handlers["chord"]:
+            if wanted is None or wanted == payload:
+                if asyncio.iscoroutinefunction(func):
+                    await func(payload)
+                else:
+                    func(payload)
+
+    elif etype == "editorKey":
+        for wanted, func in bb._handlers["editorKey"]:
+            if wanted is None or wanted == payload:
+                if asyncio.iscoroutinefunction(func):
+                    await func(payload)
+                else:
+                    func(payload)
+
+    elif etype == "brailleLine":
+        for _, func in bb._handlers["brailleLine"]:
+            if asyncio.iscoroutinefunction(func):
+                await func(payload)
+            else:
+                func(payload)
+
+await __dispatch()
+`);
+    } catch (err) {
+      const msg = String(err);
+      if (msg.includes("Stopped by user")) {
+        appendLog("Event handler stopped");
+      } else {
+        appendLog("Event handler error: " + msg);
+      }
+    }
+  }
+
+  function saveScript() {
+    const text = editor.value;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const filename = currentFileName || "activity.py";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+    appendLog("Saved: " + filename);
+  }
+
+  function loadScriptFromText(text, name = null) {
+    editor.value = text;
+    currentFileName = name;
+    renderStatus();
+    appendLog("Loaded: " + (name || "script"));
+  }
+
+  function newScript() {
+    if (!confirm("Clear the current script?")) return;
+    editor.value = "";
+    currentFileName = null;
+    renderStatus();
+    appendLog("New script");
+  }
+
+  function loadExample() {
+    const code = `@bb.on_started
+async def start():
+    bb.set_editor_mode(True)
+    bb.set_insert_mode(True)
+    bb.set_text("Hello braille", replace=True)
+    await bb.wait_ms(200)
+    bb.get_braille_line()
+
+@bb.on_thumb_key("left")
+def thumb_left(key):
+    bb.move_caret(-1, "character")
+
+@bb.on_thumb_key("right")
+def thumb_right(key):
+    bb.move_caret(1, "character")
+
+@bb.on_cursor_routing(5)
+def cursor_five(info):
+    bb.set_text("Cursor routed to cell 5", replace=True)
+
+@bb.on_chord("1")
+def chord_one(dots):
+    bb.append_text("!")
+
+@bb.on_editor_key("Backspace")
+def on_backspace(key):
+    bb.send_key("Backspace")
+
+@bb.on_braille_line
+def on_line(msg):
+    print("brailleLine received, lineId =", msg.get("meta", {}).get("lineId"))
+`;
+    loadScriptFromText(code, "example.py");
+  }
+
+  document.getElementById("connectBtn").addEventListener("click", connectWs);
+  document.getElementById("runBtn").addEventListener("click", runScript);
+  document.getElementById("stopBtn").addEventListener("click", stopScript);
+  document.getElementById("saveBtn").addEventListener("click", saveScript);
+  document.getElementById("loadBtn").addEventListener("click", () => fileInput.click());
+  document.getElementById("newBtn").addEventListener("click", newScript);
+  document.getElementById("exampleBtn").addEventListener("click", loadExample);
+
+  document.getElementById("simThumbLeftBtn").addEventListener("click", async () => {
+    runtime.lastThumbKey = "left";
+    renderStatus();
+    await dispatchPythonEvent("thumbKey", "left");
+  });
+
+  document.getElementById("simThumbRightBtn").addEventListener("click", async () => {
+    runtime.lastThumbKey = "right";
+    renderStatus();
+    await dispatchPythonEvent("thumbKey", "right");
+  });
+
+  document.getElementById("simCursor5Btn").addEventListener("click", async () => {
+    runtime.lastCursorCell = 5;
+    renderStatus();
+    await dispatchPythonEvent("cursorRouting", { cell: 5, textIndex: runtime.textCaret });
+  });
+
+  document.getElementById("simChord1Btn").addEventListener("click", async () => {
+    runtime.lastChord = "1";
+    renderStatus();
+    await dispatchPythonEvent("chord", "1");
+  });
+
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => loadScriptFromText(reader.result, file.name);
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  renderStatus();
+  setWsBadge(false);
+  setPyBadge("Loading Pyodide...", "loading");
+  initPy();
+</script>
+</body>
+</html>
