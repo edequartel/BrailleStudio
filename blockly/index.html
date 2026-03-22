@@ -209,9 +209,9 @@
     <button id="saveBtn" class="btn">Save</button>
     <button id="saveAsBtn" class="btn">Save As</button>
     <button id="loadBtn" class="btn">Load</button>
-    <input id="fileNameInput" class="btn" type="text" value="braille-activity.xml" style="min-width:200px; cursor:text;">
+    <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
     <button id="newBtn" class="btn">New</button>
-    <input id="fileInput" type="file" accept=".xml,.blockly,text/xml,application/xml">
+    <input id="fileInput" type="file" accept=".blockly">
 
     <div class="spacer"></div>
 
@@ -911,7 +911,7 @@ function bindAppControls() {
   const fileNameInput = document.getElementById('fileNameInput');
   if (fileNameInput && !fileNameInput.dataset.initialized) {
     const savedName = localStorage.getItem(BLOCKLY_FILE_NAME_KEY);
-    fileNameInput.value = normalizeXmlFileName(savedName || fileNameInput.value || 'braille-activity.xml');
+    fileNameInput.value = normalizeXmlFileName(savedName || fileNameInput.value || 'braille-activity.blockly');
     fileNameInput.addEventListener('change', () => {
       const normalized = normalizeXmlFileName(fileNameInput.value);
       fileNameInput.value = normalized;
@@ -1428,11 +1428,52 @@ function getVariableModelByName(name) {
 }
 
 function patchVariableFieldIds(xmlDom) {
+  if (!xmlDom || typeof xmlDom.querySelectorAll !== 'function') return;
   const fields = xmlDom.querySelectorAll('field[name="VAR"]');
   fields.forEach(field => {
     const model = getVariableModelByName(field.textContent.trim());
     if (model) field.setAttribute('id', model.getId());
   });
+}
+
+function normalizeWorkspaceXmlText(text) {
+  let src = String(text ?? '');
+  if (src.charCodeAt(0) === 0xFEFF) src = src.slice(1);
+  src = src.trim();
+
+  // Some files may contain wrappers; keep only the Blockly <xml> payload.
+  const start = src.indexOf('<xml');
+  const end = src.lastIndexOf('</xml>');
+  if (start >= 0 && end > start) {
+    return src.slice(start, end + '</xml>'.length);
+  }
+  return src;
+}
+
+function parseWorkspaceXml(text) {
+  const normalized = normalizeWorkspaceXmlText(text);
+  if (!normalized) throw new Error('file is empty');
+  try {
+    const xmlDom = Blockly.utils.xml.textToDom(normalized);
+    if (xmlDom && String(xmlDom.nodeName || '').toLowerCase() === 'xml') {
+      return xmlDom;
+    }
+  } catch {
+    // fall through to DOMParser fallback
+  }
+
+  const parsed = new DOMParser().parseFromString(normalized, 'text/xml');
+  const parseError = parsed.querySelector('parsererror');
+  if (parseError) {
+    throw new Error(parseError.textContent?.trim() || 'invalid XML');
+  }
+  const root = parsed.documentElement;
+  if (root && String(root.nodeName || '').toLowerCase() === 'xml') {
+    return root;
+  }
+  const nested = parsed.querySelector('xml');
+  if (nested) return nested;
+  throw new Error('root node is not <xml>');
 }
 
 const defaultXmlText = `
@@ -2024,8 +2065,8 @@ async function saveWorkspaceAs() {
       suggestedName: fileName,
       types: [
         {
-          description: 'Blockly XML',
-          accept: { 'text/xml': ['.xml', '.blockly'] }
+          description: 'Blockly Files',
+          accept: { 'application/octet-stream': ['.blockly'] }
         }
       ]
     });
@@ -2045,13 +2086,13 @@ async function saveWorkspaceAs() {
 
 function normalizeXmlFileName(name) {
   const raw = String(name || '').trim();
-  if (!raw) return 'braille-activity.xml';
-  return /\.(xml|blockly)$/i.test(raw) ? raw : (raw + '.xml');
+  if (!raw) return 'braille-activity.blockly';
+  return /\.blockly$/i.test(raw) ? raw : (raw + '.blockly');
 }
 
 function getSelectedFileName() {
   const input = document.getElementById('fileNameInput');
-  return normalizeXmlFileName(input ? input.value : 'braille-activity.xml');
+  return normalizeXmlFileName(input ? input.value : 'braille-activity.blockly');
 }
 
 function setSelectedFileName(name) {
@@ -2062,7 +2103,7 @@ function setSelectedFileName(name) {
 }
 
 function downloadXml(xmlText, fileName) {
-  const blob = new Blob([xmlText], { type: 'text/xml' });
+  const blob = new Blob([xmlText], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -2087,8 +2128,8 @@ async function openWorkspaceFile() {
         multiple: false,
         types: [
           {
-            description: 'Blockly XML',
-            accept: { 'text/xml': ['.xml', '.blockly'] }
+            description: 'Blockly Files',
+            accept: { 'application/octet-stream': ['.blockly'] }
           }
         ]
       });
@@ -2103,7 +2144,7 @@ async function openWorkspaceFile() {
       if (!(err && err.name === 'AbortError')) {
         log('Open failed: ' + err.message);
       }
-      return;
+      if (err && err.name === 'AbortError') return;
     }
   }
   document.getElementById('fileInput').click();
@@ -2111,7 +2152,7 @@ async function openWorkspaceFile() {
 
 function loadWorkspaceFromText(text, sourceName = null) {
   try {
-    const xmlDom = Blockly.utils.xml.textToDom(text);
+    const xmlDom = parseWorkspaceXml(text);
     workspace.clear();
     ensureDefaultVariable();
     patchVariableFieldIds(xmlDom);
@@ -2121,7 +2162,7 @@ function loadWorkspaceFromText(text, sourceName = null) {
     log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
   } catch (err) {
     log('Load failed: ' + err.message);
-    alert('Could not load file');
+    alert('Could not load file: ' + err.message);
   }
 }
 
