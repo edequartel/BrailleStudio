@@ -1,61 +1,57 @@
 <xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="event_when_started" x="30" y="30">
+  <block type="event_when_started" id="Y)l.rIzt-k%R/O_qH!3U" x="30" y="30">
     <statement name="DO">
-      <block type="bb_set_text">
+      <block type="bb_set_text" id="hl]uD^zlvYL:{#9u`{~3">
         <value name="TEXT">
-          <shadow type="text">
+          <shadow type="text" id="5p~zTkFTd/wx+.oJdSY,">
             <field name="TEXT">Press a thumb key</field>
           </shadow>
         </value>
       </block>
     </statement>
   </block>
-
-  <block type="event_when_thumb_key" x="30" y="180">
+  <block type="event_when_thumb_key" id="8*JyG+z`7|8;4d5`+.gE" x="30" y="180">
     <field name="KEY">left</field>
     <statement name="DO">
-      <block type="bb_set_text">
+      <block type="bb_set_text" id="]6;R-V|t`jx0FmW,Du-f">
         <value name="TEXT">
-          <shadow type="text">
+          <shadow type="text" id="HBF0}@T|UtcZgRkJ-tQx">
             <field name="TEXT">Left thumb key pressed</field>
           </shadow>
         </value>
       </block>
     </statement>
   </block>
-
-  <block type="event_when_thumb_key" x="30" y="320">
+  <block type="event_when_thumb_key" id="hHgNCTq*_.RPTJr;xFYE" x="30" y="320">
     <field name="KEY">right</field>
     <statement name="DO">
-      <block type="bb_set_text">
+      <block type="bb_set_text" id="xP8o+,ALu7(_-37/@1-$">
         <value name="TEXT">
-          <shadow type="text">
+          <shadow type="text" id="3,!k$/(.^jaBS=Hcm55Y">
             <field name="TEXT">Right thumb key pressed</field>
           </shadow>
         </value>
       </block>
     </statement>
   </block>
-
-  <block type="event_when_thumb_key" x="30" y="460">
+  <block type="event_when_thumb_key" id="PrK_zj]yy=]{|cb?rqyU" x="30" y="460">
     <field name="KEY">up</field>
     <statement name="DO">
-      <block type="bb_set_text">
+      <block type="bb_set_text" id="PI1YnZ{grGNB/Wkm(iyy">
         <value name="TEXT">
-          <shadow type="text">
+          <shadow type="text" id=")7o~^O[rC@~.@H5CO^1x">
             <field name="TEXT">Up thumb key pressed</field>
           </shadow>
         </value>
       </block>
     </statement>
   </block>
-
-  <block type="event_when_thumb_key" x="30" y="600">
+  <block type="event_when_thumb_key" id="++01qpZsvDRQ2R}(^kPB" x="30" y="600">
     <field name="KEY">down</field>
     <statement name="DO">
-      <block type="bb_set_text">
+      <block type="bb_set_text" id="Vra[P/tYvTszUya0{%J+">
         <value name="TEXT">
-          <shadow type="text">
+          <shadow type="text" id="+jg}}cWkT;3fa6xvnz}n">
             <field name="TEXT">Down thumb key pressed</field>
           </shadow>
         </value>
