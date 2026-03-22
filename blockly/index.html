@@ -207,7 +207,9 @@
     <button id="stopBtn" class="btn btn-red">Stop</button>
 
     <button id="saveBtn" class="btn">Save</button>
+    <button id="saveAsBtn" class="btn">Save As</button>
     <button id="loadBtn" class="btn">Load</button>
+    <input id="fileNameInput" class="btn" type="text" value="braille-activity.xml" style="min-width:200px; cursor:text;">
     <button id="newBtn" class="btn">New</button>
     <input id="fileInput" type="file" accept=".xml,.blockly,text/xml,application/xml">
 
@@ -416,6 +418,8 @@ const timerHandles = new Map();
 let soundVolume = 1;
 let activeAudio = null;
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
+const BLOCKLY_FILE_NAME_KEY = 'blockly_file_name';
+let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
 let reconnectTimer = null;
@@ -858,13 +862,17 @@ function bindAppControls() {
   bind('runBtn', 'click', onRunClicked);
   bind('stopBtn', 'click', onStopClicked);
   bind('saveBtn', 'click', saveWorkspace);
-  bind('loadBtn', 'click', () => document.getElementById('fileInput').click());
+  bind('saveAsBtn', 'click', saveWorkspaceAs);
+  bind('loadBtn', 'click', openWorkspaceFile);
   bind('newBtn', 'click', newWorkspace);
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => loadWorkspaceFromText(reader.result);
+    reader.onload = () => {
+      currentFileHandle = null;
+      loadWorkspaceFromText(reader.result, file.name);
+    };
     reader.readAsText(file);
     e.target.value = '';
   });
@@ -898,6 +906,19 @@ function bindAppControls() {
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
     baseUrlBox.textContent = SOUND_BASE_URL;
     baseUrlBox.dataset.initialized = '1';
+  }
+
+  const fileNameInput = document.getElementById('fileNameInput');
+  if (fileNameInput && !fileNameInput.dataset.initialized) {
+    const savedName = localStorage.getItem(BLOCKLY_FILE_NAME_KEY);
+    fileNameInput.value = normalizeXmlFileName(savedName || fileNameInput.value || 'braille-activity.xml');
+    fileNameInput.addEventListener('change', () => {
+      const normalized = normalizeXmlFileName(fileNameInput.value);
+      fileNameInput.value = normalized;
+      localStorage.setItem(BLOCKLY_FILE_NAME_KEY, normalized);
+      currentFileHandle = null;
+    });
+    fileNameInput.dataset.initialized = '1';
   }
 }
 
@@ -1971,21 +1992,124 @@ async function dispatchEvent(event, generation = runGeneration) {
 function saveWorkspace() {
   const xmlDom = Blockly.Xml.workspaceToDom(workspace);
   const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+  const fileName = getSelectedFileName();
+
+  if (currentFileHandle && typeof currentFileHandle.createWritable === 'function') {
+    writeXmlToHandle(currentFileHandle, xmlText, fileName)
+      .then(() => log('Workspace saved to ' + fileName))
+      .catch(err => {
+        log('Direct save failed: ' + err.message);
+        downloadXml(xmlText, fileName);
+      });
+    return;
+  }
+
+  downloadXml(xmlText, fileName);
+  log('Workspace saved as download: ' + fileName);
+}
+
+async function saveWorkspaceAs() {
+  const xmlDom = Blockly.Xml.workspaceToDom(workspace);
+  const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
+  const fileName = getSelectedFileName();
+
+  if (typeof window.showSaveFilePicker !== 'function') {
+    downloadXml(xmlText, fileName);
+    log('Save As fallback download: ' + fileName);
+    return;
+  }
+
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: fileName,
+      types: [
+        {
+          description: 'Blockly XML',
+          accept: { 'text/xml': ['.xml', '.blockly'] }
+        }
+      ]
+    });
+    const chosenName = normalizeXmlFileName(handle?.name || fileName);
+    await writeXmlToHandle(handle, xmlText, chosenName);
+    currentFileHandle = handle;
+    setSelectedFileName(chosenName);
+    log('Workspace saved as ' + chosenName);
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      log('Save As cancelled');
+      return;
+    }
+    log('Save As failed: ' + err.message);
+  }
+}
+
+function normalizeXmlFileName(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return 'braille-activity.xml';
+  return /\.(xml|blockly)$/i.test(raw) ? raw : (raw + '.xml');
+}
+
+function getSelectedFileName() {
+  const input = document.getElementById('fileNameInput');
+  return normalizeXmlFileName(input ? input.value : 'braille-activity.xml');
+}
+
+function setSelectedFileName(name) {
+  const normalized = normalizeXmlFileName(name);
+  const input = document.getElementById('fileNameInput');
+  if (input) input.value = normalized;
+  localStorage.setItem(BLOCKLY_FILE_NAME_KEY, normalized);
+}
+
+function downloadXml(xmlText, fileName) {
   const blob = new Blob([xmlText], { type: 'text/xml' });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'braille-activity.xml';
+  a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-  log('Workspace saved');
 }
 
-function loadWorkspaceFromText(text) {
+async function writeXmlToHandle(handle, xmlText, fileName) {
+  const writer = await handle.createWritable();
+  await writer.write(xmlText);
+  await writer.close();
+  setSelectedFileName(fileName);
+}
+
+async function openWorkspaceFile() {
+  if (typeof window.showOpenFilePicker === 'function') {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        multiple: false,
+        types: [
+          {
+            description: 'Blockly XML',
+            accept: { 'text/xml': ['.xml', '.blockly'] }
+          }
+        ]
+      });
+      if (handle) {
+        const file = await handle.getFile();
+        const text = await file.text();
+        currentFileHandle = handle;
+        loadWorkspaceFromText(text, file.name);
+        return;
+      }
+    } catch (err) {
+      if (!(err && err.name === 'AbortError')) {
+        log('Open failed: ' + err.message);
+      }
+      return;
+    }
+  }
+  document.getElementById('fileInput').click();
+}
+
+function loadWorkspaceFromText(text, sourceName = null) {
   try {
     const xmlDom = Blockly.utils.xml.textToDom(text);
     workspace.clear();
@@ -1993,7 +2117,8 @@ function loadWorkspaceFromText(text) {
     patchVariableFieldIds(xmlDom);
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
     initVariableValues();
-    log('Workspace loaded');
+    if (sourceName) setSelectedFileName(sourceName);
+    log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
   } catch (err) {
     log('Load failed: ' + err.message);
     alert('Could not load file');
@@ -2006,6 +2131,7 @@ function newWorkspace() {
   runGeneration++;
   stopAllTimers();
   stopSound();
+  currentFileHandle = null;
   workspace.clear();
   ensureDefaultVariable();
   initVariableValues();
