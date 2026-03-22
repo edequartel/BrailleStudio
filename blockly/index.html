@@ -2154,9 +2154,8 @@ function loadWorkspaceFromText(text, sourceName = null) {
   try {
     const xmlDom = parseWorkspaceXml(text);
     workspace.clear();
-    ensureDefaultVariable();
-    patchVariableFieldIds(xmlDom);
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
+    ensureDefaultVariable();
     initVariableValues();
     if (sourceName) setSelectedFileName(sourceName);
     log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
