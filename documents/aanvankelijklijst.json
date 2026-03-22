@@ -1,0 +1,812 @@
+[
+  {
+    "word": "bal",
+    "sounds": ["b", "a", "l"],
+    "newSounds": ["b", "a", "l"],
+    "knownSounds": ["b", "a", "l"],
+    "categories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "kam",
+    "sounds": ["k", "a", "m"],
+    "newSounds": ["k", "m"],
+    "knownSounds": ["b", "a", "l", "k", "m"],
+    "categories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["k", "m"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["k", "m"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "aap",
+    "sounds": ["aa", "p"],
+    "newSounds": ["aa", "p"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "bel",
+    "sounds": ["b", "e", "l"],
+    "newSounds": ["e"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e"],
+    "categories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e"],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "deeg",
+    "sounds": ["d", "ee", "g"],
+    "newSounds": ["d", "ee", "g"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["d", "g"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["d", "g"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "de",
+    "sounds": ["d", "e"],
+    "newSounds": [],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g"],
+    "categories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["d"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "kip",
+    "sounds": ["k", "i", "p"],
+    "newSounds": ["i"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i"],
+    "categories": {
+      "korteKlinkers": ["i"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["k", "p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": ["i"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "sap",
+    "sounds": ["s", "a", "p"],
+    "newSounds": ["s"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s"],
+    "categories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["s", "p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "tas",
+    "sounds": ["t", "a", "s"],
+    "newSounds": ["t"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t"],
+    "categories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["t", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["t"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "vis",
+    "sounds": ["v", "i", "s"],
+    "newSounds": ["v"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v"],
+    "categories": {
+      "korteKlinkers": ["i"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["v", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["v"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "en",
+    "sounds": ["e", "n"],
+    "newSounds": ["n"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n"],
+    "categories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "een",
+    "sounds": ["ee", "n"],
+    "newSounds": [],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "pop",
+    "sounds": ["p", "o", "p"],
+    "newSounds": ["o"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o"],
+    "categories": {
+      "korteKlinkers": ["o"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": ["o"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o"],
+      "langeKlinkers": ["aa", "ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "doos",
+    "sounds": ["d", "oo", "s"],
+    "newSounds": ["oo"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["oo"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["d", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["oo"],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o"],
+      "langeKlinkers": ["aa", "ee", "oo"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "reep",
+    "sounds": ["r", "ee", "p"],
+    "newSounds": ["r"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["ee"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["r", "p"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o"],
+      "langeKlinkers": ["aa", "ee", "oo"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "bus",
+    "sounds": ["b", "u", "s"],
+    "newSounds": ["u"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u"],
+    "categories": {
+      "korteKlinkers": ["u"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": ["u"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "muur",
+    "sounds": ["m", "uu", "r"],
+    "newSounds": ["uu"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["uu"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["m", "r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["uu"],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "haar",
+    "sounds": ["h", "aa", "r"],
+    "newSounds": ["h"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["h", "r"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["h"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "het",
+    "sounds": ["h", "e", "t"],
+    "newSounds": [],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h"],
+    "categories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["h", "t"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "wiel",
+    "sounds": ["w", "ie", "l"],
+    "newSounds": ["w", "ie"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["ie"],
+      "medeklinkers": ["w", "l"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["ie"],
+      "medeklinkers": ["w"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "fles",
+    "sounds": ["f", "l", "e", "s"],
+    "newSounds": ["f"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f"],
+    "categories": {
+      "korteKlinkers": ["e"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["f", "l", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["f"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "schaar",
+    "sounds": ["sch", "aa", "r"],
+    "newSounds": ["sch"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": ["aa"],
+      "tweetekenklanken": [],
+      "medeklinkers": ["r"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "boek",
+    "sounds": ["b", "oe", "k"],
+    "newSounds": ["oe"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch", "oe"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["oe"],
+      "medeklinkers": ["b", "k"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["oe"],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie", "oe"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "neus",
+    "sounds": ["n", "eu", "s"],
+    "newSounds": ["eu"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch", "oe", "eu"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["eu"],
+      "medeklinkers": ["n", "s"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["eu"],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie", "oe", "eu"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "hout",
+    "sounds": ["h", "ou", "t"],
+    "newSounds": ["ou"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch", "oe", "eu", "ou"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["ou"],
+      "medeklinkers": ["h", "t"],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["ou"],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie", "oe", "eu", "ou"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "au",
+    "sounds": ["au"],
+    "newSounds": ["au"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch", "oe", "eu", "ou", "au"],
+    "categories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["au"],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": ["au"],
+      "medeklinkers": [],
+      "medeklinkerclusters": [],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie", "oe", "eu", "ou", "au"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch"],
+      "drietekenklanken": []
+    }
+  },
+  {
+    "word": "lach",
+    "sounds": ["l", "a", "ch"],
+    "newSounds": ["ch"],
+    "knownSounds": ["b", "a", "l", "k", "m", "aa", "p", "e", "d", "ee", "g", "i", "s", "t", "v", "n", "o", "oo", "r", "u", "uu", "h", "w", "ie", "f", "sch", "oe", "eu", "ou", "au", "ch"],
+    "categories": {
+      "korteKlinkers": ["a"],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": ["l"],
+      "medeklinkerclusters": ["ch"],
+      "drietekenklanken": []
+    },
+    "newSoundCategories": {
+      "korteKlinkers": [],
+      "langeKlinkers": [],
+      "tweetekenklanken": [],
+      "medeklinkers": [],
+      "medeklinkerclusters": ["ch"],
+      "drietekenklanken": []
+    },
+    "knownSoundCategories": {
+      "korteKlinkers": ["a", "e", "i", "o", "u"],
+      "langeKlinkers": ["aa", "ee", "oo", "uu"],
+      "tweetekenklanken": ["ie", "oe", "eu", "ou", "au"],
+      "medeklinkers": ["b", "l", "k", "m", "p", "d", "g", "s", "t", "v", "n", "r", "h", "w", "f"],
+      "medeklinkerclusters": ["sch", "ch"],
+      "drietekenklanken": []
+    }
+  }
+]
