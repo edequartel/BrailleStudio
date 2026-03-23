@@ -1,0 +1,220 @@
+You are working in a Blockly-based project called BrailleStudio.
+
+Task:
+Create Blockly blocks and JavaScript generator/runtime code that uses an existing PHP JSON API for audio file selection.
+
+Important working style:
+- First make a short implementation plan.
+- Then implement the code.
+- Keep the code simple, readable, and production-friendly.
+- Do not overengineer.
+- Prefer explicit block behavior over hidden magic.
+- Preserve backwards compatibility where possible.
+
+Project context:
+- This is an educational braille learning system.
+- End users are teachers and students.
+- Blockly is used in the browser.
+- The backend API already exists and must be used as-is.
+- The frontend code should be plain JavaScript.
+- The result should be easy to integrate into an existing Blockly app.
+
+Existing API:
+Base URL:
+https://tastenbraille.com/api/list.php
+
+The API returns JSON like:
+[
+  {
+    "word": "lamp",
+    "url": "https://www.tastenbraille.com/braillestudio/sounds/nl/speech/lamp.mp3"
+  }
+]
+
+Supported folders:
+- woorden
+- letters
+- instructies
+- beloningen
+- story
+
+API parameters:
+- folder            required
+- letters           optional, comma-separated first-letter filter
+- klanken           optional, comma-separated list; word must contain at least one
+- onlyletters       optional, comma-separated list; word may only contain these letters
+- onlyklanken       optional, comma-separated list; word may only contain these phonics
+- onlycombo         optional true/false; strict combination of onlyletters + onlyklanken
+- maxlength         optional integer
+- length            optional integer
+- limit             optional integer
+- randomlimit       optional integer
+- sort              optional: asc | desc | random
+
+Example API calls:
+- https://tastenbraille.com/api/list.php?folder=woorden
+- https://tastenbraille.com/api/list.php?folder=woorden&letters=a,b,k,l
+- https://tastenbraille.com/api/list.php?folder=woorden&klanken=a,e,i,ou,ei
+- https://tastenbraille.com/api/list.php?folder=woorden&onlyletters=a,l,p,m
+- https://tastenbraille.com/api/list.php?folder=woorden&maxlength=4
+- https://tastenbraille.com/api/list.php?folder=woorden&sort=asc&limit=10
+
+Goal:
+Generate Blockly blocks that allow a teacher to fetch filtered audio-word lists from this API and use them in lessons.
+
+Create these blocks:
+
+1. api_get_audio_list
+Type:
+- value block
+
+Purpose:
+- fetch a list of audio items from the PHP API
+
+Inputs / fields:
+- folder (dropdown: woorden, letters, instructies, beloningen, story)
+- letters (text input, optional)
+- klanken (text input, optional)
+- onlyletters (text input, optional)
+- onlyklanken (text input, optional)
+- onlycombo (checkbox)
+- maxlength (number input, optional)
+- length (number input, optional)
+- limit (number input, optional)
+- randomlimit (number input, optional)
+- sort (dropdown: asc, desc, random)
+
+Behavior:
+- build the query string correctly
+- skip empty parameters
+- call the API with fetch
+- parse JSON
+- return the array of items
+
+2. list_pick_random
+Type:
+- value block
+
+Purpose:
+- return one random item from a list
+
+3. list_length
+Type:
+- value block
+
+Purpose:
+- return list length
+
+4. audio_item_get_word
+Type:
+- value block
+
+Purpose:
+- get item.word
+
+5. audio_item_get_url
+Type:
+- value block
+
+Purpose:
+- get item.url
+
+6. sound_play_url
+Type:
+- statement block
+
+Purpose:
+- play audio from URL
+
+Input:
+- url
+
+7. controls_for_each_audio_item
+Type:
+- statement block
+
+Purpose:
+- loop over each item in an audio list
+
+Inputs:
+- list
+- variable name
+- do statement input
+
+8. text_join_csv
+Type:
+- value block
+
+Purpose:
+- help teachers build comma-separated filters from text parts if needed
+
+Technical requirements:
+- Use modern Blockly block definitions.
+- Include block definitions and JavaScript generator code.
+- If async handling is needed, implement a small runtime helper layer.
+- The generated code must actually work with fetch-based async behavior.
+- Avoid pretending async code is synchronous.
+- Be explicit about execution model.
+
+Execution model requirement:
+Because api_get_audio_list uses fetch, do NOT generate invalid synchronous code.
+Instead, choose one of these approaches and implement it cleanly:
+A. generate async JavaScript and provide a small async runner pattern for Blockly code, or
+B. generate calls into a runtime helper object that manages async execution.
+
+Preferred approach:
+- Use a runtime helper object, for example BrailleStudioAPI.
+- Put API logic in helper functions.
+- Blockly generator should emit readable calls into that helper.
+
+Required helper functions:
+- BrailleStudioAPI.getAudioList(options)
+- BrailleStudioAPI.pickRandom(list)
+- BrailleStudioAPI.playUrl(url)
+
+Behavior details:
+- getAudioList(options) should build URLSearchParams safely
+- omit empty values
+- convert checkbox boolean correctly
+- return parsed JSON
+- throw clear errors if fetch fails or JSON is invalid
+
+UI / block design requirements:
+- Make blocks understandable for teachers
+- Use clear labels such as:
+  - "get audio list"
+  - "folder"
+  - "starts with letters"
+  - "contains klanken"
+  - "only letters"
+  - "only klanken"
+  - "strict letter+klank combo"
+  - "max length"
+  - "exact length"
+  - "limit"
+  - "random limit"
+  - "sort"
+
+Code organization:
+Return code in clearly separated sections/files:
+1. blocks.js
+2. generators.js
+3. runtime.js
+4. example toolbox category XML
+5. short usage example showing:
+   - get audio list from folder woorden
+   - filter by letters a,b,k,l
+   - set max length 4
+   - limit 10
+   - pick random item
+   - play item.url
+
+Output requirements:
+- Output the full code
+- Include comments
+- Do not leave placeholders like "implement later"
+- Do not omit any required block
+- Make sure names are consistent across files
+- Make the code directly copyable
+
+If something is ambiguous, make a reasonable choice and continue.
