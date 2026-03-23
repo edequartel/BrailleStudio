@@ -323,6 +323,7 @@
     <block type="sound_pause"></block>
     <block type="sound_resume"></block>
     <block type="sound_stop"></block>
+    <block type="sound_wait_stopped"></block>
     <block type="sound_set_volume">
       <value name="VOLUME">
         <shadow type="math_number">
@@ -437,6 +438,8 @@ const timerHandles = new Map();
 const listNextIndex = new WeakMap();
 let soundVolume = 1;
 let activeAudio = null;
+let activeAudioCleanup = null;
+let audioStoppedWaiters = [];
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const BLOCKLY_FILE_NAME_KEY = 'blockly_file_name';
 let currentFileHandle = null;
@@ -550,15 +553,51 @@ function resolveSoundUrl(input) {
   return SOUND_BASE_URL + encodeURIComponent(filename);
 }
 
-function stopSound() {
-  if (!activeAudio) return;
+function resolveAudioStoppedWaiters() {
+  if (audioStoppedWaiters.length === 0) return;
+  const waiters = audioStoppedWaiters;
+  audioStoppedWaiters = [];
+  waiters.forEach(resolve => {
+    try {
+      resolve();
+    } catch {
+      // ignore resolver errors
+    }
+  });
+}
+
+function clearActiveAudio() {
+  if (activeAudioCleanup) {
+    try {
+      activeAudioCleanup();
+    } catch {
+      // ignore listener cleanup errors
+    }
+    activeAudioCleanup = null;
+  }
+  activeAudio = null;
+}
+
+function waitForAudioStopped() {
+  if (!activeAudio) return Promise.resolve();
+  return new Promise(resolve => {
+    audioStoppedWaiters.push(resolve);
+  });
+}
+
+function stopSound(reason = 'stopped') {
+  if (!activeAudio) {
+    if (reason === 'stopped') resolveAudioStoppedWaiters();
+    return;
+  }
   try {
     activeAudio.pause();
     activeAudio.currentTime = 0;
   } catch {
     // ignore pause/currentTime errors
   }
-  activeAudio = null;
+  clearActiveAudio();
+  resolveAudioStoppedWaiters();
 }
 
 function pauseSound() {
@@ -593,16 +632,48 @@ async function playSound(input) {
     log('Sound skipped: empty filename/url');
     return;
   }
-  stopSound();
+  stopSound('replaced');
   const audio = new Audio(url);
   audio.volume = soundVolume;
   activeAudio = audio;
+  const onEnded = () => {
+    if (activeAudio === audio) {
+      clearActiveAudio();
+      resolveAudioStoppedWaiters();
+    }
+    log('Sound ended');
+  };
+  const onError = () => {
+    if (activeAudio === audio) {
+      clearActiveAudio();
+      resolveAudioStoppedWaiters();
+    }
+    log('Sound failed: playback error');
+  };
+  const onAbort = () => {
+    if (activeAudio === audio) {
+      clearActiveAudio();
+      resolveAudioStoppedWaiters();
+    }
+  };
+  audio.addEventListener('ended', onEnded);
+  audio.addEventListener('error', onError);
+  audio.addEventListener('abort', onAbort);
+  activeAudioCleanup = () => {
+    audio.removeEventListener('ended', onEnded);
+    audio.removeEventListener('error', onError);
+    audio.removeEventListener('abort', onAbort);
+  };
   runtime.lastSound = url;
   renderStatus();
   try {
     await audio.play();
     log('Sound play: ' + url);
   } catch (err) {
+    if (activeAudio === audio) {
+      clearActiveAudio();
+      resolveAudioStoppedWaiters();
+    }
     log('Sound failed: ' + err.message);
   }
 }
@@ -1294,6 +1365,15 @@ Blockly.Blocks['sound_resume'] = {
 Blockly.Blocks['sound_stop'] = {
   init() {
     this.appendDummyInput().appendField('stop sound');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_wait_stopped'] = {
+  init() {
+    this.appendDummyInput().appendField('wait for audio stopped');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour('#10B981');
@@ -2177,6 +2257,11 @@ async function executeChain(startBlock, generation) {
 
       case 'sound_stop': {
         stopSound();
+        break;
+      }
+
+      case 'sound_wait_stopped': {
+        await waitForAudioStopped();
         break;
       }
 
