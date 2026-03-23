@@ -1,0 +1,238 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+
+  <!-- VARIABLES -->
+  <variables>
+    <variable id="score">score</variable>
+    <variable id="leftWord">leftWord</variable>
+    <variable id="rightWord">rightWord</variable>
+    <variable id="isMatch">isMatch</variable>
+  </variables>
+
+  <!-- WHEN STARTED -->
+  <block type="event_when_started" x="20" y="20">
+    <statement name="DO">
+
+      <!-- score = 0 -->
+      <block type="variables_set">
+        <field name="VAR" id="score">score</field>
+        <value name="VALUE">
+          <block type="math_number">
+            <field name="NUM">0</field>
+          </block>
+        </value>
+        <next>
+
+          <!-- start first round -->
+          <block type="procedures_callnoreturn">
+            <mutation name="new_round"></mutation>
+          </block>
+
+        </next>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- PROCEDURE: NEW ROUND -->
+  <block type="procedures_defnoreturn" x="400" y="20">
+    <field name="NAME">new_round</field>
+    <statement name="STACK">
+
+      <!-- leftWord -->
+      <block type="variables_set">
+        <field name="VAR" id="leftWord">leftWord</field>
+        <value name="VALUE">
+          <block type="text">
+            <field name="TEXT">bal</field>
+          </block>
+        </value>
+        <next>
+
+          <!-- rightWord (change for real randomness later) -->
+          <block type="variables_set">
+            <field name="VAR" id="rightWord">rightWord</field>
+            <value name="VALUE">
+              <block type="text">
+                <field name="TEXT">bal</field>
+              </block>
+            </value>
+            <next>
+
+              <!-- isMatch -->
+              <block type="variables_set">
+                <field name="VAR" id="isMatch">isMatch</field>
+                <value name="VALUE">
+                  <block type="logic_compare">
+                    <field name="OP">EQ</field>
+                    <value name="A">
+                      <block type="variables_get">
+                        <field name="VAR" id="leftWord">leftWord</field>
+                      </block>
+                    </value>
+                    <value name="B">
+                      <block type="variables_get">
+                        <field name="VAR" id="rightWord">rightWord</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+
+                  <!-- show both words -->
+                  <block type="braille_set_text">
+                    <value name="TEXT">
+                      <block type="text_join">
+                        <mutation items="2"></mutation>
+                        <value name="ADD0">
+                          <block type="variables_get">
+                            <field name="VAR" id="leftWord">leftWord</field>
+                          </block>
+                        </value>
+                        <value name="ADD1">
+                          <block type="variables_get">
+                            <field name="VAR" id="rightWord">rightWord</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                  </block>
+
+                </next>
+              </block>
+
+            </next>
+          </block>
+
+        </next>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- RIGHT THUMB = MATCH -->
+  <block type="event_when_thumb" x="20" y="220">
+    <field name="KEY">right</field>
+    <statement name="DO">
+
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="variables_get">
+            <field name="VAR" id="isMatch">isMatch</field>
+          </block>
+        </value>
+        <statement name="DO0">
+
+          <!-- score++ -->
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+
+              <!-- next or finish -->
+              <block type="controls_if">
+                <value name="IF0">
+                  <block type="logic_compare">
+                    <field name="OP">LT</field>
+                    <value name="A">
+                      <block type="variables_get">
+                        <field name="VAR" id="score">score</field>
+                      </block>
+                    </value>
+                    <value name="B">
+                      <block type="math_number">
+                        <field name="NUM">10</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <statement name="DO0">
+                  <block type="procedures_callnoreturn">
+                    <mutation name="new_round"></mutation>
+                  </block>
+                </statement>
+                <statement name="ELSE">
+                  <block type="braille_set_text">
+                    <value name="TEXT">
+                      <block type="text">
+                        <field name="TEXT">Klaar! Goed gedaan!</field>
+                      </block>
+                    </value>
+                  </block>
+                </statement>
+              </block>
+
+            </next>
+          </block>
+
+        </statement>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- LEFT THUMB = NOT MATCH -->
+  <block type="event_when_thumb" x="20" y="380">
+    <field name="KEY">left</field>
+    <statement name="DO">
+
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="logic_negate">
+            <value name="BOOL">
+              <block type="variables_get">
+                <field name="VAR" id="isMatch">isMatch</field>
+              </block>
+            </value>
+          </block>
+        </value>
+        <statement name="DO0">
+
+          <!-- score++ -->
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="procedures_callnoreturn">
+                <mutation name="new_round"></mutation>
+              </block>
+            </next>
+          </block>
+
+        </statement>
+      </block>
+
+    </statement>
+  </block>
+
+</xml>

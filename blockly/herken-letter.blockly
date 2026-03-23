@@ -1,0 +1,202 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+
+  <!-- VARIABLES -->
+  <variables>
+    <variable id="letters">letters</variable>
+    <variable id="currentLetter">currentLetter</variable>
+    <variable id="isB">isB</variable>
+    <variable id="score">score</variable>
+  </variables>
+
+  <!-- WHEN STARTED -->
+  <block type="event_when_started" x="20" y="20">
+    <statement name="DO">
+
+      <!-- score = 0 -->
+      <block type="variables_set">
+        <field name="VAR" id="score">score</field>
+        <value name="VALUE">
+          <block type="math_number">
+            <field name="NUM">0</field>
+          </block>
+        </value>
+        <next>
+
+          <!-- start -->
+          <block type="procedures_callnoreturn">
+            <mutation name="new_letter"></mutation>
+          </block>
+
+        </next>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- PROCEDURE: NEW LETTER -->
+  <block type="procedures_defnoreturn" x="400" y="20">
+    <field name="NAME">new_letter</field>
+    <statement name="STACK">
+
+      <!-- RANDOM LETTER (simple version) -->
+      <block type="variables_set">
+        <field name="VAR" id="currentLetter">currentLetter</field>
+        <value name="VALUE">
+          <block type="text">
+            <field name="TEXT">b</field>
+          </block>
+        </value>
+        <next>
+
+          <!-- isB -->
+          <block type="variables_set">
+            <field name="VAR" id="isB">isB</field>
+            <value name="VALUE">
+              <block type="logic_compare">
+                <field name="OP">EQ</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="currentLetter">currentLetter</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="text">
+                    <field name="TEXT">b</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+
+              <!-- SHOW LETTER -->
+              <block type="braille_set_text">
+                <value name="TEXT">
+                  <block type="variables_get">
+                    <field name="VAR" id="currentLetter">currentLetter</field>
+                  </block>
+                </value>
+                <next>
+
+                  <!-- AUDIO INSTRUCTION -->
+                  <block type="sound_play_url">
+                    <value name="URL">
+                      <block type="text">
+                        <field name="TEXT">https://yourserver/audio/dit_is_de_b.mp3</field>
+                      </block>
+                    </value>
+                  </block>
+
+                </next>
+              </block>
+
+            </next>
+          </block>
+
+        </next>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- RIGHT THUMB = B -->
+  <block type="event_when_thumb" x="20" y="220">
+    <field name="KEY">right</field>
+    <statement name="DO">
+
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="variables_get">
+            <field name="VAR" id="isB">isB</field>
+          </block>
+        </value>
+        <statement name="DO0">
+
+          <!-- correct -->
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+
+              <!-- next letter -->
+              <block type="procedures_callnoreturn">
+                <mutation name="new_letter"></mutation>
+              </block>
+
+            </next>
+          </block>
+
+        </statement>
+      </block>
+
+    </statement>
+  </block>
+
+
+  <!-- LEFT THUMB = NOT B -->
+  <block type="event_when_thumb" x="20" y="380">
+    <field name="KEY">left</field>
+    <statement name="DO">
+
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="logic_negate">
+            <value name="BOOL">
+              <block type="variables_get">
+                <field name="VAR" id="isB">isB</field>
+              </block>
+            </value>
+          </block>
+        </value>
+        <statement name="DO0">
+
+          <!-- correct -->
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+
+              <!-- next -->
+              <block type="procedures_callnoreturn">
+                <mutation name="new_letter"></mutation>
+              </block>
+
+            </next>
+          </block>
+
+        </statement>
+      </block>
+
+    </statement>
+  </block>
+
+</xml>

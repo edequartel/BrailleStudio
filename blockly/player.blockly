@@ -1,0 +1,80 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+
+  <variables>
+    <variable id="audioUrl">audioUrl</variable>
+  </variables>
+
+  <!-- WHEN STARTED -->
+  <block type="event_when_started" x="20" y="20">
+    <statement name="DO">
+      <block type="variables_set">
+        <field name="VAR" id="audioUrl">audioUrl</field>
+        <value name="VALUE">
+          <block type="text">
+            <field name="TEXT">https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3</field>
+          </block>
+        </value>
+        <next>
+          <block type="sound_set_volume">
+            <value name="VOLUME">
+              <block type="math_number">
+                <field name="NUM">100</field>
+              </block>
+            </value>
+            <next>
+              <block type="braille_set_text">
+                <value name="TEXT">
+                  <block type="text">
+                    <field name="TEXT">Right thumb=start. Left thumb=stop.</field>
+                  </block>
+                </value>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- RIGHT THUMB = START -->
+  <block type="event_when_thumb" x="20" y="220">
+    <field name="KEY">right</field>
+    <statement name="DO">
+      <block type="sound_play_url">
+        <value name="URL">
+          <block type="variables_get">
+            <field name="VAR" id="audioUrl">audioUrl</field>
+          </block>
+        </value>
+        <next>
+          <block type="braille_set_text">
+            <value name="TEXT">
+              <block type="text">
+                <field name="TEXT">Playing audio URL</field>
+              </block>
+            </value>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <!-- LEFT THUMB = STOP -->
+  <block type="event_when_thumb" x="20" y="360">
+    <field name="KEY">left</field>
+    <statement name="DO">
+      <block type="sound_stop">
+        <next>
+          <block type="braille_set_text">
+            <value name="TEXT">
+              <block type="text">
+                <field name="TEXT">Audio stopped</field>
+              </block>
+            </value>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+</xml>
