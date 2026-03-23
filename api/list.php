@@ -18,53 +18,30 @@ instructies  -> https://www.tastenbraille.com/braillestudio/sounds/general/instr
 beloningen   -> https://www.tastenbraille.com/braillestudio/sounds/general/beloningen
 story        -> https://www.tastenbraille.com/braillestudio/sounds/nl/story
 
-EXAMPLE CURL
-------------
-1. All words:
-curl "https://tastenbraille.com/api/list.php?folder=woorden"
-
-2. All letters:
-curl "https://tastenbraille.com/api/list.php?folder=letters"
-
-3. All instructies:
-curl "https://tastenbraille.com/api/list.php?folder=instructies"
-
-4. All beloningen:
-curl "https://tastenbraille.com/api/list.php?folder=beloningen"
-
-5. All story files:
-curl "https://tastenbraille.com/api/list.php?folder=story"
-
-6. Filter by first letters:
-curl "https://tastenbraille.com/api/list.php?folder=woorden&letters=a,b,k,l"
-
-7. Filter by klanken:
-curl "https://tastenbraille.com/api/list.php?folder=woorden&klanken=aa,ee,oe"
-
-8. Combined:
-curl "https://tastenbraille.com/api/list.php?folder=woorden&letters=l,b&klanken=aa,ee"
-
 PARAMETERS
 ----------
-folder   required: woorden, letters, instructies, beloningen, story
-letters  optional: comma-separated first letters, e.g. a,b,k,l
-klanken  optional: comma-separated substrings, e.g. aa,ee,oe,sch
+folder            required
 
-OUTPUT
-------
-[
-  {
-    "word": "lamp",
-    "url": "https://www.tastenbraille.com/braillestudio/sounds/nl/speech/lamp.mp3"
-  }
-]
+letters           → first letter filter
+klanken           → contains filter
 
-NOTES
+onlyletters       → ONLY these letters allowed
+onlyklanken       → ONLY these phonics allowed
+
+onlycombo         → STRICT combination of letters + phonics
+                    word must satisfy BOTH:
+                    - all characters ∈ onlyletters
+                    - all phonics ∈ onlyklanken
+
+EXAMPLE
+-------
+curl "...?folder=woorden&onlycombo=true&onlyletters=a,l,p,m&onlyklanken=a,aa,l,p,m"
+
+LOGIC
 -----
-- If no letters/klanken are given, all mp3 files in the folder are returned.
-- letters filters on the FIRST character of the filename (without extension).
-- klanken filters on substring match inside the filename.
-- Response is always JSON.
+- All filters use AND logic
+- onlycombo makes letter + klank restriction BOTH required
+
 ==========================================================
 */
 
@@ -76,14 +53,14 @@ header('Content-Type: application/json; charset=utf-8');
 $folder = $_GET['folder'] ?? '';
 $lettersParam = $_GET['letters'] ?? '';
 $klankenParam = $_GET['klanken'] ?? '';
+$onlyLettersParam = $_GET['onlyletters'] ?? '';
+$onlyKlankenParam = $_GET['onlyklanken'] ?? '';
+$onlyCombo = ($_GET['onlycombo'] ?? 'false') === 'true';
 
 $folder = basename(trim($folder));
 
 // -----------------------------
 // Folder mapping
-// Assumed:
-//   list.php                  -> /public_html/api/list.php
-//   audio root               -> /public_html/braillestudio/sounds/...
 // -----------------------------
 $folderMap = [
     'woorden' => [
@@ -110,10 +87,7 @@ $folderMap = [
 
 if (!isset($folderMap[$folder])) {
     http_response_code(400);
-    echo json_encode([
-        'error' => 'invalid folder',
-        'allowed' => array_keys($folderMap),
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    echo json_encode(['error' => 'invalid folder']);
     exit;
 }
 
@@ -122,72 +96,109 @@ $publicBaseUrl = $folderMap[$folder]['url'];
 
 if (!is_dir($targetDir)) {
     http_response_code(404);
-    echo json_encode([
-        'error' => 'folder not found',
-        'path' => $targetDir,
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    echo json_encode(['error' => 'folder not found']);
     exit;
 }
 
 // -----------------------------
 // Parse filters
 // -----------------------------
-$letters = array_values(array_filter(array_map(function ($value) {
-    return mb_strtolower(trim($value), 'UTF-8');
-}, explode(',', $lettersParam))));
-
-$klanken = array_values(array_filter(array_map(function ($value) {
-    return mb_strtolower(trim($value), 'UTF-8');
-}, explode(',', $klankenParam))));
+$letters = array_values(array_filter(array_map(fn($v) => mb_strtolower(trim($v)), explode(',', $lettersParam))));
+$klanken = array_values(array_filter(array_map(fn($v) => mb_strtolower(trim($v)), explode(',', $klankenParam))));
+$onlyLetters = array_values(array_filter(array_map(fn($v) => mb_strtolower(trim($v)), explode(',', $onlyLettersParam))));
+$onlyKlanken = array_values(array_filter(array_map(fn($v) => mb_strtolower(trim($v)), explode(',', $onlyKlankenParam))));
 
 // -----------------------------
-// Read files
+// Helper: klank tokenizer
 // -----------------------------
-$entries = scandir($targetDir);
+function splitKlanken($word) {
+    $patterns = ['sch', 'ng', 'aa', 'ee', 'oo', 'uu', 'oe', 'ei', 'ij', 'ui', 'au', 'ou'];
+    $result = [];
 
-if ($entries === false) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'could not read folder',
-        'path' => $targetDir,
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-    exit;
-}
-
-$files = array_values(array_filter($entries, function ($file) use ($targetDir, $letters, $klanken) {
-    $fullPath = $targetDir . '/' . $file;
-
-    if (!is_file($fullPath)) {
-        return false;
-    }
-
-    if (mb_strtolower(pathinfo($file, PATHINFO_EXTENSION), 'UTF-8') !== 'mp3') {
-        return false;
-    }
-
-    $name = mb_strtolower(pathinfo($file, PATHINFO_FILENAME), 'UTF-8');
-
-    // Filter by first letter
-    if (!empty($letters)) {
-        $firstLetter = mb_substr($name, 0, 1, 'UTF-8');
-        if (!in_array($firstLetter, $letters, true)) {
-            return false;
-        }
-    }
-
-    // Filter by klanken (substring match)
-    if (!empty($klanken)) {
+    while ($word !== '') {
         $matched = false;
 
-        foreach ($klanken as $klank) {
-            if ($klank !== '' && mb_strpos($name, $klank, 0, 'UTF-8') !== false) {
+        foreach ($patterns as $p) {
+            if (mb_substr($word, 0, mb_strlen($p)) === $p) {
+                $result[] = $p;
+                $word = mb_substr($word, mb_strlen($p));
                 $matched = true;
                 break;
             }
         }
 
         if (!$matched) {
-            return false;
+            $result[] = mb_substr($word, 0, 1);
+            $word = mb_substr($word, 1);
+        }
+    }
+
+    return $result;
+}
+
+// -----------------------------
+// Read files
+// -----------------------------
+$entries = scandir($targetDir);
+
+$files = array_values(array_filter($entries, function ($file) use ($targetDir, $letters, $klanken, $onlyLetters, $onlyKlanken, $onlyCombo) {
+
+    $fullPath = $targetDir . '/' . $file;
+
+    if (!is_file($fullPath)) return false;
+    if (mb_strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'mp3') return false;
+
+    $name = mb_strtolower(pathinfo($file, PATHINFO_FILENAME));
+
+    // first letter
+    if (!empty($letters)) {
+        if (!in_array(mb_substr($name, 0, 1), $letters, true)) return false;
+    }
+
+    // contains klanken
+    if (!empty($klanken)) {
+        $matched = false;
+        foreach ($klanken as $k) {
+            if (mb_strpos($name, $k) !== false) {
+                $matched = true;
+                break;
+            }
+        }
+        if (!$matched) return false;
+    }
+
+    // onlyletters
+    if (!empty($onlyLetters)) {
+        $chars = preg_split('//u', $name, -1, PREG_SPLIT_NO_EMPTY);
+        foreach ($chars as $char) {
+            if (!in_array($char, $onlyLetters, true)) return false;
+        }
+    }
+
+    // onlyklanken
+    if (!empty($onlyKlanken)) {
+        $wordKlanken = splitKlanken($name);
+        foreach ($wordKlanken as $klank) {
+            if (!in_array($klank, $onlyKlanken, true)) return false;
+        }
+    }
+
+    // STRICT COMBINATION (NEW)
+    if ($onlyCombo && (!empty($onlyLetters) || !empty($onlyKlanken))) {
+
+        // must satisfy BOTH if provided
+        if (!empty($onlyLetters)) {
+            $chars = preg_split('//u', $name, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($chars as $char) {
+                if (!in_array($char, $onlyLetters, true)) return false;
+            }
+        }
+
+        if (!empty($onlyKlanken)) {
+            $wordKlanken = splitKlanken($name);
+            foreach ($wordKlanken as $klank) {
+                if (!in_array($klank, $onlyKlanken, true)) return false;
+            }
         }
     }
 
