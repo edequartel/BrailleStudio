@@ -258,6 +258,8 @@
         <div class="row">
           <input id="soundFileInput" type="text" value="voorbeeld.mp3" style="flex:1; min-width:180px; padding:6px 8px;">
           <button id="playSoundBtn" class="btn">Play file</button>
+          <button id="pauseSoundBtn" class="btn">Pause</button>
+          <button id="resumeSoundBtn" class="btn">Resume</button>
           <button id="stopSoundBtn" class="btn">Stop sound</button>
         </div>
       </div>
@@ -318,6 +320,8 @@
   <category name="Sounds" colour="#10B981">
     <block type="sound_play_file"></block>
     <block type="sound_play_url"></block>
+    <block type="sound_pause"></block>
+    <block type="sound_resume"></block>
     <block type="sound_stop"></block>
     <block type="sound_set_volume">
       <value name="VOLUME">
@@ -348,6 +352,21 @@
   </category>
 
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
+
+  <category name="Lists" colour="#F97316">
+    <block type="list_make"></block>
+    <block type="list_empty"></block>
+    <block type="list_get_item"></block>
+    <block type="list_set_item"></block>
+    <block type="list_length"></block>
+    <block type="list_random_item"></block>
+    <block type="list_next_item"></block>
+    <block type="list_contains_item"></block>
+    <block type="list_add_item"></block>
+    <block type="list_remove_item"></block>
+    <block type="list_from_json"></block>
+    <block type="list_random_other_item"></block>
+  </category>
 
   <category name="State values" colour="#7C3AED">
     <block type="state_text_caret"></block>
@@ -415,6 +434,7 @@ const runtime = {
 
 const variableValues = {};
 const timerHandles = new Map();
+const listNextIndex = new WeakMap();
 let soundVolume = 1;
 let activeAudio = null;
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
@@ -539,6 +559,32 @@ function stopSound() {
     // ignore pause/currentTime errors
   }
   activeAudio = null;
+}
+
+function pauseSound() {
+  if (!activeAudio) {
+    log('Sound pause skipped: no active sound');
+    return;
+  }
+  try {
+    activeAudio.pause();
+    log('Sound paused');
+  } catch (err) {
+    log('Sound pause failed: ' + err.message);
+  }
+}
+
+async function resumeSound() {
+  if (!activeAudio) {
+    log('Sound resume skipped: no active sound');
+    return;
+  }
+  try {
+    await activeAudio.play();
+    log('Sound resumed');
+  } catch (err) {
+    log('Sound resume failed: ' + err.message);
+  }
 }
 
 async function playSound(input) {
@@ -900,6 +946,10 @@ function bindAppControls() {
     const input = document.getElementById('soundFileInput');
     await playSound(input ? input.value : '');
   });
+  bind('pauseSoundBtn', 'click', pauseSound);
+  bind('resumeSoundBtn', 'click', async () => {
+    await resumeSound();
+  });
   bind('stopSoundBtn', 'click', stopSound);
 
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
@@ -1223,6 +1273,24 @@ Blockly.Blocks['sound_play_url'] = {
   }
 };
 
+Blockly.Blocks['sound_pause'] = {
+  init() {
+    this.appendDummyInput().appendField('pause sound');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_resume'] = {
+  init() {
+    this.appendDummyInput().appendField('resume sound');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
 Blockly.Blocks['sound_stop'] = {
   init() {
     this.appendDummyInput().appendField('stop sound');
@@ -1238,6 +1306,139 @@ Blockly.Blocks['sound_set_volume'] = {
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['list_make'] = {
+  init() {
+    this.itemCount_ = 2;
+    this.appendDummyInput('HEAD')
+      .appendField('maak lijst met')
+      .appendField(new Blockly.FieldNumber(2, 0, 20, 1, (newValue) => {
+        const n = Math.max(0, Math.min(20, Math.floor(Number(newValue) || 0)));
+        this.itemCount_ = n;
+        this.updateShape_();
+        return n;
+      }), 'COUNT');
+    this.updateShape_();
+    this.setOutput(true);
+    this.setColour('#F97316');
+  },
+  mutationToDom() {
+    const container = Blockly.utils.xml.createElement('mutation');
+    container.setAttribute('items', String(this.itemCount_));
+    return container;
+  },
+  domToMutation(xmlElement) {
+    this.itemCount_ = Number(xmlElement.getAttribute('items')) || 0;
+    this.updateShape_();
+  },
+  updateShape_() {
+    for (let i = 0; this.getInput('ITEM' + i); i++) {
+      this.removeInput('ITEM' + i);
+    }
+    for (let i = 0; i < this.itemCount_; i++) {
+      this.appendValueInput('ITEM' + i)
+        .appendField(i === 0 ? 'item' : '');
+    }
+  }
+};
+
+Blockly.Blocks['list_empty'] = {
+  init() {
+    this.appendDummyInput().appendField('maak lege lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_get_item'] = {
+  init() {
+    this.appendValueInput('INDEX').appendField('haal item');
+    this.appendValueInput('LIST').appendField('uit lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_set_item'] = {
+  init() {
+    this.appendValueInput('INDEX').appendField('zet item');
+    this.appendValueInput('LIST').appendField('in lijst');
+    this.appendValueInput('VALUE').appendField('naar');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_length'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('lengte van lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_random_item'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('random item uit lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_next_item'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('volgend item uit lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_contains_item'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('bevat lijst');
+    this.appendValueInput('ITEM').appendField('item');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_add_item'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('voeg toe aan lijst');
+    this.appendValueInput('ITEM').appendField('item');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_remove_item'] = {
+  init() {
+    this.appendValueInput('INDEX').appendField('verwijder item');
+    this.appendValueInput('LIST').appendField('uit lijst');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_from_json'] = {
+  init() {
+    this.appendValueInput('JSON').appendField('laad woordenlijst uit JSON');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_random_other_item'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('random ander item uit lijst');
+    this.appendValueInput('EXCLUDE').appendField('dan');
+    this.setOutput(true);
+    this.setColour('#F97316');
   }
 };
 
@@ -1643,6 +1844,50 @@ function toNumber(v) {
   return Number.isNaN(n) ? 0 : n;
 }
 
+function toList(v) {
+  return Array.isArray(v) ? v : [];
+}
+
+function toListIndex(v, listLength) {
+  const i = Math.floor(toNumber(v)) - 1; // 1-based index for teacher-friendly blocks
+  if (!Number.isFinite(i)) return -1;
+  if (i < 0 || i >= listLength) return -1;
+  return i;
+}
+
+function listValueEquals(a, b) {
+  if (Array.isArray(a) || Array.isArray(b)) return JSON.stringify(a) === JSON.stringify(b);
+  return String(a) === String(b);
+}
+
+function resetListCursor(list) {
+  if (Array.isArray(list)) listNextIndex.delete(list);
+}
+
+function nextListItem(list) {
+  const src = toList(list);
+  if (src.length === 0) return '';
+  const cur = listNextIndex.get(src) ?? 0;
+  const idx = ((cur % src.length) + src.length) % src.length;
+  const out = src[idx];
+  listNextIndex.set(src, (idx + 1) % src.length);
+  return out;
+}
+
+function parseListFromJson(text) {
+  try {
+    const parsed = JSON.parse(String(text ?? ''));
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.items)) return parsed.items;
+    if (Array.isArray(parsed?.woorden)) return parsed.woorden;
+    if (Array.isArray(parsed?.words)) return parsed.words;
+    if (Array.isArray(parsed?.list)) return parsed.list;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 function evalValue(block) {
   if (!block) return null;
 
@@ -1688,6 +1933,58 @@ function evalValue(block) {
 
     case 'state_last_sound':
       return runtime.lastSound;
+
+    case 'list_make': {
+      const out = [];
+      for (let i = 0; i < (block.itemCount_ || 0); i++) {
+        out.push(evalValue(block.getInputTargetBlock('ITEM' + i)));
+      }
+      return out;
+    }
+
+    case 'list_empty':
+      return [];
+
+    case 'list_get_item': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const idx = toListIndex(evalValue(block.getInputTargetBlock('INDEX')), list.length);
+      return idx >= 0 ? list[idx] : '';
+    }
+
+    case 'list_length': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      return list.length;
+    }
+
+    case 'list_random_item': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      if (list.length === 0) return '';
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    case 'list_next_item': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      return nextListItem(list);
+    }
+
+    case 'list_contains_item': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const item = evalValue(block.getInputTargetBlock('ITEM'));
+      return list.some(x => listValueEquals(x, item));
+    }
+
+    case 'list_from_json': {
+      const jsonText = evalValue(block.getInputTargetBlock('JSON'));
+      return parseListFromJson(jsonText);
+    }
+
+    case 'list_random_other_item': {
+      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const exclude = evalValue(block.getInputTargetBlock('EXCLUDE'));
+      const filtered = list.filter(x => !listValueEquals(x, exclude));
+      if (filtered.length === 0) return '';
+      return filtered[Math.floor(Math.random() * filtered.length)];
+    }
 
     case 'variables_get': {
       const id = getVariableIdFromBlock(block);
@@ -1868,6 +2165,16 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'sound_pause': {
+        pauseSound();
+        break;
+      }
+
+      case 'sound_resume': {
+        await resumeSound();
+        break;
+      }
+
       case 'sound_stop': {
         stopSound();
         break;
@@ -1899,11 +2206,44 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'list_set_item': {
+        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
+        const idx = toListIndex(evalValue(current.getInputTargetBlock('INDEX')), list.length);
+        const value = evalValue(current.getInputTargetBlock('VALUE'));
+        if (idx >= 0) {
+          list[idx] = value;
+          resetListCursor(list);
+          renderStatus();
+        }
+        break;
+      }
+
+      case 'list_add_item': {
+        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
+        const value = evalValue(current.getInputTargetBlock('ITEM'));
+        list.push(value);
+        resetListCursor(list);
+        renderStatus();
+        break;
+      }
+
+      case 'list_remove_item': {
+        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
+        const idx = toListIndex(evalValue(current.getInputTargetBlock('INDEX')), list.length);
+        if (idx >= 0) {
+          list.splice(idx, 1);
+          resetListCursor(list);
+          renderStatus();
+        }
+        break;
+      }
+
       case 'variables_set': {
         const id = getVariableIdFromBlock(current);
         const value = evalValue(current.getInputTargetBlock('VALUE'));
         if (id) {
           variableValues[id] = value;
+          if (Array.isArray(value)) resetListCursor(value);
           renderStatus();
         }
         break;
