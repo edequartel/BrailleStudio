@@ -369,14 +369,6 @@
         </div>
       </div>
 
-      <div class="card">
-        <h3>Klanken JSON</h3>
-        <div class="small">Source: <code>../klanken/aanvankelijklijst.json</code></div>
-        <div class="row" style="margin-top:8px;">
-          <button id="loadKlankenJsonBtn" class="btn">Load JSON</button>
-        </div>
-        <div id="klankenJsonBox" class="mono">Nothing loaded yet.</div>
-      </div>
     </div>
   </div>
 </div>
@@ -457,6 +449,9 @@
 
   <category name="Klanken" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
+    <block type="klanken_item_get_word"></block>
+    <block type="klanken_item_get_sounds"></block>
+    <block type="klanken_item_get_category"></block>
   </category>
 
   <category name="Logic" colour="#16A34A">
@@ -559,27 +554,6 @@ function renderBrailleLine(msg) {
   document.getElementById('brailleLineBox').textContent = msg
     ? JSON.stringify(msg, null, 2)
     : '';
-}
-
-async function loadKlankenJson() {
-  const box = document.getElementById('klankenJsonBox');
-  if (!box) return;
-
-  box.textContent = 'Loading ../klanken/aanvankelijklijst.json...';
-
-  try {
-    const res = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status} ${res.statusText}`);
-    }
-
-    const data = await res.json();
-    box.textContent = JSON.stringify(data, null, 2);
-    log('Klanken JSON loaded');
-  } catch (err) {
-    box.textContent = `Failed to load ../klanken/aanvankelijklijst.json:\n\n${err}`;
-    log(`Klanken JSON load failed: ${err}`);
-  }
 }
 
 /* ---------------- Runtime state ---------------- */
@@ -1210,8 +1184,6 @@ function bindAppControls() {
     await resumeSound();
   });
   bind('stopSoundBtn', 'click', stopSound);
-  bind('loadKlankenJsonBtn', 'click', loadKlankenJson);
-
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
     baseUrlBox.textContent = SOUND_BASE_URL;
@@ -1783,6 +1755,50 @@ Blockly.Blocks['klanken_get_aanvankelijklijst'] = {
   }
 };
 
+Blockly.Blocks['klanken_item_get_word'] = {
+  init() {
+    this.appendValueInput('ITEM').appendField('woord van klanken item');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_item_get_sounds'] = {
+  init() {
+    this.appendValueInput('ITEM')
+      .appendField('klanken uit item')
+      .appendField(new Blockly.FieldDropdown([
+        ['alle', 'ALL'],
+        ['nieuw', 'NEW'],
+        ['bekend', 'KNOWN']
+      ]), 'SOURCE');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_item_get_category'] = {
+  init() {
+    this.appendValueInput('ITEM')
+      .appendField('categorie uit item')
+      .appendField(new Blockly.FieldDropdown([
+        ['alle', 'ALL'],
+        ['nieuw', 'NEW'],
+        ['bekend', 'KNOWN']
+      ]), 'SOURCE')
+      .appendField(new Blockly.FieldDropdown([
+        ['korte klinkers', 'korteKlinkers'],
+        ['lange klinkers', 'langeKlinkers'],
+        ['tweetekenklanken', 'tweetekenklanken'],
+        ['medeklinkers', 'medeklinkers'],
+        ['medeklinkerclusters', 'medeklinkerclusters'],
+        ['drietekenklanken', 'drietekenklanken']
+      ]), 'CATEGORY');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
 Blockly.Blocks['timer_start'] = {
   init() {
     this.appendDummyInput()
@@ -2246,6 +2262,28 @@ async function getAanvankelijklijst() {
   return klankenJsonCache;
 }
 
+function getKlankenSourceValue(item, source) {
+  const src = String(source || 'ALL');
+  if (!item || typeof item !== 'object') return [];
+  if (src === 'NEW') return toList(item.newSounds);
+  if (src === 'KNOWN') return toList(item.knownSounds);
+  return toList(item.sounds);
+}
+
+function getKlankenCategoryValue(item, source, category) {
+  const src = String(source || 'ALL');
+  const key = String(category || '');
+  if (!item || typeof item !== 'object' || !key) return [];
+
+  const categorySet =
+    src === 'NEW' ? item.newSoundCategories :
+    src === 'KNOWN' ? item.knownSoundCategories :
+    item.categories;
+
+  if (!categorySet || typeof categorySet !== 'object') return [];
+  return toList(categorySet[key]);
+}
+
 async function evalValue(block) {
   if (!block) return null;
 
@@ -2352,6 +2390,25 @@ async function evalValue(block) {
         log(`Aanvankelijklijst load failed: ${err}`);
         return [];
       }
+    }
+
+    case 'klanken_item_get_word': {
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
+      return item && typeof item === 'object' ? String(item.word ?? '') : '';
+    }
+
+    case 'klanken_item_get_sounds': {
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
+      return getKlankenSourceValue(item, block.getFieldValue('SOURCE'));
+    }
+
+    case 'klanken_item_get_category': {
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
+      return getKlankenCategoryValue(
+        item,
+        block.getFieldValue('SOURCE'),
+        block.getFieldValue('CATEGORY')
+      );
     }
 
     case 'list_random_other_item': {

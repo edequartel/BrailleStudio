@@ -60,6 +60,25 @@
     return [`await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json())`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['klanken_item_get_word'] = function (block) {
+    const itemCode = valueToCodeOr(block, 'ITEM', 'null');
+    return [`((${itemCode})?.word ?? '')`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_item_get_sounds'] = function (block) {
+    const itemCode = valueToCodeOr(block, 'ITEM', 'null');
+    const source = q(block.getFieldValue('SOURCE') || 'ALL');
+    return [`(${source} === 'NEW' ? ((${itemCode})?.newSounds ?? []) : ${source} === 'KNOWN' ? ((${itemCode})?.knownSounds ?? []) : ((${itemCode})?.sounds ?? []))`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_item_get_category'] = function (block) {
+    const itemCode = valueToCodeOr(block, 'ITEM', 'null');
+    const source = q(block.getFieldValue('SOURCE') || 'ALL');
+    const category = q(block.getFieldValue('CATEGORY') || 'medeklinkers');
+    const categoryRoot = `(${source} === 'NEW' ? ((${itemCode})?.newSoundCategories ?? {}) : ${source} === 'KNOWN' ? ((${itemCode})?.knownSoundCategories ?? {}) : ((${itemCode})?.categories ?? {}))`;
+    return [`(${categoryRoot}[${category}] ?? [])`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['sound_play_url'] = function (block) {
     const urlCode = valueToCodeOr(block, 'URL', "''");
     return `await BrailleStudioAPI.playUrl(${urlCode});\n`;
