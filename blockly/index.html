@@ -311,6 +311,7 @@
       <button id="saveBtn" class="btn">Save</button>
       <button id="saveAsBtn" class="btn">Save As</button>
       <button id="loadBtn" class="btn">Load</button>
+      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap Grid On</button>
       <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
       <button id="newBtn" class="btn">New</button>
       <input id="fileInput" type="file" accept=".blockly">
@@ -389,7 +390,13 @@
     <block type="bb_set_text"></block>
     <block type="bb_append_text"></block>
     <block type="bb_send_key"></block>
-    <block type="bb_move_caret"></block>
+    <block type="bb_move_caret">
+      <value name="DELTA">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+    </block>
     <block type="bb_set_caret"></block>
     <block type="bb_set_caret_from_cell"></block>
     <block type="bb_cursor_routing"></block>
@@ -425,6 +432,7 @@
 
   <category name="Sounds" colour="#10B981">
     <block type="sound_play_file"></block>
+    <block type="sound_play_folder_file"></block>
     <block type="sound_play_url"></block>
     <block type="sound_pause"></block>
     <block type="sound_resume"></block>
@@ -447,7 +455,7 @@
     <block type="audio_item_get_url"></block>
   </category>
 
-  <category name="Klanken" colour="#14B8A6">
+  <category name="Phonems" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
     <block type="klanken_item_get_word"></block>
     <block type="klanken_item_get_sounds"></block>
@@ -507,7 +515,13 @@
   <category name="Math" colour="#C026D3">
     <block type="math_number"></block>
     <block type="math_arithmetic"></block>
-    <block type="math_random_10"></block>
+    <block type="math_random_10">
+      <value name="MAX">
+        <shadow type="math_number">
+          <field name="NUM">10</field>
+        </shadow>
+      </value>
+    </block>
   </category>
 
   <category name="Text" colour="#0891B2">
@@ -556,6 +570,14 @@ function renderBrailleLine(msg) {
     : '';
 }
 
+function renderGridSnapControl() {
+  const btn = document.getElementById('gridSnapBtn');
+  if (!btn) return;
+  btn.classList.toggle('is-active', !!gridSnapEnabled);
+  btn.setAttribute('aria-pressed', gridSnapEnabled ? 'true' : 'false');
+  btn.textContent = gridSnapEnabled ? 'Snap Grid On' : 'Snap Grid Off';
+}
+
 /* ---------------- Runtime state ---------------- */
 const runtime = {
   stopped: true,
@@ -585,13 +607,23 @@ let activeAudio = null;
 let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
+const SOUND_FOLDER_URLS = {
+  speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
+  letters: 'https://www.tastenbraille.com/braillestudio/sounds/nl/alfabet/',
+  instructions: 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',
+  feedback: 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',
+  story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
+  general: 'https://www.tastenbraille.com/braillestudio/sounds/shared/'
+};
 const BLOCKLY_FILE_NAME_KEY = 'blockly_file_name';
+const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
 let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
 let reconnectTimer = null;
 let autoConnectEnabled = true;
+let gridSnapEnabled = true;
 let pendingStart = false;
 let pendingStartGeneration = 0;
 let runGeneration = 0;
@@ -640,6 +672,29 @@ stopped          : ${runtime.stopped}
 
 variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
+}
+
+function applyGridSnap(enabled) {
+  gridSnapEnabled = !!enabled;
+  if (workspace) {
+    if (workspace.options?.gridOptions) {
+      workspace.options.gridOptions.snap = gridSnapEnabled;
+    }
+    const grid = typeof workspace.getGrid === 'function' ? workspace.getGrid() : workspace.grid;
+    if (grid) {
+      if (typeof grid.setSnapToGrid === 'function') {
+        grid.setSnapToGrid(gridSnapEnabled);
+      }
+      if ('snapToGrid_' in grid) {
+        grid.snapToGrid_ = gridSnapEnabled;
+      }
+      if ('snapToGrid' in grid && typeof grid.snapToGrid !== 'function') {
+        grid.snapToGrid = gridSnapEnabled;
+      }
+    }
+  }
+  localStorage.setItem(BLOCKLY_GRID_SNAP_KEY, gridSnapEnabled ? 'true' : 'false');
+  renderGridSnapControl();
 }
 
 /* ---------------- WebSocket ---------------- */
@@ -710,6 +765,15 @@ function resolveSoundUrl(input) {
   if (/^https?:\/\//i.test(raw)) return raw;
   const filename = raw.toLowerCase().endsWith('.mp3') ? raw : (raw + '.mp3');
   return SOUND_BASE_URL + encodeURIComponent(filename);
+}
+
+function resolveFolderSoundUrl(folder, input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const baseUrl = SOUND_FOLDER_URLS[String(folder || 'speech')] || SOUND_BASE_URL;
+  const filename = raw.toLowerCase().endsWith('.mp3') ? raw : (raw + '.mp3');
+  return baseUrl + encodeURIComponent(filename);
 }
 
 function resolveAudioStoppedWaiters() {
@@ -1143,6 +1207,9 @@ function bindAppControls() {
   bind('saveBtn', 'click', saveWorkspace);
   bind('saveAsBtn', 'click', saveWorkspaceAs);
   bind('loadBtn', 'click', openWorkspaceFile);
+  bind('gridSnapBtn', 'click', () => {
+    applyGridSnap(!gridSnapEnabled);
+  });
   bind('newBtn', 'click', newWorkspace);
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
@@ -1201,6 +1268,14 @@ function bindAppControls() {
       currentFileHandle = null;
     });
     fileNameInput.dataset.initialized = '1';
+  }
+
+  const gridSnapBtn = document.getElementById('gridSnapBtn');
+  if (gridSnapBtn && !gridSnapBtn.dataset.initialized) {
+    const savedSnap = localStorage.getItem(BLOCKLY_GRID_SNAP_KEY);
+    gridSnapEnabled = savedSnap !== 'false';
+    renderGridSnapControl();
+    gridSnapBtn.dataset.initialized = '1';
   }
 }
 
@@ -1507,7 +1582,8 @@ Blockly.Blocks['controls_do_while'] = {
 
 Blockly.Blocks['math_random_10'] = {
   init() {
-    this.appendDummyInput().appendField('random(10)');
+    this.appendValueInput('MAX')
+      .appendField('random max');
     this.setOutput(true);
     this.setColour('#C026D3');
   }
@@ -1552,7 +1628,27 @@ Blockly.Blocks['sound_play_file'] = {
   init() {
     this.appendDummyInput()
       .appendField('play sound file')
-      .appendField(new Blockly.FieldTextInput('voorbeeld.mp3'), 'FILE');
+      .appendField(new Blockly.FieldTextInput('voorbeeld'), 'FILE');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#10B981');
+  }
+};
+
+Blockly.Blocks['sound_play_folder_file'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('play sound from')
+      .appendField(new Blockly.FieldDropdown([
+        ['speech', 'speech'],
+        ['letters', 'letters'],
+        ['instructions', 'instructions'],
+        ['feedback', 'feedback'],
+        ['story', 'story'],
+        ['general', 'general']
+      ]), 'FOLDER')
+      .appendField('file')
+      .appendField(new Blockly.FieldTextInput('voorbeeld'), 'FILE');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour('#10B981');
@@ -1941,6 +2037,8 @@ workspace = Blockly.inject('blocklyDiv', {
     snap: true
   }
 });
+
+applyGridSnap(localStorage.getItem(BLOCKLY_GRID_SNAP_KEY) !== 'false');
 
 function resizeBlockly() {
   if (!workspace) return;
@@ -2469,8 +2567,11 @@ async function evalValue(block) {
       }
     }
 
-    case 'math_random_10':
-      return Math.floor(Math.random() * 10);
+    case 'math_random_10': {
+      const max = Math.floor(toNumber(await evalValue(block.getInputTargetBlock('MAX'))));
+      if (max <= 0) return 0;
+      return Math.floor(Math.random() * max);
+    }
 
     case 'logic_compare': {
       const a = await evalValue(block.getInputTargetBlock('A'));
@@ -2637,6 +2738,13 @@ async function executeChain(startBlock, generation) {
       case 'sound_play_file': {
         const file = current.getFieldValue('FILE');
         await playSound(file);
+        break;
+      }
+
+      case 'sound_play_folder_file': {
+        const folder = current.getFieldValue('FOLDER');
+        const file = current.getFieldValue('FILE');
+        await playSound(resolveFolderSoundUrl(folder, file));
         break;
       }
 

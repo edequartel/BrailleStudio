@@ -46,6 +46,11 @@
     return [`(Array.isArray(${listCode}) ? ${listCode}.length : 0)`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['math_random_10'] = function (block) {
+    const maxCode = valueToCodeOr(block, 'MAX', '10');
+    return [`(() => { const max = Math.floor(Number(${maxCode}) || 0); return max <= 0 ? 0 : Math.floor(Math.random() * max); })()`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['audio_item_get_word'] = function (block) {
     const itemCode = valueToCodeOr(block, 'ITEM', 'null');
     return [`((${itemCode})?.word ?? '')`, ORDER_ATOMIC];
@@ -82,6 +87,28 @@
   javascriptGenerator.forBlock['sound_play_url'] = function (block) {
     const urlCode = valueToCodeOr(block, 'URL', "''");
     return `await BrailleStudioAPI.playUrl(${urlCode});\n`;
+  };
+
+  javascriptGenerator.forBlock['sound_play_folder_file'] = function (block) {
+    const folder = q(block.getFieldValue('FOLDER') || 'speech');
+    const file = q(block.getFieldValue('FILE') || 'voorbeeld');
+    const code =
+      `await BrailleStudioAPI.playUrl((() => { ` +
+      `const bases = {` +
+      `speech:'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',` +
+      `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/alfabet/',` +
+      `instructions:'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',` +
+      `feedback:'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',` +
+      `story:'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',` +
+      `general:'https://www.tastenbraille.com/braillestudio/sounds/shared/'` +
+      `}; ` +
+      `const folder = ${folder}; ` +
+      `const file = ${file}; ` +
+      `const base = bases[folder] || bases.speech; ` +
+      `const name = String(file).toLowerCase().endsWith('.mp3') ? String(file) : String(file) + '.mp3'; ` +
+      `return /^https?:\\/\\//i.test(String(file)) ? String(file) : base + encodeURIComponent(name); ` +
+      `})())`;
+    return `${code};\n`;
   };
 
   javascriptGenerator.forBlock['controls_for_each_audio_item'] = function (block, generator) {
