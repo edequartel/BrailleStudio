@@ -7,6 +7,7 @@
 
   <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
   <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
 
   <style>
@@ -334,6 +335,17 @@
     <block type="state_last_sound"></block>
   </category>
 
+  <category name="Audio API" colour="#0EA5E9">
+    <block type="api_get_audio_list"></block>
+    <block type="list_pick_random"></block>
+    <block type="list_length"></block>
+    <block type="audio_item_get_word"></block>
+    <block type="audio_item_get_url"></block>
+    <block type="sound_play_url"></block>
+    <block type="controls_for_each_audio_item"></block>
+    <block type="text_join_csv"></block>
+  </category>
+
   <category name="Logic" colour="#16A34A">
     <block type="controls_if"></block>
     <block type="logic_compare"></block>
@@ -390,6 +402,10 @@
     <block type="text_join"></block>
   </category>
 </xml>
+
+<script src="./runtime.js"></script>
+<script src="./blocks.js"></script>
+<script src="./generators.js"></script>
 
 <script>
 /* ---------------- UI helpers ---------------- */
@@ -678,6 +694,10 @@ async function playSound(input) {
   }
 }
 
+if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.setPlayHandler === 'function') {
+  window.BrailleStudioAPI.setPlayHandler(playSound);
+}
+
 function isWsOpen() {
   return !!ws && ws.readyState === WebSocket.OPEN;
 }
@@ -944,15 +964,11 @@ async function onRunClicked() {
     return;
   }
 
-  if (!isWsOpen()) {
-    pendingStart = true;
-    pendingStartGeneration = generation;
-    log('Start queued: waiting for WS connection');
-    connectWs('manual');
-    return;
-  }
-
   pendingStart = false;
+  if (!isWsOpen()) {
+    log('Start without braille display connection: running local Blockly flow');
+    connectWs('manual');
+  }
   await runStartedProgram(generation);
 }
 
@@ -1968,7 +1984,7 @@ function parseListFromJson(text) {
   }
 }
 
-function evalValue(block) {
+async function evalValue(block) {
   if (!block) return null;
 
   switch (block.type) {
@@ -2017,7 +2033,7 @@ function evalValue(block) {
     case 'list_make': {
       const out = [];
       for (let i = 0; i < (block.itemCount_ || 0); i++) {
-        out.push(evalValue(block.getInputTargetBlock('ITEM' + i)));
+        out.push(await evalValue(block.getInputTargetBlock('ITEM' + i)));
       }
       return out;
     }
@@ -2026,44 +2042,85 @@ function evalValue(block) {
       return [];
 
     case 'list_get_item': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
-      const idx = toListIndex(evalValue(block.getInputTargetBlock('INDEX')), list.length);
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const idx = toListIndex(await evalValue(block.getInputTargetBlock('INDEX')), list.length);
       return idx >= 0 ? list[idx] : '';
     }
 
     case 'list_length': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       return list.length;
     }
 
+    case 'list_pick_random': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.pickRandom === 'function') {
+        return window.BrailleStudioAPI.pickRandom(list);
+      }
+      if (list.length === 0) return null;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
     case 'list_random_item': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       if (list.length === 0) return '';
       return list[Math.floor(Math.random() * list.length)];
     }
 
     case 'list_next_item': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       return nextListItem(list);
     }
 
     case 'list_contains_item': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
-      const item = evalValue(block.getInputTargetBlock('ITEM'));
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
       return list.some(x => listValueEquals(x, item));
     }
 
     case 'list_from_json': {
-      const jsonText = evalValue(block.getInputTargetBlock('JSON'));
+      const jsonText = await evalValue(block.getInputTargetBlock('JSON'));
       return parseListFromJson(jsonText);
     }
 
     case 'list_random_other_item': {
-      const list = toList(evalValue(block.getInputTargetBlock('LIST')));
-      const exclude = evalValue(block.getInputTargetBlock('EXCLUDE'));
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const exclude = await evalValue(block.getInputTargetBlock('EXCLUDE'));
       const filtered = list.filter(x => !listValueEquals(x, exclude));
       if (filtered.length === 0) return '';
       return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    case 'api_get_audio_list': {
+      if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getAudioList !== 'function') {
+        throw new Error('BrailleStudioAPI.getAudioList is not available');
+      }
+      const opt = {
+        folder: String(block.getFieldValue('FOLDER') || 'woorden'),
+        letters: String(block.getFieldValue('LETTERS') || ''),
+        klanken: String(block.getFieldValue('KLANKEN') || ''),
+        onlyletters: String(block.getFieldValue('ONLYLETTERS') || ''),
+        onlyklanken: String(block.getFieldValue('ONLYKLANKEN') || ''),
+        onlycombo: block.getFieldValue('ONLYCOMBO') === 'TRUE',
+        maxlength: String(block.getFieldValue('MAXLENGTH') || ''),
+        length: String(block.getFieldValue('LENGTH') || ''),
+        limit: String(block.getFieldValue('LIMIT') || ''),
+        randomlimit: String(block.getFieldValue('RANDOMLIMIT') || ''),
+        sort: String(block.getFieldValue('SORT') || '')
+      };
+      return await window.BrailleStudioAPI.getAudioList(opt);
+    }
+
+    case 'audio_item_get_word': {
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
+      if (!item || typeof item !== 'object') return '';
+      return String(item.word ?? '');
+    }
+
+    case 'audio_item_get_url': {
+      const item = await evalValue(block.getInputTargetBlock('ITEM'));
+      if (!item || typeof item !== 'object') return '';
+      return String(item.url ?? '');
     }
 
     case 'variables_get': {
@@ -2072,8 +2129,8 @@ function evalValue(block) {
     }
 
     case 'math_arithmetic': {
-      const a = toNumber(evalValue(block.getInputTargetBlock('A')));
-      const b = toNumber(evalValue(block.getInputTargetBlock('B')));
+      const a = toNumber(await evalValue(block.getInputTargetBlock('A')));
+      const b = toNumber(await evalValue(block.getInputTargetBlock('B')));
       switch (block.getFieldValue('OP')) {
         case 'ADD': return a + b;
         case 'MINUS': return a - b;
@@ -2085,8 +2142,8 @@ function evalValue(block) {
     }
 
     case 'logic_compare': {
-      const a = evalValue(block.getInputTargetBlock('A'));
-      const b = evalValue(block.getInputTargetBlock('B'));
+      const a = await evalValue(block.getInputTargetBlock('A'));
+      const b = await evalValue(block.getInputTargetBlock('B'));
       switch (block.getFieldValue('OP')) {
         case 'EQ': return a == b;
         case 'NEQ': return a != b;
@@ -2099,21 +2156,34 @@ function evalValue(block) {
     }
 
     case 'logic_operation': {
-      const a = Boolean(evalValue(block.getInputTargetBlock('A')));
-      const b = Boolean(evalValue(block.getInputTargetBlock('B')));
+      const a = Boolean(await evalValue(block.getInputTargetBlock('A')));
+      const b = Boolean(await evalValue(block.getInputTargetBlock('B')));
       return block.getFieldValue('OP') === 'AND' ? (a && b) : (a || b);
     }
 
     case 'logic_negate':
-      return !Boolean(evalValue(block.getInputTargetBlock('BOOL')));
+      return !Boolean(await evalValue(block.getInputTargetBlock('BOOL')));
 
     case 'text_join': {
       const count = block.itemCount_ || 0;
       let out = '';
       for (let i = 0; i < count; i++) {
-        out += String(evalValue(block.getInputTargetBlock('ADD' + i)) ?? '');
+        out += String(await evalValue(block.getInputTargetBlock('ADD' + i)) ?? '');
       }
       return out;
+    }
+
+    case 'text_join_csv': {
+      const a = await evalValue(block.getInputTargetBlock('A'));
+      const b = await evalValue(block.getInputTargetBlock('B'));
+      const c = await evalValue(block.getInputTargetBlock('C'));
+      if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.joinCsv === 'function') {
+        return window.BrailleStudioAPI.joinCsv([a, b, c]);
+      }
+      return [a, b, c]
+        .map(v => String(v ?? '').trim())
+        .filter(Boolean)
+        .join(',');
     }
 
     default:
@@ -2130,7 +2200,7 @@ async function executeChain(startBlock, generation) {
 
     switch (current.type) {
       case 'bb_set_text': {
-        const text = String(evalValue(current.getInputTargetBlock('TEXT')) ?? '');
+        const text = String(await evalValue(current.getInputTargetBlock('TEXT')) ?? '');
         runtime.text = text;
         renderStatus();
         sendEnvelope('editorInput', {
@@ -2140,7 +2210,7 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'bb_append_text': {
-        const text = String(evalValue(current.getInputTargetBlock('TEXT')) ?? '');
+        const text = String(await evalValue(current.getInputTargetBlock('TEXT')) ?? '');
         runtime.text += text;
         renderStatus();
         sendEnvelope('editorInput', {
@@ -2158,26 +2228,26 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'bb_move_caret': {
-        const by = toNumber(evalValue(current.getInputTargetBlock('DELTA')));
+        const by = toNumber(await evalValue(current.getInputTargetBlock('DELTA')));
         const unit = current.getFieldValue('UNIT');
         sendWs({ type: 'moveCaret', by, unit });
         break;
       }
 
       case 'bb_set_caret': {
-        const textIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        const textIndex = toNumber(await evalValue(current.getInputTargetBlock('INDEX')));
         sendWs({ type: 'setCaret', textIndex });
         break;
       }
 
       case 'bb_set_caret_from_cell': {
-        const cellIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        const cellIndex = toNumber(await evalValue(current.getInputTargetBlock('INDEX')));
         sendWs({ type: 'setCaretFromCell', cellIndex });
         break;
       }
 
       case 'bb_cursor_routing': {
-        const cellIndex = toNumber(evalValue(current.getInputTargetBlock('INDEX')));
+        const cellIndex = toNumber(await evalValue(current.getInputTargetBlock('INDEX')));
         sendWs({ type: 'cursorRouting', cellIndex });
         break;
       }
@@ -2222,13 +2292,13 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'bb_wait': {
-        const seconds = toNumber(evalValue(current.getInputTargetBlock('SECONDS')));
+        const seconds = toNumber(await evalValue(current.getInputTargetBlock('SECONDS')));
         await new Promise(resolve => setTimeout(resolve, seconds * 1000));
         break;
       }
 
       case 'bb_wait_ms': {
-        const ms = Math.max(0, Math.floor(toNumber(evalValue(current.getInputTargetBlock('MILLISECONDS')))));
+        const ms = Math.max(0, Math.floor(toNumber(await evalValue(current.getInputTargetBlock('MILLISECONDS')))));
         await new Promise(resolve => setTimeout(resolve, ms));
         break;
       }
@@ -2240,8 +2310,12 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'sound_play_url': {
-        const url = String(evalValue(current.getInputTargetBlock('URL')) ?? '');
-        await playSound(url);
+        const url = String(await evalValue(current.getInputTargetBlock('URL')) ?? '');
+        if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
+          await window.BrailleStudioAPI.playUrl(url);
+        } else {
+          await playSound(url);
+        }
         break;
       }
 
@@ -2266,7 +2340,7 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'sound_set_volume': {
-        const percent = Math.max(0, Math.min(100, toNumber(evalValue(current.getInputTargetBlock('VOLUME')))));
+        const percent = Math.max(0, Math.min(100, toNumber(await evalValue(current.getInputTargetBlock('VOLUME')))));
         soundVolume = percent / 100;
         if (activeAudio) activeAudio.volume = soundVolume;
         log('Sound volume: ' + percent + '%');
@@ -2275,7 +2349,7 @@ async function executeChain(startBlock, generation) {
 
       case 'timer_start': {
         const name = current.getFieldValue('NAME');
-        const seconds = Math.max(0.05, toNumber(evalValue(current.getInputTargetBlock('SECONDS'))));
+        const seconds = Math.max(0.05, toNumber(await evalValue(current.getInputTargetBlock('SECONDS'))));
         startTimer(name, seconds, generation);
         break;
       }
@@ -2292,9 +2366,9 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'list_set_item': {
-        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
-        const idx = toListIndex(evalValue(current.getInputTargetBlock('INDEX')), list.length);
-        const value = evalValue(current.getInputTargetBlock('VALUE'));
+        const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
+        const idx = toListIndex(await evalValue(current.getInputTargetBlock('INDEX')), list.length);
+        const value = await evalValue(current.getInputTargetBlock('VALUE'));
         if (idx >= 0) {
           list[idx] = value;
           resetListCursor(list);
@@ -2304,8 +2378,8 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'list_add_item': {
-        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
-        const value = evalValue(current.getInputTargetBlock('ITEM'));
+        const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
+        const value = await evalValue(current.getInputTargetBlock('ITEM'));
         list.push(value);
         resetListCursor(list);
         renderStatus();
@@ -2313,8 +2387,8 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'list_remove_item': {
-        const list = toList(evalValue(current.getInputTargetBlock('LIST')));
-        const idx = toListIndex(evalValue(current.getInputTargetBlock('INDEX')), list.length);
+        const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
+        const idx = toListIndex(await evalValue(current.getInputTargetBlock('INDEX')), list.length);
         if (idx >= 0) {
           list.splice(idx, 1);
           resetListCursor(list);
@@ -2323,9 +2397,25 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'controls_for_each_audio_item': {
+        const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
+        const body = current.getInputTargetBlock('DO');
+        const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
+        const varId = varModel ? varModel.getId() : null;
+        for (const item of list) {
+          if (runtime.stopped || generation !== runGeneration) break;
+          if (varId) {
+            variableValues[varId] = item;
+            renderStatus();
+          }
+          if (body) await executeChain(body, generation);
+        }
+        break;
+      }
+
       case 'variables_set': {
         const id = getVariableIdFromBlock(current);
-        const value = evalValue(current.getInputTargetBlock('VALUE'));
+        const value = await evalValue(current.getInputTargetBlock('VALUE'));
         if (id) {
           variableValues[id] = value;
           if (Array.isArray(value)) resetListCursor(value);
@@ -2336,7 +2426,7 @@ async function executeChain(startBlock, generation) {
 
       case 'variables_change': {
         const id = getVariableIdFromBlock(current);
-        const delta = toNumber(evalValue(current.getInputTargetBlock('VALUE')));
+        const delta = toNumber(await evalValue(current.getInputTargetBlock('VALUE')));
         if (id) {
           variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
           renderStatus();
@@ -2347,7 +2437,7 @@ async function executeChain(startBlock, generation) {
       case 'controls_if': {
         let handled = false;
         for (let i = 0; current.getInput('IF' + i); i++) {
-          const cond = Boolean(evalValue(current.getInputTargetBlock('IF' + i)));
+          const cond = Boolean(await evalValue(current.getInputTargetBlock('IF' + i)));
           if (cond) {
             const branch = current.getInputTargetBlock('DO' + i);
             if (branch) await executeChain(branch, generation);
@@ -2363,7 +2453,7 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'controls_repeat_ext': {
-        const count = toNumber(evalValue(current.getInputTargetBlock('TIMES')));
+        const count = toNumber(await evalValue(current.getInputTargetBlock('TIMES')));
         const body = current.getInputTargetBlock('DO');
         for (let i = 0; i < count && !runtime.stopped && generation === runGeneration; i++) {
           if (body) await executeChain(body, generation);

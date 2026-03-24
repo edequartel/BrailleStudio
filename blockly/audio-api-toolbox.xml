@@ -1,0 +1,10 @@
+<category name="Audio API" colour="#0EA5E9">
+  <block type="api_get_audio_list"></block>
+  <block type="list_pick_random"></block>
+  <block type="list_length"></block>
+  <block type="audio_item_get_word"></block>
+  <block type="audio_item_get_url"></block>
+  <block type="sound_play_url"></block>
+  <block type="controls_for_each_audio_item"></block>
+  <block type="text_join_csv"></block>
+</category>

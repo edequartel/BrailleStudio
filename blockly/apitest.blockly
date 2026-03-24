@@ -1,0 +1,58 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable id="audioListVar">audioList</variable>
+    <variable id="randomItemVar">randomItem</variable>
+  </variables>
+  <block type="event_when_started" id="Qm`F~a]5h:N8fqpf;y$n" x="30" y="30">
+    <statement name="DO">
+      <block type="variables_set" id="yKeM:#TdU^f`l=fM.;*h">
+        <field name="VAR" id="audioListVar">audioList</field>
+        <value name="VALUE">
+          <block type="api_get_audio_list" id="6MvP*p|GikN/j}zmJ8~j">
+            <field name="FOLDER">woorden</field>
+            <field name="LETTERS">a,b,k,l</field>
+            <field name="KLANKEN"></field>
+            <field name="ONLYLETTERS"></field>
+            <field name="ONLYKLANKEN"></field>
+            <field name="ONLYCOMBO">FALSE</field>
+            <field name="MAXLENGTH"></field>
+            <field name="LENGTH"></field>
+            <field name="LIMIT">10</field>
+            <field name="RANDOMLIMIT"></field>
+            <field name="SORT">asc</field>
+          </block>
+        </value>
+        <next>
+          <block type="variables_set" id="=QzcZ!=|BT$i2H,C1u@4">
+            <field name="VAR" id="randomItemVar">randomItem</field>
+            <value name="VALUE">
+              <block type="list_pick_random" id="6QvB[-Pkrwhy+YGG0y~|">
+                <value name="LIST">
+                  <block type="variables_get" id="P6ecx1Gl7XiJJg;[8y_9">
+                    <field name="VAR" id="audioListVar">audioList</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="sound_play_url" id=";fYM2]iu)Mx}mjM:$cju">
+                <value name="URL">
+                  <block type="audio_item_get_url" id="`2yuISFGX{Kf`N}(g+cX">
+                    <value name="ITEM">
+                      <block type="variables_get" id="+^pqapJtj(M7n*6L(`=L">
+                        <field name="VAR" id="randomItemVar">randomItem</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+                  <block type="sound_wait_stopped" id="Y9W~j2f;lI`sbS%!Q,_U"></block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml>
