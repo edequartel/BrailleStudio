@@ -210,6 +210,54 @@
       return fetch(proxyUrl);
     }
 
+    function looksLikePhpSource(text) {
+      const src = String(text || '').trim();
+      return src.startsWith('<?php') || src.includes('declare(strict_types=1);');
+    }
+
+    async function parseJsonResponse(res, usedProxy) {
+      if (!res.ok) {
+        const errorText = await res.text();
+        return {
+          ok: false,
+          message:
+            `HTTP ${res.status} ${res.statusText}\n\n` +
+            (errorText || '(lege response body)')
+        };
+      }
+
+      const contentType = (res.headers.get('content-type') || '').toLowerCase();
+      const text = await res.text();
+
+      if (usedProxy && looksLikePhpSource(text)) {
+        return {
+          ok: false,
+          message:
+            'De proxy retourneert PHP broncode in plaats van uitgevoerde JSON.\n\n' +
+            'Deze pagina draait waarschijnlijk op een statische server zonder PHP.\n' +
+            'Gebruik direct https://tastenbraille.com/api/list.php of start een PHP-webserver voor /api/.'
+        };
+      }
+
+      if (!contentType.includes('application/json') && (text.includes('<!DOCTYPE html') || text.includes('<html'))) {
+        return {
+          ok: false,
+          message:
+            'HTML ontvangen in plaats van JSON.\n\n' +
+            'Controleer of het endpoint klopt en of de server PHP uitvoert.'
+        };
+      }
+
+      try {
+        return { ok: true, data: JSON.parse(text) };
+      } catch {
+        return {
+          ok: false,
+          message: `Geen geldige JSON ontvangen:\n\n${text}`
+        };
+      }
+    }
+
     function showUrl() {
       document.getElementById('baseUrlHint').textContent = getBaseUrl();
       document.getElementById('urlBox').textContent = buildUrl();
@@ -225,65 +273,27 @@
       listBox.innerHTML = '';
 
       try {
-        let res;
         let usedProxy = false;
-        if (canUseProxy(url)) {
-          res = await fetchViaProxy(url);
-          usedProxy = true;
-        } else {
-          res = await fetch(url);
-        }
+        let parsed;
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          responseBox.textContent =
-            `HTTP ${res.status} ${res.statusText}\n\n` +
-            (errorText || '(lege response body)');
-          return;
-        }
-
-        if (usedProxy) {
-          const contentType = (res.headers.get('content-type') || '').toLowerCase();
-          if (!contentType.includes('application/json')) {
-            const maybeHtml = await res.text();
-            if (maybeHtml.includes('<!DOCTYPE html') || maybeHtml.includes('<html')) {
-              responseBox.textContent =
-                'Proxy antwoordt met HTML in plaats van JSON.\n\n' +
-                'Waarschijnlijk draait deze pagina op een statische server zonder PHP.\n' +
-                'Start een PHP/webserver en open daarna opnieuw /api/index.html.';
-              return;
-            }
-            // Parse daarna nog normaal verder.
-            let data;
-            try {
-              data = JSON.parse(maybeHtml);
-            } catch (e) {
-              responseBox.textContent = `Geen geldige JSON ontvangen:\n\n${maybeHtml}`;
-              return;
-            }
-            responseBox.textContent = `${usedProxy ? '(via proxy)\n\n' : ''}${JSON.stringify(data, null, 2)}`;
-            if (Array.isArray(data)) {
-              for (const item of data) {
-                const li = document.createElement('li');
-                const word = item.word ?? '(geen word)';
-                const url = item.url ?? '';
-                li.innerHTML = `<strong>${escapeHtml(word)}</strong>${url ? ` -- <a href="${encodeURI(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>` : ''}`;
-                listBox.appendChild(li);
-              }
-            }
-            return;
-          }
-        }
-
-        const text = await res.text();
-
-        let data;
         try {
-          data = JSON.parse(text);
-        } catch (e) {
-          responseBox.textContent = `Geen geldige JSON ontvangen:\n\n${text}`;
+          const directRes = await fetch(url);
+          parsed = await parseJsonResponse(directRes, false);
+        } catch (directErr) {
+          if (!canUseProxy(url)) {
+            throw directErr;
+          }
+          const proxyRes = await fetchViaProxy(url);
+          usedProxy = true;
+          parsed = await parseJsonResponse(proxyRes, true);
+        }
+
+        if (!parsed.ok) {
+          responseBox.textContent = parsed.message;
           return;
         }
+
+        const data = parsed.data;
 
         responseBox.textContent = `${usedProxy ? '(via proxy)\n\n' : ''}${JSON.stringify(data, null, 2)}`;
 
