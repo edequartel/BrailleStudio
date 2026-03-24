@@ -1,10 +1,8 @@
 <xml xmlns="https://developers.google.com/blockly/xml">
-
   <variables>
     <variable id="audioUrl">audioUrl</variable>
   </variables>
 
-  <!-- WHEN STARTED -->
   <block type="event_when_started" x="20" y="20">
     <statement name="DO">
       <block type="variables_set">
@@ -22,7 +20,7 @@
               </block>
             </value>
             <next>
-              <block type="braille_set_text">
+              <block type="bb_set_text">
                 <value name="TEXT">
                   <block type="text">
                     <field name="TEXT">Right thumb=start. Left thumb=stop.</field>
@@ -36,8 +34,7 @@
     </statement>
   </block>
 
-  <!-- RIGHT THUMB = START -->
-  <block type="event_when_thumb" x="20" y="220">
+  <block type="event_when_thumb_key" x="20" y="220">
     <field name="KEY">right</field>
     <statement name="DO">
       <block type="sound_play_url">
@@ -47,7 +44,7 @@
           </block>
         </value>
         <next>
-          <block type="braille_set_text">
+          <block type="bb_set_text">
             <value name="TEXT">
               <block type="text">
                 <field name="TEXT">Playing audio URL</field>
@@ -59,13 +56,12 @@
     </statement>
   </block>
 
-  <!-- LEFT THUMB = STOP -->
-  <block type="event_when_thumb" x="20" y="360">
+  <block type="event_when_thumb_key" x="20" y="360">
     <field name="KEY">left</field>
     <statement name="DO">
       <block type="sound_stop">
         <next>
-          <block type="braille_set_text">
+          <block type="bb_set_text">
             <value name="TEXT">
               <block type="text">
                 <field name="TEXT">Audio stopped</field>
@@ -76,5 +72,4 @@
       </block>
     </statement>
   </block>
-
 </xml>

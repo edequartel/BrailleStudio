@@ -56,6 +56,10 @@
     return [`((${itemCode})?.url ?? '')`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['klanken_get_aanvankelijklijst'] = function () {
+    return [`await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json())`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['sound_play_url'] = function (block) {
     const urlCode = valueToCodeOr(block, 'URL', "''");
     return `await BrailleStudioAPI.playUrl(${urlCode});\n`;

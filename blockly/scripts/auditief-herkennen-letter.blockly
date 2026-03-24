@@ -1,5 +1,4 @@
 <xml xmlns="https://developers.google.com/blockly/xml">
-
   <variables>
     <variable id="currentWord">currentWord</variable>
     <variable id="hasL">hasL</variable>
@@ -7,7 +6,6 @@
     <variable id="round">round</variable>
   </variables>
 
-  <!-- START -->
   <block type="event_when_started" x="20" y="20">
     <statement name="DO">
       <block type="variables_set">
@@ -22,100 +20,54 @@
             <field name="VAR" id="round">round</field>
             <value name="VALUE">
               <block type="math_number">
-                <field name="NUM">0</field>
-              </block>
-            </value>
-            <next>
-              <block type="procedures_callnoreturn">
-                <mutation name="new_word"></mutation>
-              </block>
-            </next>
-          </block>
-        </next>
-      </block>
-    </statement>
-  </block>
-
-  <!-- PROCEDURE new_word -->
-  <block type="procedures_defnoreturn" x="420" y="20">
-    <field name="NAME">new_word</field>
-    <statement name="STACK">
-
-      <!-- round = round + 1 -->
-      <block type="variables_set">
-        <field name="VAR" id="round">round</field>
-        <value name="VALUE">
-          <block type="math_arithmetic">
-            <field name="OP">ADD</field>
-            <value name="A">
-              <block type="variables_get">
-                <field name="VAR" id="round">round</field>
-              </block>
-            </value>
-            <value name="B">
-              <block type="math_number">
                 <field name="NUM">1</field>
               </block>
             </value>
-          </block>
-        </value>
-        <next>
-
-          <!-- voorbeeldwoord -->
-          <block type="variables_set">
-            <field name="VAR" id="currentWord">currentWord</field>
-            <value name="VALUE">
-              <block type="text">
-                <field name="TEXT">lamp</field>
-              </block>
-            </value>
             <next>
-
-              <!-- heeft het woord een l? -->
               <block type="variables_set">
-                <field name="VAR" id="hasL">hasL</field>
+                <field name="VAR" id="currentWord">currentWord</field>
                 <value name="VALUE">
-                  <block type="logic_boolean">
-                    <field name="BOOL">TRUE</field>
+                  <block type="text">
+                    <field name="TEXT">lamp</field>
                   </block>
                 </value>
                 <next>
-
-                  <!-- instructie op leesregel -->
-                  <block type="braille_set_text">
-                    <value name="TEXT">
-                      <block type="text">
-                        <field name="TEXT">Hoor je l? Rechts = ja, links = nee.</field>
+                  <block type="variables_set">
+                    <field name="VAR" id="hasL">hasL</field>
+                    <value name="VALUE">
+                      <block type="logic_boolean">
+                        <field name="BOOL">TRUE</field>
                       </block>
                     </value>
                     <next>
-
-                      <!-- speel het woord af -->
-                      <block type="sound_play_url">
-                        <value name="URL">
+                      <block type="bb_set_text">
+                        <value name="TEXT">
                           <block type="text">
-                            <field name="TEXT">https://yourserver/audio/lamp.mp3</field>
+                            <field name="TEXT">Hoor je l? Rechts = ja, links = nee.</field>
                           </block>
                         </value>
+                        <next>
+                          <block type="sound_play_url">
+                            <value name="URL">
+                              <block type="text">
+                                <field name="TEXT">https://yourserver/audio/lamp.mp3</field>
+                              </block>
+                            </value>
+                          </block>
+                        </next>
                       </block>
-
                     </next>
                   </block>
-
                 </next>
               </block>
-
             </next>
           </block>
-
         </next>
       </block>
-
     </statement>
   </block>
 
-  <!-- RIGHT THUMB = ik hoor l -->
-  <block type="event_when_thumb" x="20" y="250">
+  <block type="event_when_thumb_key" x="20" y="250">
     <field name="KEY">right</field>
     <statement name="DO">
       <block type="controls_if">
@@ -125,8 +77,6 @@
           </block>
         </value>
         <statement name="DO0">
-
-          <!-- score +1 -->
           <block type="variables_set">
             <field name="VAR" id="score">score</field>
             <value name="VALUE">
@@ -145,8 +95,6 @@
               </block>
             </value>
             <next>
-
-              <!-- goed geluid -->
               <block type="sound_play_url">
                 <value name="URL">
                   <block type="text">
@@ -154,8 +102,6 @@
                   </block>
                 </value>
                 <next>
-
-                  <!-- verder of klaar -->
                   <block type="controls_if">
                     <value name="IF0">
                       <block type="logic_compare">
@@ -173,12 +119,65 @@
                       </block>
                     </value>
                     <statement name="DO0">
-                      <block type="procedures_callnoreturn">
-                        <mutation name="new_word"></mutation>
+                      <block type="variables_set">
+                        <field name="VAR" id="round">round</field>
+                        <value name="VALUE">
+                          <block type="math_arithmetic">
+                            <field name="OP">ADD</field>
+                            <value name="A">
+                              <block type="variables_get">
+                                <field name="VAR" id="round">round</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <block type="math_number">
+                                <field name="NUM">1</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="variables_set">
+                            <field name="VAR" id="currentWord">currentWord</field>
+                            <value name="VALUE">
+                              <block type="text">
+                                <field name="TEXT">lamp</field>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="variables_set">
+                                <field name="VAR" id="hasL">hasL</field>
+                                <value name="VALUE">
+                                  <block type="logic_boolean">
+                                    <field name="BOOL">TRUE</field>
+                                  </block>
+                                </value>
+                                <next>
+                                  <block type="bb_set_text">
+                                    <value name="TEXT">
+                                      <block type="text">
+                                        <field name="TEXT">Hoor je l? Rechts = ja, links = nee.</field>
+                                      </block>
+                                    </value>
+                                    <next>
+                                      <block type="sound_play_url">
+                                        <value name="URL">
+                                          <block type="text">
+                                            <field name="TEXT">https://yourserver/audio/lamp.mp3</field>
+                                          </block>
+                                        </value>
+                                      </block>
+                                    </next>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
                       </block>
                     </statement>
                     <statement name="ELSE">
-                      <block type="braille_set_text">
+                      <block type="bb_set_text">
                         <value name="TEXT">
                           <block type="text">
                             <field name="TEXT">Klaar. Goed gedaan.</field>
@@ -187,13 +186,10 @@
                       </block>
                     </statement>
                   </block>
-
                 </next>
               </block>
-
             </next>
           </block>
-
         </statement>
         <statement name="ELSE">
           <block type="sound_play_url">
@@ -208,8 +204,7 @@
     </statement>
   </block>
 
-  <!-- LEFT THUMB = ik hoor geen l -->
-  <block type="event_when_thumb" x="20" y="470">
+  <block type="event_when_thumb_key" x="20" y="470">
     <field name="KEY">left</field>
     <statement name="DO">
       <block type="controls_if">
@@ -223,8 +218,6 @@
           </block>
         </value>
         <statement name="DO0">
-
-          <!-- score +1 -->
           <block type="variables_set">
             <field name="VAR" id="score">score</field>
             <value name="VALUE">
@@ -243,8 +236,6 @@
               </block>
             </value>
             <next>
-
-              <!-- goed geluid -->
               <block type="sound_play_url">
                 <value name="URL">
                   <block type="text">
@@ -252,8 +243,6 @@
                   </block>
                 </value>
                 <next>
-
-                  <!-- verder of klaar -->
                   <block type="controls_if">
                     <value name="IF0">
                       <block type="logic_compare">
@@ -271,12 +260,65 @@
                       </block>
                     </value>
                     <statement name="DO0">
-                      <block type="procedures_callnoreturn">
-                        <mutation name="new_word"></mutation>
+                      <block type="variables_set">
+                        <field name="VAR" id="round">round</field>
+                        <value name="VALUE">
+                          <block type="math_arithmetic">
+                            <field name="OP">ADD</field>
+                            <value name="A">
+                              <block type="variables_get">
+                                <field name="VAR" id="round">round</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <block type="math_number">
+                                <field name="NUM">1</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="variables_set">
+                            <field name="VAR" id="currentWord">currentWord</field>
+                            <value name="VALUE">
+                              <block type="text">
+                                <field name="TEXT">lamp</field>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="variables_set">
+                                <field name="VAR" id="hasL">hasL</field>
+                                <value name="VALUE">
+                                  <block type="logic_boolean">
+                                    <field name="BOOL">TRUE</field>
+                                  </block>
+                                </value>
+                                <next>
+                                  <block type="bb_set_text">
+                                    <value name="TEXT">
+                                      <block type="text">
+                                        <field name="TEXT">Hoor je l? Rechts = ja, links = nee.</field>
+                                      </block>
+                                    </value>
+                                    <next>
+                                      <block type="sound_play_url">
+                                        <value name="URL">
+                                          <block type="text">
+                                            <field name="TEXT">https://yourserver/audio/lamp.mp3</field>
+                                          </block>
+                                        </value>
+                                      </block>
+                                    </next>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
                       </block>
                     </statement>
                     <statement name="ELSE">
-                      <block type="braille_set_text">
+                      <block type="bb_set_text">
                         <value name="TEXT">
                           <block type="text">
                             <field name="TEXT">Klaar. Goed gedaan.</field>
@@ -285,13 +327,10 @@
                       </block>
                     </statement>
                   </block>
-
                 </next>
               </block>
-
             </next>
           </block>
-
         </statement>
         <statement name="ELSE">
           <block type="sound_play_url">
@@ -305,5 +344,4 @@
       </block>
     </statement>
   </block>
-
 </xml>

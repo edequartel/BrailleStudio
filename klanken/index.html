@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Klanken Inspectie</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --panel: #0f172a;
+      --panel2: #101b27;
+      --muted: #94a3b8;
+      --label: #cbd5e1;
+      --code-bg: #111827;
+      --border: rgba(255,255,255,.10);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+      --accent: #60a5fa;
+      --accent-soft: rgba(96, 165, 250, 0.14);
+      --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--fg);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in oklab, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .title .sub {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .hero,
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .hero h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p,
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .stat {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 2rem;
+      line-height: 1;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
+      gap: 18px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .panel {
+      padding: 18px;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      color: var(--fg);
+      font: inherit;
+    }
+
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      font-size: 13px;
+    }
+
+    .chip strong {
+      color: var(--accent);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 96%, black 4%);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: color-mix(in oklab, var(--panel) 90%, black 10%);
+      z-index: 1;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr:hover {
+      background: color-mix(in oklab, var(--panel) 88%, black 12%);
+    }
+
+    .empty {
+      padding: 22px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.95em;
+      background: var(--code-bg);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="page" style="padding-top: 18px; padding-bottom: 18px;">
+      <div class="topbar">
+        <div class="title">
+          <h1>Aanvankelijklijst</h1>
+          <div class="sub">Klanken Inspectie</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+    <section class="hero">
+      <span class="eyebrow">Inspectie</span>
+      <p>Overzicht van woorden, klanken, nieuwe klanken en categorie-indeling uit <code>aanvankelijklijst.json</code>.</p>
+      <div class="stats" id="stats"></div>
+      <p class="meta" id="meta">Bezig met laden…</p>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2>Filters</h2>
+        <div class="controls">
+          <label>
+            Zoek op woord of klank
+            <input id="searchInput" type="search" placeholder="bijv. bal, aa, medeklinkers" />
+          </label>
+          <label>
+            Filter op categorie
+            <select id="categorySelect">
+              <option value="">Alle categorieen</option>
+            </select>
+          </label>
+          <label>
+            Toon alleen woorden met nieuwe klanken
+            <select id="newSoundSelect">
+              <option value="">Alles</option>
+              <option value="yes">Ja</option>
+              <option value="no">Nee</option>
+            </select>
+          </label>
+        </div>
+
+        <h2 style="margin-top:20px;">Categorie Samenvatting</h2>
+        <div class="chip-list" id="categorySummary"></div>
+      </aside>
+
+      <section class="panel">
+        <h2>Woorden</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Woord</th>
+                <th>Klanken</th>
+                <th>Nieuwe Klanken</th>
+                <th>Bekende Klanken</th>
+                <th>Categorieen</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td class="empty" colspan="6">Bezig met laden…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const statsEl = document.getElementById("stats");
+    const metaEl = document.getElementById("meta");
+    const tableBodyEl = document.getElementById("tableBody");
+    const categorySummaryEl = document.getElementById("categorySummary");
+    const searchInputEl = document.getElementById("searchInput");
+    const categorySelectEl = document.getElementById("categorySelect");
+    const newSoundSelectEl = document.getElementById("newSoundSelect");
+
+    let rows = [];
+    let categoryNames = [];
+
+    function flattenCategories(categoryMap) {
+      if (!categoryMap || typeof categoryMap !== "object") return [];
+      return Object.entries(categoryMap)
+        .filter(([, items]) => Array.isArray(items) && items.length > 0)
+        .map(([name, items]) => `${name}: ${items.join(", ")}`);
+    }
+
+    function makeStats(data) {
+      const allSounds = new Set();
+      const newSounds = new Set();
+      const knownSounds = new Set();
+
+      data.forEach((item) => {
+        (item.sounds || []).forEach((sound) => allSounds.add(sound));
+        (item.newSounds || []).forEach((sound) => newSounds.add(sound));
+        (item.knownSounds || []).forEach((sound) => knownSounds.add(sound));
+      });
+
+      const stats = [
+        { label: "Woorden", value: data.length },
+        { label: "Unieke Klanken", value: allSounds.size },
+        { label: "Nieuwe Klanken", value: newSounds.size },
+        { label: "Bekende Klanken", value: knownSounds.size }
+      ];
+
+      statsEl.innerHTML = stats.map((stat) => `
+        <div class="stat">
+          <span class="stat-label">${stat.label}</span>
+          <span class="stat-value">${stat.value}</span>
+        </div>
+      `).join("");
+    }
+
+    function makeCategorySummary(data) {
+      const counts = new Map();
+
+      data.forEach((item) => {
+        Object.entries(item.categories || {}).forEach(([name, values]) => {
+          counts.set(name, (counts.get(name) || 0) + (Array.isArray(values) ? values.length : 0));
+        });
+      });
+
+      categoryNames = Array.from(counts.keys()).sort();
+      categorySelectEl.innerHTML = [
+        '<option value="">Alle categorieen</option>',
+        ...categoryNames.map((name) => `<option value="${name}">${name}</option>`)
+      ].join("");
+
+      categorySummaryEl.innerHTML = categoryNames.map((name) => `
+        <span class="chip"><strong>${name}</strong> ${counts.get(name)}</span>
+      `).join("");
+    }
+
+    function matchesFilters(item) {
+      const query = searchInputEl.value.trim().toLowerCase();
+      const category = categorySelectEl.value;
+      const onlyNew = newSoundSelectEl.value;
+
+      if (query) {
+        const haystack = [
+          item.word,
+          ...(item.sounds || []),
+          ...(item.newSounds || []),
+          ...(item.knownSounds || []),
+          ...flattenCategories(item.categories || {})
+        ].join(" ").toLowerCase();
+
+        if (!haystack.includes(query)) return false;
+      }
+
+      if (category) {
+        const categoryItems = item.categories && item.categories[category];
+        if (!Array.isArray(categoryItems) || categoryItems.length === 0) return false;
+      }
+
+      if (onlyNew === "yes" && (!Array.isArray(item.newSounds) || item.newSounds.length === 0)) return false;
+      if (onlyNew === "no" && Array.isArray(item.newSounds) && item.newSounds.length > 0) return false;
+
+      return true;
+    }
+
+    function renderTable() {
+      const visibleRows = rows.filter(matchesFilters);
+
+      if (visibleRows.length === 0) {
+        tableBodyEl.innerHTML = '<tr><td class="empty" colspan="6">Geen resultaten voor deze filters.</td></tr>';
+        return;
+      }
+
+      tableBodyEl.innerHTML = visibleRows.map((item) => `
+        <tr>
+          <td>${item.listIndex}</td>
+          <td><strong>${item.word}</strong></td>
+          <td>${(item.sounds || []).join(", ") || "-"}</td>
+          <td>${(item.newSounds || []).join(", ") || "-"}</td>
+          <td>${(item.knownSounds || []).join(", ") || "-"}</td>
+          <td>${flattenCategories(item.categories).join("<br>") || "-"}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function init() {
+      try {
+        const response = await fetch("./aanvankelijklijst.json", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!Array.isArray(data)) throw new Error("JSON root is geen array");
+
+        rows = data.map((item, index) => ({
+          ...item,
+          listIndex: index
+        }));
+        makeStats(rows);
+        makeCategorySummary(rows);
+        renderTable();
+        metaEl.textContent = `${data.length} items geladen uit ./aanvankelijklijst.json`;
+      } catch (error) {
+        metaEl.textContent = "Laden mislukt.";
+        tableBodyEl.innerHTML = `<tr><td class="empty" colspan="6">${error.message}</td></tr>`;
+      }
+    }
+
+    searchInputEl.addEventListener("input", renderTable);
+    categorySelectEl.addEventListener("change", renderTable);
+    newSoundSelectEl.addEventListener("change", renderTable);
+
+    init();
+  </script>
+</body>
+</html>

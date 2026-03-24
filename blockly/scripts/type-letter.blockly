@@ -1,5 +1,4 @@
 <xml xmlns="https://developers.google.com/blockly/xml">
-
   <variables>
     <variable id="targetLetter">targetLetter</variable>
     <variable id="typedLetter">typedLetter</variable>
@@ -7,7 +6,6 @@
     <variable id="score">score</variable>
   </variables>
 
-  <!-- START -->
   <block type="event_when_started" x="20" y="20">
     <statement name="DO">
       <block type="variables_set">
@@ -26,7 +24,7 @@
               </block>
             </value>
             <next>
-              <block type="braille_set_text">
+              <block type="bb_set_text">
                 <value name="TEXT">
                   <block type="variables_get">
                     <field name="VAR" id="targetLetter">targetLetter</field>
@@ -49,9 +47,8 @@
     </statement>
   </block>
 
-  <!-- CHORD 12 = typed b -->
   <block type="event_when_chord" x="20" y="220">
-    <field name="CHORD">12</field>
+    <field name="DOTS">12</field>
     <statement name="DO">
       <block type="variables_set">
         <field name="VAR" id="typedLetter">typedLetter</field>
@@ -61,7 +58,7 @@
           </block>
         </value>
         <next>
-          <block type="braille_set_text">
+          <block type="bb_set_text">
             <value name="TEXT">
               <block type="text">
                 <field name="TEXT">b</field>
@@ -73,9 +70,8 @@
     </statement>
   </block>
 
-  <!-- OPTIONAL: any wrong chord clears typedLetter -->
   <block type="event_when_chord" x="20" y="360">
-    <field name="CHORD">1</field>
+    <field name="DOTS">1</field>
     <statement name="DO">
       <block type="variables_set">
         <field name="VAR" id="typedLetter">typedLetter</field>
@@ -88,8 +84,7 @@
     </statement>
   </block>
 
-  <!-- RIGHT THUMB = confirm -->
-  <block type="event_when_thumb" x="20" y="500">
+  <block type="event_when_thumb_key" x="20" y="500">
     <field name="KEY">right</field>
     <statement name="DO">
       <block type="variables_set">
@@ -143,7 +138,7 @@
                   </block>
                 </value>
                 <next>
-                  <block type="braille_set_text">
+                  <block type="bb_set_text">
                     <value name="TEXT">
                       <block type="variables_get">
                         <field name="VAR" id="targetLetter">targetLetter</field>
@@ -168,5 +163,4 @@
       </block>
     </statement>
   </block>
-
 </xml>

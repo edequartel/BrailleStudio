@@ -1,0 +1,397 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable id="score">score</variable>
+    <variable id="words">words</variable>
+    <variable id="leftWord">leftWord</variable>
+    <variable id="rightWord">rightWord</variable>
+    <variable id="isMatch">isMatch</variable>
+  </variables>
+
+  <block type="event_when_started" x="20" y="20">
+    <statement name="DO">
+      <block type="variables_set">
+        <field name="VAR" id="score">score</field>
+        <value name="VALUE">
+          <block type="math_number">
+            <field name="NUM">0</field>
+          </block>
+        </value>
+        <next>
+          <block type="variables_set">
+            <field name="VAR" id="words">words</field>
+            <value name="VALUE">
+              <block type="list_make">
+                <mutation items="10"></mutation>
+                <field name="COUNT">10</field>
+                <value name="ITEM0">
+                  <block type="text">
+                    <field name="TEXT">bal</field>
+                  </block>
+                </value>
+                <value name="ITEM1">
+                  <block type="text">
+                    <field name="TEXT">kat</field>
+                  </block>
+                </value>
+                <value name="ITEM2">
+                  <block type="text">
+                    <field name="TEXT">vis</field>
+                  </block>
+                </value>
+                <value name="ITEM3">
+                  <block type="text">
+                    <field name="TEXT">boek</field>
+                  </block>
+                </value>
+                <value name="ITEM4">
+                  <block type="text">
+                    <field name="TEXT">lamp</field>
+                  </block>
+                </value>
+                <value name="ITEM5">
+                  <block type="text">
+                    <field name="TEXT">peer</field>
+                  </block>
+                </value>
+                <value name="ITEM6">
+                  <block type="text">
+                    <field name="TEXT">boom</field>
+                  </block>
+                </value>
+                <value name="ITEM7">
+                  <block type="text">
+                    <field name="TEXT">stoel</field>
+                  </block>
+                </value>
+                <value name="ITEM8">
+                  <block type="text">
+                    <field name="TEXT">muis</field>
+                  </block>
+                </value>
+                <value name="ITEM9">
+                  <block type="text">
+                    <field name="TEXT">regen</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="variables_set">
+                <field name="VAR" id="leftWord">leftWord</field>
+                <value name="VALUE">
+                  <block type="list_random_item">
+                    <value name="LIST">
+                      <block type="variables_get">
+                        <field name="VAR" id="words">words</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+                  <block type="variables_set">
+                    <field name="VAR" id="rightWord">rightWord</field>
+                    <value name="VALUE">
+                      <block type="list_random_item">
+                        <value name="LIST">
+                          <block type="variables_get">
+                            <field name="VAR" id="words">words</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="variables_set">
+                        <field name="VAR" id="isMatch">isMatch</field>
+                        <value name="VALUE">
+                          <block type="logic_compare">
+                            <field name="OP">EQ</field>
+                            <value name="A">
+                              <block type="variables_get">
+                                <field name="VAR" id="leftWord">leftWord</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <block type="variables_get">
+                                <field name="VAR" id="rightWord">rightWord</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="bb_set_text">
+                            <value name="TEXT">
+                              <block type="text_join">
+                                <mutation items="3"></mutation>
+                                <value name="ADD0">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="leftWord">leftWord</field>
+                                  </block>
+                                </value>
+                                <value name="ADD1">
+                                  <block type="text">
+                                    <field name="TEXT"> </field>
+                                  </block>
+                                </value>
+                                <value name="ADD2">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="rightWord">rightWord</field>
+                                  </block>
+                                </value>
+                              </block>
+                            </value>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_thumb_key" x="20" y="280">
+    <field name="KEY">right</field>
+    <statement name="DO">
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="variables_get">
+            <field name="VAR" id="isMatch">isMatch</field>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="controls_if">
+                <value name="IF0">
+                  <block type="logic_compare">
+                    <field name="OP">LT</field>
+                    <value name="A">
+                      <block type="variables_get">
+                        <field name="VAR" id="score">score</field>
+                      </block>
+                    </value>
+                    <value name="B">
+                      <block type="math_number">
+                        <field name="NUM">10</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <statement name="DO0">
+                  <block type="variables_set">
+                    <field name="VAR" id="leftWord">leftWord</field>
+                    <value name="VALUE">
+                      <block type="list_random_item">
+                        <value name="LIST">
+                          <block type="variables_get">
+                            <field name="VAR" id="words">words</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="variables_set">
+                        <field name="VAR" id="rightWord">rightWord</field>
+                        <value name="VALUE">
+                          <block type="list_random_item">
+                            <value name="LIST">
+                              <block type="variables_get">
+                                <field name="VAR" id="words">words</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="variables_set">
+                            <field name="VAR" id="isMatch">isMatch</field>
+                            <value name="VALUE">
+                              <block type="logic_compare">
+                                <field name="OP">EQ</field>
+                                <value name="A">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="leftWord">leftWord</field>
+                                  </block>
+                                </value>
+                                <value name="B">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="rightWord">rightWord</field>
+                                  </block>
+                                </value>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="bb_set_text">
+                                <value name="TEXT">
+                                  <block type="text_join">
+                                    <mutation items="3"></mutation>
+                                    <value name="ADD0">
+                                      <block type="variables_get">
+                                        <field name="VAR" id="leftWord">leftWord</field>
+                                      </block>
+                                    </value>
+                                    <value name="ADD1">
+                                      <block type="text">
+                                        <field name="TEXT"> </field>
+                                      </block>
+                                    </value>
+                                    <value name="ADD2">
+                                      <block type="variables_get">
+                                        <field name="VAR" id="rightWord">rightWord</field>
+                                      </block>
+                                    </value>
+                                  </block>
+                                </value>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </statement>
+                <statement name="ELSE">
+                  <block type="bb_set_text">
+                    <value name="TEXT">
+                      <block type="text">
+                        <field name="TEXT">Klaar! Goed gedaan!</field>
+                      </block>
+                    </value>
+                  </block>
+                </statement>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_thumb_key" x="20" y="560">
+    <field name="KEY">left</field>
+    <statement name="DO">
+      <block type="controls_if">
+        <value name="IF0">
+          <block type="logic_negate">
+            <value name="BOOL">
+              <block type="variables_get">
+                <field name="VAR" id="isMatch">isMatch</field>
+              </block>
+            </value>
+          </block>
+        </value>
+        <statement name="DO0">
+          <block type="variables_set">
+            <field name="VAR" id="score">score</field>
+            <value name="VALUE">
+              <block type="math_arithmetic">
+                <field name="OP">ADD</field>
+                <value name="A">
+                  <block type="variables_get">
+                    <field name="VAR" id="score">score</field>
+                  </block>
+                </value>
+                <value name="B">
+                  <block type="math_number">
+                    <field name="NUM">1</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="variables_set">
+                <field name="VAR" id="leftWord">leftWord</field>
+                <value name="VALUE">
+                  <block type="list_random_item">
+                    <value name="LIST">
+                      <block type="variables_get">
+                        <field name="VAR" id="words">words</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+                  <block type="variables_set">
+                    <field name="VAR" id="rightWord">rightWord</field>
+                    <value name="VALUE">
+                      <block type="list_random_item">
+                        <value name="LIST">
+                          <block type="variables_get">
+                            <field name="VAR" id="words">words</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="variables_set">
+                        <field name="VAR" id="isMatch">isMatch</field>
+                        <value name="VALUE">
+                          <block type="logic_compare">
+                            <field name="OP">EQ</field>
+                            <value name="A">
+                              <block type="variables_get">
+                                <field name="VAR" id="leftWord">leftWord</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <block type="variables_get">
+                                <field name="VAR" id="rightWord">rightWord</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="bb_set_text">
+                            <value name="TEXT">
+                              <block type="text_join">
+                                <mutation items="3"></mutation>
+                                <value name="ADD0">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="leftWord">leftWord</field>
+                                  </block>
+                                </value>
+                                <value name="ADD1">
+                                  <block type="text">
+                                    <field name="TEXT"> </field>
+                                  </block>
+                                </value>
+                                <value name="ADD2">
+                                  <block type="variables_get">
+                                    <field name="VAR" id="rightWord">rightWord</field>
+                                  </block>
+                                </value>
+                              </block>
+                            </value>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </statement>
+  </block>
+</xml>

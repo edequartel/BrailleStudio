@@ -3,69 +3,213 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Test list.php API</title>
+  <title>API Inspector</title>
   <style>
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --panel: #0f172a;
+      --panel2: #101b27;
+      --muted: #94a3b8;
+      --label: #cbd5e1;
+      --code-bg: #111827;
+      --border: rgba(255,255,255,.10);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+      --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 24px auto;
-      padding: 0 16px;
+      margin: 0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+      color: var(--fg);
       line-height: 1.4;
     }
-    h1 { margin-bottom: 8px; }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in oklab, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .title .sub {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    main .wrap {
+      padding-top: 16px;
+      padding-bottom: 24px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(260px, 1fr));
       gap: 12px 20px;
     }
+    @media (max-width: 820px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
     label {
       display: block;
       font-weight: 600;
       margin-bottom: 4px;
+      color: var(--label);
     }
     input, select {
       width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      color: var(--fg);
+      font: inherit;
     }
     .row {
       margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     button {
-      padding: 10px 14px;
-      margin-right: 8px;
+      appearance: none;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
+      color: var(--fg);
+      padding: 10px 12px;
+      border-radius: 12px;
       cursor: pointer;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-family: var(--sans);
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      transition: transform .06s ease, border-color .15s ease;
     }
+    button:active { transform: translateY(1px); }
     pre {
-      background: #f5f5f5;
+      background: var(--code-bg);
       padding: 12px;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--fg);
+      font-family: var(--mono);
     }
     .small {
-      color: #555;
+      color: var(--muted);
       font-size: 0.95em;
     }
     .card {
-      border: 1px solid #ddd;
-      padding: 14px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: var(--shadow);
+      padding: 18px;
       margin-top: 16px;
-      border-radius: 8px;
+      border-radius: var(--radius);
+      overflow: hidden;
     }
-    ul { padding-left: 20px; }
+    ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+    a {
+      color: #60a5fa;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: var(--mono);
+    }
   </style>
 </head>
 <body>
-  <h1>Testpagina voor list.php</h1>
-  <p class="small">
-    Deze pagina bouwt een request voor:
-    <code id="baseUrlHint">https://tastenbraille.com/api/list.php</code>
-  </p>
+  <header>
+    <div class="wrap">
+      <div class="topbar">
+        <div class="title">
+          <h1>API Inspector</h1>
+          <div class="sub">list.php tester</div>
+        </div>
+      </div>
+    </div>
+  </header>
 
-  <div class="card">
-    <div class="grid">
+  <main>
+    <div class="wrap">
+      <p class="small">
+        Deze pagina bouwt een request voor:
+        <code id="baseUrlHint">https://tastenbraille.com/api/list.php</code>
+      </p>
+
+      <div class="card">
+        <div class="grid">
       <div>
         <label for="baseUrl">API endpoint</label>
         <input id="baseUrl" value="https://tastenbraille.com/api/list.php" placeholder="https://tastenbraille.com/api/list.php" />
@@ -141,30 +285,33 @@
           <option value="random">random</option>
         </select>
       </div>
+        </div>
+
+        <div class="row">
+          <button id="buildBtn">Bouw URL</button>
+          <button id="testBtn">Test API</button>
+          <button id="exampleBtn">Voorbeeld invullen</button>
+          <button id="clearBtn">Leegmaken</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Request URL</h2>
+        <pre id="urlBox"></pre>
+      </div>
+
+      <div class="card">
+        <h2>Response</h2>
+        <pre id="responseBox">Nog niets opgehaald.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Audio items</h2>
+        <ul id="listBox"></ul>
+      </div>
+
     </div>
-
-    <div class="row">
-      <button id="buildBtn">Bouw URL</button>
-      <button id="testBtn">Test API</button>
-      <button id="exampleBtn">Voorbeeld invullen</button>
-      <button id="clearBtn">Leegmaken</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Request URL</h2>
-    <pre id="urlBox"></pre>
-  </div>
-
-  <div class="card">
-    <h2>Response</h2>
-    <pre id="responseBox">Nog niets opgehaald.</pre>
-  </div>
-
-  <div class="card">
-    <h2>Audio items</h2>
-    <ul id="listBox"></ul>
-  </div>
+  </main>
 
   <script>
     const fields = [

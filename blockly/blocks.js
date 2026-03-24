@@ -66,7 +66,7 @@
           .setCheck(null)
           .appendField('pick a random audio item from');
         this.setOutput(true, null);
-        this.setColour('#F97316');
+        this.setColour('#0EA5E9');
         this.setTooltip('Choose one random audio item from a list.');
         this.setHelpUrl('');
       }
@@ -80,7 +80,7 @@
           .setCheck(null)
           .appendField('word from audio item');
         this.setOutput(true, 'String');
-        this.setColour('#14B8A6');
+        this.setColour('#0EA5E9');
         this.setTooltip('Get the word or filename label from an audio item.');
         this.setHelpUrl('');
       }
@@ -94,7 +94,7 @@
           .setCheck(null)
           .appendField('link from audio item');
         this.setOutput(true, 'String');
-        this.setColour('#14B8A6');
+        this.setColour('#0EA5E9');
         this.setTooltip('Get the audio file link from an audio item.');
         this.setHelpUrl('');
       }
@@ -163,7 +163,7 @@
           .setCheck(null)
           .appendField('and');
         this.setOutput(true, 'String');
-        this.setColour('#0891B2');
+        this.setColour('#F97316');
         this.setTooltip('Combine text parts into one comma-separated list and skip empty parts.');
         this.setHelpUrl('');
       }

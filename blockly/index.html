@@ -46,9 +46,19 @@
       border-bottom: 1px solid var(--border);
       padding: 10px 14px;
       display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .topbar-row {
+      display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+    }
+
+    .topbar-row--sim {
+      padding-left: 0;
     }
 
     #title {
@@ -66,6 +76,7 @@
       background: white;
       color: var(--text);
       border-radius: 10px;
+      min-height: 40px;
       padding: 8px 12px;
       font-size: 14px;
       cursor: pointer;
@@ -118,6 +129,39 @@
       background: #eef4ff;
       color: #1d4ed8;
       border-color: #c7d7ff;
+    }
+
+    .btn-ws {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+
+    .btn-ws.is-connected {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #86efac;
+    }
+
+    .btn-ws.is-disconnected {
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .ws-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #dc2626;
+      flex: 0 0 auto;
+    }
+
+    .btn-ws.is-connected .ws-indicator {
+      background: #16a34a;
     }
 
     .badge {
@@ -243,39 +287,43 @@
 <body>
 <div id="app">
   <div id="topbar">
-    <div id="title">Braille Activity Builder</div>
+    <div class="topbar-row">
+      <div id="title">Braille Activity Builder</div>
 
-    <button id="connectBtn" class="btn btn-blue">Connect WS</button>
-    <button id="disconnectBtn" class="btn">Disconnect WS</button>
-    <div id="wsBadge" class="badge">Disconnected</div>
+      <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
+        <span class="ws-indicator" aria-hidden="true"></span>
+        <span id="wsToggleLabel">Connect WS</span>
+      </button>
 
-    <button id="runBtn" class="btn btn-green btn-icon" type="button" aria-label="Start">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path fill="currentColor" d="M4 3h2l1.2 2H20l-4.8 5L20 15H7.2L6 17H4V3z"></path>
-      </svg>
-      <span class="label">Start</span>
-    </button>
-    <button id="stopBtn" class="btn btn-red btn-icon" type="button" aria-label="Stop">
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path fill="currentColor" d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2L8.2 3z"></path>
-      </svg>
-      <span class="label">Stop</span>
-    </button>
-    <div id="runBadge" class="badge stopped">Stopped</div>
+      <button id="runBtn" class="btn btn-green btn-icon" type="button" aria-label="Start">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M4 3h2l1.2 2H20l-4.8 5L20 15H7.2L6 17H4V3z"></path>
+        </svg>
+        <span class="label">Start</span>
+      </button>
+      <button id="stopBtn" class="btn btn-red btn-icon" type="button" aria-label="Stop">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2L8.2 3z"></path>
+        </svg>
+        <span class="label">Stop</span>
+      </button>
 
-    <button id="saveBtn" class="btn">Save</button>
-    <button id="saveAsBtn" class="btn">Save As</button>
-    <button id="loadBtn" class="btn">Load</button>
-    <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
-    <button id="newBtn" class="btn">New</button>
-    <input id="fileInput" type="file" accept=".blockly">
+      <button id="saveBtn" class="btn">Save</button>
+      <button id="saveAsBtn" class="btn">Save As</button>
+      <button id="loadBtn" class="btn">Load</button>
+      <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
+      <button id="newBtn" class="btn">New</button>
+      <input id="fileInput" type="file" accept=".blockly">
 
-    <div class="spacer"></div>
+      <div class="spacer"></div>
+    </div>
 
-    <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
-    <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
-    <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
-    <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+    <div class="topbar-row topbar-row--sim">
+      <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
+      <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
+      <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
+      <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+    </div>
   </div>
 
   <div id="main">
@@ -319,6 +367,15 @@
           <button id="resumeSoundBtn" class="btn">Resume</button>
           <button id="stopSoundBtn" class="btn">Stop sound</button>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>Klanken JSON</h3>
+        <div class="small">Source: <code>../klanken/aanvankelijklijst.json</code></div>
+        <div class="row" style="margin-top:8px;">
+          <button id="loadKlankenJsonBtn" class="btn">Load JSON</button>
+        </div>
+        <div id="klankenJsonBox" class="mono">Nothing loaded yet.</div>
       </div>
     </div>
   </div>
@@ -394,12 +451,12 @@
   <category name="Audio Library" colour="#0EA5E9">
     <block type="api_get_audio_list"></block>
     <block type="list_pick_random"></block>
-    <block type="list_length"></block>
     <block type="audio_item_get_word"></block>
     <block type="audio_item_get_url"></block>
-    <block type="sound_play_url"></block>
-    <block type="controls_for_each_audio_item"></block>
-    <block type="text_join_csv"></block>
+  </category>
+
+  <category name="Klanken" colour="#14B8A6">
+    <block type="klanken_get_aanvankelijklijst"></block>
   </category>
 
   <category name="Logic" colour="#16A34A">
@@ -418,6 +475,9 @@
         </shadow>
       </value>
     </block>
+    <block type="controls_while_do"></block>
+    <block type="controls_do_while"></block>
+    <block type="controls_for_each_audio_item"></block>
   </category>
 
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
@@ -435,6 +495,7 @@
     <block type="list_remove_item"></block>
     <block type="list_from_json"></block>
     <block type="list_random_other_item"></block>
+    <block type="text_join_csv"></block>
   </category>
 
   <category name="State values" colour="#7C3AED">
@@ -448,9 +509,10 @@
     <block type="state_insert_mode"></block>
   </category>
 
-  <category name="Math" colour="#7C3AED">
+  <category name="Math" colour="#C026D3">
     <block type="math_number"></block>
     <block type="math_arithmetic"></block>
+    <block type="math_random_10"></block>
   </category>
 
   <category name="Text" colour="#0891B2">
@@ -472,16 +534,52 @@ function log(message) {
   box.scrollTop = box.scrollHeight;
 }
 
-function setWsBadge(connected) {
-  const el = document.getElementById('wsBadge');
-  el.textContent = connected ? 'Connected' : 'Disconnected';
-  el.className = 'badge' + (connected ? ' connected' : '');
+function renderWsControl() {
+  const btn = document.getElementById('wsToggleBtn');
+  const label = document.getElementById('wsToggleLabel');
+  if (!btn || !label) return;
+
+  const isConnected = !!ws && ws.readyState === WebSocket.OPEN;
+
+  btn.classList.remove('is-connected', 'is-disconnected');
+
+  if (isConnected) {
+    btn.classList.add('is-connected');
+    btn.setAttribute('aria-label', 'Disconnect WebSocket');
+    label.textContent = 'WS Connected';
+    return;
+  }
+
+  btn.classList.add('is-disconnected');
+  btn.setAttribute('aria-label', 'Connect WebSocket');
+  label.textContent = 'Connect WS';
 }
 
 function renderBrailleLine(msg) {
   document.getElementById('brailleLineBox').textContent = msg
     ? JSON.stringify(msg, null, 2)
     : '';
+}
+
+async function loadKlankenJson() {
+  const box = document.getElementById('klankenJsonBox');
+  if (!box) return;
+
+  box.textContent = 'Loading ../klanken/aanvankelijklijst.json...';
+
+  try {
+    const res = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    box.textContent = JSON.stringify(data, null, 2);
+    log('Klanken JSON loaded');
+  } catch (err) {
+    box.textContent = `Failed to load ../klanken/aanvankelijklijst.json:\n\n${err}`;
+    log(`Klanken JSON load failed: ${err}`);
+  }
 }
 
 /* ---------------- Runtime state ---------------- */
@@ -514,6 +612,7 @@ let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const BLOCKLY_FILE_NAME_KEY = 'blockly_file_name';
+const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
 let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
@@ -523,6 +622,7 @@ let pendingStart = false;
 let pendingStartGeneration = 0;
 let runGeneration = 0;
 let workspace = null;
+let klankenJsonCache = null;
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 
@@ -531,22 +631,8 @@ function renderStatus() {
     ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
     : [];
   const isRunning = !runtime.stopped;
-  const runBadge = document.getElementById('runBadge');
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
-
-  if (runBadge) {
-    if (pendingStart) {
-      runBadge.textContent = 'Starting...';
-      runBadge.className = 'badge running';
-    } else if (isRunning) {
-      runBadge.textContent = 'Running';
-      runBadge.className = 'badge running';
-    } else {
-      runBadge.textContent = 'Stopped';
-      runBadge.className = 'badge stopped';
-    }
-  }
 
   if (runBtn) {
     runBtn.classList.toggle('is-active', isRunning || pendingStart);
@@ -815,7 +901,7 @@ function disconnectWs() {
   }
   ws = null;
   wsConnected = false;
-  setWsBadge(false);
+  renderWsControl();
   renderStatus();
   log('WS disconnected (manual)');
 }
@@ -840,13 +926,14 @@ function connectWs(reason = 'manual') {
     return;
   }
   ws = socket;
+  renderWsControl();
   log('WS connecting to ' + WS_URL);
 
   socket.onopen = () => {
     if (ws !== socket) return;
     wsConnected = true;
     clearReconnectTimer();
-    setWsBadge(true);
+    renderWsControl();
     renderStatus();
     log('WS connected to ' + WS_URL);
     sendWs({ type: 'getBrailleLine' });
@@ -859,7 +946,7 @@ function connectWs(reason = 'manual') {
   socket.onclose = (ev) => {
     if (ws === socket) ws = null;
     wsConnected = false;
-    setWsBadge(false);
+    renderWsControl();
     renderStatus();
     log('WS disconnected code=' + ev.code + ' reason=' + (ev.reason || '-'));
     scheduleReconnect();
@@ -1023,16 +1110,18 @@ async function runStartedProgram(generation) {
 }
 
 function bindWsControls() {
-  const connectBtn = document.getElementById('connectBtn');
-  const disconnectBtn = document.getElementById('disconnectBtn');
-  if (connectBtn && !connectBtn.dataset.wsBound) {
-    connectBtn.addEventListener('click', () => connectWs('manual'));
-    connectBtn.dataset.wsBound = '1';
+  const wsToggleBtn = document.getElementById('wsToggleBtn');
+  if (wsToggleBtn && !wsToggleBtn.dataset.wsBound) {
+    wsToggleBtn.addEventListener('click', () => {
+      if (isWsOpen() || (ws && ws.readyState === WebSocket.CONNECTING)) {
+        disconnectWs();
+      } else {
+        connectWs('manual');
+      }
+    });
+    wsToggleBtn.dataset.wsBound = '1';
   }
-  if (disconnectBtn && !disconnectBtn.dataset.wsBound) {
-    disconnectBtn.addEventListener('click', disconnectWs);
-    disconnectBtn.dataset.wsBound = '1';
-  }
+  renderWsControl();
 }
 
 async function onRunClicked() {
@@ -1121,6 +1210,7 @@ function bindAppControls() {
     await resumeSound();
   });
   bind('stopSoundBtn', 'click', stopSound);
+  bind('loadKlankenJsonBtn', 'click', loadKlankenJson);
 
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
@@ -1423,6 +1513,69 @@ Blockly.Blocks['bb_wait_ms'] = {
   }
 };
 
+Blockly.Blocks['controls_while_do'] = {
+  init() {
+    this.appendValueInput('COND').appendField('while');
+    this.appendStatementInput('DO').appendField('do');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#D97706');
+  }
+};
+
+Blockly.Blocks['controls_do_while'] = {
+  init() {
+    this.appendStatementInput('DO').appendField('do');
+    this.appendValueInput('COND').appendField('while');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#D97706');
+  }
+};
+
+Blockly.Blocks['math_random_10'] = {
+  init() {
+    this.appendDummyInput().appendField('random(10)');
+    this.setOutput(true);
+    this.setColour('#C026D3');
+  }
+};
+
+[
+  'math_number',
+  'math_arithmetic',
+  'math_single',
+  'math_round',
+  'math_trig',
+  'math_constant',
+  'math_number_property',
+  'math_on_list',
+  'math_modulo',
+  'math_constrain',
+  'math_random_int',
+  'math_random_float'
+].forEach((type) => {
+  const block = Blockly.Blocks[type];
+  if (!block || typeof block.init !== 'function') return;
+  const originalInit = block.init;
+  block.init = function patchedMathInit(...args) {
+    originalInit.apply(this, args);
+    this.setColour('#C026D3');
+  };
+});
+
+[
+  'controls_repeat_ext'
+].forEach((type) => {
+  const block = Blockly.Blocks[type];
+  if (!block || typeof block.init !== 'function') return;
+  const originalInit = block.init;
+  block.init = function patchedLoopInit(...args) {
+    originalInit.apply(this, args);
+    this.setColour('#D97706');
+  };
+});
+
 Blockly.Blocks['sound_play_file'] = {
   init() {
     this.appendDummyInput()
@@ -1618,6 +1771,15 @@ Blockly.Blocks['list_random_other_item'] = {
     this.appendValueInput('EXCLUDE').appendField('dan');
     this.setOutput(true);
     this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['klanken_get_aanvankelijklijst'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('haal aanvankelijklijst op');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
   }
 };
 
@@ -2067,6 +2229,23 @@ function parseListFromJson(text) {
   }
 }
 
+async function getAanvankelijklijst() {
+  if (Array.isArray(klankenJsonCache)) {
+    return klankenJsonCache;
+  }
+
+  const res = await fetch(KLANGEN_JSON_URL, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  klankenJsonCache = Array.isArray(data)
+    ? data
+    : (Array.isArray(data?.items) ? data.items : []);
+  return klankenJsonCache;
+}
+
 async function evalValue(block) {
   if (!block) return null;
 
@@ -2166,6 +2345,15 @@ async function evalValue(block) {
       return parseListFromJson(jsonText);
     }
 
+    case 'klanken_get_aanvankelijklijst': {
+      try {
+        return await getAanvankelijklijst();
+      } catch (err) {
+        log(`Aanvankelijklijst load failed: ${err}`);
+        return [];
+      }
+    }
+
     case 'list_random_other_item': {
       const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       const exclude = await evalValue(block.getInputTargetBlock('EXCLUDE'));
@@ -2223,6 +2411,9 @@ async function evalValue(block) {
         default: return 0;
       }
     }
+
+    case 'math_random_10':
+      return Math.floor(Math.random() * 10);
 
     case 'logic_compare': {
       const a = await evalValue(block.getInputTargetBlock('A'));
@@ -2541,6 +2732,37 @@ async function executeChain(startBlock, generation) {
         for (let i = 0; i < count && !runtime.stopped && generation === runGeneration; i++) {
           if (body) await executeChain(body, generation);
         }
+        break;
+      }
+
+      case 'controls_while_do': {
+        const body = current.getInputTargetBlock('DO');
+        let guard = 0;
+        while (
+          !runtime.stopped &&
+          generation === runGeneration &&
+          Boolean(await evalValue(current.getInputTargetBlock('COND')))
+        ) {
+          if (++guard > 10000) {
+            log('Loop stopped: while do exceeded 10000 iterations');
+            break;
+          }
+          if (body) await executeChain(body, generation);
+        }
+        break;
+      }
+
+      case 'controls_do_while': {
+        const body = current.getInputTargetBlock('DO');
+        let guard = 0;
+        do {
+          if (runtime.stopped || generation !== runGeneration) break;
+          if (++guard > 10000) {
+            log('Loop stopped: do while exceeded 10000 iterations');
+            break;
+          }
+          if (body) await executeChain(body, generation);
+        } while (Boolean(await evalValue(current.getInputTargetBlock('COND'))));
         break;
       }
 
