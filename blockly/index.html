@@ -71,6 +71,27 @@
       cursor: pointer;
     }
 
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 44px;
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+
+    .btn-icon svg {
+      display: block;
+      width: 20px;
+      height: 20px;
+    }
+
+    .btn-icon .label {
+      font-weight: 600;
+      line-height: 1;
+    }
+
     .btn:hover {
       filter: brightness(0.98);
     }
@@ -113,6 +134,30 @@
     .badge.connected {
       background: #dcfce7;
       color: #166534;
+    }
+
+    .badge.running {
+      background: #dcfce7;
+      color: #166534;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+    }
+
+    .badge.stopped {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .btn.is-active {
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .btn-green.is-active {
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.22);
+    }
+
+    .btn-red.is-active {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.22);
     }
 
     #main {
@@ -204,8 +249,19 @@
     <button id="disconnectBtn" class="btn">Disconnect WS</button>
     <div id="wsBadge" class="badge">Disconnected</div>
 
-    <button id="runBtn" class="btn btn-green">Start</button>
-    <button id="stopBtn" class="btn btn-red">Stop</button>
+    <button id="runBtn" class="btn btn-green btn-icon" type="button" aria-label="Start">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M4 3h2l1.2 2H20l-4.8 5L20 15H7.2L6 17H4V3z"></path>
+      </svg>
+      <span class="label">Start</span>
+    </button>
+    <button id="stopBtn" class="btn btn-red btn-icon" type="button" aria-label="Stop">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2L8.2 3z"></path>
+      </svg>
+      <span class="label">Stop</span>
+    </button>
+    <div id="runBadge" class="badge stopped">Stopped</div>
 
     <button id="saveBtn" class="btn">Save</button>
     <button id="saveAsBtn" class="btn">Save As</button>
@@ -430,7 +486,7 @@ function renderBrailleLine(msg) {
 
 /* ---------------- Runtime state ---------------- */
 const runtime = {
-  stopped: false,
+  stopped: true,
   text: '',
   brailleUnicode: '',
   textCaret: 0,
@@ -474,6 +530,33 @@ function renderStatus() {
   const varLines = workspace
     ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
     : [];
+  const isRunning = !runtime.stopped;
+  const runBadge = document.getElementById('runBadge');
+  const runBtn = document.getElementById('runBtn');
+  const stopBtn = document.getElementById('stopBtn');
+
+  if (runBadge) {
+    if (pendingStart) {
+      runBadge.textContent = 'Starting...';
+      runBadge.className = 'badge running';
+    } else if (isRunning) {
+      runBadge.textContent = 'Running';
+      runBadge.className = 'badge running';
+    } else {
+      runBadge.textContent = 'Stopped';
+      runBadge.className = 'badge stopped';
+    }
+  }
+
+  if (runBtn) {
+    runBtn.classList.toggle('is-active', isRunning || pendingStart);
+    runBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
+  }
+
+  if (stopBtn) {
+    stopBtn.classList.toggle('is-active', !isRunning && !pendingStart);
+    stopBtn.setAttribute('aria-pressed', !isRunning && !pendingStart ? 'true' : 'false');
+  }
 
   document.getElementById('statusBox').textContent =
 `ws connected     : ${wsConnected}

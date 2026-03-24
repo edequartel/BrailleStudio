@@ -1,0 +1,146 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <variables>
+    <variable id="audioListVar">audioList</variable>
+    <variable id="currentItemVar">currentItem</variable>
+  </variables>
+
+  <block type="event_when_started" x="30" y="30">
+    <statement name="DO">
+      <block type="variables_set">
+        <field name="VAR" id="audioListVar">audioList</field>
+        <value name="VALUE">
+          <block type="api_get_audio_list">
+            <field name="FOLDER">speech</field>
+            <field name="LETTERS"></field>
+            <field name="KLANKEN"></field>
+            <field name="ONLYLETTERS"></field>
+            <field name="ONLYKLANKEN"></field>
+            <field name="ONLYCOMBO">FALSE</field>
+            <field name="MAXLENGTH"></field>
+            <field name="LENGTH"></field>
+            <field name="LIMIT">10</field>
+            <field name="RANDOMLIMIT"></field>
+            <field name="SORT">asc</field>
+          </block>
+        </value>
+        <next>
+          <block type="variables_set">
+            <field name="VAR" id="currentItemVar">currentItem</field>
+            <value name="VALUE">
+              <block type="list_next_item">
+                <value name="LIST">
+                  <block type="variables_get">
+                    <field name="VAR" id="audioListVar">audioList</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="bb_set_text">
+                <value name="TEXT">
+                  <block type="audio_item_get_word">
+                    <value name="ITEM">
+                      <block type="variables_get">
+                        <field name="VAR" id="currentItemVar">currentItem</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+                  <block type="sound_play_url">
+                    <value name="URL">
+                      <block type="audio_item_get_url">
+                        <value name="ITEM">
+                          <block type="variables_get">
+                            <field name="VAR" id="currentItemVar">currentItem</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="sound_wait_stopped">
+                        <next>
+                          <block type="timer_start">
+                            <field name="NAME">audioListTimer</field>
+                            <value name="SECONDS">
+                              <shadow type="math_number">
+                                <field name="NUM">1</field>
+                              </shadow>
+                            </value>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+
+  <block type="event_when_timer" x="450" y="30">
+    <field name="NAME">audioListTimer</field>
+    <statement name="DO">
+      <block type="timer_stop">
+        <field name="NAME">audioListTimer</field>
+        <next>
+          <block type="variables_set">
+            <field name="VAR" id="currentItemVar">currentItem</field>
+            <value name="VALUE">
+              <block type="list_next_item">
+                <value name="LIST">
+                  <block type="variables_get">
+                    <field name="VAR" id="audioListVar">audioList</field>
+                  </block>
+                </value>
+              </block>
+            </value>
+            <next>
+              <block type="bb_set_text">
+                <value name="TEXT">
+                  <block type="audio_item_get_word">
+                    <value name="ITEM">
+                      <block type="variables_get">
+                        <field name="VAR" id="currentItemVar">currentItem</field>
+                      </block>
+                    </value>
+                  </block>
+                </value>
+                <next>
+                  <block type="sound_play_url">
+                    <value name="URL">
+                      <block type="audio_item_get_url">
+                        <value name="ITEM">
+                          <block type="variables_get">
+                            <field name="VAR" id="currentItemVar">currentItem</field>
+                          </block>
+                        </value>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="sound_wait_stopped">
+                        <next>
+                          <block type="timer_start">
+                            <field name="NAME">audioListTimer</field>
+                            <value name="SECONDS">
+                              <shadow type="math_number">
+                                <field name="NUM">1</field>
+                              </shadow>
+                            </value>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml>
