@@ -406,14 +406,6 @@
     <block type="bb_get_braille_line"></block>
     <block type="bb_set_caret_to_begin"></block>
     <block type="bb_set_caret_to_end"></block>
-    <block type="bb_wait"></block>
-    <block type="bb_wait_ms">
-      <value name="MILLISECONDS">
-        <shadow type="math_number">
-          <field name="NUM">250</field>
-        </shadow>
-      </value>
-    </block>
   </category>
 
   <category name="Timers" colour="#0EA5E9">
@@ -426,6 +418,20 @@
     </block>
     <block type="timer_stop"></block>
     <block type="timer_stop_all"></block>
+    <block type="bb_wait">
+      <value name="SECONDS">
+        <shadow type="math_number">
+          <field name="NUM">1</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="bb_wait_ms">
+      <value name="MILLISECONDS">
+        <shadow type="math_number">
+          <field name="NUM">250</field>
+        </shadow>
+      </value>
+    </block>
     <block type="state_last_timer_name"></block>
     <block type="state_last_timer_tick"></block>
   </category>
@@ -1547,7 +1553,7 @@ Blockly.Blocks['bb_wait'] = {
     this.appendValueInput('SECONDS').appendField('wait seconds');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour('#2563EB');
+    this.setColour('#0EA5E9');
   }
 };
 
@@ -1556,7 +1562,7 @@ Blockly.Blocks['bb_wait_ms'] = {
     this.appendValueInput('MILLISECONDS').appendField('wait milliseconds');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
-    this.setColour('#2563EB');
+    this.setColour('#0EA5E9');
   }
 };
 
