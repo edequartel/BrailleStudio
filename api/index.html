@@ -61,11 +61,16 @@
   <h1>Testpagina voor list.php</h1>
   <p class="small">
     Deze pagina bouwt een request voor:
-    <code>https://tastenbraille.com/api/list.php</code>
+    <code id="baseUrlHint">list.php</code>
   </p>
 
   <div class="card">
     <div class="grid">
+      <div>
+        <label for="baseUrl">API endpoint</label>
+        <input id="baseUrl" value="list.php" placeholder="list.php of https://.../list.php" />
+      </div>
+
       <div>
         <label for="folder">folder</label>
         <select id="folder">
@@ -161,19 +166,24 @@
   </div>
 
   <script>
-    const baseUrl = 'https://tastenbraille.com/api/list.php';
-
     const fields = [
       'folder', 'letters', 'klanken', 'onlyletters', 'onlyklanken',
       'onlycombo', 'maxlength', 'length', 'limit', 'randomlimit', 'sort'
     ];
+
+    function getBaseUrl() {
+      const value = document.getElementById('baseUrl').value.trim();
+      return value || 'list.php';
+    }
 
     function getValue(id) {
       return document.getElementById(id).value.trim();
     }
 
     function buildUrl() {
-      const params = new URLSearchParams();
+      const baseUrl = getBaseUrl();
+      const urlObj = new URL(baseUrl, window.location.href);
+      const params = new URLSearchParams(urlObj.search);
 
       for (const field of fields) {
         const value = getValue(field);
@@ -182,10 +192,12 @@
         }
       }
 
-      return `${baseUrl}?${params.toString()}`;
+      urlObj.search = params.toString();
+      return urlObj.toString();
     }
 
     function showUrl() {
+      document.getElementById('baseUrlHint').textContent = getBaseUrl();
       document.getElementById('urlBox').textContent = buildUrl();
     }
 
@@ -200,6 +212,13 @@
 
       try {
         const res = await fetch(url);
+        if (!res.ok) {
+          const errorText = await res.text();
+          responseBox.textContent =
+            `HTTP ${res.status} ${res.statusText}\n\n` +
+            (errorText || '(lege response body)');
+          return;
+        }
         const text = await res.text();
 
         let data;
@@ -222,12 +241,16 @@
           }
         }
       } catch (err) {
-        responseBox.textContent = `Fout bij ophalen:\n\n${err}`;
+        responseBox.textContent =
+          `Fout bij ophalen:\n\n${err}\n\n` +
+          'Mogelijke oorzaak: CORS/netwerk of je draait deze pagina via file://.\n' +
+          'Gebruik bij voorkeur een lokale webserver (http://localhost/...) en endpoint "list.php".';
       }
     }
 
     function fillExample() {
       document.getElementById('folder').value = 'woorden';
+      document.getElementById('baseUrl').value = 'list.php';
       document.getElementById('letters').value = 'a,b,k,l';
       document.getElementById('klanken').value = 'a,e,i,ou,ei';
       document.getElementById('onlyletters').value = '';
@@ -243,6 +266,7 @@
 
     function clearForm() {
       document.getElementById('folder').value = 'woorden';
+      document.getElementById('baseUrl').value = 'list.php';
       for (const field of fields) {
         if (field !== 'folder') document.getElementById(field).value = '';
       }
@@ -264,6 +288,7 @@
     document.getElementById('testBtn').addEventListener('click', testApi);
     document.getElementById('exampleBtn').addEventListener('click', fillExample);
     document.getElementById('clearBtn').addEventListener('click', clearForm);
+    document.getElementById('baseUrl').addEventListener('input', showUrl);
 
     showUrl();
   </script>
