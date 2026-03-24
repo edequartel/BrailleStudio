@@ -9,7 +9,7 @@
         <field name="VAR" id="audioListVar">audioList</field>
         <value name="VALUE">
           <block type="api_get_audio_list" id="6MvP*p|GikN/j}zmJ8~j">
-            <field name="FOLDER">woorden</field>
+            <field name="FOLDER">speech</field>
             <field name="LETTERS">a,b,k,l</field>
             <field name="KLANKEN"></field>
             <field name="ONLYLETTERS"></field>

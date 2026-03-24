@@ -74,11 +74,12 @@
       <div>
         <label for="folder">folder</label>
         <select id="folder">
-          <option value="woorden">woorden</option>
+          <option value="speech">speech</option>
           <option value="letters">letters</option>
-          <option value="instructies">instructies</option>
-          <option value="beloningen">beloningen</option>
+          <option value="instructions">instructions</option>
+          <option value="feedback">feedback</option>
           <option value="story">story</option>
+          <option value="general">general</option>
         </select>
       </div>
 
@@ -161,7 +162,7 @@
   </div>
 
   <div class="card">
-    <h2>Woorden / items</h2>
+    <h2>Audio items</h2>
     <ul id="listBox"></ul>
   </div>
 
@@ -316,7 +317,7 @@
     }
 
     function fillExample() {
-      document.getElementById('folder').value = 'woorden';
+      document.getElementById('folder').value = 'speech';
       document.getElementById('baseUrl').value = 'https://tastenbraille.com/api/list.php';
       document.getElementById('letters').value = 'a,b,k,l';
       document.getElementById('klanken').value = 'a,e,i,ou,ei';
@@ -332,7 +333,7 @@
     }
 
     function clearForm() {
-      document.getElementById('folder').value = 'woorden';
+      document.getElementById('folder').value = 'speech';
       document.getElementById('baseUrl').value = 'https://tastenbraille.com/api/list.php';
       for (const field of fields) {
         if (field !== 'folder') document.getElementById(field).value = '';

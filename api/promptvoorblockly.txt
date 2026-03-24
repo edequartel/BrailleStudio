@@ -32,11 +32,12 @@ The API returns JSON like:
 ]
 
 Supported folders:
-- woorden
+- speech
 - letters
-- instructies
-- beloningen
+- instructions
+- feedback
 - story
+- general
 
 API parameters:
 - folder            required
@@ -52,15 +53,23 @@ API parameters:
 - sort              optional: asc | desc | random
 
 Example API calls:
-- https://tastenbraille.com/api/list.php?folder=woorden
-- https://tastenbraille.com/api/list.php?folder=woorden&letters=a,b,k,l
-- https://tastenbraille.com/api/list.php?folder=woorden&klanken=a,e,i,ou,ei
-- https://tastenbraille.com/api/list.php?folder=woorden&onlyletters=a,l,p,m
-- https://tastenbraille.com/api/list.php?folder=woorden&maxlength=4
-- https://tastenbraille.com/api/list.php?folder=woorden&sort=asc&limit=10
+- https://tastenbraille.com/api/list.php?folder=speech
+- https://tastenbraille.com/api/list.php?folder=speech&letters=a,b,k,l
+- https://tastenbraille.com/api/list.php?folder=speech&klanken=a,e,i,ou,ei
+- https://tastenbraille.com/api/list.php?folder=speech&onlyletters=a,l,p,m
+- https://tastenbraille.com/api/list.php?folder=speech&maxlength=4
+- https://tastenbraille.com/api/list.php?folder=speech&sort=asc&limit=10
 
 Goal:
 Generate Blockly blocks that allow a teacher to fetch filtered audio-word lists from this API and use them in lessons.
+
+Important UX requirement:
+- The blocks must be user friendly for teachers and students.
+- Prefer natural labels over technical API names.
+- The block text shown in Blockly should be readable Dutch or simple classroom English.
+- Internal field names and runtime helper names may stay technical, but visible labels should not.
+- Avoid exposing raw parameter names like onlyletters, onlyklanken, maxlength, or randomlimit directly in the block UI unless they are also explained in plain language.
+- The generated blocks should feel like teaching tools, not developer tools.
 
 Create these blocks:
 
@@ -72,7 +81,7 @@ Purpose:
 - fetch a list of audio items from the PHP API
 
 Inputs / fields:
-- folder (dropdown: woorden, letters, instructies, beloningen, story)
+- folder (dropdown values must be user friendly, for example: spoken words, letters, instructions, feedback, stories, general sounds)
 - letters (text input, optional)
 - klanken (text input, optional)
 - onlyletters (text input, optional)
@@ -82,7 +91,7 @@ Inputs / fields:
 - length (number input, optional)
 - limit (number input, optional)
 - randomlimit (number input, optional)
-- sort (dropdown: asc, desc, random)
+- sort (dropdown with user friendly labels, for example: A to Z, Z to A, random)
 
 Behavior:
 - build the query string correctly
@@ -181,19 +190,35 @@ Behavior details:
 
 UI / block design requirements:
 - Make blocks understandable for teachers
-- Use clear labels such as:
+- Prefer visible labels like:
   - "get audio list"
-  - "folder"
+  - "audio folder"
   - "starts with letters"
-  - "contains klanken"
-  - "only letters"
-  - "only klanken"
-  - "strict letter+klank combo"
-  - "max length"
-  - "exact length"
-  - "limit"
-  - "random limit"
-  - "sort"
+  - "contains sounds"
+  - "use only these letters"
+  - "use only these sounds"
+  - "match letters and sounds exactly"
+  - "maximum word length"
+  - "exact word length"
+  - "maximum items"
+  - "random items"
+  - "sort order"
+- For the folder dropdown, map the API values to friendly visible labels:
+  - speech -> "spoken words"
+  - letters -> "letters"
+  - instructions -> "instructions"
+  - feedback -> "feedback"
+  - story -> "stories"
+  - general -> "general sounds"
+- For the sort dropdown, use friendly labels while still generating the correct API values:
+  - asc -> "A to Z"
+  - desc -> "Z to A"
+  - random -> "random"
+- Group related inputs in a visually logical order so the block reads naturally from left to right or top to bottom.
+- If the main fetch block becomes too crowded, it is acceptable to use dummy inputs, inline grouping, or a compact/expanded pattern, but keep the block easy to understand.
+- Add short tooltips/help text for blocks and important fields.
+- Do not expose implementation details such as URLSearchParams, raw JSON, or low-level fetch wording in the visible block UI.
+- The example toolbox category should also use a user-friendly category name, such as "Audio library" instead of a technical label.
 
 Code organization:
 Return code in clearly separated sections/files:
@@ -202,7 +227,7 @@ Return code in clearly separated sections/files:
 3. runtime.js
 4. example toolbox category XML
 5. short usage example showing:
-   - get audio list from folder woorden
+   - get audio list from folder speech
    - filter by letters a,b,k,l
    - set max length 4
    - limit 10

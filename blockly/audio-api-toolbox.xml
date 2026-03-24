@@ -1,4 +1,4 @@
-<category name="Audio API" colour="#0EA5E9">
+<category name="Audio Library" colour="#0EA5E9">
   <block type="api_get_audio_list"></block>
   <block type="list_pick_random"></block>
   <block type="list_length"></block>

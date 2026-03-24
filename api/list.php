@@ -13,16 +13,17 @@ Geeft een JSON-lijst terug van audiobestanden voor Blockly / BrailleStudio.
 
 PUBLIEKE AUDIO MAPPEN
 ---------------------
-woorden      -> https://www.tastenbraille.com/braillestudio/sounds/nl/speech
+speech       -> https://www.tastenbraille.com/braillestudio/sounds/nl/speech
 letters      -> https://www.tastenbraille.com/braillestudio/sounds/nl/letters
-instructies  -> https://www.tastenbraille.com/braillestudio/sounds/general/instructies
-beloningen   -> https://www.tastenbraille.com/braillestudio/sounds/general/beloningen
-story        -> https://www.tastenbraille.com/braillestudio/sounds/nl/story
+instructions -> https://www.tastenbraille.com/braillestudio/sounds/nl/instructions
+feedback     -> https://www.tastenbraille.com/braillestudio/sounds/nl/feedback
+story        -> https://www.tastenbraille.com/braillestudio/sounds/nl/stories
+general      -> https://www.tastenbraille.com/braillestudio/sounds/general
 
 HOE TE GEBRUIKEN
 ----------------
 Gebruik altijd minstens:
-- folder=woorden | letters | instructies | beloningen | story
+- folder=speech | letters | instructions | feedback | story | general
 
 Je kunt daarna filters toevoegen. Alle filters worden gecombineerd met AND-logica.
 
@@ -30,7 +31,7 @@ BESCHIKBARE PARAMETERS
 ----------------------
 folder
   verplicht
-  mogelijke waarden: woorden, letters, instructies, beloningen, story
+  mogelijke waarden: speech, letters, instructions, feedback, story, general
 
 letters
   optioneel
@@ -113,50 +114,62 @@ b, c, d, f, g, h, j, k, l, m, n, p, q, r, s, t, v, w, x, y, z
 
 CURL VOORBEELDEN
 ----------------
-# alle woorden
-curl "https://tastenbraille.com/api/list.php?folder=woorden"
+# alle speech bestanden
+curl "https://tastenbraille.com/api/list.php?folder=speech"
 
 # alle letters
 curl "https://tastenbraille.com/api/list.php?folder=letters"
 
-# woorden die beginnen met a, b, k of l
-curl "https://tastenbraille.com/api/list.php?folder=woorden&letters=a,b,k,l"
+# alle instructions
+curl "https://tastenbraille.com/api/list.php?folder=instructions"
 
-# woorden met klanken a, e, i, ou of ei
-curl "https://tastenbraille.com/api/list.php?folder=woorden&klanken=a,e,i,ou,ei"
+# alle feedback
+curl "https://tastenbraille.com/api/list.php?folder=feedback"
 
-# woorden met alleen de letters a, l, p, m
-curl "https://tastenbraille.com/api/list.php?folder=woorden&onlyletters=a,l,p,m"
+# alle stories
+curl "https://tastenbraille.com/api/list.php?folder=story"
 
-# woorden met alleen toegestane klanken
-curl "https://tastenbraille.com/api/list.php?folder=woorden&onlyklanken=a,aa,ei,ou,l,m,p"
+# alles uit general
+curl "https://tastenbraille.com/api/list.php?folder=general"
+
+# speech bestanden die beginnen met a, b, k of l
+curl "https://tastenbraille.com/api/list.php?folder=speech&letters=a,b,k,l"
+
+# speech bestanden met klanken a, e, i, ou of ei
+curl "https://tastenbraille.com/api/list.php?folder=speech&klanken=a,e,i,ou,ei"
+
+# speech bestanden met alleen de letters a, l, p, m
+curl "https://tastenbraille.com/api/list.php?folder=speech&onlyletters=a,l,p,m"
+
+# speech bestanden met alleen toegestane klanken
+curl "https://tastenbraille.com/api/list.php?folder=speech&onlyklanken=a,aa,ei,ou,l,m,p"
 
 # strikte combinatie van toegestane letters én toegestane klanken
-curl "https://tastenbraille.com/api/list.php?folder=woorden&onlycombo=true&onlyletters=a,l,p,m&onlyklanken=a,l,p,m"
+curl "https://tastenbraille.com/api/list.php?folder=speech&onlycombo=true&onlyletters=a,l,p,m&onlyklanken=a,l,p,m"
 
-# woorden met maximale lengte 4
-curl "https://tastenbraille.com/api/list.php?folder=woorden&maxlength=4"
+# speech bestanden met maximale lengte 4
+curl "https://tastenbraille.com/api/list.php?folder=speech&maxlength=4"
 
-# woorden met exacte lengte 3
-curl "https://tastenbraille.com/api/list.php?folder=woorden&length=3"
+# speech bestanden met exacte lengte 3
+curl "https://tastenbraille.com/api/list.php?folder=speech&length=3"
 
 # gesorteerd oplopend
-curl "https://tastenbraille.com/api/list.php?folder=woorden&sort=asc"
+curl "https://tastenbraille.com/api/list.php?folder=speech&sort=asc"
 
 # gesorteerd aflopend
-curl "https://tastenbraille.com/api/list.php?folder=woorden&sort=desc"
+curl "https://tastenbraille.com/api/list.php?folder=speech&sort=desc"
 
 # willekeurige volgorde
-curl "https://tastenbraille.com/api/list.php?folder=woorden&sort=random"
+curl "https://tastenbraille.com/api/list.php?folder=speech&sort=random"
 
 # limiet op aantal resultaten
-curl "https://tastenbraille.com/api/list.php?folder=woorden&letters=a,b,k,l&limit=10"
+curl "https://tastenbraille.com/api/list.php?folder=speech&letters=a,b,k,l&limit=10"
 
 # willekeurig maximaal 10 bestanden
-curl "https://tastenbraille.com/api/list.php?folder=woorden&randomlimit=10"
+curl "https://tastenbraille.com/api/list.php?folder=speech&randomlimit=10"
 
 # combinatie van filters
-curl "https://tastenbraille.com/api/list.php?folder=woorden&letters=b,k&klanken=aa,oe,ei&maxlength=5&sort=asc&limit=20"
+curl "https://tastenbraille.com/api/list.php?folder=speech&letters=b,k&klanken=aa,oe,ei&maxlength=5&sort=asc&limit=20"
 
 UITVOER
 -------
@@ -221,7 +234,7 @@ if (!in_array($sort, ['asc', 'desc', 'random'], true)) {
 // Folder mapping
 // -----------------------------
 $folderMap = [
-    'woorden' => [
+    'speech' => [
         'dir' => __DIR__ . '/../braillestudio/sounds/nl/speech',
         'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech',
     ],
@@ -229,17 +242,21 @@ $folderMap = [
         'dir' => __DIR__ . '/../braillestudio/sounds/nl/letters',
         'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters',
     ],
-    'instructies' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/general/instructies',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/general/instructies',
+    'instructions' => [
+        'dir' => __DIR__ . '/../braillestudio/sounds/nl/instructions',
+        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions',
     ],
-    'beloningen' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/general/beloningen',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/general/beloningen',
+    'feedback' => [
+        'dir' => __DIR__ . '/../braillestudio/sounds/nl/feedback',
+        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback',
     ],
     'story' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/story',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/story',
+        'dir' => __DIR__ . '/../braillestudio/sounds/nl/stories',
+        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories',
+    ],
+    'general' => [
+        'dir' => __DIR__ . '/../braillestudio/sounds/general',
+        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/general',
     ],
 ];
 

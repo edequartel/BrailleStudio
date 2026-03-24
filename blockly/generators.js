@@ -15,7 +15,7 @@
   }
 
   javascriptGenerator.forBlock['api_get_audio_list'] = function (block) {
-    const folder = q(block.getFieldValue('FOLDER') || 'woorden');
+    const folder = q(block.getFieldValue('FOLDER') || 'speech');
     const letters = q(block.getFieldValue('LETTERS') || '');
     const klanken = q(block.getFieldValue('KLANKEN') || '');
     const onlyletters = q(block.getFieldValue('ONLYLETTERS') || '');

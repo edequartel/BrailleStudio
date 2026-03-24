@@ -335,7 +335,7 @@
     <block type="state_last_sound"></block>
   </category>
 
-  <category name="Audio API" colour="#0EA5E9">
+  <category name="Audio Library" colour="#0EA5E9">
     <block type="api_get_audio_list"></block>
     <block type="list_pick_random"></block>
     <block type="list_length"></block>
@@ -2096,7 +2096,7 @@ async function evalValue(block) {
         throw new Error('BrailleStudioAPI.getAudioList is not available');
       }
       const opt = {
-        folder: String(block.getFieldValue('FOLDER') || 'woorden'),
+        folder: String(block.getFieldValue('FOLDER') || 'speech'),
         letters: String(block.getFieldValue('LETTERS') || ''),
         klanken: String(block.getFieldValue('KLANKEN') || ''),
         onlyletters: String(block.getFieldValue('ONLYLETTERS') || ''),

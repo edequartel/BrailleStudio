@@ -7,52 +7,53 @@
         this.appendDummyInput()
           .appendField('get audio list');
         this.appendDummyInput()
-          .appendField('folder')
+          .appendField('audio folder')
           .appendField(new Blockly.FieldDropdown([
-            ['woorden', 'woorden'],
+            ['spoken words', 'speech'],
             ['letters', 'letters'],
-            ['instructies', 'instructies'],
-            ['beloningen', 'beloningen'],
-            ['story', 'story']
+            ['instructions', 'instructions'],
+            ['feedback', 'feedback'],
+            ['stories', 'story'],
+            ['general sounds', 'general']
           ]), 'FOLDER');
         this.appendDummyInput()
           .appendField('starts with letters')
           .appendField(new Blockly.FieldTextInput(''), 'LETTERS');
         this.appendDummyInput()
-          .appendField('contains klanken')
+          .appendField('contains sounds')
           .appendField(new Blockly.FieldTextInput(''), 'KLANKEN');
         this.appendDummyInput()
-          .appendField('only letters')
+          .appendField('use only these letters')
           .appendField(new Blockly.FieldTextInput(''), 'ONLYLETTERS');
         this.appendDummyInput()
-          .appendField('only klanken')
+          .appendField('use only these sounds')
           .appendField(new Blockly.FieldTextInput(''), 'ONLYKLANKEN');
         this.appendDummyInput()
-          .appendField('strict letter+klank combo')
+          .appendField('match letters and sounds exactly')
           .appendField(new Blockly.FieldCheckbox('FALSE'), 'ONLYCOMBO');
         this.appendDummyInput()
-          .appendField('max length')
+          .appendField('maximum word length')
           .appendField(new Blockly.FieldTextInput(''), 'MAXLENGTH');
         this.appendDummyInput()
-          .appendField('exact length')
+          .appendField('exact word length')
           .appendField(new Blockly.FieldTextInput(''), 'LENGTH');
         this.appendDummyInput()
-          .appendField('limit')
+          .appendField('maximum items')
           .appendField(new Blockly.FieldTextInput(''), 'LIMIT');
         this.appendDummyInput()
-          .appendField('random limit')
+          .appendField('random items')
           .appendField(new Blockly.FieldTextInput(''), 'RANDOMLIMIT');
         this.appendDummyInput()
-          .appendField('sort')
+          .appendField('sort order')
           .appendField(new Blockly.FieldDropdown([
-            ['(none)', ''],
-            ['asc', 'asc'],
-            ['desc', 'desc'],
+            ['default', ''],
+            ['A to Z', 'asc'],
+            ['Z to A', 'desc'],
             ['random', 'random']
           ]), 'SORT');
         this.setOutput(true, null);
         this.setColour('#0EA5E9');
-        this.setTooltip('Fetch audio items from the BrailleStudio PHP API.');
+        this.setTooltip('Get a filtered list of audio items for classroom activities.');
         this.setHelpUrl('');
       }
     };
@@ -63,10 +64,10 @@
       init: function () {
         this.appendValueInput('LIST')
           .setCheck(null)
-          .appendField('pick random item from list');
+          .appendField('pick a random audio item from');
         this.setOutput(true, null);
         this.setColour('#F97316');
-        this.setTooltip('Return one random item from a list.');
+        this.setTooltip('Choose one random audio item from a list.');
         this.setHelpUrl('');
       }
     };
@@ -77,10 +78,10 @@
       init: function () {
         this.appendValueInput('ITEM')
           .setCheck(null)
-          .appendField('audio item word');
+          .appendField('word from audio item');
         this.setOutput(true, 'String');
         this.setColour('#14B8A6');
-        this.setTooltip('Get item.word from an audio item object.');
+        this.setTooltip('Get the word or filename label from an audio item.');
         this.setHelpUrl('');
       }
     };
@@ -91,10 +92,10 @@
       init: function () {
         this.appendValueInput('ITEM')
           .setCheck(null)
-          .appendField('audio item url');
+          .appendField('link from audio item');
         this.setOutput(true, 'String');
         this.setColour('#14B8A6');
-        this.setTooltip('Get item.url from an audio item object.');
+        this.setTooltip('Get the audio file link from an audio item.');
         this.setHelpUrl('');
       }
     };
@@ -107,14 +108,14 @@
           .setCheck(null)
           .appendField('for each audio item in');
         this.appendDummyInput()
-          .appendField('item')
+          .appendField('store item in')
           .appendField(new Blockly.FieldVariable('item'), 'VAR');
         this.appendStatementInput('DO')
           .appendField('do');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour('#D97706');
-        this.setTooltip('Loop over every item in an audio list.');
+        this.setTooltip('Repeat the steps for every audio item in the list.');
         this.setHelpUrl('');
       }
     };
@@ -125,10 +126,10 @@
       init: function () {
         this.appendValueInput('LIST')
           .setCheck(null)
-          .appendField('list length');
+          .appendField('number of items in');
         this.setOutput(true, 'Number');
         this.setColour('#F97316');
-        this.setTooltip('Return the number of items in a list.');
+        this.setTooltip('Count how many items are in the list.');
         this.setHelpUrl('');
       }
     };
@@ -139,11 +140,11 @@
       init: function () {
         this.appendValueInput('URL')
           .setCheck(null)
-          .appendField('play sound URL');
+          .appendField('play sound from link');
         this.setPreviousStatement(true, null);
         this.setNextStatement(true, null);
         this.setColour('#10B981');
-        this.setTooltip('Play sound from a URL.');
+        this.setTooltip('Play a sound file from a web link.');
         this.setHelpUrl('');
       }
     };
@@ -154,16 +155,16 @@
       init: function () {
         this.appendValueInput('A')
           .setCheck(null)
-          .appendField('join csv part 1');
+          .appendField('make comma list from');
         this.appendValueInput('B')
           .setCheck(null)
-          .appendField('part 2');
+          .appendField('and');
         this.appendValueInput('C')
           .setCheck(null)
-          .appendField('part 3');
+          .appendField('and');
         this.setOutput(true, 'String');
         this.setColour('#0891B2');
-        this.setTooltip('Join text parts into comma-separated text and skip empty parts.');
+        this.setTooltip('Combine text parts into one comma-separated list and skip empty parts.');
         this.setHelpUrl('');
       }
     };

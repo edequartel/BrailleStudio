@@ -1,6 +1,6 @@
 async function runAudioApiLessonExample() {
   const list = await BrailleStudioAPI.getAudioList({
-    folder: 'woorden',
+    folder: 'speech',
     letters: 'a,b,k,l',
     maxlength: 4,
     limit: 10,
