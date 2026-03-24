@@ -196,6 +196,20 @@
       return urlObj.toString();
     }
 
+    function canUseProxy(url) {
+      try {
+        const u = new URL(url);
+        return u.protocol === 'https:' && u.host === 'tastenbraille.com';
+      } catch {
+        return false;
+      }
+    }
+
+    async function fetchViaProxy(url) {
+      const proxyUrl = `fetch-remote.php?url=${encodeURIComponent(url)}`;
+      return fetch(proxyUrl);
+    }
+
     function showUrl() {
       document.getElementById('baseUrlHint').textContent = getBaseUrl();
       document.getElementById('urlBox').textContent = buildUrl();
@@ -211,7 +225,16 @@
       listBox.innerHTML = '';
 
       try {
-        const res = await fetch(url);
+        let res;
+        let usedProxy = false;
+        try {
+          res = await fetch(url);
+        } catch (directErr) {
+          if (!canUseProxy(url)) throw directErr;
+          res = await fetchViaProxy(url);
+          usedProxy = true;
+        }
+
         if (!res.ok) {
           const errorText = await res.text();
           responseBox.textContent =
@@ -229,7 +252,7 @@
           return;
         }
 
-        responseBox.textContent = JSON.stringify(data, null, 2);
+        responseBox.textContent = `${usedProxy ? '(via proxy)\n\n' : ''}${JSON.stringify(data, null, 2)}`;
 
         if (Array.isArray(data)) {
           for (const item of data) {
@@ -244,7 +267,8 @@
         responseBox.textContent =
           `Fout bij ophalen:\n\n${err}\n\n` +
           'Mogelijke oorzaak: CORS/netwerk of je draait deze pagina via file://.\n' +
-          'Gebruik bij voorkeur een lokale webserver (http://localhost/...) en endpoint "list.php".';
+          'Gebruik bij voorkeur een lokale webserver (http://localhost/...) en endpoint "list.php".\n' +
+          'Voor https://tastenbraille.com wordt automatisch fallback naar fetch-remote.php geprobeerd.';
       }
     }
 
