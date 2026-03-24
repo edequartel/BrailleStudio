@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test list.php API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 24px auto;
+      padding: 0 16px;
+      line-height: 1.4;
+    }
+    h1 { margin-bottom: 8px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 12px 20px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+    }
+    .row {
+      margin-top: 16px;
+    }
+    button {
+      padding: 10px 14px;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 12px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid #ddd;
+    }
+    .small {
+      color: #555;
+      font-size: 0.95em;
+    }
+    .card {
+      border: 1px solid #ddd;
+      padding: 14px;
+      margin-top: 16px;
+      border-radius: 8px;
+    }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Testpagina voor list.php</h1>
+  <p class="small">
+    Deze pagina bouwt een request voor:
+    <code>https://tastenbraille.com/api/list.php</code>
+  </p>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label for="folder">folder</label>
+        <select id="folder">
+          <option value="woorden">woorden</option>
+          <option value="letters">letters</option>
+          <option value="instructies">instructies</option>
+          <option value="beloningen">beloningen</option>
+          <option value="story">story</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="letters">letters</label>
+        <input id="letters" placeholder="a,b,k,l" />
+      </div>
+
+      <div>
+        <label for="klanken">klanken</label>
+        <input id="klanken" placeholder="a,e,i,ou,ei" />
+      </div>
+
+      <div>
+        <label for="onlyletters">onlyletters</label>
+        <input id="onlyletters" placeholder="a,l,p,m" />
+      </div>
+
+      <div>
+        <label for="onlyklanken">onlyklanken</label>
+        <input id="onlyklanken" placeholder="a,aa,ei,ou,l,m,p" />
+      </div>
+
+      <div>
+        <label for="onlycombo">onlycombo</label>
+        <select id="onlycombo">
+          <option value="">(leeg)</option>
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="maxlength">maxlength</label>
+        <input id="maxlength" type="number" min="0" placeholder="4" />
+      </div>
+
+      <div>
+        <label for="length">length</label>
+        <input id="length" type="number" min="0" placeholder="3" />
+      </div>
+
+      <div>
+        <label for="limit">limit</label>
+        <input id="limit" type="number" min="0" placeholder="10" />
+      </div>
+
+      <div>
+        <label for="randomlimit">randomlimit</label>
+        <input id="randomlimit" type="number" min="0" placeholder="10" />
+      </div>
+
+      <div>
+        <label for="sort">sort</label>
+        <select id="sort">
+          <option value="">(leeg)</option>
+          <option value="asc">asc</option>
+          <option value="desc">desc</option>
+          <option value="random">random</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="buildBtn">Bouw URL</button>
+      <button id="testBtn">Test API</button>
+      <button id="exampleBtn">Voorbeeld invullen</button>
+      <button id="clearBtn">Leegmaken</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Request URL</h2>
+    <pre id="urlBox"></pre>
+  </div>
+
+  <div class="card">
+    <h2>Response</h2>
+    <pre id="responseBox">Nog niets opgehaald.</pre>
+  </div>
+
+  <div class="card">
+    <h2>Woorden / items</h2>
+    <ul id="listBox"></ul>
+  </div>
+
+  <script>
+    const baseUrl = 'https://tastenbraille.com/api/list.php';
+
+    const fields = [
+      'folder', 'letters', 'klanken', 'onlyletters', 'onlyklanken',
+      'onlycombo', 'maxlength', 'length', 'limit', 'randomlimit', 'sort'
+    ];
+
+    function getValue(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function buildUrl() {
+      const params = new URLSearchParams();
+
+      for (const field of fields) {
+        const value = getValue(field);
+        if (value !== '') {
+          params.set(field, value);
+        }
+      }
+
+      return `${baseUrl}?${params.toString()}`;
+    }
+
+    function showUrl() {
+      document.getElementById('urlBox').textContent = buildUrl();
+    }
+
+    async function testApi() {
+      const url = buildUrl();
+      showUrl();
+
+      const responseBox = document.getElementById('responseBox');
+      const listBox = document.getElementById('listBox');
+      responseBox.textContent = 'Bezig met ophalen...';
+      listBox.innerHTML = '';
+
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          responseBox.textContent = `Geen geldige JSON ontvangen:\n\n${text}`;
+          return;
+        }
+
+        responseBox.textContent = JSON.stringify(data, null, 2);
+
+        if (Array.isArray(data)) {
+          for (const item of data) {
+            const li = document.createElement('li');
+            const word = item.word ?? '(geen word)';
+            const url = item.url ?? '';
+            li.innerHTML = `<strong>${escapeHtml(word)}</strong>${url ? ` -- <a href="${encodeURI(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>` : ''}`;
+            listBox.appendChild(li);
+          }
+        }
+      } catch (err) {
+        responseBox.textContent = `Fout bij ophalen:\n\n${err}`;
+      }
+    }
+
+    function fillExample() {
+      document.getElementById('folder').value = 'woorden';
+      document.getElementById('letters').value = 'a,b,k,l';
+      document.getElementById('klanken').value = 'a,e,i,ou,ei';
+      document.getElementById('onlyletters').value = '';
+      document.getElementById('onlyklanken').value = '';
+      document.getElementById('onlycombo').value = '';
+      document.getElementById('maxlength').value = '4';
+      document.getElementById('length').value = '';
+      document.getElementById('limit').value = '10';
+      document.getElementById('randomlimit').value = '';
+      document.getElementById('sort').value = 'asc';
+      showUrl();
+    }
+
+    function clearForm() {
+      document.getElementById('folder').value = 'woorden';
+      for (const field of fields) {
+        if (field !== 'folder') document.getElementById(field).value = '';
+      }
+      document.getElementById('urlBox').textContent = '';
+      document.getElementById('responseBox').textContent = 'Nog niets opgehaald.';
+      document.getElementById('listBox').innerHTML = '';
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    document.getElementById('buildBtn').addEventListener('click', showUrl);
+    document.getElementById('testBtn').addEventListener('click', testApi);
+    document.getElementById('exampleBtn').addEventListener('click', fillExample);
+    document.getElementById('clearBtn').addEventListener('click', clearForm);
+
+    showUrl();
+  </script>
+</body>
+</html>
