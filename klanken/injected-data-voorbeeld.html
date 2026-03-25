@@ -234,6 +234,13 @@
       line-height: 1.5;
     }
 
+    .current-word {
+      margin: 0 0 14px;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 15px;
+    }
+
     @media (max-width: 980px) {
       .grid {
         grid-template-columns: 1fr;
@@ -261,27 +268,16 @@
     <section class="grid">
       <section class="panel">
         <h2>Blockly Demo</h2>
+        <p id="currentWordLabel" class="current-word">Current word: -</p>
         <div class="actions">
           <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
-          <button id="loadExampleBtn" class="btn" type="button">Load Example</button>
           <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
-          <button id="injectDataBtn" class="btn" type="button">Inject By Index</button>
+          <button id="playCurrentWordBtn" class="btn" type="button">Play Current Word</button>
         </div>
         <div id="blocklyHost"></div>
       </section>
 
       <div class="stack">
-        <section class="panel">
-          <h2>Injected Globals</h2>
-          <p class="small">Deze waarden worden buiten Blockly gezet en daarna door de blocks gelezen.</p>
-          <pre id="injectedDataBox"></pre>
-        </section>
-
-        <section class="panel">
-          <h2>Generated Code</h2>
-          <pre id="generatedCodeBox"></pre>
-        </section>
-
         <section class="panel">
           <h2>Run Log</h2>
           <pre id="runLogBox"></pre>
@@ -310,6 +306,7 @@
     </category>
     <category name="Play" colour="#10B981">
       <block type="sound_play_speech_file"></block>
+      <block type="sound_play_story_file"></block>
     </category>
     <category name="Math" colour="#C026D3">
       <block type="math_number"></block>
@@ -317,76 +314,27 @@
   </xml>
 
   <script>
-    const sampleLessonData = [
-      {
-        word: "bal",
-        sounds: ["b", "a", "l"],
-        newSounds: ["b", "a", "l"],
-        knownSounds: ["b", "a", "l"],
-        categories: {
-          korteKlinkers: ["a"],
-          langeKlinkers: [],
-          tweetekenklanken: [],
-          medeklinkers: ["b", "l"],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        },
-        newSoundCategories: {
-          korteKlinkers: ["a"],
-          langeKlinkers: [],
-          tweetekenklanken: [],
-          medeklinkers: ["b", "l"],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        },
-        knownSoundCategories: {
-          korteKlinkers: ["a"],
-          langeKlinkers: [],
-          tweetekenklanken: [],
-          medeklinkers: ["b", "l"],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        }
-      },
-      {
-        word: "maan",
-        sounds: ["m", "aa", "n"],
-        newSounds: ["aa"],
-        knownSounds: ["m", "n"],
-        categories: {
-          korteKlinkers: [],
-          langeKlinkers: ["aa"],
-          tweetekenklanken: [],
-          medeklinkers: ["m", "n"],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        },
-        newSoundCategories: {
-          korteKlinkers: [],
-          langeKlinkers: ["aa"],
-          tweetekenklanken: [],
-          medeklinkers: [],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        },
-        knownSoundCategories: {
-          korteKlinkers: [],
-          langeKlinkers: [],
-          tweetekenklanken: [],
-          medeklinkers: ["m", "n"],
-          medeklinkerclusters: [],
-          drietekenklanken: []
-        }
-      }
-    ];
+    const EXTERNAL_DATA_URL = "./aanvankelijklijst.json";
+    let externalLessonData = [];
 
     function getRequestedRecordIndex() {
       const input = document.getElementById("recordIndexInput");
       return Math.max(0, Math.floor(Number(input?.value) || 0));
     }
 
-    function injectSampleData(index = 0) {
-      window.aanvankelijkData = structuredClone(sampleLessonData);
+    async function loadExternalLessonData() {
+      const response = await fetch(EXTERNAL_DATA_URL, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      externalLessonData = Array.isArray(data) ? data : [];
+      return externalLessonData;
+    }
+
+    async function injectExternalData(index = 0) {
+      if (!Array.isArray(externalLessonData) || externalLessonData.length === 0) {
+        await loadExternalLessonData();
+      }
+      window.aanvankelijkData = structuredClone(externalLessonData);
       setActiveLessonRecordByIndex(index);
       renderInjectedData();
     }
@@ -402,14 +350,11 @@
     }
 
     function renderInjectedData() {
-      const box = document.getElementById("injectedDataBox");
-      box.textContent = [
-        "window.currentRecordIndex = " + JSON.stringify(window.currentRecordIndex ?? -1, null, 2),
-        "",
-        "window.aanvankelijkData = " + JSON.stringify(window.aanvankelijkData ?? [], null, 2),
-        "",
-        "window.currentRecord = " + JSON.stringify(window.currentRecord ?? null, null, 2)
-      ].join("\n");
+      const currentWordLabel = document.getElementById("currentWordLabel");
+      const currentWord = String(window.currentRecord?.word ?? "");
+      if (currentWordLabel) {
+        currentWordLabel.textContent = currentWord ? `Current word: ${currentWord}` : "Current word: -";
+      }
     }
 
     function getActiveLessonRecord() {
@@ -458,12 +403,37 @@
       return `https://www.tastenbraille.com/braillestudio/sounds/nl/speech/${encodeURIComponent(normalized)}`;
     }
 
+    function resolveStoryUrl(file) {
+      const value = String(file ?? "").trim();
+      if (!value) return "";
+      if (/^https?:\/\//i.test(value)) return value;
+      const normalized = value.toLowerCase().endsWith(".mp3") ? value : `${value}.mp3`;
+      return `https://www.tastenbraille.com/braillestudio/sounds/nl/stories/${encodeURIComponent(normalized)}`;
+    }
+
     async function playSpeechFile(file) {
       const url = resolveSpeechUrl(file);
       if (!url) return;
       logValue("speech url", url);
       const audio = new Audio(url);
       await audio.play();
+    }
+
+    async function playStoryFile(file) {
+      const url = resolveStoryUrl(file);
+      if (!url) return;
+      logValue("story url", url);
+      const audio = new Audio(url);
+      await audio.play();
+    }
+
+    async function playCurrentWord() {
+      const word = String(window.currentRecord?.word ?? "").trim();
+      if (!word) {
+        logValue("play", "no active word");
+        return;
+      }
+      await playSpeechFile(word);
     }
 
     Blockly.Blocks["event_when_started"] = {
@@ -543,6 +513,15 @@
       }
     };
 
+    Blockly.Blocks["sound_play_story_file"] = {
+      init() {
+        this.appendValueInput("FILE").appendField("play story file");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour("#10B981");
+      }
+    };
+
     const javascriptGenerator = Blockly.JavaScript;
     const ORDER_ATOMIC = javascriptGenerator.ORDER_ATOMIC || 0;
     const ORDER_NONE = javascriptGenerator.ORDER_NONE || 99;
@@ -579,6 +558,11 @@
       return `await playSpeechFile(${fileCode});\n`;
     };
 
+    javascriptGenerator.forBlock["sound_play_story_file"] = function(block) {
+      const fileCode = valueToCodeOr(block, "FILE", "''");
+      return `await playStoryFile(${fileCode});\n`;
+    };
+
     const workspace = Blockly.inject("blocklyHost", {
       toolbox: document.getElementById("toolbox"),
       trashcan: false,
@@ -602,8 +586,7 @@
 
     function updateGeneratedCode() {
       const startedBlocks = workspace.getTopBlocks(true).filter((block) => block.type === "event_when_started");
-      const code = startedBlocks.map((block) => javascriptGenerator.statementToCode(block, "DO")).join("\n");
-      document.getElementById("generatedCodeBox").textContent = code.trim() || "// No when started block found";
+      return startedBlocks.map((block) => javascriptGenerator.statementToCode(block, "DO")).join("\n").trim();
     }
 
     function logValue(label, value) {
@@ -613,12 +596,11 @@
 
     async function runExample() {
       document.getElementById("runLogBox").textContent = "";
-      updateGeneratedCode();
-      const code = document.getElementById("generatedCodeBox").textContent;
-      if (!code || code.startsWith("//")) return;
+      const code = updateGeneratedCode();
+      if (!code) return;
       const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-      const runner = new AsyncFunction("logValue", "setActiveLessonRecordByIndex", "getActiveLessonRecord", "getLessonFieldValue", "getLessonCategoryArray", "playSpeechFile", code);
-      await runner(logValue, setActiveLessonRecordByIndex, getActiveLessonRecord, getLessonFieldValue, getLessonCategoryArray, playSpeechFile);
+      const runner = new AsyncFunction("logValue", "setActiveLessonRecordByIndex", "getActiveLessonRecord", "getLessonFieldValue", "getLessonCategoryArray", "playSpeechFile", "playStoryFile", code);
+      await runner(logValue, setActiveLessonRecordByIndex, getActiveLessonRecord, getLessonFieldValue, getLessonCategoryArray, playSpeechFile, playStoryFile);
       renderInjectedData();
     }
 
@@ -629,13 +611,27 @@
       const xmlDom = Blockly.utils.xml.textToDom(text);
       workspace.clear();
       Blockly.Xml.domToWorkspace(xmlDom, workspace);
-      updateGeneratedCode();
     }
 
-    document.getElementById("injectDataBtn").addEventListener("click", () => {
+    document.getElementById("recordIndexInput").addEventListener("input", () => {
       const index = getRequestedRecordIndex();
-      injectSampleData(index);
-      document.getElementById("runLogBox").textContent = `Sample data injected at index ${index}.\n`;
+      if (!Array.isArray(window.aanvankelijkData) || window.aanvankelijkData.length === 0) {
+        injectExternalData(index).catch((error) => {
+          document.getElementById("runLogBox").textContent = `Inject failed: ${error.message}\n`;
+        });
+      } else {
+        setActiveLessonRecordByIndex(index);
+        document.getElementById("runLogBox").textContent = `Active record changed to index ${index}. Current word: ${window.currentRecord?.word ?? "-"}\n`;
+      }
+    });
+
+    document.getElementById("playCurrentWordBtn").addEventListener("click", async () => {
+      try {
+        document.getElementById("runLogBox").textContent = "";
+        await playCurrentWord();
+      } catch (error) {
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      }
     });
 
     document.getElementById("runExampleBtn").addEventListener("click", async () => {
@@ -646,21 +642,13 @@
       }
     });
 
-    document.getElementById("loadExampleBtn").addEventListener("click", async () => {
-      try {
-        await loadExampleScript();
-        document.getElementById("runLogBox").textContent = "Example script loaded.\n";
-      } catch (error) {
-        document.getElementById("runLogBox").textContent = `Load failed: ${error.message}\n`;
-      }
-    });
-
     workspace.addChangeListener(() => updateGeneratedCode());
 
-    injectSampleData(getRequestedRecordIndex());
-    loadExampleScript().catch((error) => {
+    Promise.all([
+      injectExternalData(getRequestedRecordIndex()),
+      loadExampleScript()
+    ]).catch((error) => {
       document.getElementById("runLogBox").textContent = `Load failed: ${error.message}\n`;
-      updateGeneratedCode();
     });
   </script>
 </body>
