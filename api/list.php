@@ -284,25 +284,18 @@ if (!is_dir($targetDir)) {
 // -----------------------------
 // Parse filters
 // -----------------------------
-$letters = array_values(array_filter(array_map(
-    fn($v) => mb_strtolower(trim($v), 'UTF-8'),
-    explode(',', $lettersParam)
-)));
+function parseCsvList(string $value): array
+{
+    return array_values(array_unique(array_filter(array_map(
+        fn($v) => mb_strtolower(trim($v), 'UTF-8'),
+        explode(',', $value)
+    ))));
+}
 
-$klanken = array_values(array_filter(array_map(
-    fn($v) => mb_strtolower(trim($v), 'UTF-8'),
-    explode(',', $klankenParam)
-)));
-
-$onlyLetters = array_values(array_filter(array_map(
-    fn($v) => mb_strtolower(trim($v), 'UTF-8'),
-    explode(',', $onlyLettersParam)
-)));
-
-$onlyKlanken = array_values(array_filter(array_map(
-    fn($v) => mb_strtolower(trim($v), 'UTF-8'),
-    explode(',', $onlyKlankenParam)
-)));
+$letters = parseCsvList($lettersParam);
+$klanken = parseCsvList($klankenParam);
+$onlyLetters = parseCsvList($onlyLettersParam);
+$onlyKlanken = parseCsvList($onlyKlankenParam);
 
 // -----------------------------
 // Helper: woord opsplitsen in Nederlandse klanken
@@ -310,7 +303,7 @@ $onlyKlanken = array_values(array_filter(array_map(
 // -----------------------------
 function splitKlanken(string $word): array
 {
-    $patterns = [
+    static $patterns = [
         // langere patronen
         'sch', 'aai', 'ooi', 'oei',
 
@@ -355,6 +348,21 @@ function splitKlanken(string $word): array
     return $result;
 }
 
+function containsRequestedKlank(array $wordKlanken, array $requestedKlanken): bool
+{
+    if (empty($requestedKlanken)) {
+        return true;
+    }
+
+    foreach ($wordKlanken as $klank) {
+        if (in_array($klank, $requestedKlanken, true)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // -----------------------------
 // Bestanden lezen
 // -----------------------------
@@ -393,6 +401,7 @@ $files = array_values(array_filter(
 
         $name = mb_strtolower(pathinfo($file, PATHINFO_FILENAME), 'UTF-8');
         $charLength = mb_strlen($name, 'UTF-8');
+        $wordKlanken = null;
 
         // exacte lengte
         if ($exactLength > 0 && $charLength !== $exactLength) {
@@ -414,14 +423,8 @@ $files = array_values(array_filter(
 
         // moet minstens 1 van deze klanken bevatten
         if (!empty($klanken)) {
-            $matched = false;
-            foreach ($klanken as $k) {
-                if ($k !== '' && mb_strpos($name, $k, 0, 'UTF-8') !== false) {
-                    $matched = true;
-                    break;
-                }
-            }
-            if (!$matched) {
+            $wordKlanken = $wordKlanken ?? splitKlanken($name);
+            if (!containsRequestedKlank($wordKlanken, $klanken)) {
                 return false;
             }
         }
@@ -438,7 +441,7 @@ $files = array_values(array_filter(
 
         // alleen toegestane klanken
         if (!empty($onlyKlanken)) {
-            $wordKlanken = splitKlanken($name);
+            $wordKlanken = $wordKlanken ?? splitKlanken($name);
             foreach ($wordKlanken as $klank) {
                 if (!in_array($klank, $onlyKlanken, true)) {
                     return false;
@@ -458,7 +461,7 @@ $files = array_values(array_filter(
             }
 
             if (!empty($onlyKlanken)) {
-                $wordKlanken = splitKlanken($name);
+                $wordKlanken = $wordKlanken ?? splitKlanken($name);
                 foreach ($wordKlanken as $klank) {
                     if (!in_array($klank, $onlyKlanken, true)) {
                         return false;

@@ -295,6 +295,58 @@
       align-items: center;
     }
 
+    .file-state {
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 104px;
+    }
+
+    .file-state.is-dirty {
+      color: #b45309;
+      font-weight: 600;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .modal-backdrop.is-open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+      padding: 16px;
+    }
+
+    .modal-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .modal-card p {
+      margin: 0 0 14px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
     #fileInput {
       display: none;
     }
@@ -325,11 +377,11 @@
       </button>
 
       <button id="saveBtn" class="btn">Save</button>
-      <button id="saveAsBtn" class="btn">Save As</button>
-      <button id="loadBtn" class="btn">Load</button>
-      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap Grid On</button>
-      <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
+      <button id="loadBtn" class="btn">Open</button>
       <button id="newBtn" class="btn">New</button>
+      <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
+      <div id="fileStateBadge" class="file-state">Saved</div>
+      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap Grid On</button>
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="spacer"></div>
@@ -398,6 +450,18 @@
   </div>
 </div>
 
+<div id="confirmModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <h3 id="confirmModalTitle">Unsaved changes</h3>
+    <p id="confirmModalMessage">You have unsaved changes.</p>
+    <div class="modal-actions">
+      <button id="confirmModalCancel" class="btn" type="button">Cancel</button>
+      <button id="confirmModalDiscard" class="btn" type="button">Don't Save</button>
+      <button id="confirmModalSave" class="btn btn-blue" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
 <xml id="toolbox" style="display:none">
   <category name="Events" colour="#F59E0B">
     <block type="event_when_started"></block>
@@ -462,9 +526,49 @@
     <block type="state_last_timer_tick"></block>
   </category>
 
-  <category name="Sounds" colour="#10B981">
-    <block type="sound_play_file"></block>
-    <block type="sound_play_folder_file"></block>
+  <category name="Play" colour="#10B981">
+    <block type="sound_play_speech_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_letters_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_instructions_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_feedback_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_story_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_general_file">
+      <value name="FILE">
+        <shadow type="text">
+          <field name="TEXT">voorbeeld</field>
+        </shadow>
+      </value>
+    </block>
     <block type="sound_play_url"></block>
     <block type="sound_pause"></block>
     <block type="sound_resume"></block>
@@ -480,8 +584,43 @@
     <block type="state_last_sound"></block>
   </category>
 
-  <category name="Audio Library" colour="#0EA5E9">
-    <block type="api_get_audio_list"></block>
+  <category name="Library" colour="#0EA5E9">
+    <block type="klanken_get_speech_audio_by_onlyletters">
+      <value name="ONLYLETTERS">
+        <shadow type="text">
+          <field name="TEXT">b,a,l</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="audio_get_speech_audio_by_letters_klanken">
+      <value name="LETTERS">
+        <shadow type="text">
+          <field name="TEXT">a,b,k,l,r,d</field>
+        </shadow>
+      </value>
+      <value name="KLANKEN">
+        <shadow type="text">
+          <field name="TEXT">aa</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="audio_get_speech_audio_by_onlyletters_klanken_length">
+      <value name="ONLYLETTERS">
+        <shadow type="text">
+          <field name="TEXT">p,a,r,d,i,e,l,b,r</field>
+        </shadow>
+      </value>
+      <value name="KLANKEN">
+        <shadow type="text">
+          <field name="TEXT">aa</field>
+        </shadow>
+      </value>
+      <value name="LENGTH">
+        <shadow type="math_number">
+          <field name="NUM">5</field>
+        </shadow>
+      </value>
+    </block>
     <block type="list_pick_random"></block>
     <block type="audio_item_get_word"></block>
     <block type="audio_item_get_url"></block>
@@ -489,6 +628,10 @@
 
   <category name="Phonems" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
+    <block type="klanken_word_get_sounds"></block>
+    <block type="klanken_word_get_new_sounds"></block>
+    <block type="klanken_word_get_known_sounds"></block>
+    <block type="klanken_play_word_sounds"></block>
     <block type="klanken_item_get_word"></block>
     <block type="klanken_item_get_sounds"></block>
     <block type="klanken_item_get_category"></block>
@@ -555,6 +698,8 @@
         </shadow>
       </value>
     </block>
+    <block type="math_inc_var"></block>
+    <block type="math_dec_var"></block>
   </category>
 
   <category name="Logging" colour="#64748B">
@@ -664,6 +809,98 @@ function renderGridSnapControl() {
   btn.textContent = gridSnapEnabled ? 'Snap Grid On' : 'Snap Grid Off';
 }
 
+function renderFileState() {
+  const badge = document.getElementById('fileStateBadge');
+  if (!badge) return;
+  badge.textContent = workspaceDirty ? 'Unsaved changes' : 'Saved';
+  badge.classList.toggle('is-dirty', workspaceDirty);
+}
+
+function getWorkspaceSignature() {
+  if (!workspace) return '';
+  const xmlDom = applyMetadataToXmlDom(Blockly.Xml.workspaceToDom(workspace));
+  return Blockly.Xml.domToPrettyText(xmlDom);
+}
+
+function setWorkspaceDirty(isDirty) {
+  workspaceDirty = !!isDirty;
+  renderFileState();
+}
+
+function markWorkspaceSaved(signature = null) {
+  lastSavedWorkspaceSignature = signature == null ? getWorkspaceSignature() : String(signature);
+  setWorkspaceDirty(false);
+}
+
+function refreshWorkspaceDirtyState() {
+  if (suppressDirtyTracking > 0) return;
+  setWorkspaceDirty(getWorkspaceSignature() !== lastSavedWorkspaceSignature);
+}
+
+async function showUnsavedChangesDialog(actionLabel) {
+  const modal = document.getElementById('confirmModal');
+  const title = document.getElementById('confirmModalTitle');
+  const message = document.getElementById('confirmModalMessage');
+  const saveBtn = document.getElementById('confirmModalSave');
+  const discardBtn = document.getElementById('confirmModalDiscard');
+  const cancelBtn = document.getElementById('confirmModalCancel');
+
+  if (!modal || !title || !message || !saveBtn || !discardBtn || !cancelBtn) {
+    return confirm(`You have unsaved changes. Continue and discard them before ${actionLabel}?`) ? 'discard' : 'cancel';
+  }
+
+  title.textContent = 'Unsaved changes';
+  message.textContent = `You have unsaved changes. Save them before ${actionLabel}?`;
+
+  return await new Promise((resolve) => {
+    const finish = (result) => {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      saveBtn.removeEventListener('click', onSave);
+      discardBtn.removeEventListener('click', onDiscard);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      window.removeEventListener('keydown', onKeyDown);
+      resolve(result);
+    };
+    const onSave = () => finish('save');
+    const onDiscard = () => finish('discard');
+    const onCancel = () => finish('cancel');
+    const onBackdrop = (event) => {
+      if (event.target === modal) finish('cancel');
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') finish('cancel');
+    };
+
+    saveBtn.addEventListener('click', onSave);
+    discardBtn.addEventListener('click', onDiscard);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    window.addEventListener('keydown', onKeyDown);
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    saveBtn.focus();
+  });
+}
+
+async function confirmActionWithUnsavedChanges(actionLabel) {
+  if (!workspaceDirty) return true;
+  const choice = await showUnsavedChangesDialog(actionLabel);
+  if (choice === 'cancel') {
+    log(`${actionLabel} cancelled`);
+    return false;
+  }
+  if (choice === 'save') {
+    const saved = await saveWorkspace({ skipNoChangesLog: true });
+    if (!saved) {
+      log(`${actionLabel} cancelled`);
+      return false;
+    }
+  }
+  return true;
+}
+
 /* ---------------- Runtime state ---------------- */
 const runtime = {
   stopped: true,
@@ -695,13 +932,12 @@ let audioStoppedWaiters = [];
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const SOUND_FOLDER_URLS = {
   speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
-  letters: 'https://www.tastenbraille.com/braillestudio/sounds/nl/alfabet/',
+  letters: 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',
   instructions: 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',
   feedback: 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',
   story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
-  general: 'https://www.tastenbraille.com/braillestudio/sounds/shared/'
+  general: 'https://www.tastenbraille.com/braillestudio/sounds/general/'
 };
-const BLOCKLY_FILE_NAME_KEY = 'blockly_file_name';
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
 let currentFileHandle = null;
@@ -715,6 +951,9 @@ let pendingStartGeneration = 0;
 let runGeneration = 0;
 let workspace = null;
 let klankenJsonCache = null;
+let workspaceDirty = false;
+let lastSavedWorkspaceSignature = '';
+let suppressDirtyTracking = 0;
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 
@@ -862,6 +1101,18 @@ function resolveFolderSoundUrl(folder, input) {
   return baseUrl + encodeURIComponent(filename);
 }
 
+function getSoundFolderFromBlockType(type) {
+  switch (type) {
+    case 'sound_play_speech_file': return 'speech';
+    case 'sound_play_letters_file': return 'letters';
+    case 'sound_play_instructions_file': return 'instructions';
+    case 'sound_play_feedback_file': return 'feedback';
+    case 'sound_play_story_file': return 'story';
+    case 'sound_play_general_file': return 'general';
+    default: return '';
+  }
+}
+
 function resolveAudioStoppedWaiters() {
   if (audioStoppedWaiters.length === 0) return;
   const waiters = audioStoppedWaiters;
@@ -975,9 +1226,9 @@ async function playSound(input) {
   };
   runtime.lastSound = url;
   renderStatus();
+  log('Sound play: ' + url);
   try {
     await audio.play();
-    log('Sound play: ' + url);
   } catch (err) {
     if (activeAudio === audio) {
       clearActiveAudio();
@@ -1291,7 +1542,6 @@ function bindAppControls() {
   bind('runBtn', 'click', onRunClicked);
   bind('stopBtn', 'click', onStopClicked);
   bind('saveBtn', 'click', saveWorkspace);
-  bind('saveAsBtn', 'click', saveWorkspaceAs);
   bind('loadBtn', 'click', openWorkspaceFile);
   bind('gridSnapBtn', 'click', () => {
     applyGridSnap(!gridSnapEnabled);
@@ -1345,12 +1595,10 @@ function bindAppControls() {
 
   const fileNameInput = document.getElementById('fileNameInput');
   if (fileNameInput && !fileNameInput.dataset.initialized) {
-    const savedName = localStorage.getItem(BLOCKLY_FILE_NAME_KEY);
-    fileNameInput.value = normalizeXmlFileName(savedName || fileNameInput.value || 'braille-activity.blockly');
+    fileNameInput.value = normalizeXmlFileName(fileNameInput.value || 'braille-activity.blockly');
     fileNameInput.addEventListener('change', () => {
       const normalized = normalizeXmlFileName(fileNameInput.value);
       fileNameInput.value = normalized;
-      localStorage.setItem(BLOCKLY_FILE_NAME_KEY, normalized);
       currentFileHandle = null;
     });
     fileNameInput.dataset.initialized = '1';
@@ -1367,11 +1615,11 @@ function bindAppControls() {
   const metaTitle = document.getElementById('scriptMetaTitle');
   const metaDescription = document.getElementById('scriptMetaDescription');
   if (metaTitle && !metaTitle.dataset.initialized) {
-    metaTitle.addEventListener('input', () => renderScriptMetadata(readScriptMetadataFromInputs()));
+    metaTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaTitle.dataset.initialized = '1';
   }
   if (metaDescription && !metaDescription.dataset.initialized) {
-    metaDescription.addEventListener('input', () => renderScriptMetadata(readScriptMetadataFromInputs()));
+    metaDescription.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaDescription.dataset.initialized = '1';
   }
 }
@@ -1379,6 +1627,11 @@ function bindAppControls() {
 bindWsControls();
 bindAppControls();
 connectWs('manual');
+window.addEventListener('beforeunload', (event) => {
+  if (!workspaceDirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 
 /* ---------------- Custom blocks ---------------- */
 Blockly.Blocks['event_when_started'] = {
@@ -1702,6 +1955,28 @@ Blockly.Blocks['math_random_10'] = {
   }
 };
 
+Blockly.Blocks['math_inc_var'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('inc')
+      .appendField(new Blockly.FieldVariable('score'), 'VAR');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#C026D3');
+  }
+};
+
+Blockly.Blocks['math_dec_var'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('dec')
+      .appendField(new Blockly.FieldVariable('score'), 'VAR');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#C026D3');
+  }
+};
+
 Blockly.Blocks['log_value'] = {
   init() {
     this.appendValueInput('VALUE').appendField('log');
@@ -1757,17 +2032,6 @@ Blockly.Blocks['log_variable'] = {
   };
 });
 
-Blockly.Blocks['sound_play_file'] = {
-  init() {
-    this.appendDummyInput()
-      .appendField('play sound file')
-      .appendField(new Blockly.FieldTextInput('voorbeeld'), 'FILE');
-    this.setPreviousStatement(true);
-    this.setNextStatement(true);
-    this.setColour('#10B981');
-  }
-};
-
 Blockly.Blocks['sound_play_folder_file'] = {
   init() {
     this.appendDummyInput()
@@ -1787,6 +2051,24 @@ Blockly.Blocks['sound_play_folder_file'] = {
     this.setColour('#10B981');
   }
 };
+
+function defineSoundFolderPlayBlock(type, label) {
+  Blockly.Blocks[type] = {
+    init() {
+      this.appendValueInput('FILE').appendField(label);
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+}
+
+defineSoundFolderPlayBlock('sound_play_speech_file', 'play speech file');
+defineSoundFolderPlayBlock('sound_play_letters_file', 'play letters file');
+defineSoundFolderPlayBlock('sound_play_instructions_file', 'play instructions file');
+defineSoundFolderPlayBlock('sound_play_feedback_file', 'play feedback file');
+defineSoundFolderPlayBlock('sound_play_story_file', 'play story file');
+defineSoundFolderPlayBlock('sound_play_general_file', 'play general file');
 
 Blockly.Blocks['sound_play_url'] = {
   init() {
@@ -1988,6 +2270,72 @@ Blockly.Blocks['klanken_get_aanvankelijklijst'] = {
     this.appendDummyInput()
       .appendField('haal aanvankelijklijst op');
     this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_get_speech_audio_by_onlyletters'] = {
+  init() {
+    this.appendValueInput('ONLYLETTERS')
+      .appendField('get speech audio list onlyletters');
+    this.setOutput(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['audio_get_speech_audio_by_letters_klanken'] = {
+  init() {
+    this.appendValueInput('LETTERS')
+      .appendField('get speech audio list letters');
+    this.appendValueInput('KLANKEN')
+      .appendField('with klanken');
+    this.setOutput(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['audio_get_speech_audio_by_onlyletters_klanken_length'] = {
+  init() {
+    this.appendValueInput('ONLYLETTERS')
+      .appendField('get speech audio list only letters');
+    this.appendValueInput('KLANKEN')
+      .appendField('with klanken');
+    this.appendValueInput('LENGTH')
+      .appendField('and length');
+    this.setOutput(true);
+    this.setColour('#0EA5E9');
+  }
+};
+
+Blockly.Blocks['klanken_word_get_sounds'] = {
+  init() {
+    this.appendValueInput('WORD').appendField('sounds of word');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_word_get_new_sounds'] = {
+  init() {
+    this.appendValueInput('WORD').appendField('new sounds of word');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_word_get_known_sounds'] = {
+  init() {
+    this.appendValueInput('WORD').appendField('known sounds of word');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['klanken_play_word_sounds'] = {
+  init() {
+    this.appendValueInput('WORD').appendField('play sounds of word');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
     this.setColour('#14B8A6');
   }
 };
@@ -2209,6 +2557,7 @@ function initVariableValues() {
 
 workspace.addChangeListener(() => {
   initVariableValues();
+  refreshWorkspaceDirtyState();
 });
 
 ensureDefaultVariable();
@@ -2274,156 +2623,19 @@ function parseWorkspaceXml(text) {
 }
 
 const defaultXmlText = `
-<xml xmlns="https://developers.google.com/blockly/xml">
-  <block type="event_when_started" x="30" y="30">
-    <statement name="DO">
-      <block type="bb_set_editor_mode">
-        <field name="MODE">on</field>
-        <next>
-          <block type="bb_set_insert_mode">
-            <field name="MODE">on</field>
-            <next>
-              <block type="variables_set">
-                <field name="VAR">score</field>
-                <value name="VALUE">
-                  <shadow type="math_number">
-                    <field name="NUM">0</field>
-                  </shadow>
-                </value>
-                <next>
-                  <block type="bb_set_text">
-                    <value name="TEXT">
-                      <shadow type="text">
-                        <field name="TEXT">Timer demo</field>
-                      </shadow>
-                    </value>
-                    <next>
-                      <block type="timer_start">
-                        <field name="NAME">timer1</field>
-                        <value name="SECONDS">
-                          <shadow type="math_number">
-                            <field name="NUM">1</field>
-                          </shadow>
-                        </value>
-                        <next>
-                          <block type="controls_repeat_ext">
-                            <value name="TIMES">
-                              <shadow type="math_number">
-                                <field name="NUM">3</field>
-                              </shadow>
-                            </value>
-                            <statement name="DO">
-                              <block type="bb_append_text">
-                                <value name="TEXT">
-                                  <shadow type="text">
-                                    <field name="TEXT">.</field>
-                                  </shadow>
-                                </value>
-                                <next>
-                                  <block type="bb_wait">
-                                    <value name="SECONDS">
-                                      <shadow type="math_number">
-                                        <field name="NUM">1</field>
-                                      </shadow>
-                                    </value>
-                                  </block>
-                                </next>
-                              </block>
-                            </statement>
-                            <next>
-                              <block type="bb_get_braille_line"></block>
-                            </next>
-                          </block>
-                        </next>
-                      </block>
-                    </next>
-                  </block>
-                </next>
-              </block>
-            </next>
-          </block>
-        </next>
-      </block>
-    </statement>
-  </block>
-
-  <block type="event_when_timer" x="430" y="30">
-    <field name="NAME">timer1</field>
-    <statement name="DO">
-      <block type="variables_change">
-        <field name="VAR">score</field>
-        <value name="VALUE">
-          <shadow type="math_number">
-            <field name="NUM">1</field>
-          </shadow>
-        </value>
-        <next>
-          <block type="bb_get_braille_line"></block>
-        </next>
-      </block>
-    </statement>
-  </block>
-
-  <block type="event_when_thumb_key" x="30" y="250">
-    <field name="KEY">left</field>
-    <statement name="DO">
-      <block type="bb_move_caret">
-        <field name="UNIT">character</field>
-        <value name="DELTA">
-          <shadow type="math_number">
-            <field name="NUM">-1</field>
-          </shadow>
-        </value>
-      </block>
-    </statement>
-  </block>
-
-  <block type="event_when_thumb_key" x="30" y="390">
-    <field name="KEY">right</field>
-    <statement name="DO">
-      <block type="bb_move_caret">
-        <field name="UNIT">character</field>
-        <value name="DELTA">
-          <shadow type="math_number">
-            <field name="NUM">1</field>
-          </shadow>
-        </value>
-      </block>
-    </statement>
-  </block>
-
-  <block type="event_when_chord" x="430" y="220">
-    <field name="DOTS">1</field>
-    <statement name="DO">
-      <block type="variables_change">
-        <field name="VAR">score</field>
-        <value name="VALUE">
-          <shadow type="math_number">
-            <field name="NUM">1</field>
-          </shadow>
-        </value>
-        <next>
-          <block type="bb_append_text">
-            <value name="TEXT">
-              <shadow type="text">
-                <field name="TEXT">!</field>
-              </shadow>
-            </value>
-          </block>
-        </next>
-      </block>
-    </statement>
-  </block>
-</xml>
+<xml xmlns="https://developers.google.com/blockly/xml"></xml>
 `;
 
 function loadDefaultWorkspace() {
+  suppressDirtyTracking++;
   workspace.clear();
   ensureDefaultVariable();
   const xmlDom = Blockly.utils.xml.textToDom(defaultXmlText);
   patchVariableFieldIds(xmlDom);
   Blockly.Xml.domToWorkspace(xmlDom, workspace);
   initVariableValues();
+  suppressDirtyTracking--;
+  markWorkspaceSaved(getWorkspaceSignature());
   log('Default workspace loaded');
 }
 
@@ -2511,6 +2723,13 @@ async function getAanvankelijklijst() {
     ? data
     : (Array.isArray(data?.items) ? data.items : []);
   return klankenJsonCache;
+}
+
+async function findAanvankelijklijstItemByWord(word) {
+  const target = String(word ?? '').trim().toLowerCase();
+  if (!target) return null;
+  const list = await getAanvankelijklijst();
+  return list.find(item => String(item?.word ?? '').trim().toLowerCase() === target) || null;
 }
 
 function getKlankenSourceValue(item, source) {
@@ -2654,6 +2873,39 @@ async function evalValue(block) {
       }
     }
 
+    case 'klanken_word_get_sounds': {
+      try {
+        const word = await evalValue(block.getInputTargetBlock('WORD'));
+        const item = await findAanvankelijklijstItemByWord(word);
+        return toList(item?.sounds);
+      } catch (err) {
+        log(`Phonems word lookup failed: ${err}`);
+        return [];
+      }
+    }
+
+    case 'klanken_word_get_new_sounds': {
+      try {
+        const word = await evalValue(block.getInputTargetBlock('WORD'));
+        const item = await findAanvankelijklijstItemByWord(word);
+        return toList(item?.newSounds);
+      } catch (err) {
+        log(`Phonems new sounds lookup failed: ${err}`);
+        return [];
+      }
+    }
+
+    case 'klanken_word_get_known_sounds': {
+      try {
+        const word = await evalValue(block.getInputTargetBlock('WORD'));
+        const item = await findAanvankelijklijstItemByWord(word);
+        return toList(item?.knownSounds);
+      } catch (err) {
+        log(`Phonems known sounds lookup failed: ${err}`);
+        return [];
+      }
+    }
+
     case 'klanken_item_get_word': {
       const item = await evalValue(block.getInputTargetBlock('ITEM'));
       return item && typeof item === 'object' ? String(item.word ?? '') : '';
@@ -2681,24 +2933,67 @@ async function evalValue(block) {
       return filtered[Math.floor(Math.random() * filtered.length)];
     }
 
-    case 'api_get_audio_list': {
+    case 'klanken_get_speech_audio_by_onlyletters': {
       if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getAudioList !== 'function') {
         throw new Error('BrailleStudioAPI.getAudioList is not available');
       }
-      const opt = {
-        folder: String(block.getFieldValue('FOLDER') || 'speech'),
-        letters: String(block.getFieldValue('LETTERS') || ''),
-        klanken: String(block.getFieldValue('KLANKEN') || ''),
-        onlyletters: String(block.getFieldValue('ONLYLETTERS') || ''),
-        onlyklanken: String(block.getFieldValue('ONLYKLANKEN') || ''),
-        onlycombo: block.getFieldValue('ONLYCOMBO') === 'TRUE',
-        maxlength: String(block.getFieldValue('MAXLENGTH') || ''),
-        length: String(block.getFieldValue('LENGTH') || ''),
-        limit: String(block.getFieldValue('LIMIT') || ''),
-        randomlimit: String(block.getFieldValue('RANDOMLIMIT') || ''),
-        sort: String(block.getFieldValue('SORT') || '')
-      };
-      return await window.BrailleStudioAPI.getAudioList(opt);
+      const onlyletters = String(await evalValue(block.getInputTargetBlock('ONLYLETTERS')) ?? '');
+      return await window.BrailleStudioAPI.getAudioList({
+        folder: 'speech',
+        letters: '',
+        klanken: '',
+        onlyletters,
+        onlyklanken: '',
+        onlycombo: false,
+        maxlength: '',
+        length: '',
+        limit: '',
+        randomlimit: '',
+        sort: ''
+      });
+    }
+
+    case 'audio_get_speech_audio_by_letters_klanken': {
+      if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getAudioList !== 'function') {
+        throw new Error('BrailleStudioAPI.getAudioList is not available');
+      }
+      const letters = String(await evalValue(block.getInputTargetBlock('LETTERS')) ?? '');
+      const klanken = String(await evalValue(block.getInputTargetBlock('KLANKEN')) ?? '');
+      return await window.BrailleStudioAPI.getAudioList({
+        folder: 'speech',
+        letters,
+        klanken,
+        onlyletters: '',
+        onlyklanken: '',
+        onlycombo: false,
+        maxlength: '',
+        length: '',
+        limit: '',
+        randomlimit: '',
+        sort: ''
+      });
+    }
+
+    case 'audio_get_speech_audio_by_onlyletters_klanken_length': {
+      if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getAudioList !== 'function') {
+        throw new Error('BrailleStudioAPI.getAudioList is not available');
+      }
+      const onlyletters = String(await evalValue(block.getInputTargetBlock('ONLYLETTERS')) ?? '');
+      const klanken = String(await evalValue(block.getInputTargetBlock('KLANKEN')) ?? '');
+      const length = String(await evalValue(block.getInputTargetBlock('LENGTH')) ?? '');
+      return await window.BrailleStudioAPI.getAudioList({
+        folder: 'speech',
+        letters: '',
+        klanken,
+        onlyletters,
+        onlyklanken: '',
+        onlycombo: false,
+        maxlength: '',
+        length,
+        limit: '',
+        randomlimit: '',
+        sort: ''
+      });
     }
 
     case 'audio_item_get_word': {
@@ -2899,12 +3194,6 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
-      case 'sound_play_file': {
-        const file = current.getFieldValue('FILE');
-        await playSound(file);
-        break;
-      }
-
       case 'sound_play_folder_file': {
         const folder = current.getFieldValue('FOLDER');
         const file = current.getFieldValue('FILE');
@@ -2912,9 +3201,22 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'sound_play_speech_file':
+      case 'sound_play_letters_file':
+      case 'sound_play_instructions_file':
+      case 'sound_play_feedback_file':
+      case 'sound_play_story_file':
+      case 'sound_play_general_file': {
+        const folder = getSoundFolderFromBlockType(current.type);
+        const file = await evalValue(current.getInputTargetBlock('FILE'));
+        await playSound(resolveFolderSoundUrl(folder, file));
+        break;
+      }
+
       case 'sound_play_url': {
         const url = String(await evalValue(current.getInputTargetBlock('URL')) ?? '');
         if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
+          log('Sound play: ' + url);
           await window.BrailleStudioAPI.playUrl(url);
         } else {
           await playSound(url);
@@ -2933,6 +3235,22 @@ async function executeChain(startBlock, generation) {
         const varName = varModel ? varModel.name : 'unknown';
         const varValue = varModel ? variableValues[varModel.getId()] : undefined;
         log(`${varName} = ${formatLogValue(varValue)}`);
+        break;
+      }
+
+      case 'klanken_play_word_sounds': {
+        try {
+          const word = await evalValue(current.getInputTargetBlock('WORD'));
+          const item = await findAanvankelijklijstItemByWord(word);
+          const sounds = toList(item?.sounds);
+          for (const sound of sounds) {
+            if (runtime.stopped || generation !== runGeneration) break;
+            await playSound(resolveFolderSoundUrl('letters', sound));
+            await waitForAudioStopped();
+          }
+        } catch (err) {
+          log(`Phonems play failed: ${err}`);
+        }
         break;
       }
 
@@ -3046,6 +3364,18 @@ async function executeChain(startBlock, generation) {
         const delta = toNumber(await evalValue(current.getInputTargetBlock('VALUE')));
         if (id) {
           variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
+          renderStatus();
+        }
+        break;
+      }
+
+      case 'math_inc_var':
+      case 'math_dec_var': {
+        const varModel = workspace?.getVariableById(current.getFieldValue('VAR'));
+        const varId = varModel ? varModel.getId() : null;
+        if (varId) {
+          const delta = current.type === 'math_inc_var' ? 1 : -1;
+          variableValues[varId] = toNumber(variableValues[varId] ?? 0) + delta;
           renderStatus();
         }
         break;
@@ -3193,23 +3523,37 @@ async function dispatchEvent(event, generation = runGeneration) {
 }
 
 /* ---------------- File actions ---------------- */
-function saveWorkspace() {
+async function saveWorkspace(options = {}) {
+  const { skipNoChangesLog = false } = options;
   const xmlDom = applyMetadataToXmlDom(Blockly.Xml.workspaceToDom(workspace));
   const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
-  const fileName = getSelectedFileName();
+  const fileName = normalizeXmlFileName(currentFileHandle?.name || getSelectedFileName());
+
+  if (!workspaceDirty && currentFileHandle && typeof currentFileHandle.createWritable === 'function') {
+    if (!skipNoChangesLog) log('Save skipped: no changes');
+    return true;
+  }
 
   if (currentFileHandle && typeof currentFileHandle.createWritable === 'function') {
-    writeXmlToHandle(currentFileHandle, xmlText, fileName)
-      .then(() => log('Workspace saved to ' + fileName))
-      .catch(err => {
-        log('Direct save failed: ' + err.message);
-        downloadXml(xmlText, fileName);
-      });
-    return;
+    try {
+      await writeXmlToHandle(currentFileHandle, xmlText, fileName);
+      markWorkspaceSaved(xmlText);
+      log('Workspace saved to ' + fileName);
+      return true;
+    } catch (err) {
+      log('Direct save failed: ' + err.message);
+      return await saveWorkspaceAs();
+    }
+  }
+
+  if (typeof window.showSaveFilePicker === 'function') {
+    return await saveWorkspaceAs();
   }
 
   downloadXml(xmlText, fileName);
+  markWorkspaceSaved(xmlText);
   log('Workspace saved as download: ' + fileName);
+  return true;
 }
 
 async function saveWorkspaceAs() {
@@ -3219,8 +3563,9 @@ async function saveWorkspaceAs() {
 
   if (typeof window.showSaveFilePicker !== 'function') {
     downloadXml(xmlText, fileName);
+    markWorkspaceSaved(xmlText);
     log('Save As fallback download: ' + fileName);
-    return;
+    return true;
   }
 
   try {
@@ -3237,13 +3582,16 @@ async function saveWorkspaceAs() {
     await writeXmlToHandle(handle, xmlText, chosenName);
     currentFileHandle = handle;
     setSelectedFileName(chosenName);
+    markWorkspaceSaved(xmlText);
     log('Workspace saved as ' + chosenName);
+    return true;
   } catch (err) {
     if (err && err.name === 'AbortError') {
       log('Save As cancelled');
-      return;
+      return false;
     }
     log('Save As failed: ' + err.message);
+    return false;
   }
 }
 
@@ -3262,7 +3610,6 @@ function setSelectedFileName(name) {
   const normalized = normalizeXmlFileName(name);
   const input = document.getElementById('fileNameInput');
   if (input) input.value = normalized;
-  localStorage.setItem(BLOCKLY_FILE_NAME_KEY, normalized);
 }
 
 function downloadXml(xmlText, fileName) {
@@ -3281,10 +3628,11 @@ async function writeXmlToHandle(handle, xmlText, fileName) {
   const writer = await handle.createWritable();
   await writer.write(xmlText);
   await writer.close();
-  setSelectedFileName(fileName);
+  setSelectedFileName(handle?.name || fileName);
 }
 
 async function openWorkspaceFile() {
+  if (!(await confirmActionWithUnsavedChanges('loading another file'))) return;
   if (typeof window.showOpenFilePicker === 'function') {
     try {
       const [handle] = await window.showOpenFilePicker({
@@ -3316,36 +3664,45 @@ async function openWorkspaceFile() {
 function loadWorkspaceFromText(text, sourceName = null) {
   try {
     const xmlDom = parseWorkspaceXml(text);
+    suppressDirtyTracking++;
     workspace.clear();
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
     ensureDefaultVariable();
     initVariableValues();
     renderScriptMetadata(extractWorkspaceMetadata(xmlDom, sourceName));
     if (sourceName) setSelectedFileName(sourceName);
+    suppressDirtyTracking--;
+    markWorkspaceSaved(getWorkspaceSignature());
     log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
   } catch (err) {
+    suppressDirtyTracking = 0;
     log('Load failed: ' + err.message);
     alert('Could not load file: ' + err.message);
   }
 }
 
-function newWorkspace() {
-  if (!confirm('Clear current workspace?')) return;
+async function newWorkspace() {
+  if (!(await confirmActionWithUnsavedChanges('creating a new file'))) return;
   runtime.stopped = true;
   runGeneration++;
   stopAllTimers();
   stopSound();
   currentFileHandle = null;
+  setSelectedFileName('braille-activity.blockly');
+  suppressDirtyTracking++;
   workspace.clear();
   ensureDefaultVariable();
   initVariableValues();
   renderScriptMetadata(null);
   renderBrailleLine(null);
+  suppressDirtyTracking--;
+  markWorkspaceSaved(getWorkspaceSignature());
   log('Workspace cleared');
 }
 
 renderStatus();
 renderScriptMetadata(null);
+renderFileState();
 setWsBadge(false);
 </script>
 </body>

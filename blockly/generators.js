@@ -14,28 +14,6 @@
     return JSON.stringify(String(value ?? ''));
   }
 
-  javascriptGenerator.forBlock['api_get_audio_list'] = function (block) {
-    const folder = q(block.getFieldValue('FOLDER') || 'speech');
-    const letters = q(block.getFieldValue('LETTERS') || '');
-    const klanken = q(block.getFieldValue('KLANKEN') || '');
-    const onlyletters = q(block.getFieldValue('ONLYLETTERS') || '');
-    const onlyklanken = q(block.getFieldValue('ONLYKLANKEN') || '');
-    const onlycombo = block.getFieldValue('ONLYCOMBO') === 'TRUE' ? 'true' : 'false';
-    const maxlength = q(block.getFieldValue('MAXLENGTH') || '');
-    const length = q(block.getFieldValue('LENGTH') || '');
-    const limit = q(block.getFieldValue('LIMIT') || '');
-    const randomlimit = q(block.getFieldValue('RANDOMLIMIT') || '');
-    const sort = q(block.getFieldValue('SORT') || '');
-
-    const code =
-      `await BrailleStudioAPI.getAudioList({` +
-      `folder:${folder},letters:${letters},klanken:${klanken},onlyletters:${onlyletters},` +
-      `onlyklanken:${onlyklanken},onlycombo:${onlycombo},maxlength:${maxlength},length:${length},` +
-      `limit:${limit},randomlimit:${randomlimit},sort:${sort}` +
-      `})`;
-    return [code, ORDER_ATOMIC];
-  };
-
   javascriptGenerator.forBlock['list_pick_random'] = function (block) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
     return [`BrailleStudioAPI.pickRandom(${listCode})`, ORDER_ATOMIC];
@@ -56,6 +34,26 @@
     return [`(() => { const max = Math.floor(Number(${maxCode}) || 0); return max <= 0 ? 0 : Math.floor(Math.random() * max); })()`, ORDER_ATOMIC];
   };
 
+  function getGeneratorVariableName(block, generator, fieldName = 'VAR', fallback = 'value') {
+    if (typeof generator.getVariableName === 'function') {
+      return generator.getVariableName(block.getFieldValue(fieldName));
+    }
+    if (generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
+      return generator.nameDB_.getName(block.getFieldValue(fieldName), Blockly.VARIABLE_CATEGORY_NAME);
+    }
+    return fallback;
+  }
+
+  javascriptGenerator.forBlock['math_inc_var'] = function (block, generator) {
+    const varName = getGeneratorVariableName(block, generator, 'VAR', 'value');
+    return `${varName} += 1;\n`;
+  };
+
+  javascriptGenerator.forBlock['math_dec_var'] = function (block, generator) {
+    const varName = getGeneratorVariableName(block, generator, 'VAR', 'value');
+    return `${varName} -= 1;\n`;
+  };
+
   javascriptGenerator.forBlock['bb_current_text'] = function () {
     return [`runtime.text`, ORDER_ATOMIC];
   };
@@ -70,12 +68,7 @@
   };
 
   javascriptGenerator.forBlock['log_variable'] = function (block, generator) {
-    let varName = 'value';
-    if (typeof generator.getVariableName === 'function') {
-      varName = generator.getVariableName(block.getFieldValue('VAR'));
-    } else if (generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
-      varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-    }
+    const varName = getGeneratorVariableName(block, generator, 'VAR', 'value');
     return `console.log(${JSON.stringify(varName + ' = ')}, ${varName});\n`;
   };
 
@@ -91,6 +84,60 @@
 
   javascriptGenerator.forBlock['klanken_get_aanvankelijklijst'] = function () {
     return [`await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json())`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_get_speech_audio_by_onlyletters'] = function (block) {
+    const onlylettersCode = valueToCodeOr(block, 'ONLYLETTERS', "''");
+    return [
+      `await BrailleStudioAPI.getAudioList({folder:'speech',letters:'',klanken:'',onlyletters:String(${onlylettersCode} ?? ''),onlyklanken:'',onlycombo:false,maxlength:'',length:'',limit:'',randomlimit:'',sort:''})`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['audio_get_speech_audio_by_letters_klanken'] = function (block) {
+    const lettersCode = valueToCodeOr(block, 'LETTERS', "''");
+    const klankenCode = valueToCodeOr(block, 'KLANKEN', "''");
+    return [
+      `await BrailleStudioAPI.getAudioList({folder:'speech',letters:String(${lettersCode} ?? ''),klanken:String(${klankenCode} ?? ''),onlyletters:'',onlyklanken:'',onlycombo:false,maxlength:'',length:'',limit:'',randomlimit:'',sort:''})`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['audio_get_speech_audio_by_onlyletters_klanken_length'] = function (block) {
+    const onlylettersCode = valueToCodeOr(block, 'ONLYLETTERS', "''");
+    const klankenCode = valueToCodeOr(block, 'KLANKEN', "''");
+    const lengthCode = valueToCodeOr(block, 'LENGTH', '0');
+    return [
+      `await BrailleStudioAPI.getAudioList({folder:'speech',letters:'',klanken:String(${klankenCode} ?? ''),onlyletters:String(${onlylettersCode} ?? ''),onlyklanken:'',onlycombo:false,maxlength:'',length:String(${lengthCode} ?? ''),limit:'',randomlimit:'',sort:''})`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['klanken_word_get_sounds'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_word_get_new_sounds'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.newSounds ?? [])))`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_word_get_known_sounds'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.knownSounds ?? [])))`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['klanken_play_word_sounds'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return (
+      `for (const sound of (await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })` +
+      `.then(res => res.json())` +
+      `.then(list => (Array.isArray(list) ? list : []))` +
+      `.then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))) {\n` +
+      `  await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
+      `}\n`
+    );
   };
 
   javascriptGenerator.forBlock['klanken_item_get_word'] = function (block) {
@@ -124,11 +171,11 @@
       `await BrailleStudioAPI.playUrl((() => { ` +
       `const bases = {` +
       `speech:'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',` +
-      `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/alfabet/',` +
+      `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',` +
       `instructions:'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',` +
       `feedback:'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',` +
       `story:'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',` +
-      `general:'https://www.tastenbraille.com/braillestudio/sounds/shared/'` +
+      `general:'https://www.tastenbraille.com/braillestudio/sounds/general/'` +
       `}; ` +
       `const folder = ${folder}; ` +
       `const file = ${file}; ` +
@@ -139,14 +186,38 @@
     return `${code};\n`;
   };
 
+  function soundFolderPlayGenerator(folder) {
+    return function (block) {
+      const file = valueToCodeOr(block, 'FILE', "'voorbeeld'");
+      const code =
+        `await BrailleStudioAPI.playUrl((() => { ` +
+        `const bases = {` +
+        `speech:'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',` +
+        `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',` +
+        `instructions:'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',` +
+        `feedback:'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',` +
+        `story:'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',` +
+        `general:'https://www.tastenbraille.com/braillestudio/sounds/general/'` +
+        `}; ` +
+        `const file = ${file}; ` +
+        `const base = bases[${q(folder)}] || bases.speech; ` +
+        `const name = String(file).toLowerCase().endsWith('.mp3') ? String(file) : String(file) + '.mp3'; ` +
+        `return /^https?:\\/\\//i.test(String(file)) ? String(file) : base + encodeURIComponent(name); ` +
+        `})())`;
+      return `${code};\n`;
+    };
+  }
+
+  javascriptGenerator.forBlock['sound_play_speech_file'] = soundFolderPlayGenerator('speech');
+  javascriptGenerator.forBlock['sound_play_letters_file'] = soundFolderPlayGenerator('letters');
+  javascriptGenerator.forBlock['sound_play_instructions_file'] = soundFolderPlayGenerator('instructions');
+  javascriptGenerator.forBlock['sound_play_feedback_file'] = soundFolderPlayGenerator('feedback');
+  javascriptGenerator.forBlock['sound_play_story_file'] = soundFolderPlayGenerator('story');
+  javascriptGenerator.forBlock['sound_play_general_file'] = soundFolderPlayGenerator('general');
+
   javascriptGenerator.forBlock['controls_for_each_audio_item'] = function (block, generator) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
-    let varName = 'item';
-    if (typeof generator.getVariableName === 'function') {
-      varName = generator.getVariableName(block.getFieldValue('VAR'));
-    } else if (generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
-      varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.VARIABLE_CATEGORY_NAME);
-    }
+    const varName = getGeneratorVariableName(block, generator, 'VAR', 'item');
     const branch = generator.statementToCode(block, 'DO');
     return `for (const ${varName} of (Array.isArray(${listCode}) ? ${listCode} : [])) {\n${branch}}\n`;
   };

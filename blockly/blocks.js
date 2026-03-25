@@ -1,64 +1,6 @@
 (function () {
   if (!window.Blockly) return;
 
-  if (!Blockly.Blocks['api_get_audio_list']) {
-    Blockly.Blocks['api_get_audio_list'] = {
-      init: function () {
-        this.appendDummyInput()
-          .appendField('get audio list');
-        this.appendDummyInput()
-          .appendField('audio folder')
-          .appendField(new Blockly.FieldDropdown([
-            ['spoken words', 'speech'],
-            ['letters', 'letters'],
-            ['instructions', 'instructions'],
-            ['feedback', 'feedback'],
-            ['stories', 'story'],
-            ['general sounds', 'general']
-          ]), 'FOLDER');
-        this.appendDummyInput()
-          .appendField('starts with letters')
-          .appendField(new Blockly.FieldTextInput(''), 'LETTERS');
-        this.appendDummyInput()
-          .appendField('contains sounds')
-          .appendField(new Blockly.FieldTextInput(''), 'KLANKEN');
-        this.appendDummyInput()
-          .appendField('use only these letters')
-          .appendField(new Blockly.FieldTextInput(''), 'ONLYLETTERS');
-        this.appendDummyInput()
-          .appendField('use only these sounds')
-          .appendField(new Blockly.FieldTextInput(''), 'ONLYKLANKEN');
-        this.appendDummyInput()
-          .appendField('match letters and sounds exactly')
-          .appendField(new Blockly.FieldCheckbox('FALSE'), 'ONLYCOMBO');
-        this.appendDummyInput()
-          .appendField('maximum word length')
-          .appendField(new Blockly.FieldTextInput(''), 'MAXLENGTH');
-        this.appendDummyInput()
-          .appendField('exact word length')
-          .appendField(new Blockly.FieldTextInput(''), 'LENGTH');
-        this.appendDummyInput()
-          .appendField('maximum items')
-          .appendField(new Blockly.FieldTextInput(''), 'LIMIT');
-        this.appendDummyInput()
-          .appendField('random items')
-          .appendField(new Blockly.FieldTextInput(''), 'RANDOMLIMIT');
-        this.appendDummyInput()
-          .appendField('sort order')
-          .appendField(new Blockly.FieldDropdown([
-            ['default', ''],
-            ['A to Z', 'asc'],
-            ['Z to A', 'desc'],
-            ['random', 'random']
-          ]), 'SORT');
-        this.setOutput(true, null);
-        this.setColour('#0EA5E9');
-        this.setTooltip('Get a filtered list of audio items for classroom activities.');
-        this.setHelpUrl('');
-      }
-    };
-  }
-
   if (!Blockly.Blocks['list_pick_random']) {
     Blockly.Blocks['list_pick_random'] = {
       init: function () {
