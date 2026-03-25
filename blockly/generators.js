@@ -46,9 +46,37 @@
     return [`(Array.isArray(${listCode}) ? ${listCode}.length : 0)`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['list_nrof_items'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    return [`(Array.isArray(${listCode}) ? ${listCode}.length : 0)`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['math_random_10'] = function (block) {
     const maxCode = valueToCodeOr(block, 'MAX', '10');
     return [`(() => { const max = Math.floor(Number(${maxCode}) || 0); return max <= 0 ? 0 : Math.floor(Math.random() * max); })()`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['bb_current_text'] = function () {
+    return [`runtime.text`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['bb_current_braille_unicode'] = function () {
+    return [`runtime.brailleUnicode`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['log_value'] = function (block) {
+    const valueCode = valueToCodeOr(block, 'VALUE', "''");
+    return `console.log(${valueCode});\n`;
+  };
+
+  javascriptGenerator.forBlock['log_variable'] = function (block, generator) {
+    let varName = 'value';
+    if (typeof generator.getVariableName === 'function') {
+      varName = generator.getVariableName(block.getFieldValue('VAR'));
+    } else if (generator.nameDB_ && typeof generator.nameDB_.getName === 'function') {
+      varName = generator.nameDB_.getName(block.getFieldValue('VAR'), Blockly.VARIABLE_CATEGORY_NAME);
+    }
+    return `console.log(${JSON.stringify(varName + ' = ')}, ${varName});\n`;
   };
 
   javascriptGenerator.forBlock['audio_item_get_word'] = function (block) {

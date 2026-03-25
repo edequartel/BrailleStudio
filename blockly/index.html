@@ -404,6 +404,8 @@
     <block type="bb_set_insert_mode"></block>
     <block type="bb_set_caret_visibility"></block>
     <block type="bb_get_braille_line"></block>
+    <block type="bb_current_text"></block>
+    <block type="bb_current_braille_unicode"></block>
     <block type="bb_set_caret_to_begin"></block>
     <block type="bb_set_caret_to_end"></block>
   </category>
@@ -497,6 +499,7 @@
     <block type="list_get_item"></block>
     <block type="list_set_item"></block>
     <block type="list_length"></block>
+    <block type="list_nrof_items"></block>
     <block type="list_random_item"></block>
     <block type="list_next_item"></block>
     <block type="list_contains_item"></block>
@@ -530,6 +533,11 @@
     </block>
   </category>
 
+  <category name="Logging" colour="#64748B">
+    <block type="log_value"></block>
+    <block type="log_variable"></block>
+  </category>
+
   <category name="Text" colour="#0891B2">
     <block type="text"></block>
     <block type="text_join"></block>
@@ -543,10 +551,31 @@
 <script>
 /* ---------------- UI helpers ---------------- */
 function log(message) {
+  const text = String(message ?? '');
+  if (
+    text.startsWith('WS connecting to ') ||
+    text.startsWith('WS connected to ') ||
+    text === 'WS already connected/connecting' ||
+    text === 'WS error' ||
+    text.startsWith('WS disconnected code=')
+  ) {
+    return;
+  }
   const box = document.getElementById('logBox');
   const now = new Date().toLocaleTimeString();
-  box.value += `[${now}] ${message}\n`;
+  box.value += `[${now}] ${text}\n`;
   box.scrollTop = box.scrollHeight;
+}
+
+function formatLogValue(value) {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value == null) return '';
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function renderWsControl() {
@@ -1530,6 +1559,22 @@ Blockly.Blocks['bb_get_braille_line'] = {
   }
 };
 
+Blockly.Blocks['bb_current_text'] = {
+  init() {
+    this.appendDummyInput().appendField('current braille line text');
+    this.setOutput(true);
+    this.setColour('#2563EB');
+  }
+};
+
+Blockly.Blocks['bb_current_braille_unicode'] = {
+  init() {
+    this.appendDummyInput().appendField('current braille unicode');
+    this.setOutput(true);
+    this.setColour('#2563EB');
+  }
+};
+
 Blockly.Blocks['bb_set_caret_to_begin'] = {
   init() {
     this.appendDummyInput().appendField('set caret to begin');
@@ -1592,6 +1637,26 @@ Blockly.Blocks['math_random_10'] = {
       .appendField('random max');
     this.setOutput(true);
     this.setColour('#C026D3');
+  }
+};
+
+Blockly.Blocks['log_value'] = {
+  init() {
+    this.appendValueInput('VALUE').appendField('log');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#64748B');
+  }
+};
+
+Blockly.Blocks['log_variable'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('log variable')
+      .appendField(new Blockly.FieldVariable('score'), 'VAR');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#64748B');
   }
 };
 
@@ -1781,6 +1846,14 @@ Blockly.Blocks['list_set_item'] = {
 Blockly.Blocks['list_length'] = {
   init() {
     this.appendValueInput('LIST').appendField('lengte van lijst');
+    this.setOutput(true);
+    this.setColour('#F97316');
+  }
+};
+
+Blockly.Blocks['list_nrof_items'] = {
+  init() {
+    this.appendValueInput('LIST').appendField('nrof items in list');
     this.setOutput(true);
     this.setColour('#F97316');
   }
@@ -2425,6 +2498,12 @@ async function evalValue(block) {
     case 'state_insert_mode':
       return runtime.insertMode;
 
+    case 'bb_current_text':
+      return runtime.text;
+
+    case 'bb_current_braille_unicode':
+      return runtime.brailleUnicode;
+
     case 'state_last_timer_name':
       return runtime.lastTimerName;
 
@@ -2452,6 +2531,11 @@ async function evalValue(block) {
     }
 
     case 'list_length': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      return list.length;
+    }
+
+    case 'list_nrof_items': {
       const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       return list.length;
     }
@@ -2761,6 +2845,20 @@ async function executeChain(startBlock, generation) {
         } else {
           await playSound(url);
         }
+        break;
+      }
+
+      case 'log_value': {
+        const value = await evalValue(current.getInputTargetBlock('VALUE'));
+        log(formatLogValue(value));
+        break;
+      }
+
+      case 'log_variable': {
+        const varModel = workspace?.getVariableById(current.getFieldValue('VAR'));
+        const varName = varModel ? varModel.name : 'unknown';
+        const varValue = varModel ? variableValues[varModel.getId()] : undefined;
+        log(`${varName} = ${formatLogValue(varValue)}`);
         break;
       }
 
