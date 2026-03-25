@@ -339,6 +339,11 @@
       </div>
 
       <div class="card">
+        <h3>Script Metadata</h3>
+        <div id="scriptMetaBox" class="small">No script metadata loaded.</div>
+      </div>
+
+      <div class="card">
         <h3>Last brailleLine</h3>
         <div id="brailleLineBox" class="mono"></div>
       </div>
@@ -603,6 +608,19 @@ function renderBrailleLine(msg) {
   document.getElementById('brailleLineBox').textContent = msg
     ? JSON.stringify(msg, null, 2)
     : '';
+}
+
+function renderScriptMetadata(meta = null) {
+  const box = document.getElementById('scriptMetaBox');
+  if (!box) return;
+  if (!meta || (!meta.title && !meta.description)) {
+    box.textContent = 'No script metadata loaded.';
+    return;
+  }
+  const lines = [];
+  if (meta.title) lines.push(`Title: ${meta.title}`);
+  if (meta.description) lines.push(`Description: ${meta.description}`);
+  box.textContent = lines.join('\n');
 }
 
 function renderGridSnapControl() {
@@ -2422,6 +2440,18 @@ function parseListFromJson(text) {
   }
 }
 
+function extractWorkspaceMetadata(xmlDom, sourceName = null) {
+  if (!xmlDom) {
+    return {
+      title: sourceName || '',
+      description: ''
+    };
+  }
+  const title = String(xmlDom.getAttribute('data-title') || sourceName || '').trim();
+  const description = String(xmlDom.getAttribute('data-description') || '').trim();
+  return { title, description };
+}
+
 async function getAanvankelijklijst() {
   if (Array.isArray(klankenJsonCache)) {
     return klankenJsonCache;
@@ -3246,6 +3276,7 @@ function loadWorkspaceFromText(text, sourceName = null) {
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
     ensureDefaultVariable();
     initVariableValues();
+    renderScriptMetadata(extractWorkspaceMetadata(xmlDom, sourceName));
     if (sourceName) setSelectedFileName(sourceName);
     log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
   } catch (err) {
@@ -3264,11 +3295,13 @@ function newWorkspace() {
   workspace.clear();
   ensureDefaultVariable();
   initVariableValues();
+  renderScriptMetadata(null);
   renderBrailleLine(null);
   log('Workspace cleared');
 }
 
 renderStatus();
+renderScriptMetadata(null);
 setWsBadge(false);
 </script>
 </body>
