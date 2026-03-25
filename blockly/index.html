@@ -626,6 +626,20 @@
     <block type="audio_item_get_url"></block>
   </category>
 
+  <category name="External" colour="#14B8A6">
+    <block type="lesson_set_active_record_index">
+      <value name="INDEX">
+        <shadow type="math_number">
+          <field name="NUM">0</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="lesson_get_data"></block>
+    <block type="lesson_get_active_record"></block>
+    <block type="lesson_get_active_field"></block>
+    <block type="lesson_get_active_category"></block>
+  </category>
+
   <category name="Phonems" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
     <block type="klanken_word_get_sounds"></block>
@@ -2274,6 +2288,74 @@ Blockly.Blocks['klanken_get_aanvankelijklijst'] = {
   }
 };
 
+Blockly.Blocks['lesson_set_active_record_index'] = {
+  init() {
+    this.appendValueInput('INDEX')
+      .appendField('set active lesson record index');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['lesson_get_data'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('lesson data');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['lesson_get_active_record'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('active lesson record');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['lesson_get_active_field'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('active lesson field')
+      .appendField(new Blockly.FieldDropdown([
+        ['word', 'word'],
+        ['sounds', 'sounds'],
+        ['new sounds', 'newSounds'],
+        ['known sounds', 'knownSounds'],
+        ['categories', 'categories'],
+        ['new sound categories', 'newSoundCategories'],
+        ['known sound categories', 'knownSoundCategories']
+      ]), 'FIELD');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
+Blockly.Blocks['lesson_get_active_category'] = {
+  init() {
+    this.appendDummyInput()
+      .appendField('active lesson')
+      .appendField(new Blockly.FieldDropdown([
+        ['categories', 'categories'],
+        ['new sound categories', 'newSoundCategories'],
+        ['known sound categories', 'knownSoundCategories']
+      ]), 'SOURCE')
+      .appendField(new Blockly.FieldDropdown([
+        ['korte klinkers', 'korteKlinkers'],
+        ['lange klinkers', 'langeKlinkers'],
+        ['tweetekenklanken', 'tweetekenklanken'],
+        ['medeklinkers', 'medeklinkers'],
+        ['medeklinkerclusters', 'medeklinkerclusters'],
+        ['drietekenklanken', 'drietekenklanken']
+      ]), 'CATEGORY');
+    this.setOutput(true);
+    this.setColour('#14B8A6');
+  }
+};
+
 Blockly.Blocks['klanken_get_speech_audio_by_onlyletters'] = {
   init() {
     this.appendValueInput('ONLYLETTERS')
@@ -2732,6 +2814,50 @@ async function findAanvankelijklijstItemByWord(word) {
   return list.find(item => String(item?.word ?? '').trim().toLowerCase() === target) || null;
 }
 
+function getInjectedLessonData() {
+  return Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];
+}
+
+function getActiveLessonRecord() {
+  const record = window.currentRecord;
+  return record && typeof record === 'object' ? record : null;
+}
+
+function setActiveLessonRecordByIndex(index) {
+  const list = getInjectedLessonData();
+  const normalizedIndex = Math.floor(toNumber(index));
+  const record = normalizedIndex >= 0 && normalizedIndex < list.length ? list[normalizedIndex] : null;
+  window.currentRecord = record;
+  window.currentRecordIndex = record ? normalizedIndex : -1;
+  return record;
+}
+
+function getLessonFieldValue(record, field) {
+  const key = String(field || '');
+  if (!record || typeof record !== 'object') {
+    if (key === 'word') return '';
+    if (key === 'categories' || key === 'newSoundCategories' || key === 'knownSoundCategories') return {};
+    return [];
+  }
+
+  const value = record[key];
+  if (value == null) {
+    if (key === 'word') return '';
+    if (key === 'categories' || key === 'newSoundCategories' || key === 'knownSoundCategories') return {};
+    return [];
+  }
+  return value;
+}
+
+function getLessonCategoryArray(record, source, category) {
+  const sourceKey = String(source || 'categories');
+  const categoryKey = String(category || '');
+  if (!record || typeof record !== 'object' || !categoryKey) return [];
+  const root = record[sourceKey];
+  if (!root || typeof root !== 'object') return [];
+  return Array.isArray(root[categoryKey]) ? root[categoryKey] : [];
+}
+
 function getKlankenSourceValue(item, source) {
   const src = String(source || 'ALL');
   if (!item || typeof item !== 'object') return [];
@@ -2796,6 +2922,26 @@ async function evalValue(block) {
 
     case 'bb_current_braille_unicode':
       return runtime.brailleUnicode;
+
+    case 'lesson_get_data':
+      return getInjectedLessonData();
+
+    case 'lesson_get_active_record':
+      return getActiveLessonRecord();
+
+    case 'lesson_get_active_field': {
+      const record = getActiveLessonRecord();
+      return getLessonFieldValue(record, block.getFieldValue('FIELD'));
+    }
+
+    case 'lesson_get_active_category': {
+      const record = getActiveLessonRecord();
+      return getLessonCategoryArray(
+        record,
+        block.getFieldValue('SOURCE'),
+        block.getFieldValue('CATEGORY')
+      );
+    }
 
     case 'state_last_timer_name':
       return runtime.lastTimerName;
@@ -3366,6 +3512,11 @@ async function executeChain(startBlock, generation) {
           variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
           renderStatus();
         }
+        break;
+      }
+
+      case 'lesson_set_active_record_index': {
+        setActiveLessonRecordByIndex(await evalValue(current.getInputTargetBlock('INDEX')));
         break;
       }
 

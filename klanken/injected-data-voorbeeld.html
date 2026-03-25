@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Injected Data Voorbeeld</title>
+
+  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
+  <script src="https://unpkg.com/blockly/msg/en.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1220;
+      --fg: #e5e7eb;
+      --panel: #0f172a;
+      --panel2: #101b27;
+      --muted: #94a3b8;
+      --code-bg: #111827;
+      --border: rgba(255,255,255,.10);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: "Noto Sans", Arial, sans-serif;
+      --accent: #60a5fa;
+      --accent-soft: rgba(96, 165, 250, 0.14);
+      --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+      color-scheme: dark;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-Regular.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Noto Sans";
+      src: url("../fonts/NotoSans-SemiBold.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--fg);
+      background:
+        radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in oklab, var(--bg) 80%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .title h1 {
+      font-size: 18px;
+      margin: 0;
+      letter-spacing: .2px;
+    }
+
+    .title .sub {
+      font-size: 13px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    .hero,
+    .panel {
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .hero h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .panel {
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.2rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: color-mix(in oklab, var(--panel) 88%, black 12%);
+      color: var(--fg);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font: inherit;
+      line-height: 1;
+    }
+
+    .btn:hover {
+      background: color-mix(in oklab, var(--panel) 84%, black 16%);
+    }
+
+    .btn-primary {
+      background: color-mix(in oklab, var(--accent) 28%, var(--panel) 72%);
+      border-color: rgba(96,165,250,.35);
+    }
+
+    .index-input {
+      width: 90px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: color-mix(in oklab, var(--panel) 92%, black 8%);
+      color: var(--fg);
+      font: inherit;
+    }
+
+    #blocklyHost {
+      height: 520px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+    }
+
+    code {
+      font-size: 0.95em;
+      background: var(--code-bg);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+
+    pre {
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: color-mix(in oklab, var(--panel) 94%, black 6%);
+      color: var(--fg);
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      min-height: 140px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      #blocklyHost {
+        height: 460px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="page" style="padding-top: 18px; padding-bottom: 18px;">
+      <div class="topbar">
+        <div class="title">
+          <h1>Injected Data Voorbeeld</h1>
+          <div class="sub">External Lesson Data + Blockly Demo</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="page">
+    <section class="grid">
+      <section class="panel">
+        <h2>Blockly Demo</h2>
+        <div class="actions">
+          <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
+          <button id="loadExampleBtn" class="btn" type="button">Load Example</button>
+          <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
+          <button id="injectDataBtn" class="btn" type="button">Inject By Index</button>
+        </div>
+        <div id="blocklyHost"></div>
+      </section>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Injected Globals</h2>
+          <p class="small">Deze waarden worden buiten Blockly gezet en daarna door de blocks gelezen.</p>
+          <pre id="injectedDataBox"></pre>
+        </section>
+
+        <section class="panel">
+          <h2>Generated Code</h2>
+          <pre id="generatedCodeBox"></pre>
+        </section>
+
+        <section class="panel">
+          <h2>Run Log</h2>
+          <pre id="runLogBox"></pre>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <xml id="toolbox" style="display:none">
+    <category name="Events" colour="#F59E0B">
+      <block type="event_when_started"></block>
+    </category>
+    <category name="External" colour="#14B8A6">
+      <block type="lesson_set_active_record_index">
+        <value name="INDEX">
+          <shadow type="math_number">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+      </block>
+      <block type="lesson_get_active_field"></block>
+      <block type="lesson_get_active_category"></block>
+    </category>
+    <category name="Logging" colour="#64748B">
+      <block type="log_label_value"></block>
+    </category>
+    <category name="Play" colour="#10B981">
+      <block type="sound_play_speech_file"></block>
+    </category>
+    <category name="Math" colour="#C026D3">
+      <block type="math_number"></block>
+    </category>
+  </xml>
+
+  <script>
+    const sampleLessonData = [
+      {
+        word: "bal",
+        sounds: ["b", "a", "l"],
+        newSounds: ["b", "a", "l"],
+        knownSounds: ["b", "a", "l"],
+        categories: {
+          korteKlinkers: ["a"],
+          langeKlinkers: [],
+          tweetekenklanken: [],
+          medeklinkers: ["b", "l"],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        },
+        newSoundCategories: {
+          korteKlinkers: ["a"],
+          langeKlinkers: [],
+          tweetekenklanken: [],
+          medeklinkers: ["b", "l"],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        },
+        knownSoundCategories: {
+          korteKlinkers: ["a"],
+          langeKlinkers: [],
+          tweetekenklanken: [],
+          medeklinkers: ["b", "l"],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        }
+      },
+      {
+        word: "maan",
+        sounds: ["m", "aa", "n"],
+        newSounds: ["aa"],
+        knownSounds: ["m", "n"],
+        categories: {
+          korteKlinkers: [],
+          langeKlinkers: ["aa"],
+          tweetekenklanken: [],
+          medeklinkers: ["m", "n"],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        },
+        newSoundCategories: {
+          korteKlinkers: [],
+          langeKlinkers: ["aa"],
+          tweetekenklanken: [],
+          medeklinkers: [],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        },
+        knownSoundCategories: {
+          korteKlinkers: [],
+          langeKlinkers: [],
+          tweetekenklanken: [],
+          medeklinkers: ["m", "n"],
+          medeklinkerclusters: [],
+          drietekenklanken: []
+        }
+      }
+    ];
+
+    function getRequestedRecordIndex() {
+      const input = document.getElementById("recordIndexInput");
+      return Math.max(0, Math.floor(Number(input?.value) || 0));
+    }
+
+    function injectSampleData(index = 0) {
+      window.aanvankelijkData = structuredClone(sampleLessonData);
+      setActiveLessonRecordByIndex(index);
+      renderInjectedData();
+    }
+
+    function formatValue(value) {
+      if (typeof value === "string") return value;
+      if (value == null) return "";
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function renderInjectedData() {
+      const box = document.getElementById("injectedDataBox");
+      box.textContent = [
+        "window.currentRecordIndex = " + JSON.stringify(window.currentRecordIndex ?? -1, null, 2),
+        "",
+        "window.aanvankelijkData = " + JSON.stringify(window.aanvankelijkData ?? [], null, 2),
+        "",
+        "window.currentRecord = " + JSON.stringify(window.currentRecord ?? null, null, 2)
+      ].join("\n");
+    }
+
+    function getActiveLessonRecord() {
+      const record = window.currentRecord;
+      return record && typeof record === "object" ? record : null;
+    }
+
+    function setActiveLessonRecordByIndex(index) {
+      const list = Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];
+      const normalizedIndex = Math.floor(Number(index) || 0);
+      const record = normalizedIndex >= 0 && normalizedIndex < list.length ? list[normalizedIndex] : null;
+      window.currentRecord = record;
+      window.currentRecordIndex = record ? normalizedIndex : -1;
+      renderInjectedData();
+      return record;
+    }
+
+    function getLessonFieldValue(record, field) {
+      const key = String(field || "");
+      if (!record || typeof record !== "object") {
+        if (key === "word") return "";
+        if (key === "categories" || key === "newSoundCategories" || key === "knownSoundCategories") return {};
+        return [];
+      }
+      const value = record[key];
+      if (value != null) return value;
+      if (key === "word") return "";
+      if (key === "categories" || key === "newSoundCategories" || key === "knownSoundCategories") return {};
+      return [];
+    }
+
+    function getLessonCategoryArray(record, source, category) {
+      const sourceKey = String(source || "categories");
+      const categoryKey = String(category || "");
+      if (!record || typeof record !== "object" || !categoryKey) return [];
+      const root = record[sourceKey];
+      if (!root || typeof root !== "object") return [];
+      return Array.isArray(root[categoryKey]) ? root[categoryKey] : [];
+    }
+
+    function resolveSpeechUrl(file) {
+      const value = String(file ?? "").trim();
+      if (!value) return "";
+      if (/^https?:\/\//i.test(value)) return value;
+      const normalized = value.toLowerCase().endsWith(".mp3") ? value : `${value}.mp3`;
+      return `https://www.tastenbraille.com/braillestudio/sounds/nl/speech/${encodeURIComponent(normalized)}`;
+    }
+
+    async function playSpeechFile(file) {
+      const url = resolveSpeechUrl(file);
+      if (!url) return;
+      logValue("speech url", url);
+      const audio = new Audio(url);
+      await audio.play();
+    }
+
+    Blockly.Blocks["event_when_started"] = {
+      init() {
+        this.appendDummyInput().appendField("when started");
+        this.appendStatementInput("DO").appendField("do");
+        this.setColour("#F59E0B");
+      }
+    };
+
+    Blockly.Blocks["lesson_set_active_record_index"] = {
+      init() {
+        this.appendValueInput("INDEX").appendField("set active lesson record index");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour("#14B8A6");
+      }
+    };
+
+    Blockly.Blocks["lesson_get_active_field"] = {
+      init() {
+        this.appendDummyInput()
+          .appendField("active lesson field")
+          .appendField(new Blockly.FieldDropdown([
+            ["word", "word"],
+            ["sounds", "sounds"],
+            ["new sounds", "newSounds"],
+            ["known sounds", "knownSounds"],
+            ["categories", "categories"],
+            ["new sound categories", "newSoundCategories"],
+            ["known sound categories", "knownSoundCategories"]
+          ]), "FIELD");
+        this.setOutput(true);
+        this.setColour("#14B8A6");
+      }
+    };
+
+    Blockly.Blocks["lesson_get_active_category"] = {
+      init() {
+        this.appendDummyInput()
+          .appendField("active lesson")
+          .appendField(new Blockly.FieldDropdown([
+            ["categories", "categories"],
+            ["new sound categories", "newSoundCategories"],
+            ["known sound categories", "knownSoundCategories"]
+          ]), "SOURCE")
+          .appendField(new Blockly.FieldDropdown([
+            ["korte klinkers", "korteKlinkers"],
+            ["lange klinkers", "langeKlinkers"],
+            ["tweetekenklanken", "tweetekenklanken"],
+            ["medeklinkers", "medeklinkers"],
+            ["medeklinkerclusters", "medeklinkerclusters"],
+            ["drietekenklanken", "drietekenklanken"]
+          ]), "CATEGORY");
+        this.setOutput(true);
+        this.setColour("#14B8A6");
+      }
+    };
+
+    Blockly.Blocks["log_label_value"] = {
+      init() {
+        this.appendValueInput("VALUE")
+          .appendField("log")
+          .appendField(new Blockly.FieldTextInput("value"), "LABEL");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour("#64748B");
+      }
+    };
+
+    Blockly.Blocks["sound_play_speech_file"] = {
+      init() {
+        this.appendValueInput("FILE").appendField("play speech file");
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour("#10B981");
+      }
+    };
+
+    const javascriptGenerator = Blockly.JavaScript;
+    const ORDER_ATOMIC = javascriptGenerator.ORDER_ATOMIC || 0;
+    const ORDER_NONE = javascriptGenerator.ORDER_NONE || 99;
+
+    function valueToCodeOr(block, inputName, fallbackCode = "''") {
+      const code = javascriptGenerator.valueToCode(block, inputName, ORDER_NONE);
+      return code || fallbackCode;
+    }
+
+    javascriptGenerator.forBlock["lesson_set_active_record_index"] = function(block) {
+      const indexCode = valueToCodeOr(block, "INDEX", "0");
+      return `setActiveLessonRecordByIndex(${indexCode});\n`;
+    };
+
+    javascriptGenerator.forBlock["lesson_get_active_field"] = function(block) {
+      const field = JSON.stringify(block.getFieldValue("FIELD") || "word");
+      return [`getLessonFieldValue(getActiveLessonRecord(), ${field})`, ORDER_ATOMIC];
+    };
+
+    javascriptGenerator.forBlock["lesson_get_active_category"] = function(block) {
+      const source = JSON.stringify(block.getFieldValue("SOURCE") || "categories");
+      const category = JSON.stringify(block.getFieldValue("CATEGORY") || "medeklinkers");
+      return [`getLessonCategoryArray(getActiveLessonRecord(), ${source}, ${category})`, ORDER_ATOMIC];
+    };
+
+    javascriptGenerator.forBlock["log_label_value"] = function(block) {
+      const label = JSON.stringify(block.getFieldValue("LABEL") || "value");
+      const valueCode = valueToCodeOr(block, "VALUE", "''");
+      return `logValue(${label}, ${valueCode});\n`;
+    };
+
+    javascriptGenerator.forBlock["sound_play_speech_file"] = function(block) {
+      const fileCode = valueToCodeOr(block, "FILE", "''");
+      return `await playSpeechFile(${fileCode});\n`;
+    };
+
+    const workspace = Blockly.inject("blocklyHost", {
+      toolbox: document.getElementById("toolbox"),
+      trashcan: false,
+      renderer: "geras",
+      move: { drag: true, wheel: true, scrollbars: true },
+      zoom: {
+        controls: true,
+        wheel: true,
+        startScale: 0.95,
+        maxScale: 1.6,
+        minScale: 0.55,
+        scaleSpeed: 1.1
+      },
+      grid: {
+        spacing: 20,
+        length: 3,
+        colour: "#d1d5db",
+        snap: true
+      }
+    });
+
+    function updateGeneratedCode() {
+      const startedBlocks = workspace.getTopBlocks(true).filter((block) => block.type === "event_when_started");
+      const code = startedBlocks.map((block) => javascriptGenerator.statementToCode(block, "DO")).join("\n");
+      document.getElementById("generatedCodeBox").textContent = code.trim() || "// No when started block found";
+    }
+
+    function logValue(label, value) {
+      const box = document.getElementById("runLogBox");
+      box.textContent += `${label}: ${formatValue(value)}\n`;
+    }
+
+    async function runExample() {
+      document.getElementById("runLogBox").textContent = "";
+      updateGeneratedCode();
+      const code = document.getElementById("generatedCodeBox").textContent;
+      if (!code || code.startsWith("//")) return;
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      const runner = new AsyncFunction("logValue", "setActiveLessonRecordByIndex", "getActiveLessonRecord", "getLessonFieldValue", "getLessonCategoryArray", "playSpeechFile", code);
+      await runner(logValue, setActiveLessonRecordByIndex, getActiveLessonRecord, getLessonFieldValue, getLessonCategoryArray, playSpeechFile);
+      renderInjectedData();
+    }
+
+    async function loadExampleScript() {
+      const response = await fetch("../blockly/scripts/external-injected-data-demo.blockly", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const text = await response.text();
+      const xmlDom = Blockly.utils.xml.textToDom(text);
+      workspace.clear();
+      Blockly.Xml.domToWorkspace(xmlDom, workspace);
+      updateGeneratedCode();
+    }
+
+    document.getElementById("injectDataBtn").addEventListener("click", () => {
+      const index = getRequestedRecordIndex();
+      injectSampleData(index);
+      document.getElementById("runLogBox").textContent = `Sample data injected at index ${index}.\n`;
+    });
+
+    document.getElementById("runExampleBtn").addEventListener("click", async () => {
+      try {
+        await runExample();
+      } catch (error) {
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      }
+    });
+
+    document.getElementById("loadExampleBtn").addEventListener("click", async () => {
+      try {
+        await loadExampleScript();
+        document.getElementById("runLogBox").textContent = "Example script loaded.\n";
+      } catch (error) {
+        document.getElementById("runLogBox").textContent = `Load failed: ${error.message}\n`;
+      }
+    });
+
+    workspace.addChangeListener(() => updateGeneratedCode());
+
+    injectSampleData(getRequestedRecordIndex());
+    loadExampleScript().catch((error) => {
+      document.getElementById("runLogBox").textContent = `Load failed: ${error.message}\n`;
+      updateGeneratedCode();
+    });
+  </script>
+</body>
+</html>

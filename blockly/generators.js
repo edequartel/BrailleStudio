@@ -113,6 +113,44 @@
     ];
   };
 
+  javascriptGenerator.forBlock['lesson_set_active_record_index'] = function (block) {
+    const indexCode = valueToCodeOr(block, 'INDEX', '0');
+    return (
+      `(() => {\n` +
+      `  const list = Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];\n` +
+      `  const index = Math.floor(Number(${indexCode}) || 0);\n` +
+      `  const record = index >= 0 && index < list.length ? list[index] : null;\n` +
+      `  window.currentRecord = record;\n` +
+      `  window.currentRecordIndex = record ? index : -1;\n` +
+      `})();\n`
+    );
+  };
+
+  javascriptGenerator.forBlock['lesson_get_data'] = function () {
+    return [`(Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [])`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_record'] = function () {
+    return [`((window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null)`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_field'] = function (block) {
+    const field = q(block.getFieldValue('FIELD') || 'word');
+    return [
+      `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const key = ${field}; const value = record ? record[key] : undefined; if (value != null) return value; if (key === 'word') return ''; if (key === 'categories' || key === 'newSoundCategories' || key === 'knownSoundCategories') return {}; return []; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_category'] = function (block) {
+    const source = q(block.getFieldValue('SOURCE') || 'categories');
+    const category = q(block.getFieldValue('CATEGORY') || 'medeklinkers');
+    return [
+      `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const root = record && typeof record[${source}] === 'object' && record[${source}] ? record[${source}] : null; const value = root ? root[${category}] : undefined; return Array.isArray(value) ? value : []; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
   javascriptGenerator.forBlock['klanken_word_get_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))`, ORDER_ATOMIC];
