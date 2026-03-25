@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Auditief Herkennen Letter" data-description="Plays a spoken letter exercise and lets the learner answer with left or right thumb input while tracking score and rounds.">
   <variables>
     <variable id="currentWord">currentWord</variable>
     <variable id="hasL">hasL</variable>

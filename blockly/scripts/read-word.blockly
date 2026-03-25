@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Read Word" data-description="Cycles through a predefined word list and shows the next word when the right thumb key is pressed.">
   <variables>
     <variable id="words">words</variable>
     <variable id="index">index</variable>

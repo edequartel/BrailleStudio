@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Example Audio List" data-description="Shows how to request an audio list, iterate through audio items, and use their word and URL values.">
   <variables>
     <variable id="audioListVar">audioList</variable>
     <variable id="currentItemVar">currentItem</variable>

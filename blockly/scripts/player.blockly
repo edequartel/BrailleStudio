@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Player" data-description="Simple audio player example that starts and stops playback with thumb key actions.">
   <variables>
     <variable id="audioUrl">audioUrl</variable>
   </variables>

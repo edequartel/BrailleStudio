@@ -272,6 +272,22 @@
       line-height: 1.4;
     }
 
+    .meta-input,
+    .meta-textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      color: var(--text);
+      font: inherit;
+      padding: 8px 10px;
+    }
+
+    .meta-textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
     .row {
       display: flex;
       gap: 8px;
@@ -340,7 +356,10 @@
 
       <div class="card">
         <h3>Script Metadata</h3>
-        <div id="scriptMetaBox" class="small">No script metadata loaded.</div>
+        <div class="small">Title</div>
+        <input id="scriptMetaTitle" class="meta-input" type="text" placeholder="Script title">
+        <div class="small" style="margin-top:8px;">Description</div>
+        <textarea id="scriptMetaDescription" class="meta-textarea" placeholder="What this script does"></textarea>
       </div>
 
       <div class="card">
@@ -611,16 +630,30 @@ function renderBrailleLine(msg) {
 }
 
 function renderScriptMetadata(meta = null) {
-  const box = document.getElementById('scriptMetaBox');
-  if (!box) return;
-  if (!meta || (!meta.title && !meta.description)) {
-    box.textContent = 'No script metadata loaded.';
-    return;
-  }
-  const lines = [];
-  if (meta.title) lines.push(`Title: ${meta.title}`);
-  if (meta.description) lines.push(`Description: ${meta.description}`);
-  box.textContent = lines.join('\n');
+  const titleInput = document.getElementById('scriptMetaTitle');
+  const descriptionInput = document.getElementById('scriptMetaDescription');
+  if (!titleInput || !descriptionInput) return;
+  titleInput.value = String(meta?.title || '');
+  descriptionInput.value = String(meta?.description || '');
+}
+
+function readScriptMetadataFromInputs() {
+  const titleInput = document.getElementById('scriptMetaTitle');
+  const descriptionInput = document.getElementById('scriptMetaDescription');
+  return {
+    title: String(titleInput?.value || '').trim(),
+    description: String(descriptionInput?.value || '').trim()
+  };
+}
+
+function applyMetadataToXmlDom(xmlDom) {
+  if (!xmlDom) return xmlDom;
+  const meta = readScriptMetadataFromInputs();
+  if (meta.title) xmlDom.setAttribute('data-title', meta.title);
+  else xmlDom.removeAttribute('data-title');
+  if (meta.description) xmlDom.setAttribute('data-description', meta.description);
+  else xmlDom.removeAttribute('data-description');
+  return xmlDom;
 }
 
 function renderGridSnapControl() {
@@ -1329,6 +1362,17 @@ function bindAppControls() {
     gridSnapEnabled = savedSnap !== 'false';
     renderGridSnapControl();
     gridSnapBtn.dataset.initialized = '1';
+  }
+
+  const metaTitle = document.getElementById('scriptMetaTitle');
+  const metaDescription = document.getElementById('scriptMetaDescription');
+  if (metaTitle && !metaTitle.dataset.initialized) {
+    metaTitle.addEventListener('input', () => renderScriptMetadata(readScriptMetadataFromInputs()));
+    metaTitle.dataset.initialized = '1';
+  }
+  if (metaDescription && !metaDescription.dataset.initialized) {
+    metaDescription.addEventListener('input', () => renderScriptMetadata(readScriptMetadataFromInputs()));
+    metaDescription.dataset.initialized = '1';
   }
 }
 
@@ -3150,7 +3194,7 @@ async function dispatchEvent(event, generation = runGeneration) {
 
 /* ---------------- File actions ---------------- */
 function saveWorkspace() {
-  const xmlDom = Blockly.Xml.workspaceToDom(workspace);
+  const xmlDom = applyMetadataToXmlDom(Blockly.Xml.workspaceToDom(workspace));
   const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
   const fileName = getSelectedFileName();
 
@@ -3169,7 +3213,7 @@ function saveWorkspace() {
 }
 
 async function saveWorkspaceAs() {
-  const xmlDom = Blockly.Xml.workspaceToDom(workspace);
+  const xmlDom = applyMetadataToXmlDom(Blockly.Xml.workspaceToDom(workspace));
   const xmlText = Blockly.Xml.domToPrettyText(xmlDom);
   const fileName = getSelectedFileName();
 

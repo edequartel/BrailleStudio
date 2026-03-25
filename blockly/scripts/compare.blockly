@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Compare" data-description="Builds a comparison activity with random words from a fixed list and checks left or right answers while keeping score.">
   <variables>
     <variable id="score">score</variable>
     <variable id="words">words</variable>

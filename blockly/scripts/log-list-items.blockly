@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Log List Items" data-description="Creates a list, loops through all items, and writes each item to the logging card on the right.">
   <variables>
     <variable id="itemsVar">items</variable>
     <variable id="indexVar">index</variable>

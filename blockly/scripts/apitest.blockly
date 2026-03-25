@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="API Test" data-description="Loads an audio list from the API, picks a random item, shows its word, and plays its audio URL.">
   <variables>
     <variable id="audioListVar">audioList</variable>
     <variable id="randomItemVar">randomItem</variable>

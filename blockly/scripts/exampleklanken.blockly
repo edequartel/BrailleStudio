@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Example Klanken" data-description="Demonstrates how to load the aanvankelijklijst, pick items, and read phoneme categories such as medeklinkers and klinkers.">
   <variables>
     <variable id="itemsVar">items</variable>
     <variable id="itemVar">item</variable>

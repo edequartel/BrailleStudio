@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Herken Letter" data-description="Shows a target letter, plays supporting audio, and checks left or right thumb responses.">
   <variables>
     <variable id="letters">letters</variable>
     <variable id="currentLetter">currentLetter</variable>

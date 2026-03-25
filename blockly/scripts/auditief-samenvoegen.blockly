@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Auditief Samenvoegen" data-description="Plays letter sounds, then the combined word, and asks the learner to judge whether the audio sequence is correct.">
   <variables>
     <variable id="lettersAudio">lettersAudio</variable>
     <variable id="wordAudio">wordAudio</variable>

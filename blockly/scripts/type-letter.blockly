@@ -1,4 +1,4 @@
-<xml xmlns="https://developers.google.com/blockly/xml">
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Type Letter" data-description="Shows a target letter, captures chord input, and checks whether the typed braille character matches the goal.">
   <variables>
     <variable id="targetLetter">targetLetter</variable>
     <variable id="typedLetter">typedLetter</variable>
