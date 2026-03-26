@@ -719,6 +719,7 @@
   <category name="Logging" colour="#64748B">
     <block type="log_value"></block>
     <block type="log_variable"></block>
+    <block type="log_clear"></block>
   </category>
 
   <category name="Text" colour="#0891B2">
@@ -748,6 +749,11 @@ function log(message) {
   const now = new Date().toLocaleTimeString();
   box.value += `[${now}] ${text}\n`;
   box.scrollTop = box.scrollHeight;
+}
+
+function clearLogBox() {
+  const box = document.getElementById('logBox');
+  if (box) box.value = '';
 }
 
 function formatLogValue(value) {
@@ -2005,6 +2011,15 @@ Blockly.Blocks['log_variable'] = {
     this.appendDummyInput()
       .appendField('log variable')
       .appendField(new Blockly.FieldVariable('score'), 'VAR');
+    this.setPreviousStatement(true);
+    this.setNextStatement(true);
+    this.setColour('#64748B');
+  }
+};
+
+Blockly.Blocks['log_clear'] = {
+  init() {
+    this.appendDummyInput().appendField('clear log');
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setColour('#64748B');
@@ -3381,6 +3396,11 @@ async function executeChain(startBlock, generation) {
         const varName = varModel ? varModel.name : 'unknown';
         const varValue = varModel ? variableValues[varModel.getId()] : undefined;
         log(`${varName} = ${formatLogValue(varValue)}`);
+        break;
+      }
+
+      case 'log_clear': {
+        clearLogBox();
         break;
       }
 

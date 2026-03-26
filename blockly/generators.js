@@ -72,6 +72,10 @@
     return `console.log(${JSON.stringify(varName + ' = ')}, ${varName});\n`;
   };
 
+  javascriptGenerator.forBlock['log_clear'] = function () {
+    return `(() => { const box = document.getElementById('logBox'); if (box) box.value = ''; })();\n`;
+  };
+
   javascriptGenerator.forBlock['audio_item_get_word'] = function (block) {
     const itemCode = valueToCodeOr(block, 'ITEM', 'null');
     return [`((${itemCode})?.word ?? '')`, ORDER_ATOMIC];

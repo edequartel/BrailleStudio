@@ -1,0 +1,42 @@
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="injection.blockly">
+  <block type="event_when_started" id="{L3MQJo91NV%t-|I#D@N" x="230" y="70">
+    <statement name="DO">
+      <block type="lesson_set_active_record_index" id="xH6qwq}M*o:Yok5R?2Vl">
+        <value name="INDEX">
+          <shadow type="math_number" id=".?Ki:K$C87{IZYng;v8J">
+            <field name="NUM">0</field>
+          </shadow>
+        </value>
+        <next>
+          <block type="bb_set_text" id="lKYC%]AP1lnL1ZV*p(TR">
+            <value name="TEXT">
+              <block type="text" id="LCqppZ(U:Ybx|6HO-pPL">
+                <field name="TEXT"></field>
+              </block>
+            </value>
+            <next>
+              <block type="log_clear" id="+g32]$o(aw_VS#o2C}tU">
+                <next>
+                  <block type="log_value" id="{6QGa`japWO-VA.vZm7$">
+                    <value name="VALUE">
+                      <block type="lesson_get_active_field" id="vD4;vDg-RW8}lrAt;C!3">
+                        <field name="FIELD">sounds</field>
+                      </block>
+                    </value>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+  <block type="log_value" id="%dwmyfDNmN)wH|E|NWiM" x="710" y="290">
+    <value name="VALUE">
+      <block type="text" id="Z6ifZGcxRJd;@aZ,6aq%">
+        <field name="TEXT">xxx</field>
+      </block>
+    </value>
+  </block>
+</xml>
