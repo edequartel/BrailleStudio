@@ -120,8 +120,14 @@
   javascriptGenerator.forBlock['lesson_set_active_record_index'] = function (block) {
     const indexCode = valueToCodeOr(block, 'INDEX', '0');
     return (
-      `(() => {\n` +
-      `  const list = Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];\n` +
+      `await (async () => {\n` +
+      `  let list = Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];\n` +
+      `  if (!list.length) {\n` +
+      `    list = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })\n` +
+      `      .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); })\n` +
+      `      .then(data => Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []));\n` +
+      `    window.aanvankelijkData = list;\n` +
+      `  }\n` +
       `  const index = Math.floor(Number(${indexCode}) || 0);\n` +
       `  const record = index >= 0 && index < list.length ? list[index] : null;\n` +
       `  window.currentRecord = record;\n` +
@@ -131,7 +137,17 @@
   };
 
   javascriptGenerator.forBlock['lesson_get_data'] = function () {
-    return [`(Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [])`, ORDER_ATOMIC];
+    return [
+      `(Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length ? window.aanvankelijkData : await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); }).then(data => { const list = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []); window.aanvankelijkData = list; return list; }))`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_record_count'] = function () {
+    return [
+      `((Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length) ? window.aanvankelijkData.length : await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); }).then(data => { const list = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []); window.aanvankelijkData = list; return list.length; }))`,
+      ORDER_ATOMIC
+    ];
   };
 
   javascriptGenerator.forBlock['lesson_get_active_record'] = function () {
@@ -178,6 +194,25 @@
       `.then(list => (Array.isArray(list) ? list : []))` +
       `.then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))) {\n` +
       `  await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
+      `}\n`
+    );
+  };
+
+  javascriptGenerator.forBlock['klanken_play_word_sounds_with_pause'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    const secondsCode = valueToCodeOr(block, 'SECONDS', '0');
+    return (
+      `{\n` +
+      `  const __pauseMs = Math.max(0, Math.round((Number(${secondsCode}) || 0) * 1000));\n` +
+      `  const __sounds = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })\n` +
+      `    .then(res => res.json())\n` +
+      `    .then(list => (Array.isArray(list) ? list : []))\n` +
+      `    .then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? []));\n` +
+      `  for (let __i = 0; __i < __sounds.length; __i++) {\n` +
+      `    const sound = __sounds[__i];\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
+      `    if (__pauseMs > 0 && __i < __sounds.length - 1) await new Promise(resolve => setTimeout(resolve, __pauseMs));\n` +
+      `  }\n` +
       `}\n`
     );
   };

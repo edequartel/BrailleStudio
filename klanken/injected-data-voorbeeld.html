@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Injected Data Voorbeeld</title>
 
-  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/msg/en.js"></script>
-
   <style>
     :root {
       --bg: #0b1220;
@@ -194,12 +189,8 @@
       font: inherit;
     }
 
-    #blocklyHost {
-      height: 520px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      background: #ffffff;
+    .file-input {
+      display: none;
     }
 
     code,
@@ -241,13 +232,17 @@
       font-size: 15px;
     }
 
+    .script-path {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
     @media (max-width: 980px) {
       .grid {
         grid-template-columns: 1fr;
-      }
-
-      #blocklyHost {
-        height: 460px;
       }
     }
   </style>
@@ -267,14 +262,17 @@
   <div class="page">
     <section class="grid">
       <section class="panel">
-        <h2>Blockly Demo</h2>
+        <h2>Blockly Runner</h2>
         <p id="currentWordLabel" class="current-word">Current word: -</p>
+        <p id="scriptPathLabel" class="script-path">Script: -</p>
         <div class="actions">
           <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
+          <button id="selectBlocklyFileBtn" class="btn" type="button">Select Blockly File</button>
           <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
           <button id="playCurrentWordBtn" class="btn" type="button">Play Current Word</button>
         </div>
-        <div id="blocklyHost"></div>
+        <input id="blocklyFileInput" class="file-input" type="file" accept=".blockly,application/xml,text/xml">
+        <p class="small">This page loads a Blockly file, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
       </section>
 
       <div class="stack">
@@ -285,41 +283,48 @@
       </div>
     </section>
   </div>
-
-  <xml id="toolbox" style="display:none">
-    <category name="Events" colour="#F59E0B">
-      <block type="event_when_started"></block>
-    </category>
-    <category name="External" colour="#14B8A6">
-      <block type="lesson_set_active_record_index">
-        <value name="INDEX">
-          <shadow type="math_number">
-            <field name="NUM">0</field>
-          </shadow>
-        </value>
-      </block>
-      <block type="lesson_get_active_field"></block>
-      <block type="lesson_get_active_category"></block>
-    </category>
-    <category name="Logging" colour="#64748B">
-      <block type="log_label_value"></block>
-    </category>
-    <category name="Play" colour="#10B981">
-      <block type="sound_play_speech_file"></block>
-      <block type="sound_play_story_file"></block>
-    </category>
-    <category name="Math" colour="#C026D3">
-      <block type="math_number"></block>
-    </category>
-  </xml>
+  <iframe
+    id="blocklyRuntimeFrame"
+    src="../blockly/index.html?headless=1"
+    title="Hidden Blockly Runtime"
+    style="position:absolute; left:-200vw; top:0; width:1400px; height:900px; border:0; opacity:0; pointer-events:none;"
+  ></iframe>
 
   <script>
     const EXTERNAL_DATA_URL = "./aanvankelijklijst.json";
+    const DEFAULT_BLOCKLY_SCRIPT = "../blockly/scripts/injection.blockly";
     let externalLessonData = [];
+    let selectedBlocklySource = null;
+    const searchParams = new URLSearchParams(window.location.search);
+    let blocklyApp = null;
+
+    function getRequestedScriptPath() {
+      return String(searchParams.get("script") || searchParams.get("file") || DEFAULT_BLOCKLY_SCRIPT).trim();
+    }
+
+    function shouldAutoRun() {
+      const raw = String(searchParams.get("autorun") || "").trim().toLowerCase();
+      if (!raw) return true;
+      return !["0", "false", "no", "off"].includes(raw);
+    }
 
     function getRequestedRecordIndex() {
       const input = document.getElementById("recordIndexInput");
       return Math.max(0, Math.floor(Number(input?.value) || 0));
+    }
+
+    function applyInitialQueryState() {
+      const requestedIndex = Math.max(0, Math.floor(Number(searchParams.get("index")) || 0));
+      const input = document.getElementById("recordIndexInput");
+      if (input) input.value = String(requestedIndex);
+      renderScriptPathLabel();
+    }
+
+    function renderScriptPathLabel() {
+      const scriptPathLabel = document.getElementById("scriptPathLabel");
+      if (!scriptPathLabel) return;
+      const label = selectedBlocklySource?.label || getRequestedScriptPath();
+      scriptPathLabel.textContent = `Script: ${label}`;
     }
 
     async function loadExternalLessonData() {
@@ -355,11 +360,6 @@
       if (currentWordLabel) {
         currentWordLabel.textContent = currentWord ? `Current word: ${currentWord}` : "Current word: -";
       }
-    }
-
-    function getActiveLessonRecord() {
-      const record = window.currentRecord;
-      return record && typeof record === "object" ? record : null;
     }
 
     function setActiveLessonRecordByIndex(index) {
@@ -427,6 +427,18 @@
       await audio.play();
     }
 
+    async function playUrl(url) {
+      const target = String(url ?? "").trim();
+      if (!target) return;
+      logValue("audio url", target);
+      const audio = new Audio(target);
+      await new Promise((resolve, reject) => {
+        audio.onended = resolve;
+        audio.onerror = () => reject(new Error("Audio playback failed"));
+        audio.play().catch(reject);
+      });
+    }
+
     async function playCurrentWord() {
       const word = String(window.currentRecord?.word ?? "").trim();
       if (!word) {
@@ -436,200 +448,187 @@
       await playSpeechFile(word);
     }
 
-    Blockly.Blocks["event_when_started"] = {
-      init() {
-        this.appendDummyInput().appendField("when started");
-        this.appendStatementInput("DO").appendField("do");
-        this.setColour("#F59E0B");
-      }
-    };
-
-    Blockly.Blocks["lesson_set_active_record_index"] = {
-      init() {
-        this.appendValueInput("INDEX").appendField("set active lesson record index");
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour("#14B8A6");
-      }
-    };
-
-    Blockly.Blocks["lesson_get_active_field"] = {
-      init() {
-        this.appendDummyInput()
-          .appendField("active lesson field")
-          .appendField(new Blockly.FieldDropdown([
-            ["word", "word"],
-            ["sounds", "sounds"],
-            ["new sounds", "newSounds"],
-            ["known sounds", "knownSounds"],
-            ["categories", "categories"],
-            ["new sound categories", "newSoundCategories"],
-            ["known sound categories", "knownSoundCategories"]
-          ]), "FIELD");
-        this.setOutput(true);
-        this.setColour("#14B8A6");
-      }
-    };
-
-    Blockly.Blocks["lesson_get_active_category"] = {
-      init() {
-        this.appendDummyInput()
-          .appendField("active lesson")
-          .appendField(new Blockly.FieldDropdown([
-            ["categories", "categories"],
-            ["new sound categories", "newSoundCategories"],
-            ["known sound categories", "knownSoundCategories"]
-          ]), "SOURCE")
-          .appendField(new Blockly.FieldDropdown([
-            ["korte klinkers", "korteKlinkers"],
-            ["lange klinkers", "langeKlinkers"],
-            ["tweetekenklanken", "tweetekenklanken"],
-            ["medeklinkers", "medeklinkers"],
-            ["medeklinkerclusters", "medeklinkerclusters"],
-            ["drietekenklanken", "drietekenklanken"]
-          ]), "CATEGORY");
-        this.setOutput(true);
-        this.setColour("#14B8A6");
-      }
-    };
-
-    Blockly.Blocks["log_label_value"] = {
-      init() {
-        this.appendValueInput("VALUE")
-          .appendField("log")
-          .appendField(new Blockly.FieldTextInput("value"), "LABEL");
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour("#64748B");
-      }
-    };
-
-    Blockly.Blocks["sound_play_speech_file"] = {
-      init() {
-        this.appendValueInput("FILE").appendField("play speech file");
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour("#10B981");
-      }
-    };
-
-    Blockly.Blocks["sound_play_story_file"] = {
-      init() {
-        this.appendValueInput("FILE").appendField("play story file");
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour("#10B981");
-      }
-    };
-
-    const javascriptGenerator = Blockly.JavaScript;
-    const ORDER_ATOMIC = javascriptGenerator.ORDER_ATOMIC || 0;
-    const ORDER_NONE = javascriptGenerator.ORDER_NONE || 99;
-
-    function valueToCodeOr(block, inputName, fallbackCode = "''") {
-      const code = javascriptGenerator.valueToCode(block, inputName, ORDER_NONE);
-      return code || fallbackCode;
-    }
-
-    javascriptGenerator.forBlock["lesson_set_active_record_index"] = function(block) {
-      const indexCode = valueToCodeOr(block, "INDEX", "0");
-      return `setActiveLessonRecordByIndex(${indexCode});\n`;
-    };
-
-    javascriptGenerator.forBlock["lesson_get_active_field"] = function(block) {
-      const field = JSON.stringify(block.getFieldValue("FIELD") || "word");
-      return [`getLessonFieldValue(getActiveLessonRecord(), ${field})`, ORDER_ATOMIC];
-    };
-
-    javascriptGenerator.forBlock["lesson_get_active_category"] = function(block) {
-      const source = JSON.stringify(block.getFieldValue("SOURCE") || "categories");
-      const category = JSON.stringify(block.getFieldValue("CATEGORY") || "medeklinkers");
-      return [`getLessonCategoryArray(getActiveLessonRecord(), ${source}, ${category})`, ORDER_ATOMIC];
-    };
-
-    javascriptGenerator.forBlock["log_label_value"] = function(block) {
-      const label = JSON.stringify(block.getFieldValue("LABEL") || "value");
-      const valueCode = valueToCodeOr(block, "VALUE", "''");
-      return `logValue(${label}, ${valueCode});\n`;
-    };
-
-    javascriptGenerator.forBlock["sound_play_speech_file"] = function(block) {
-      const fileCode = valueToCodeOr(block, "FILE", "''");
-      return `await playSpeechFile(${fileCode});\n`;
-    };
-
-    javascriptGenerator.forBlock["sound_play_story_file"] = function(block) {
-      const fileCode = valueToCodeOr(block, "FILE", "''");
-      return `await playStoryFile(${fileCode});\n`;
-    };
-
-    const workspace = Blockly.inject("blocklyHost", {
-      toolbox: document.getElementById("toolbox"),
-      trashcan: false,
-      renderer: "geras",
-      move: { drag: true, wheel: true, scrollbars: true },
-      zoom: {
-        controls: true,
-        wheel: true,
-        startScale: 0.95,
-        maxScale: 1.6,
-        minScale: 0.55,
-        scaleSpeed: 1.1
-      },
-      grid: {
-        spacing: 20,
-        length: 3,
-        colour: "#d1d5db",
-        snap: true
-      }
-    });
-
-    function updateGeneratedCode() {
-      const startedBlocks = workspace.getTopBlocks(true).filter((block) => block.type === "event_when_started");
-      return startedBlocks.map((block) => javascriptGenerator.statementToCode(block, "DO")).join("\n").trim();
-    }
-
     function logValue(label, value) {
       const box = document.getElementById("runLogBox");
       box.textContent += `${label}: ${formatValue(value)}\n`;
     }
 
-    async function runExample() {
-      document.getElementById("runLogBox").textContent = "";
-      const code = updateGeneratedCode();
-      if (!code) return;
-      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-      const runner = new AsyncFunction("logValue", "setActiveLessonRecordByIndex", "getActiveLessonRecord", "getLessonFieldValue", "getLessonCategoryArray", "playSpeechFile", "playStoryFile", code);
-      await runner(logValue, setActiveLessonRecordByIndex, getActiveLessonRecord, getLessonFieldValue, getLessonCategoryArray, playSpeechFile, playStoryFile);
-      renderInjectedData();
+    function logStage(message) {
+      const box = document.getElementById("runLogBox");
+      box.textContent += `[runner] ${String(message ?? "")}\n`;
     }
 
-    async function loadExampleScript() {
-      const response = await fetch("../blockly/scripts/external-injected-data-demo.blockly", { cache: "no-store" });
+    function clearLogBox() {
+      const box = document.getElementById("runLogBox");
+      box.textContent = "";
+    }
+
+    function appendRuntimeLog(line) {
+      const box = document.getElementById("runLogBox");
+      box.textContent += `${line}\n`;
+    }
+
+    async function ensureBlocklyApp() {
+      if (blocklyApp) return blocklyApp;
+      const frame = document.getElementById("blocklyRuntimeFrame");
+      logStage("Waiting for hidden Blockly runtime iframe");
+      const start = Date.now();
+      let lastStage = "";
+      let lastReadyState = "";
+      let lastError = "";
+
+      while (Date.now() - start < 10000) {
+        const app = frame.contentWindow && frame.contentWindow.BrailleBlocklyApp;
+        if (app) {
+          app.setLogHandler(appendRuntimeLog);
+          app.setPlayHandler(playUrl);
+          logStage("Hidden Blockly runtime API is ready");
+          blocklyApp = app;
+          return app;
+        }
+
+        const boot = frame.contentWindow?.BrailleBlocklyBoot || null;
+        const readyState = frame.contentDocument?.readyState || "(unavailable)";
+        const stage = boot?.stage || "(unknown)";
+        const error = boot?.error || "";
+
+        if (stage !== lastStage || readyState !== lastReadyState || error !== lastError) {
+          logStage(`Runtime state: readyState=${readyState}, stage=${stage}${error ? `, error=${error}` : ""}`);
+          lastStage = stage;
+          lastReadyState = readyState;
+          lastError = error;
+        }
+
+        if (stage === "error") {
+          throw new Error(`Blockly runtime failed during boot${error ? `: ${error}` : ""}`);
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      const app = frame.contentWindow && frame.contentWindow.BrailleBlocklyApp;
+      if (!app) throw new Error("Blockly runtime API is not available");
+      return app;
+    }
+
+    async function getSelectedBlocklyText(scriptPath = getRequestedScriptPath()) {
+      if (selectedBlocklySource?.text) {
+        logStage(`Using selected local Blockly file: ${selectedBlocklySource.label}`);
+        return selectedBlocklySource.text;
+      }
+      logStage(`Fetching Blockly file: ${scriptPath}`);
+      const response = await fetch(scriptPath, { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const text = await response.text();
-      const xmlDom = Blockly.utils.xml.textToDom(text);
-      workspace.clear();
-      Blockly.Xml.domToWorkspace(xmlDom, workspace);
+      logStage(`Fetched Blockly file successfully: ${scriptPath}`);
+      return text;
+    }
+
+    async function loadExampleScript(scriptPath = getRequestedScriptPath()) {
+      const app = await ensureBlocklyApp();
+      const text = await getSelectedBlocklyText(scriptPath);
+      const sourceName = selectedBlocklySource?.label || scriptPath;
+      logStage(`Loading Blockly workspace: ${sourceName}`);
+      app.loadWorkspaceFromText(text, sourceName);
+      logStage(`Blockly workspace loaded: ${sourceName}`);
+    }
+
+    async function handleSelectedBlocklyFile(file) {
+      if (!file) return;
+      const text = await file.text();
+      selectedBlocklySource = {
+        label: file.name,
+        text
+      };
+      renderScriptPathLabel();
+      await loadExampleScript();
+      document.getElementById("runLogBox").textContent = `Loaded local Blockly file: ${file.name}\n`;
+    }
+
+    async function syncInjectedData() {
+      const app = await ensureBlocklyApp();
+      logStage(`Injecting lesson data from ./aanvankelijklijst.json with index ${getRequestedRecordIndex()}`);
+      await app.injectLessonData(externalLessonData, getRequestedRecordIndex());
+      const currentRecord = app.getCurrentRecord();
+      window.currentRecord = currentRecord;
+      renderInjectedData();
+      logStage(`Injected current record: ${currentRecord?.word ?? "(none)"}`);
+      return currentRecord;
+    }
+
+    async function runExample() {
+      clearLogBox();
+      logStage("Run Example clicked");
+      const app = await ensureBlocklyApp();
+      const text = await getSelectedBlocklyText();
+      const sourceName = selectedBlocklySource?.label || getRequestedScriptPath();
+      logStage(`Starting headless run for: ${sourceName}`);
+      const result = await app.runWorkspaceTextHeadless({
+        text,
+        sourceName,
+        lessonData: externalLessonData,
+        index: getRequestedRecordIndex(),
+        onLog: appendRuntimeLog
+      });
+      window.currentRecord = result?.currentRecord || app.getCurrentRecord();
+      renderInjectedData();
+      logStage(`Headless run finished. Active record: ${window.currentRecord?.word ?? "(none)"}`);
+    }
+
+    async function openBlocklyFilePicker() {
+      if (typeof window.showOpenFilePicker === "function") {
+        try {
+          const [handle] = await window.showOpenFilePicker({
+            multiple: false,
+            types: [
+              {
+                description: "Blockly Files",
+                accept: {
+                  "application/octet-stream": [".blockly"],
+                  "application/xml": [".blockly", ".xml"],
+                  "text/xml": [".blockly", ".xml"]
+                }
+              }
+            ]
+          });
+          if (!handle) return;
+          const file = await handle.getFile();
+          await handleSelectedBlocklyFile(file);
+          return;
+        } catch (error) {
+          if (error && error.name === "AbortError") return;
+        }
+      }
+
+      document.getElementById("blocklyFileInput").click();
     }
 
     document.getElementById("recordIndexInput").addEventListener("input", () => {
       const index = getRequestedRecordIndex();
       if (!Array.isArray(window.aanvankelijkData) || window.aanvankelijkData.length === 0) {
         injectExternalData(index).catch((error) => {
+          logStage(`Inject failed: ${error.message}`);
           document.getElementById("runLogBox").textContent = `Inject failed: ${error.message}\n`;
         });
       } else {
         setActiveLessonRecordByIndex(index);
-        document.getElementById("runLogBox").textContent = `Active record changed to index ${index}. Current word: ${window.currentRecord?.word ?? "-"}\n`;
+        syncInjectedData().then(() => {
+          logStage(`Record index changed to ${index}`);
+          document.getElementById("runLogBox").textContent = `Active record changed to index ${index}. Current word: ${window.currentRecord?.word ?? "-"}\n`;
+        }).catch((error) => {
+          logStage(`Inject failed: ${error.message}`);
+          document.getElementById("runLogBox").textContent = `Inject failed: ${error.message}\n`;
+        });
       }
     });
 
     document.getElementById("playCurrentWordBtn").addEventListener("click", async () => {
       try {
         document.getElementById("runLogBox").textContent = "";
+        logStage(`Play Current Word clicked for: ${window.currentRecord?.word ?? "(none)"}`);
         await playCurrentWord();
       } catch (error) {
+        logStage(`Play Current Word error: ${error.message}`);
         document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
       }
     });
@@ -638,16 +637,53 @@
       try {
         await runExample();
       } catch (error) {
+        logStage(`Run Example error: ${error.message}`);
         document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
       }
     });
 
-    workspace.addChangeListener(() => updateGeneratedCode());
+    document.getElementById("selectBlocklyFileBtn").addEventListener("click", async () => {
+      try {
+        logStage("Opening Blockly file picker");
+        await openBlocklyFilePicker();
+      } catch (error) {
+        logStage(`File picker error: ${error.message}`);
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      }
+    });
+
+    document.getElementById("blocklyFileInput").addEventListener("change", async (event) => {
+      try {
+        const file = event.target.files && event.target.files[0];
+        logStage(`Selected Blockly file: ${file?.name ?? "(none)"}`);
+        await handleSelectedBlocklyFile(file);
+      } catch (error) {
+        logStage(`Selected file load error: ${error.message}`);
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      } finally {
+        event.target.value = "";
+      }
+    });
+
+    applyInitialQueryState();
+    logStage(`Initial script source: ${getRequestedScriptPath()}`);
+    logStage(`Initial record index: ${getRequestedRecordIndex()}`);
 
     Promise.all([
       injectExternalData(getRequestedRecordIndex()),
+      ensureBlocklyApp(),
       loadExampleScript()
-    ]).catch((error) => {
+    ]).then(async () => {
+      logStage("Initial page setup complete");
+      await syncInjectedData();
+      if (shouldAutoRun()) {
+        logStage("Autorun is enabled");
+        await runExample();
+      } else {
+        logStage("Autorun is disabled");
+      }
+    }).catch((error) => {
+      logStage(`Initial load failed: ${error.message}`);
       document.getElementById("runLogBox").textContent = `Load failed: ${error.message}\n`;
     });
   </script>

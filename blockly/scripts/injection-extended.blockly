@@ -1,0 +1,153 @@
+<xml xmlns="https://developers.google.com/blockly/xml" data-title="Injected Data Example" data-description="Shows how to select one injected lesson record, read its fields and categories, write the active word to the braille display, and play its speech audio.">
+  <variables>
+    <variable id="nKJ`eIc1lc~VJG*-_z*S">indexLesson</variable>
+  </variables>
+  <block type="event_when_started" id="LQ.?(`r=k4,+_La:S?G/" x="24" y="24">
+    <statement name="DO">
+      <block type="controls_repeat_ext" id="xF+/xpu=9(=SgA_z]Mr+">
+        <value name="TIMES">
+          <shadow type="math_number" id="n:Sz=vsI@H@RhpO:=d44">
+            <field name="NUM">3</field>
+          </shadow>
+          <block type="lesson_get_record_count" id="@yM5;z6nV`c#C9EHMfYp"></block>
+        </value>
+        <statement name="DO">
+          <block type="lesson_set_active_record_index" id="%t4J0=m98YcpvA48}wYm">
+            <value name="INDEX">
+              <shadow type="math_number" id="VxW:B14w{PFp_OA9B{?8">
+                <field name="NUM">0</field>
+              </shadow>
+              <block type="variables_get" id="`on-N7`@o8|a[Yh@-#AR">
+                <field name="VAR" id="nKJ`eIc1lc~VJG*-_z*S">indexLesson</field>
+              </block>
+            </value>
+            <next>
+              <block type="log_clear" id="p(baP5g/[+;iU9S}.(mU">
+                <next>
+                  <block type="bb_set_text" id="4$pLaC[5.X2vgV6FgRh9">
+                    <value name="TEXT">
+                      <block type="lesson_get_active_field" id="jZ!jGphmg95VK4[n-*8!">
+                        <field name="FIELD">word</field>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="log_value" id="+lexx?)Z-+o7AfaLVKZ|">
+                        <value name="VALUE">
+                          <block type="text_join" id="rY%uS4|3#WFEdJNdnS0p">
+                            <mutation items="2"></mutation>
+                            <value name="ADD0">
+                              <block type="text" id="OIP3tL,YU;?^_T:8fs5;">
+                                <field name="TEXT">active word: </field>
+                              </block>
+                            </value>
+                            <value name="ADD1">
+                              <block type="lesson_get_active_field" id="oevof|NOKNud~FN[P}w/">
+                                <field name="FIELD">word</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                        <next>
+                          <block type="log_value" id="BsN~_}Z$Z/W,hR6cEe(j">
+                            <value name="VALUE">
+                              <block type="text_join" id="7by6jt,Y-?0C_+6Orlwo">
+                                <mutation items="2"></mutation>
+                                <value name="ADD0">
+                                  <block type="text" id="P{BUzCuJhJg@%eBa4t9[">
+                                    <field name="TEXT">sounds: </field>
+                                  </block>
+                                </value>
+                                <value name="ADD1">
+                                  <block type="lesson_get_active_field" id="r$5Z=0}j@D_eVc7{1+@(">
+                                    <field name="FIELD">sounds</field>
+                                  </block>
+                                </value>
+                              </block>
+                            </value>
+                            <next>
+                              <block type="log_value" id="^s@X,6!8SDll.:H3PKBC">
+                                <value name="VALUE">
+                                  <block type="text_join" id="iVv;vGrD!0]aiw__:uxL">
+                                    <mutation items="2"></mutation>
+                                    <value name="ADD0">
+                                      <block type="text" id="4u4^{6qK/igAM`7;Yj/8">
+                                        <field name="TEXT">medeklinkers: </field>
+                                      </block>
+                                    </value>
+                                    <value name="ADD1">
+                                      <block type="lesson_get_active_category" id="(?hCYL)RvjwSmf#|9~_9">
+                                        <field name="SOURCE">categories</field>
+                                        <field name="CATEGORY">medeklinkers</field>
+                                      </block>
+                                    </value>
+                                  </block>
+                                </value>
+                                <next>
+                                  <block type="bb_wait" id="M@lu_1J|Uj3%;PQ8zJ3`">
+                                    <value name="SECONDS">
+                                      <shadow type="math_number" id="IkKAdID8=dt-bn,vwtTZ">
+                                        <field name="NUM">1</field>
+                                      </shadow>
+                                    </value>
+                                    <next>
+                                      <block type="sound_play_speech_file" id="B6z6)4|JDa??C,A}QW:3">
+                                        <value name="FILE">
+                                          <block type="lesson_get_active_field" id="k]`-QmF$GW%3L+z%:kbv">
+                                            <field name="FIELD">word</field>
+                                          </block>
+                                        </value>
+                                        <next>
+                                          <block type="sound_wait_stopped" id="2@EWZ4yt95sLxGKd_|B#">
+                                            <next>
+                                              <block type="klanken_play_word_sounds_with_pause" id="qp.`BsI9d_v-5i{9z]1/">
+                                                <value name="WORD">
+                                                  <block type="lesson_get_active_field" id="qlObVaY4h!I^Jz}Q1LN2">
+                                                    <field name="FIELD">word</field>
+                                                  </block>
+                                                </value>
+                                                <value name="SECONDS">
+                                                  <shadow type="math_number" id="4C9jVmI{q%)dIqz:*l9q">
+                                                    <field name="NUM">2</field>
+                                                  </shadow>
+                                                </value>
+                                                <next>
+                                                  <block type="sound_wait_stopped" id="}A087~=b_W*nMR2qfMw+">
+                                                    <next>
+                                                      <block type="math_inc_var" id="XK*Jg@p;s@hcud.+,owa">
+                                                        <field name="VAR" id="nKJ`eIc1lc~VJG*-_z*S">indexLesson</field>
+                                                      </block>
+                                                    </next>
+                                                  </block>
+                                                </next>
+                                              </block>
+                                            </next>
+                                          </block>
+                                        </next>
+                                      </block>
+                                    </next>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </statement>
+      </block>
+    </statement>
+  </block>
+  <block type="variables_set" id="7U?|j$gAy(j/^j3]EL^D" x="515" y="50">
+    <field name="VAR" id="nKJ`eIc1lc~VJG*-_z*S">indexLesson</field>
+    <value name="VALUE">
+      <block type="math_number" id="_+]R0d[y+C~zsqs*vY-+">
+        <field name="NUM">5</field>
+      </block>
+    </value>
+  </block>
+</xml>
