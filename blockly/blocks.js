@@ -425,23 +425,59 @@
     }
   };
 
-  function defineSoundFolderPlayBlock(type, label) {
-    Blockly.Blocks[type] = {
-      init() {
-        this.appendValueInput('FILE').appendField(label);
-        this.setPreviousStatement(true);
-        this.setNextStatement(true);
-        this.setColour('#10B981');
-      }
-    };
-  }
+  Blockly.Blocks['sound_play_speech_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play speech file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
 
-  defineSoundFolderPlayBlock('sound_play_speech_file', 'play speech file');
-  defineSoundFolderPlayBlock('sound_play_letters_file', 'play letters file');
-  defineSoundFolderPlayBlock('sound_play_instructions_file', 'play instructions file');
-  defineSoundFolderPlayBlock('sound_play_feedback_file', 'play feedback file');
-  defineSoundFolderPlayBlock('sound_play_story_file', 'play story file');
-  defineSoundFolderPlayBlock('sound_play_general_file', 'play general file');
+  Blockly.Blocks['sound_play_letters_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play letters file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_instructions_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play instructions file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_feedback_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play feedback file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_story_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play story file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_general_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play general file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
 
   Blockly.Blocks['sound_play_url'] = {
     init() {

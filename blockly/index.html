@@ -260,6 +260,45 @@
       background: white;
     }
 
+    .blocklyToolboxDiv,
+    .blocklyFlyout,
+    .blocklyFlyoutBackground {
+      background: #f8faff !important;
+    }
+
+    .blocklyTreeRow:focus,
+    .blocklyTreeRow:focus-visible,
+    .blocklyToolboxCategory:focus,
+    .blocklyToolboxCategory:focus-visible,
+    .blocklyToolboxContents [tabindex]:focus,
+    .blocklyToolboxContents [tabindex]:focus-visible,
+    .blocklyToolboxContents [role="treeitem"]:focus,
+    .blocklyToolboxContents [role="treeitem"]:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+      -webkit-focus-ring-color: transparent !important;
+    }
+
+    .blocklyTreeRow {
+      border: none !important;
+    }
+
+    .blocklyToolboxContents,
+    .blocklyToolboxContents * {
+      caret-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .blocklyToolboxContents [aria-selected="true"] {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    .blocklyTreeSeparator {
+      border-color: transparent !important;
+    }
+
     #sidebar {
       border-left: 1px solid var(--border);
       background: var(--panel);

@@ -979,12 +979,37 @@ function resizeBlockly() {
   Blockly.svgResize(workspace);
 }
 
+function blurToolboxFocusAfterPointerSelection() {
+  const toolboxDiv = document.querySelector('.blocklyToolboxDiv');
+  if (!toolboxDiv || toolboxDiv.dataset.focusPatchInitialized === '1') return;
+
+  const blurToolboxFocus = () => {
+    requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && toolboxDiv.contains(active)) {
+        active.blur();
+      }
+    });
+  };
+
+  toolboxDiv.addEventListener('pointerup', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('.blocklyTreeRow, .blocklyToolboxCategory, [role="treeitem"]')) {
+      blurToolboxFocus();
+    }
+  });
+
+  toolboxDiv.dataset.focusPatchInitialized = '1';
+}
+
 window.addEventListener('resize', resizeBlockly);
 if (window.ResizeObserver) {
   const ro = new ResizeObserver(() => resizeBlockly());
   ro.observe(document.getElementById('workspaceWrap'));
 }
 setTimeout(resizeBlockly, 0);
+setTimeout(blurToolboxFocusAfterPointerSelection, 0);
 
 function ensureDefaultVariable() {
   const names = workspace.getAllVariables().map(v => v.name);
