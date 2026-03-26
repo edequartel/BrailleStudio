@@ -584,6 +584,14 @@
     }
   };
 
+  Blockly.Blocks['list_pick_random'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('pick random from list');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
   Blockly.Blocks['list_next_item'] = {
     init() {
       this.appendValueInput('LIST').appendField('volgend item uit lijst');
@@ -635,6 +643,22 @@
       this.appendValueInput('EXCLUDE').appendField('dan');
       this.setOutput(true);
       this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['audio_item_get_word'] = {
+    init() {
+      this.appendValueInput('ITEM').appendField('word of audio item');
+      this.setOutput(true);
+      this.setColour('#0EA5E9');
+    }
+  };
+
+  Blockly.Blocks['audio_item_get_url'] = {
+    init() {
+      this.appendValueInput('ITEM').appendField('url of audio item');
+      this.setOutput(true);
+      this.setColour('#0EA5E9');
     }
   };
 
@@ -750,6 +774,29 @@
         .appendField('and length');
       this.setOutput(true);
       this.setColour('#0EA5E9');
+    }
+  };
+
+  Blockly.Blocks['controls_for_each_audio_item'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('for each audio item in');
+      this.appendStatementInput('DO').appendField('do');
+      this.appendDummyInput()
+        .appendField('as')
+        .appendField(new Blockly.FieldVariable('item'), 'VAR');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#D97706');
+    }
+  };
+
+  Blockly.Blocks['text_join_csv'] = {
+    init() {
+      this.appendValueInput('A').appendField('join csv');
+      this.appendValueInput('B').appendField('with');
+      this.appendValueInput('C').appendField('and');
+      this.setOutput(true);
+      this.setColour('#0891B2');
     }
   };
 

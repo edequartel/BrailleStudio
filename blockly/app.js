@@ -226,7 +226,8 @@ const runtime = {
   lastTimerTick: 0,
   lastWsNotice: '',
   activeTable: '',
-  lineId: 0
+  lineId: 0,
+  lockInjectedLessonRecord: false
 };
 
 const variableValues = {};
@@ -1918,7 +1919,11 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'lesson_set_active_record_index': {
-        await setActiveLessonRecordByIndex(await evalValue(current.getInputTargetBlock('INDEX')));
+        if (runtime.lockInjectedLessonRecord) {
+          log('Ignored lesson_set_active_record_index because injected record lock is active');
+        } else {
+          await setActiveLessonRecordByIndex(await evalValue(current.getInputTargetBlock('INDEX')));
+        }
         break;
       }
 
@@ -2260,7 +2265,7 @@ setWsBadge(false);
 
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,
-  async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, index = 0, onLog = null } = {}) {
+  async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, index = 0, onLog = null, lockInjectedRecord = false } = {}) {
     if (typeof onLog === 'function') {
       externalLogHandler = onLog;
     }
@@ -2268,6 +2273,7 @@ window.BrailleBlocklyApp = {
       loadWorkspaceFromText(text, sourceName);
     }
     const startedBlocks = workspace ? workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started') : [];
+    const overridingIndexBlocks = workspace ? workspace.getAllBlocks(false).filter(b => b.type === 'lesson_set_active_record_index') : [];
     if (lessonData != null) {
       window.aanvankelijkData = Array.isArray(lessonData) ? structuredClone(lessonData) : [];
       await setActiveLessonRecordByIndex(index);
@@ -2276,6 +2282,7 @@ window.BrailleBlocklyApp = {
     stopAllTimers();
     stopSound();
     runtime.stopped = false;
+    runtime.lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
@@ -2285,16 +2292,31 @@ window.BrailleBlocklyApp = {
     }
     log('Headless run started' + (sourceName ? ': ' + sourceName : ''));
     log('Headless when started blocks: ' + startedBlocks.length);
+    log('Headless requested record index: ' + Math.max(0, Math.floor(toNumber(index))));
+    log('Headless injected record index: ' + window.currentRecordIndex);
+    if (overridingIndexBlocks.length > 0) {
+      log(
+        runtime.lockInjectedLessonRecord
+          ? 'Workspace contains lesson_set_active_record_index blocks, but injected record lock is active'
+          : 'Warning: workspace contains lesson_set_active_record_index blocks that can override the injected record'
+      );
+    }
     if (startedBlocks.length === 0) {
+      runtime.lockInjectedLessonRecord = false;
       throw new Error('No "when started" block found in workspace');
     }
-    await dispatchEvent({ type: 'started' }, generation);
-    return {
-      generation,
-      startedBlockCount: startedBlocks.length,
-      currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
-      runtime: { ...runtime }
-    };
+    try {
+      await dispatchEvent({ type: 'started' }, generation);
+      return {
+        generation,
+        startedBlockCount: startedBlocks.length,
+        currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
+        currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
+        runtime: { ...runtime }
+      };
+    } finally {
+      runtime.lockInjectedLessonRecord = false;
+    }
   },
   async runHeadlessProgram() {
     stopAllTimers();
@@ -2321,6 +2343,9 @@ window.BrailleBlocklyApp = {
   },
   getCurrentRecord() {
     return window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null;
+  },
+  getCurrentRecordIndex() {
+    return Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1;
   },
   getRuntimeSnapshot() {
     return { ...runtime };

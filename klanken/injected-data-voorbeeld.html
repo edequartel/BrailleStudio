@@ -269,6 +269,7 @@
           <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
           <button id="selectBlocklyFileBtn" class="btn" type="button">Select Blockly File</button>
           <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
+          <button id="stopExampleBtn" class="btn" type="button">Stop</button>
           <button id="playCurrentWordBtn" class="btn" type="button">Play Current Word</button>
         </div>
         <input id="blocklyFileInput" class="file-input" type="file" accept=".blockly,application/xml,text/xml">
@@ -297,6 +298,8 @@
     let selectedBlocklySource = null;
     const searchParams = new URLSearchParams(window.location.search);
     let blocklyApp = null;
+    let activePageAudio = null;
+    let currentRequestedRecordIndex = 0;
 
     function getRequestedScriptPath() {
       return String(searchParams.get("script") || searchParams.get("file") || DEFAULT_BLOCKLY_SCRIPT).trim();
@@ -309,14 +312,23 @@
     }
 
     function getRequestedRecordIndex() {
+      return currentRequestedRecordIndex;
+    }
+
+    function setRequestedRecordIndex(index) {
+      currentRequestedRecordIndex = Math.max(0, Math.floor(Number(index) || 0));
       const input = document.getElementById("recordIndexInput");
-      return Math.max(0, Math.floor(Number(input?.value) || 0));
+      if (input && Number(input.value) !== currentRequestedRecordIndex) {
+        input.value = String(currentRequestedRecordIndex);
+      }
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("index", String(currentRequestedRecordIndex));
+      window.history.replaceState({}, "", nextUrl);
     }
 
     function applyInitialQueryState() {
       const requestedIndex = Math.max(0, Math.floor(Number(searchParams.get("index")) || 0));
-      const input = document.getElementById("recordIndexInput");
-      if (input) input.value = String(requestedIndex);
+      setRequestedRecordIndex(requestedIndex);
       renderScriptPathLabel();
     }
 
@@ -415,26 +427,41 @@
       const url = resolveSpeechUrl(file);
       if (!url) return;
       logValue("speech url", url);
-      const audio = new Audio(url);
-      await audio.play();
+      await playUrl(url);
     }
 
     async function playStoryFile(file) {
       const url = resolveStoryUrl(file);
       if (!url) return;
       logValue("story url", url);
-      const audio = new Audio(url);
-      await audio.play();
+      await playUrl(url);
+    }
+
+    function stopPageAudio() {
+      if (!activePageAudio) return;
+      try {
+        activePageAudio.pause();
+        activePageAudio.currentTime = 0;
+      } catch {}
+      activePageAudio = null;
     }
 
     async function playUrl(url) {
       const target = String(url ?? "").trim();
       if (!target) return;
       logValue("audio url", target);
+      stopPageAudio();
       const audio = new Audio(target);
+      activePageAudio = audio;
       await new Promise((resolve, reject) => {
-        audio.onended = resolve;
-        audio.onerror = () => reject(new Error("Audio playback failed"));
+        audio.onended = () => {
+          if (activePageAudio === audio) activePageAudio = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          if (activePageAudio === audio) activePageAudio = null;
+          reject(new Error("Audio playback failed"));
+        };
         audio.play().catch(reject);
       });
     }
@@ -531,6 +558,7 @@
       logStage(`Loading Blockly workspace: ${sourceName}`);
       app.loadWorkspaceFromText(text, sourceName);
       logStage(`Blockly workspace loaded: ${sourceName}`);
+      await syncInjectedData();
     }
 
     async function handleSelectedBlocklyFile(file) {
@@ -547,12 +575,16 @@
 
     async function syncInjectedData() {
       const app = await ensureBlocklyApp();
-      logStage(`Injecting lesson data from ./aanvankelijklijst.json with index ${getRequestedRecordIndex()}`);
-      await app.injectLessonData(externalLessonData, getRequestedRecordIndex());
+      const requestedIndex = getRequestedRecordIndex();
+      const expectedRecord = Array.isArray(externalLessonData) ? (externalLessonData[requestedIndex] || null) : null;
+      logStage(`Injecting lesson data from ./aanvankelijklijst.json with index ${requestedIndex}`);
+      logStage(`Expected injected word: ${expectedRecord?.word ?? "(none)"}`);
+      await app.injectLessonData(externalLessonData, requestedIndex);
       const currentRecord = app.getCurrentRecord();
+      const currentRecordIndex = typeof app.getCurrentRecordIndex === "function" ? app.getCurrentRecordIndex() : -1;
       window.currentRecord = currentRecord;
       renderInjectedData();
-      logStage(`Injected current record: ${currentRecord?.word ?? "(none)"}`);
+      logStage(`Injected current record: index=${currentRecordIndex}, word=${currentRecord?.word ?? "(none)"}`);
       return currentRecord;
     }
 
@@ -560,6 +592,12 @@
       clearLogBox();
       logStage("Run Example clicked");
       const app = await ensureBlocklyApp();
+      stopPageAudio();
+      const requestedIndex = getRequestedRecordIndex();
+      const expectedRecord = Array.isArray(externalLessonData) ? (externalLessonData[requestedIndex] || null) : null;
+      logStage(`Requested record index: ${requestedIndex}`);
+      logStage(`Expected word for requested index: ${expectedRecord?.word ?? "(none)"}`);
+      await syncInjectedData();
       const text = await getSelectedBlocklyText();
       const sourceName = selectedBlocklySource?.label || getRequestedScriptPath();
       logStage(`Starting headless run for: ${sourceName}`);
@@ -567,12 +605,13 @@
         text,
         sourceName,
         lessonData: externalLessonData,
-        index: getRequestedRecordIndex(),
-        onLog: appendRuntimeLog
+        index: requestedIndex,
+        onLog: appendRuntimeLog,
+        lockInjectedRecord: true
       });
       window.currentRecord = result?.currentRecord || app.getCurrentRecord();
       renderInjectedData();
-      logStage(`Headless run finished. Active record: ${window.currentRecord?.word ?? "(none)"}`);
+      logStage(`Headless run finished. Active record: index=${result?.currentRecordIndex ?? -1}, word=${window.currentRecord?.word ?? "(none)"}`);
     }
 
     async function openBlocklyFilePicker() {
@@ -603,8 +642,10 @@
       document.getElementById("blocklyFileInput").click();
     }
 
-    document.getElementById("recordIndexInput").addEventListener("input", () => {
-      const index = getRequestedRecordIndex();
+    function handleRecordIndexChanged() {
+      const input = document.getElementById("recordIndexInput");
+      const index = Math.max(0, Math.floor(Number(input?.value) || 0));
+      setRequestedRecordIndex(index);
       if (!Array.isArray(window.aanvankelijkData) || window.aanvankelijkData.length === 0) {
         injectExternalData(index).catch((error) => {
           logStage(`Inject failed: ${error.message}`);
@@ -620,7 +661,10 @@
           document.getElementById("runLogBox").textContent = `Inject failed: ${error.message}\n`;
         });
       }
-    });
+    }
+
+    document.getElementById("recordIndexInput").addEventListener("input", handleRecordIndexChanged);
+    document.getElementById("recordIndexInput").addEventListener("change", handleRecordIndexChanged);
 
     document.getElementById("playCurrentWordBtn").addEventListener("click", async () => {
       try {
@@ -638,6 +682,19 @@
         await runExample();
       } catch (error) {
         logStage(`Run Example error: ${error.message}`);
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      }
+    });
+
+    document.getElementById("stopExampleBtn").addEventListener("click", async () => {
+      try {
+        logStage("Stop clicked");
+        stopPageAudio();
+        const app = await ensureBlocklyApp();
+        app.stopProgram();
+        logStage("Headless run stopped");
+      } catch (error) {
+        logStage(`Stop error: ${error.message}`);
         document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
       }
     });
