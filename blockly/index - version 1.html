@@ -170,9 +170,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
+      gap: 8px;
       min-height: 40px;
-      padding: 8px;
+      padding: 8px 10px;
     }
 
     .btn-ws.is-connected {
@@ -237,24 +237,6 @@
 
     .btn-red.is-active {
       box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.22);
-    }
-
-    #runBtn,
-    #stopBtn,
-    #gridSnapBtn {
-      width: 96px;
-      justify-content: center;
-    }
-
-    #fileStateBadge {
-      width: 56px;
-      justify-content: center;
-      padding: 8px 8px;
-      gap: 0;
-    }
-
-    #fileStateBadge #fileStateText {
-      display: none;
     }
 
     #main {
@@ -371,9 +353,7 @@
       border-radius: 8px;
       background: white;
       color: var(--text);
-      font-family: Consolas, Menlo, monospace;
-      font-size: 12px;
-      line-height: 1.45;
+      font: inherit;
       padding: 8px 10px;
     }
 
@@ -390,45 +370,14 @@
     }
 
     .file-state {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      min-height: 40px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid #c7d7ff;
-      background: #eef4ff;
-      color: #1d4ed8;
-      font-size: 14px;
-      font-weight: 600;
-      min-width: 0;
-    }
-
-    .with-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .icon-14 {
-      width: 14px;
-      height: 14px;
-      display: inline-block;
-      flex: 0 0 auto;
-    }
-
-    .icon-14 svg {
-      width: 14px;
-      height: 14px;
-      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      min-width: 104px;
     }
 
     .file-state.is-dirty {
-      border-color: #fecaca;
-      background: #fef2f2;
-      color: #991b1b;
+      color: #b45309;
+      font-weight: 600;
     }
 
     .modal-backdrop {
@@ -481,19 +430,13 @@
 <div id="app">
   <div id="topbar">
     <div class="topbar-row">
-      <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
-        <span class="ws-indicator" aria-hidden="true"></span>
-      </button>
-      
       <div id="title">Braille Activity Builder</div>
 
-      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
-      <input id="fileInput" type="file" accept=".blockly">
+      <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
+        <span class="ws-indicator" aria-hidden="true"></span>
+        <span id="wsToggleLabel">Connect WS</span>
+      </button>
 
-      <div class="spacer"></div>
-    </div>
-
-    <div class="topbar-row topbar-row--sim">
       <button id="runBtn" class="btn btn-green btn-icon" type="button" aria-label="Start">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path fill="currentColor" d="M4 3h2l1.2 2H20l-4.8 5L20 15H7.2L6 17H4V3z"></path>
@@ -506,42 +449,23 @@
         </svg>
         <span class="label">Stop</span>
       </button>
+
+      <button id="saveBtn" class="btn">Save</button>
+      <button id="loadBtn" class="btn">Open</button>
+      <button id="newBtn" class="btn">New</button>
+      <input id="fileNameInput" class="btn" type="text" value="braille-activity.blockly" style="min-width:200px; cursor:text;">
+      <div id="fileStateBadge" class="file-state">Saved</div>
+      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap Grid On</button>
+      <input id="fileInput" type="file" accept=".blockly">
+
+      <div class="spacer"></div>
+    </div>
+
+    <div class="topbar-row topbar-row--sim">
       <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
       <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
       <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
       <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
-    </div>
-
-    <div class="topbar-row">
-      <input id="onlineScriptIdInput" class="btn" type="text" placeholder="script-id" style="min-width:180px; cursor:text;">
-      <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title" style="min-width:220px; cursor:text;">
-      <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
-        <option value="">-- Select online script --</option>
-      </select>
-      <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
-        <option value="draft">draft</option>
-        <option value="started">started</option>
-        <option value="in review">in review</option>
-        <option value="approved">approved</option>
-      </select>
-      <button id="onlineRefreshBtn" class="btn" type="button">Refresh</button>
-    </div>
-
-    <div class="topbar-row">
-      <div id="fileStateBadge" class="file-state with-icon">
-        <span class="icon-14" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zM7 5h8v4H7V5zm12 14H5V5h1v6h10V5h.17L19 7.83V19z"></path>
-          </svg>
-        </span>
-        <span id="fileStateText">Saved</span>
-      </div>
-      <button id="copyJsonBtn" class="btn" type="button">Export</button>
-      <button id="importJsonBtn" class="btn" type="button">Import</button>
-      <button id="onlineSaveBtn" class="btn" type="button">Save</button>
-      <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
-      <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>
-      <button id="clearBtn" class="btn" type="button">Clear</button>
     </div>
   </div>
 
@@ -562,7 +486,7 @@
       </div>
 
       <div class="card">
-        <h3>Function</h3>
+        <h3>Script Metadata</h3>
         <div class="small">Title</div>
         <input id="scriptMetaTitle" class="meta-input" type="text" placeholder="Script title">
         <div class="small" style="margin-top:8px;">Description</div>

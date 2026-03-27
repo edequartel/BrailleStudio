@@ -133,7 +133,6 @@
           </div>
         </div>
 
-        <div id="blocklyDiv" class="rounded-2xl border border-slate-200 overflow-hidden"></div>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
@@ -174,6 +173,10 @@
           <div id="statusBox" class="status-box bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[180px]"></div>
         </div>
       </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+      <div id="blocklyDiv" class="rounded-2xl border border-slate-200 overflow-hidden"></div>
     </div>
   </div>
 
@@ -233,7 +236,8 @@
   </xml>
 
   <script>
-    const API_BASE = '/braillestudio/blockly-api';
+    const API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+    const API_FALLBACK_BASE = '/braillestudio/blockly-api';
 
     let workspace = null;
     let currentScriptId = null;
@@ -261,6 +265,58 @@
       console.log(message, data || '');
     }
 
+    function debugLog(scope, message, data = null) {
+      const stamp = new Date().toISOString();
+      if (data !== null) {
+        console.log(`[${stamp}] [${scope}] ${message}`, data);
+      } else {
+        console.log(`[${stamp}] [${scope}] ${message}`);
+      }
+    }
+
+    function getApiBases() {
+      return [...new Set([API_BASE, API_FALLBACK_BASE])];
+    }
+
+    async function apiFetchJson(path, options = {}) {
+      const bases = getApiBases();
+      let lastError = null;
+
+      for (const base of bases) {
+        const url = `${base}${path}`;
+        try {
+          debugLog('apiFetchJson', `${options.method || 'GET'} ${url}`);
+          const res = await fetch(url, options);
+          const raw = await res.text();
+          let data = null;
+
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            if (!res.ok || /^\s*</.test(raw)) {
+              throw new Error(
+                `Non-JSON response from ${url} (HTTP ${res.status}). ` +
+                `First chars: ${raw.slice(0, 80)}`
+              );
+            }
+          }
+
+          if (!res.ok) {
+            const msg = data && data.error ? data.error : `HTTP ${res.status}`;
+            throw new Error(`${msg} at ${url}`);
+          }
+
+          debugLog('apiFetchJson', `Response ${res.status} ${url}`, data);
+          return data;
+        } catch (err) {
+          debugLog('apiFetchJson', `Failed ${url}`, { error: err.message });
+          lastError = err;
+        }
+      }
+
+      throw lastError || new Error(`API request failed for ${path}`);
+    }
+
     function setCurrentScript(id, title = '') {
       currentScriptId = id || null;
       currentScriptTitle = title || '';
@@ -285,19 +341,16 @@
         blockly: state,
         meta
       };
-
-      const res = await fetch('/braillestudio/blockly-api/save.php', {
+      const data = await apiFetchJson('/save.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      return await res.json();
+      return data;
     }
 
     async function loadScript(id) {
-      const res = await fetch(`/braillestudio/blockly-api/load.php?id=${encodeURIComponent(id)}`);
-      const data = await res.json();
+      const data = await apiFetchJson(`/load.php?id=${encodeURIComponent(id)}`);
 
       if (!data.ok && data.error) {
         throw new Error(data.error);
@@ -309,19 +362,17 @@
     }
 
     async function listScripts() {
-      const res = await fetch('/braillestudio/blockly-api/list.php');
-      const data = await res.json();
+      const data = await apiFetchJson('/list.php');
       return data.items || [];
     }
 
     async function deleteScript(id) {
-      const res = await fetch('/braillestudio/blockly-api/delete.php', {
+      const data = await apiFetchJson('/delete.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
-
-      return await res.json();
+      return data;
     }
 
     async function saveLesson(id, title, word, steps, meta = {}, overwrite = true) {
@@ -333,24 +384,20 @@
         meta,
         overwrite
       };
-
-      const res = await fetch('/braillestudio/blockly-api/save_lesson.php', {
+      const data = await apiFetchJson('/save_lesson.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
-      return await res.json();
+      return data;
     }
 
     async function loadLesson(id) {
-      const res = await fetch(`/braillestudio/blockly-api/load_lesson.php?id=${encodeURIComponent(id)}`);
-      return await res.json();
+      return await apiFetchJson(`/load_lesson.php?id=${encodeURIComponent(id)}`);
     }
 
     async function listLessons() {
-      const res = await fetch('/braillestudio/blockly-api/list_lessons.php');
-      const data = await res.json();
+      const data = await apiFetchJson('/list_lessons.php');
       return data.items || [];
     }
 
@@ -408,12 +455,14 @@
 
     async function refreshScripts() {
       const items = await listScripts();
+      debugLog('refreshScripts', `Rendering ${items.length} script items`);
       renderScriptsSelect(items);
       return items;
     }
 
     async function refreshLessons() {
       const items = await listLessons();
+      debugLog('refreshLessons', `Rendering ${items.length} lesson items`);
       renderLessonsSelect(items);
       return items;
     }

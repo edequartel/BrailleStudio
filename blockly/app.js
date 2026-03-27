@@ -50,8 +50,7 @@ function formatLogValue(value) {
 
 function renderWsControl() {
   const btn = document.getElementById('wsToggleBtn');
-  const label = document.getElementById('wsToggleLabel');
-  if (!btn || !label) return;
+  if (!btn) return;
 
   const isConnected = !!ws && ws.readyState === WebSocket.OPEN;
 
@@ -60,13 +59,11 @@ function renderWsControl() {
   if (isConnected) {
     btn.classList.add('is-connected');
     btn.setAttribute('aria-label', 'Disconnect WebSocket');
-    label.textContent = 'WS Connected';
     return;
   }
 
   btn.classList.add('is-disconnected');
   btn.setAttribute('aria-label', 'Connect WebSocket');
-  label.textContent = 'Connect WS';
 }
 
 function setWsBadge(isConnected) {
@@ -112,13 +109,18 @@ function renderGridSnapControl() {
   if (!btn) return;
   btn.classList.toggle('is-active', !!gridSnapEnabled);
   btn.setAttribute('aria-pressed', gridSnapEnabled ? 'true' : 'false');
-  btn.textContent = gridSnapEnabled ? 'Snap Grid On' : 'Snap Grid Off';
+  btn.textContent = gridSnapEnabled ? 'Snap On' : 'Snap Off';
 }
 
 function renderFileState() {
   const badge = document.getElementById('fileStateBadge');
+  const text = document.getElementById('fileStateText');
   if (!badge) return;
-  badge.textContent = workspaceDirty ? 'Unsaved changes' : 'Saved';
+  const setText = (value) => {
+    if (text) text.textContent = value;
+    else badge.textContent = value;
+  };
+  setText('');
   badge.classList.toggle('is-dirty', workspaceDirty);
 }
 
@@ -133,14 +135,29 @@ function setWorkspaceDirty(isDirty) {
   renderFileState();
 }
 
+function getCurrentOnlineScriptTitle() {
+  const titleInput = document.getElementById('onlineScriptTitleInput');
+  return String(titleInput?.value || '').trim();
+}
+
+function getCurrentOnlineScriptStatus() {
+  const statusInput = document.getElementById('onlineScriptStatusInput');
+  return String(statusInput?.value || 'draft').trim() || 'draft';
+}
+
 function markWorkspaceSaved(signature = null) {
   lastSavedWorkspaceSignature = signature == null ? getWorkspaceSignature() : String(signature);
+  lastSavedOnlineScriptTitle = getCurrentOnlineScriptTitle();
+  lastSavedOnlineScriptStatus = getCurrentOnlineScriptStatus();
   setWorkspaceDirty(false);
 }
 
 function refreshWorkspaceDirtyState() {
   if (suppressDirtyTracking > 0) return;
-  setWorkspaceDirty(getWorkspaceSignature() !== lastSavedWorkspaceSignature);
+  const signatureChanged = getWorkspaceSignature() !== lastSavedWorkspaceSignature;
+  const titleChanged = getCurrentOnlineScriptTitle() !== lastSavedOnlineScriptTitle;
+  const statusChanged = getCurrentOnlineScriptStatus() !== lastSavedOnlineScriptStatus;
+  setWorkspaceDirty(signatureChanged || titleChanged || statusChanged);
 }
 
 async function showUnsavedChangesDialog(actionLabel) {
@@ -198,7 +215,11 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
     return false;
   }
   if (choice === 'save') {
-    const saved = await saveWorkspace({ skipNoChangesLog: true });
+    const onlineIdInput = document.getElementById('onlineScriptIdInput');
+    const onlineTargetId = String(onlineIdInput?.value || currentOnlineScriptId || '').trim();
+    const saved = onlineTargetId
+      ? await saveWorkspaceOnline({ overwrite: true })
+      : await saveWorkspace({ skipNoChangesLog: true });
     if (!saved) {
       log(`${actionLabel} cancelled`);
       return false;
@@ -248,6 +269,7 @@ const SOUND_FOLDER_URLS = {
 };
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
+const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
@@ -261,7 +283,10 @@ let workspace = null;
 let klankenJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
+let lastSavedOnlineScriptTitle = '';
+let lastSavedOnlineScriptStatus = 'draft';
 let suppressDirtyTracking = 0;
+let currentOnlineScriptId = '';
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 
@@ -329,6 +354,295 @@ function applyGridSnap(enabled) {
   }
   localStorage.setItem(BLOCKLY_GRID_SNAP_KEY, gridSnapEnabled ? 'true' : 'false');
   renderGridSnapControl();
+}
+
+function getOnlineApiBases() {
+  return [...new Set([ONLINE_SCRIPT_API_BASE])];
+}
+
+async function onlineApiFetchJson(path, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase();
+  let lastError = null;
+
+  for (const base of getOnlineApiBases()) {
+    const url = `${base}${path}`;
+    try {
+      log(`Online API -> ${method} ${url}`);
+      const res = await fetch(url, options);
+      const raw = await res.text();
+      let data = null;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(`Non-JSON response for ${method} ${url} (HTTP ${res.status})`);
+      }
+      if (!res.ok || (data && data.ok === false)) {
+        const msg = data && data.error ? data.error : `HTTP ${res.status}`;
+        throw new Error(`${msg} (${method} ${url})`);
+      }
+      log(`Online API <- ${res.status} ${method} ${url}`);
+      return data;
+    } catch (err) {
+      log(`Online API failed: ${method} ${url} :: ${err.message}`);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error(`Online API failed for ${method} ${path}`);
+}
+
+function readOnlineScriptInputs() {
+  const idInput = document.getElementById('onlineScriptIdInput');
+  const titleInput = document.getElementById('onlineScriptTitleInput');
+  const statusInput = document.getElementById('onlineScriptStatusInput');
+  return {
+    id: String(idInput?.value || '').trim(),
+    title: String(titleInput?.value || '').trim(),
+    status: String(statusInput?.value || 'draft').trim() || 'draft'
+  };
+}
+
+function setOnlineScriptInputs({ id = '', title = '', status = 'draft' } = {}) {
+  const idInput = document.getElementById('onlineScriptIdInput');
+  const titleInput = document.getElementById('onlineScriptTitleInput');
+  const statusInput = document.getElementById('onlineScriptStatusInput');
+  if (idInput) idInput.value = String(id || '');
+  if (titleInput) titleInput.value = String(title || '');
+  if (statusInput) statusInput.value = String(status || 'draft');
+}
+
+function setOnlineCurrentScript({ id = '', title = '', status = 'draft' } = {}) {
+  currentOnlineScriptId = String(id || '').trim();
+  setOnlineScriptInputs({
+    id: currentOnlineScriptId,
+    title: String(title || '').trim(),
+    status: String(status || 'draft')
+  });
+  renderFileState();
+}
+
+function renderOnlineScriptsSelect(items) {
+  const select = document.getElementById('onlineScriptsSelect');
+  if (!select) return;
+
+  const normalized = Array.isArray(items) ? items : [];
+  select.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- Select online script --';
+  select.appendChild(placeholder);
+
+  for (const item of normalized) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const title = String(item?.title || '').trim();
+    const status = String(item?.meta?.status || 'draft').trim() || 'draft';
+    const option = document.createElement('option');
+    option.value = id;
+    option.dataset.title = title;
+    option.dataset.status = status;
+    option.textContent = title ? `${id} - ${title}` : id;
+    select.appendChild(option);
+  }
+
+  if (currentOnlineScriptId) {
+    select.value = currentOnlineScriptId;
+  }
+}
+
+async function listOnlineScripts() {
+  log('Online scripts: listing');
+  const data = await onlineApiFetchJson(`/list.php?_=${Date.now()}`);
+  const count = Array.isArray(data?.items) ? data.items.length : 0;
+  log(`Online scripts: list received (${count})`);
+  return Array.isArray(data?.items) ? data.items : [];
+}
+
+async function refreshOnlineScripts() {
+  const items = await listOnlineScripts();
+  renderOnlineScriptsSelect(items);
+  log(`Online scripts refreshed (${items.length})`);
+  return items;
+}
+
+async function saveWorkspaceOnline({ overwrite = true } = {}) {
+  if (!workspace) throw new Error('Blockly workspace is not ready');
+
+  const { id, title, status } = readOnlineScriptInputs();
+  if (!id) {
+    throw new Error('Online script id is required');
+  }
+
+  const metadata = readScriptMetadataFromInputs();
+  const payload = {
+    id,
+    title: title || metadata.title || id,
+    overwrite: !!overwrite,
+    blockly: Blockly.serialization.workspaces.save(workspace),
+    meta: {
+      title: metadata.title || '',
+      description: metadata.description || '',
+      status
+    }
+  };
+  const blockCount = Array.isArray(payload?.blockly?.blocks?.blocks)
+    ? payload.blockly.blocks.blocks.length
+    : 0;
+  log(`Online save requested: id=${payload.id}, overwrite=${payload.overwrite}, blocks=${blockCount}`);
+
+  const data = await onlineApiFetchJson('/save.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  setOnlineCurrentScript({ id: data?.id || id, title: payload.title, status });
+  markWorkspaceSaved(getWorkspaceSignature());
+  await refreshOnlineScripts();
+  log(`Online script saved: ${data?.id || id}`);
+  return data;
+}
+
+async function saveWorkspaceOnlineAs() {
+  const current = readOnlineScriptInputs();
+  const suggestedId = current.id || currentOnlineScriptId || '';
+  const suggestedTitle = current.title || readScriptMetadataFromInputs().title || suggestedId;
+
+  const newId = prompt('Online script id:', suggestedId);
+  if (!newId) return false;
+  const normalizedId = String(newId).trim();
+  if (!normalizedId) return false;
+
+  const newTitle = prompt('Online script title:', suggestedTitle || normalizedId) || normalizedId;
+  log(`Online Save As requested: id=${normalizedId}`);
+  setOnlineScriptInputs({ id: normalizedId, title: String(newTitle).trim() || normalizedId });
+  await saveWorkspaceOnline({ overwrite: false });
+  return true;
+}
+
+async function copyWorkspaceJsonToClipboard() {
+  if (!workspace) {
+    throw new Error('Blockly workspace is not ready');
+  }
+
+  const data = Blockly.serialization.workspaces.save(workspace);
+  const jsonText = JSON.stringify(data, null, 2);
+
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    await navigator.clipboard.writeText(jsonText);
+    log('Blockly JSON copied to clipboard');
+    return;
+  }
+
+  const temp = document.createElement('textarea');
+  temp.value = jsonText;
+  temp.setAttribute('readonly', '');
+  temp.style.position = 'fixed';
+  temp.style.top = '-9999px';
+  temp.style.left = '-9999px';
+  document.body.appendChild(temp);
+  temp.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(temp);
+  if (!ok) {
+    throw new Error('Clipboard not available');
+  }
+  log('Blockly JSON copied to clipboard');
+}
+
+async function importWorkspaceJsonFromClipboard() {
+  if (!workspace) {
+    throw new Error('Blockly workspace is not ready');
+  }
+
+  if (!(await confirmActionWithUnsavedChanges('importing JSON from clipboard'))) return false;
+
+  let jsonText = '';
+  if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+    jsonText = await navigator.clipboard.readText();
+  } else {
+    const fallback = prompt('Paste Blockly JSON:');
+    jsonText = fallback == null ? '' : String(fallback);
+  }
+
+  if (!jsonText.trim()) {
+    throw new Error('Clipboard is empty');
+  }
+
+  let state;
+  try {
+    state = JSON.parse(jsonText);
+  } catch {
+    throw new Error('Clipboard does not contain valid JSON');
+  }
+
+  if (!state || typeof state !== 'object') {
+    throw new Error('Invalid Blockly JSON structure');
+  }
+
+  suppressDirtyTracking++;
+  workspace.clear();
+  Blockly.serialization.workspaces.load(state, workspace);
+  ensureDefaultVariable();
+  initVariableValues();
+  suppressDirtyTracking--;
+  setWorkspaceDirty(true);
+  log('Blockly JSON imported from clipboard');
+  return true;
+}
+
+async function loadWorkspaceOnline(id) {
+  if (!workspace) throw new Error('Blockly workspace is not ready');
+  const targetId = String(id || '').trim();
+  if (!targetId) throw new Error('Online script id is required');
+  log(`Online load requested: id=${targetId}`);
+
+  const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}`);
+  const state = data?.blockly;
+  if (!state || typeof state !== 'object') {
+    throw new Error('Loaded script does not contain valid Blockly JSON');
+  }
+
+  suppressDirtyTracking++;
+  workspace.clear();
+  Blockly.serialization.workspaces.load(state, workspace);
+  ensureDefaultVariable();
+  initVariableValues();
+  suppressDirtyTracking--;
+
+  const meta = data?.meta && typeof data.meta === 'object' ? data.meta : {};
+  renderScriptMetadata({
+    title: String(meta.title || data.title || targetId),
+    description: String(meta.description || '')
+  });
+  setOnlineCurrentScript({
+    id: String(data?.id || targetId),
+    title: String(data?.title || ''),
+    status: String(meta.status || 'draft')
+  });
+  markWorkspaceSaved(getWorkspaceSignature());
+  log(`Online script loaded: ${targetId}`);
+  return data;
+}
+
+async function deleteWorkspaceOnline(id) {
+  const targetId = String(id || '').trim();
+  if (!targetId) throw new Error('Online script id is required');
+  log(`Online delete requested: id=${targetId}`);
+
+  const data = await onlineApiFetchJson('/delete.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: targetId })
+  });
+
+  if (currentOnlineScriptId === targetId) {
+    setOnlineCurrentScript({ id: '', title: '' });
+  }
+  await refreshOnlineScripts();
+  log(`Online script deleted: ${targetId}`);
+  return data;
 }
 
 /* ---------------- WebSocket ---------------- */
@@ -856,12 +1170,85 @@ function bindAppControls() {
 
   bind('runBtn', 'click', onRunClicked);
   bind('stopBtn', 'click', onStopClicked);
+  bind('clearBtn', 'click', newWorkspace);
   bind('saveBtn', 'click', saveWorkspace);
   bind('loadBtn', 'click', openWorkspaceFile);
   bind('gridSnapBtn', 'click', () => {
     applyGridSnap(!gridSnapEnabled);
   });
   bind('newBtn', 'click', newWorkspace);
+  bind('onlineRefreshBtn', 'click', async () => {
+    try {
+      await refreshOnlineScripts();
+    } catch (err) {
+      log('Online refresh failed: ' + err.message);
+      alert('Could not refresh online scripts: ' + err.message);
+    }
+  });
+  bind('onlineSaveBtn', 'click', async () => {
+    try {
+      await saveWorkspaceOnline({ overwrite: true });
+    } catch (err) {
+      log('Online save failed: ' + err.message);
+      alert('Could not save online script: ' + err.message);
+    }
+  });
+  bind('copyJsonBtn', 'click', async () => {
+    try {
+      await copyWorkspaceJsonToClipboard();
+    } catch (err) {
+      log('Copy JSON failed: ' + err.message);
+      alert('Could not copy Blockly JSON: ' + err.message);
+    }
+  });
+  bind('importJsonBtn', 'click', async () => {
+    try {
+      await importWorkspaceJsonFromClipboard();
+    } catch (err) {
+      log('Import JSON failed: ' + err.message);
+      alert('Could not import Blockly JSON: ' + err.message);
+    }
+  });
+  bind('onlineSaveAsBtn', 'click', async () => {
+    try {
+      await saveWorkspaceOnlineAs();
+    } catch (err) {
+      log('Online Save As failed: ' + err.message);
+      alert('Could not save online script: ' + err.message);
+    }
+  });
+  bind('onlineLoadBtn', 'click', async () => {
+    const idInput = document.getElementById('onlineScriptIdInput');
+    const select = document.getElementById('onlineScriptsSelect');
+    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim();
+    if (!id) {
+      alert('Select or enter an online script id first.');
+      return;
+    }
+    if (!(await confirmActionWithUnsavedChanges('loading an online script'))) return;
+    try {
+      await loadWorkspaceOnline(id);
+    } catch (err) {
+      log('Online load failed: ' + err.message);
+      alert('Could not load online script: ' + err.message);
+    }
+  });
+  bind('onlineDeleteBtn', 'click', async () => {
+    const idInput = document.getElementById('onlineScriptIdInput');
+    const select = document.getElementById('onlineScriptsSelect');
+    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentOnlineScriptId;
+    if (!id) {
+      alert('Select or enter an online script id first.');
+      return;
+    }
+    if (!confirm(`Delete online script "${id}"?`)) return;
+    try {
+      await deleteWorkspaceOnline(id);
+    } catch (err) {
+      log('Online delete failed: ' + err.message);
+      alert('Could not delete online script: ' + err.message);
+    }
+  });
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -929,6 +1316,8 @@ function bindAppControls() {
 
   const metaTitle = document.getElementById('scriptMetaTitle');
   const metaDescription = document.getElementById('scriptMetaDescription');
+  const onlineTitle = document.getElementById('onlineScriptTitleInput');
+  const onlineStatus = document.getElementById('onlineScriptStatusInput');
   if (metaTitle && !metaTitle.dataset.initialized) {
     metaTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaTitle.dataset.initialized = '1';
@@ -936,6 +1325,46 @@ function bindAppControls() {
   if (metaDescription && !metaDescription.dataset.initialized) {
     metaDescription.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaDescription.dataset.initialized = '1';
+  }
+  if (onlineTitle && !onlineTitle.dataset.initialized) {
+    onlineTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
+    onlineTitle.dataset.initialized = '1';
+  }
+  if (onlineStatus && !onlineStatus.dataset.initialized) {
+    onlineStatus.addEventListener('change', () => refreshWorkspaceDirtyState());
+    onlineStatus.dataset.initialized = '1';
+  }
+
+  const onlineSelect = document.getElementById('onlineScriptsSelect');
+  if (onlineSelect && !onlineSelect.dataset.initialized) {
+    onlineSelect.addEventListener('change', async () => {
+      const previousOnlineId = currentOnlineScriptId;
+      const previousOnlineTitle = String(document.getElementById('onlineScriptTitleInput')?.value || '').trim();
+      const previousOnlineStatus = String(document.getElementById('onlineScriptStatusInput')?.value || 'draft').trim() || 'draft';
+      const selectedId = String(onlineSelect.value || '').trim();
+      if (!selectedId) return;
+      const selectedOption = onlineSelect.selectedOptions && onlineSelect.selectedOptions[0]
+        ? onlineSelect.selectedOptions[0]
+        : null;
+      const selectedTitle = String(selectedOption?.dataset?.title || '').trim();
+      const selectedStatus = String(selectedOption?.dataset?.status || 'draft').trim() || 'draft';
+      if (!(await confirmActionWithUnsavedChanges('loading an online script'))) {
+        onlineSelect.value = previousOnlineId || '';
+        setOnlineCurrentScript({ id: previousOnlineId, title: previousOnlineTitle, status: previousOnlineStatus });
+        return;
+      }
+      try {
+        setOnlineScriptInputs({ id: selectedId, title: selectedTitle, status: selectedStatus });
+        await loadWorkspaceOnline(selectedId);
+        log(`Online script selected: ${selectedId}`);
+      } catch (err) {
+        log('Online auto-load failed: ' + err.message);
+        alert('Could not load online script: ' + err.message);
+        onlineSelect.value = previousOnlineId || '';
+        setOnlineCurrentScript({ id: previousOnlineId, title: previousOnlineTitle, status: previousOnlineStatus });
+      }
+    });
+    onlineSelect.dataset.initialized = '1';
   }
 }
 
@@ -1033,6 +1462,12 @@ workspace.addChangeListener(() => {
 ensureDefaultVariable();
 initVariableValues();
 setBootStage('workspace-ready');
+
+setTimeout(() => {
+  refreshOnlineScripts().catch(err => {
+    log('Online scripts startup load failed: ' + err.message);
+  });
+}, 0);
 
 function getVariableIdFromBlock(block) {
   const field = block.getField('VAR');
