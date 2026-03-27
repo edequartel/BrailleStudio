@@ -8,6 +8,7 @@ function setBootStage(stage, extra = {}) {
 setBootStage('app-script-start');
 
 let externalLogHandler = null;
+let brailleMonitorUi = null;
 
 function log(message) {
   const text = String(message ?? '');
@@ -23,8 +24,8 @@ function log(message) {
   const box = document.getElementById('logBox');
   const now = new Date().toLocaleTimeString();
   const line = `[${now}] ${text}`;
-  box.value += `${line}\n`;
-  box.scrollTop = box.scrollHeight;
+  box.value = `${line}\n${box.value}`;
+  box.scrollTop = 0;
   if (typeof externalLogHandler === 'function') {
     try {
       externalLogHandler(line);
@@ -72,9 +73,44 @@ function setWsBadge(isConnected) {
 }
 
 function renderBrailleLine(msg) {
-  document.getElementById('brailleLineBox').textContent = msg
-    ? JSON.stringify(msg, null, 2)
-    : '';
+  const box = document.getElementById('brailleLineBox');
+  if (box) {
+    box.textContent = msg
+      ? JSON.stringify(msg, null, 2)
+      : '';
+  }
+
+  if (!brailleMonitorUi && window.BrailleMonitor && typeof window.BrailleMonitor.init === 'function') {
+    const host = document.getElementById('brailleMonitorComponent');
+    if (host) {
+      brailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'brailleMonitorComponent',
+        showInfo: false
+      });
+    }
+  }
+
+  if (!brailleMonitorUi) return;
+  if (!msg) {
+    brailleMonitorUi.clear();
+    return;
+  }
+
+  const brailleUnicode = String(msg?.braille?.unicodeText ?? '');
+  const sourceText = String(msg?.sourceText ?? '');
+  const caretPosition = Number.isInteger(msg?.meta?.caretCellPosition)
+    ? msg.meta.caretCellPosition
+    : msg?.caret?.cellIndex;
+  const textCaretPosition = Number.isInteger(msg?.meta?.caretTextPosition)
+    ? msg.meta.caretTextPosition
+    : msg?.caret?.textIndex;
+  const caretVisible = typeof msg?.caretVisible === 'boolean' ? msg.caretVisible : true;
+
+  brailleMonitorUi.setBrailleUnicode(brailleUnicode, sourceText, {
+    caretPosition,
+    textCaretPosition,
+    caretVisible
+  });
 }
 
 function renderScriptMetadata(meta = null) {
@@ -109,6 +145,25 @@ function renderGridSnapControl() {
   btn.classList.toggle('is-active', !!gridSnapEnabled);
   btn.setAttribute('aria-pressed', gridSnapEnabled ? 'true' : 'false');
   btn.textContent = gridSnapEnabled ? 'Snap On' : 'Snap Off';
+}
+
+function renderSidebarToggleControl() {
+  const btn = document.getElementById('sidebarToggleBtn');
+  const main = document.getElementById('main');
+  if (!btn || !main) return;
+  const isHidden = main.classList.contains('is-sidebar-hidden');
+  btn.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+  btn.textContent = isHidden ? 'Show Right' : 'Hide Right';
+}
+
+function toggleSidebarPanel() {
+  const main = document.getElementById('main');
+  if (!main) return;
+  main.classList.toggle('is-sidebar-hidden');
+  renderSidebarToggleControl();
+  if (workspace && typeof Blockly !== 'undefined' && typeof Blockly.svgResize === 'function') {
+    setTimeout(() => Blockly.svgResize(workspace), 0);
+  }
 }
 
 function renderFileState() {
@@ -1226,6 +1281,9 @@ function bindAppControls() {
   bind('gridSnapBtn', 'click', () => {
     applyGridSnap(!gridSnapEnabled);
   });
+  bind('sidebarToggleBtn', 'click', () => {
+    toggleSidebarPanel();
+  });
   bind('newBtn', 'click', newWorkspace);
   bind('onlineRefreshBtn', 'click', async () => {
     try {
@@ -1339,6 +1397,7 @@ function bindAppControls() {
     await resumeSound();
   });
   bind('stopSoundBtn', 'click', stopSound);
+  bind('clearLogBtn', 'click', clearLogBox);
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
     baseUrlBox.textContent = SOUND_BASE_URL;
@@ -1362,6 +1421,16 @@ function bindAppControls() {
     gridSnapEnabled = savedSnap !== 'false';
     renderGridSnapControl();
     gridSnapBtn.dataset.initialized = '1';
+  }
+
+  const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+  if (sidebarToggleBtn && !sidebarToggleBtn.dataset.initialized) {
+    const main = document.getElementById('main');
+    if (main) {
+      main.classList.remove('is-sidebar-hidden');
+    }
+    renderSidebarToggleControl();
+    sidebarToggleBtn.dataset.initialized = '1';
   }
 
   const metaTitle = document.getElementById('scriptMetaTitle');

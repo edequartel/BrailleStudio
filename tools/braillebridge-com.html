@@ -421,6 +421,10 @@
                 <span>Editor mode</span>
                 <span class="dot" id="editorModeDot"></span>
               </div>
+              <div class="pill">
+                <span>Insert mode</span>
+                <span class="dot warn" id="insertModeDot"></span>
+              </div>
             </div>
           </div>
 
@@ -435,6 +439,11 @@
             <div class="inline" style="margin-top:8px;">
               <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
               <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
+              <button class="btn" id="wsSetInsertModeOnBtn">Insert mode ON</button>
+              <button class="btn danger" id="wsSetInsertModeOffBtn">Insert mode OFF</button>
+              <button class="btn" id="wsGetLineBtn">getBrailleLine</button>
             </div>
 
             <div class="row" style="margin-top:12px;">
@@ -458,6 +467,8 @@
               <label for="wsKeyValue">key</label>
               <select id="wsKeyValue">
                 <option>Backspace</option>
+                <option>Delete</option>
+                <option>DEL</option>
                 <option>Space</option>
                 <option>Enter</option>
                 <option>ArrowLeft</option>
@@ -468,6 +479,32 @@
             </div>
             <div class="inline" style="margin-top:10px;">
               <button class="btn" id="wsSendInputBtn">Send editorInput</button>
+            </div>
+            <div class="row" style="margin-top:12px;">
+              <div>
+                <label for="wsCaretTextIndex">setCaret textIndex</label>
+                <input id="wsCaretTextIndex" type="text" value="0" />
+              </div>
+              <div>
+                <label for="wsCaretCellIndex">cellIndex</label>
+                <input id="wsCaretCellIndex" type="text" value="0" />
+              </div>
+            </div>
+            <div class="inline" style="margin-top:10px;">
+              <button class="btn" id="wsSetCaretBtn">setCaret</button>
+              <button class="btn" id="wsMoveCaretCharLeftBtn">moveCaret -1 char</button>
+              <button class="btn" id="wsMoveCaretCharRightBtn">moveCaret +1 char</button>
+              <button class="btn" id="wsMoveCaretCellRightBtn">moveCaret +1 cell</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
+              <button class="btn" id="wsSetCaretFromCellBtn">setCaretFromCell</button>
+              <button class="btn" id="wsCursorRoutingBtn">cursorRouting</button>
+              <button class="btn" id="wsCaretToBeginBtn">setCaretToBegin</button>
+              <button class="btn" id="wsCaretToEndBtn">setCaretToEnd</button>
+            </div>
+            <div class="inline" style="margin-top:8px;">
+              <button class="btn" id="wsCaretVisibleOnBtn">caret visible ON</button>
+              <button class="btn danger" id="wsCaretVisibleOffBtn">caret visible OFF</button>
             </div>
 
 
@@ -504,12 +541,22 @@
               </div>
               <div class="row">
                 <div>
-                  <label for="brailleCaretPosition">CaretPosition</label>
-                  <input id="brailleCaretPosition" type="text" readonly />
+                  <label for="brailleCaretTextPosition">CaretTextPosition</label>
+                  <input id="brailleCaretTextPosition" type="text" readonly />
                 </div>
+                <div>
+                  <label for="brailleCaretCellPosition">CaretCellPosition</label>
+                  <input id="brailleCaretCellPosition" type="text" readonly />
+                </div>
+              </div>
+              <div class="row">
                 <div>
                   <label for="brailleLineLength">LineLength</label>
                   <input id="brailleLineLength" type="text" readonly />
+                </div>
+                <div>
+                  <label for="brailleStatusModes">Status (editor/insert)</label>
+                  <input id="brailleStatusModes" type="text" readonly />
                 </div>
               </div>
               <div>
@@ -691,14 +738,32 @@
       const wsKeyValue = el("wsKeyValue");
       const wsSendModeBtn = el("wsSendModeBtn");
       const wsSendModeDisableBtn = el("wsSendModeDisableBtn");
+      const wsSetInsertModeOnBtn = el("wsSetInsertModeOnBtn");
+      const wsSetInsertModeOffBtn = el("wsSetInsertModeOffBtn");
+      const wsGetLineBtn = el("wsGetLineBtn");
+      const wsSetCaretBtn = el("wsSetCaretBtn");
+      const wsMoveCaretCharLeftBtn = el("wsMoveCaretCharLeftBtn");
+      const wsMoveCaretCharRightBtn = el("wsMoveCaretCharRightBtn");
+      const wsMoveCaretCellRightBtn = el("wsMoveCaretCellRightBtn");
+      const wsSetCaretFromCellBtn = el("wsSetCaretFromCellBtn");
+      const wsCursorRoutingBtn = el("wsCursorRoutingBtn");
+      const wsCaretToBeginBtn = el("wsCaretToBeginBtn");
+      const wsCaretToEndBtn = el("wsCaretToEndBtn");
+      const wsCaretVisibleOnBtn = el("wsCaretVisibleOnBtn");
+      const wsCaretVisibleOffBtn = el("wsCaretVisibleOffBtn");
+      const wsCaretTextIndex = el("wsCaretTextIndex");
+      const wsCaretCellIndex = el("wsCaretCellIndex");
       const editorModeDot = el("editorModeDot");
       const editorModeText = el("editorModeText");
+      const insertModeDot = el("insertModeDot");
 
       const brailleUnicode = el("brailleUnicode");
       const brailleTable = el("brailleTable");
       const brailleTimestamp = el("brailleTimestamp");
-      const brailleCaretPosition = el("brailleCaretPosition");
+      const brailleCaretTextPosition = el("brailleCaretTextPosition");
+      const brailleCaretCellPosition = el("brailleCaretCellPosition");
       const brailleLineLength = el("brailleLineLength");
+      const brailleStatusModes = el("brailleStatusModes");
       const brailleSourceText = el("brailleSourceText");
 
       const cursorCellIndex = el("cursorCellIndex");
@@ -816,6 +881,11 @@
           editorModeText.textContent = enabled === true ? "enabled" : enabled === false ? "disabled" : "unknown";
         }
       }
+      function setInsertModeStatus(enabled) {
+        if (!insertModeDot) return;
+        insertModeDot.classList.toggle("ok", enabled === true);
+        insertModeDot.classList.toggle("warn", enabled !== true && enabled !== false);
+      }
       // Copy/Clear log
       copyLogBtn.addEventListener("click", async () => {
         try {
@@ -927,10 +997,13 @@
       let ws = null;
       let lastWsJsonLog = null;
       let lastSsocLineId = null;
-      let lastSsocCaretPosition = null;
+      let lastSsocCaretCellPosition = null;
+      let lastSsocTextCaretPosition = null;
       let lastSsocCaretVisible = null;
       const VALID_EDITOR_KEYS = [
         "Backspace",
+        "Delete",
+        "DEL",
         "Space",
         "Enter",
         "ArrowLeft",
@@ -961,22 +1034,27 @@
         if (unicodeText == null) return false;
 
         const sourceText = typeof msg?.sourceText === "string" ? msg.sourceText : "";
-        const caretPosition = Number.isInteger(msg?.meta?.caretPosition) ? msg.meta.caretPosition : null;
+        const textCaretPosition = Number.isInteger(msg?.meta?.caretTextPosition) ? msg.meta.caretTextPosition : null;
+        const caretPosition = Number.isInteger(msg?.meta?.caretCellPosition)
+          ? msg.meta.caretCellPosition
+          : (Number.isInteger(msg?.caret?.cellIndex) ? msg.caret.cellIndex : null);
         const caretVisible = typeof msg?.caretVisible === "boolean" ? msg.caretVisible : true;
         const lineId = msg?.meta?.lineId;
 
         if (
           typeof lineId === "number" &&
           lineId === lastSsocLineId &&
-          caretPosition === lastSsocCaretPosition &&
+          caretPosition === lastSsocCaretCellPosition &&
+          textCaretPosition === lastSsocTextCaretPosition &&
           caretVisible === lastSsocCaretVisible
         ) {
           return true;
         }
 
-        monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition, caretVisible });
+        monitor.setBrailleUnicode(unicodeText, sourceText, { caretPosition, textCaretPosition, caretVisible });
         if (typeof lineId === "number") lastSsocLineId = lineId;
-        lastSsocCaretPosition = caretPosition;
+        lastSsocCaretCellPosition = caretPosition;
+        lastSsocTextCaretPosition = textCaretPosition;
         lastSsocCaretVisible = caretVisible;
         return true;
       }
@@ -1054,7 +1132,8 @@
         appendLog("WS → close");
         try { ws.close(1000, "client closed"); } catch {}
         lastSsocLineId = null;
-        lastSsocCaretPosition = null;
+        lastSsocCaretCellPosition = null;
+        lastSsocTextCaretPosition = null;
         lastSsocCaretVisible = null;
         if (monitor && typeof monitor.setBrailleUnicode === "function") {
           monitor.setBrailleUnicode("", "");
@@ -1092,6 +1171,17 @@
       function wsSendEditorModeDisable() {
         wsSendJson({ type: "command", command: "setEditorMode", enabled: false }, "setEditorMode");
         setEditorModeStatus(false);
+      }
+
+      function wsSendInsertMode(enabled) {
+        wsSendJson({ type: "command", command: "setEditorInsertMode", enabled: !!enabled }, "setEditorInsertMode");
+        setInsertModeStatus(!!enabled);
+      }
+
+      function toNonNegativeInt(value, fallback = 0) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return fallback;
+        return Math.max(0, Math.floor(n));
       }
 
       function handleWsText(text) {
@@ -1178,12 +1268,26 @@
           if (brailleUnicode) brailleUnicode.value = unicodeText;
           const activeTable = meta.ActiveTable || meta.activeTable || braille.Table || braille.table || "";
           const createdUtc = meta.CreatedUtc || meta.createdUtc || ts;
-          const caretPosition = typeof meta.CaretPosition !== "undefined" ? meta.CaretPosition : meta.caretPosition;
+          const caretTextPosition =
+            typeof meta.CaretTextPosition !== "undefined" ? meta.CaretTextPosition
+            : (typeof meta.caretTextPosition !== "undefined" ? meta.caretTextPosition
+            : (typeof o?.caret?.textIndex !== "undefined" ? o.caret.textIndex : ""));
+          const caretCellPosition =
+            typeof meta.CaretCellPosition !== "undefined" ? meta.CaretCellPosition
+            : (typeof meta.caretCellPosition !== "undefined" ? meta.caretCellPosition
+            : (typeof o?.caret?.cellIndex !== "undefined" ? o.caret.cellIndex : ""));
           const lineLength = typeof meta.LineLength !== "undefined" ? meta.LineLength : meta.lineLength;
+          const status = o.Status || o.status || {};
+          const editorMode = typeof status.EditorMode !== "undefined" ? status.EditorMode : status.editorMode;
+          const insertMode = typeof status.InsertMode !== "undefined" ? status.InsertMode : status.insertMode;
+          if (typeof editorMode === "string") setEditorModeStatus(editorMode.toLowerCase() === "on");
+          if (typeof insertMode === "string") setInsertModeStatus(insertMode.toLowerCase() === "on");
           if (brailleTable) brailleTable.value = activeTable;
           if (brailleTimestamp) brailleTimestamp.value = formatUtcTimestamp(createdUtc);
-          if (brailleCaretPosition) brailleCaretPosition.value = typeof caretPosition !== "undefined" ? String(caretPosition) : "";
+          if (brailleCaretTextPosition) brailleCaretTextPosition.value = typeof caretTextPosition !== "undefined" ? String(caretTextPosition) : "";
+          if (brailleCaretCellPosition) brailleCaretCellPosition.value = typeof caretCellPosition !== "undefined" ? String(caretCellPosition) : "";
           if (brailleLineLength) brailleLineLength.value = typeof lineLength !== "undefined" ? String(lineLength) : "";
+          if (brailleStatusModes) brailleStatusModes.value = `${editorMode || "?"} / ${insertMode || "?"}`;
           if (brailleSourceText) brailleSourceText.value = sourceText;
           const brailleText = unicodeText || "(no braille)";
           const table = activeTable || "(no table)";
@@ -1243,12 +1347,39 @@
       if (wsInputKind) wsInputKind.addEventListener("change", renderWsInputKind);
       wsSendModeBtn.addEventListener("click", wsSendEditorMode);
       wsSendModeDisableBtn.addEventListener("click", wsSendEditorModeDisable);
+      wsSetInsertModeOnBtn.addEventListener("click", () => wsSendInsertMode(true));
+      wsSetInsertModeOffBtn.addEventListener("click", () => wsSendInsertMode(false));
+      wsGetLineBtn.addEventListener("click", () => wsSendJson({ type: "getBrailleLine" }, "getBrailleLine"));
+      wsSetCaretBtn.addEventListener("click", () => {
+        wsSendJson({ type: "setCaret", textIndex: toNonNegativeInt(wsCaretTextIndex?.value, 0) }, "setCaret");
+      });
+      wsMoveCaretCharLeftBtn.addEventListener("click", () => {
+        wsSendJson({ type: "moveCaret", by: -1, unit: "character" }, "moveCaret");
+      });
+      wsMoveCaretCharRightBtn.addEventListener("click", () => {
+        wsSendJson({ type: "moveCaret", by: 1, unit: "character" }, "moveCaret");
+      });
+      wsMoveCaretCellRightBtn.addEventListener("click", () => {
+        wsSendJson({ type: "moveCaret", by: 1, unit: "cell" }, "moveCaret");
+      });
+      wsSetCaretFromCellBtn.addEventListener("click", () => {
+        wsSendJson({ type: "setCaretFromCell", cellIndex: toNonNegativeInt(wsCaretCellIndex?.value, 0) }, "setCaretFromCell");
+      });
+      wsCursorRoutingBtn.addEventListener("click", () => {
+        wsSendJson({ type: "cursorRouting", cellIndex: toNonNegativeInt(wsCaretCellIndex?.value, 0) }, "cursorRouting");
+      });
+      wsCaretToBeginBtn.addEventListener("click", () => wsSendJson({ type: "setCaretToBegin" }, "setCaretToBegin"));
+      wsCaretToEndBtn.addEventListener("click", () => wsSendJson({ type: "setCaretToEnd" }, "setCaretToEnd"));
+      wsCaretVisibleOnBtn.addEventListener("click", () => wsSendJson({ type: "setCaretVisibility", visible: true }, "setCaretVisibility"));
+      wsCaretVisibleOffBtn.addEventListener("click", () => wsSendJson({ type: "setCaretVisibility", visible: false }, "setCaretVisibility"));
       renderWsInputKind();
+      setInsertModeStatus(undefined);
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
       appendLog("Spec: GET /ping, GET /clear, GET /devices, GET /tables, GET /paths.");
-      appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key), editorInput/setEditorMode out.");
+      appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key).");
+      appendLog("Spec: out setEditorMode/setEditorInsertMode/editorInput and caret/query/cursorRouting commands.");
     })();
   </script>
 </body>

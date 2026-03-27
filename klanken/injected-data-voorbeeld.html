@@ -141,14 +141,25 @@
 
     .grid {
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
+      grid-template-columns: 640px minmax(0, 1fr);
       gap: 18px;
       align-items: start;
+    }
+
+    .runner-panel {
+      width: 640px;
+      min-width: 640px;
+      max-width: 640px;
     }
 
     .stack {
       display: grid;
       gap: 18px;
+    }
+
+    .run-log-panel {
+      position: sticky;
+      top: 92px;
     }
 
     .actions {
@@ -219,6 +230,12 @@
       min-height: 140px;
     }
 
+    #runLogBox {
+      height: 50vh;
+      min-height: 50vh;
+      max-height: 50vh;
+    }
+
     .small {
       color: var(--muted);
       font-size: 13px;
@@ -244,6 +261,20 @@
       .grid {
         grid-template-columns: 1fr;
       }
+      .runner-panel {
+        width: auto;
+        min-width: 0;
+        max-width: none;
+      }
+      .run-log-panel {
+        position: static;
+        top: auto;
+      }
+      #runLogBox {
+        height: 45vh;
+        min-height: 45vh;
+        max-height: 45vh;
+      }
     }
   </style>
 </head>
@@ -261,7 +292,7 @@
 
   <div class="page">
     <section class="grid">
-      <section class="panel">
+      <section class="panel runner-panel">
         <h2>Blockly Runner</h2>
         <p id="currentWordLabel" class="current-word">Current word: -</p>
         <p id="scriptPathLabel" class="script-path">Script: -</p>
@@ -270,11 +301,11 @@
           <button id="runStoryOnlineBtn" class="btn" type="button">Run Story (Online)</button>
           <button id="stopExampleBtn" class="btn" type="button">Stop</button>
         </div>
-        <p class="small">This page loads the online <code>story</code> script via PHP proxy, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
+        <p class="small">This page loads the online <code>Story</code> script from <code>https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=Story</code>, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
       </section>
 
       <div class="stack">
-        <section class="panel">
+        <section class="panel run-log-panel">
           <h2>Run Log</h2>
           <pre id="runLogBox"></pre>
         </section>

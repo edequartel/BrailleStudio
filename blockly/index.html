@@ -44,6 +44,7 @@
   <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
   <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
 
   <style>
     :root {
@@ -94,6 +95,19 @@
 
     .topbar-row--sim {
       padding-left: 0;
+    }
+
+    .topbar-row--monitor {
+      align-items: stretch;
+    }
+
+    .braille-monitor-host {
+      width: 100%;
+      min-height: 84px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px;
     }
 
     #title {
@@ -241,7 +255,8 @@
 
     #runBtn,
     #stopBtn,
-    #gridSnapBtn {
+    #gridSnapBtn,
+    #sidebarToggleBtn {
       width: 96px;
       justify-content: center;
     }
@@ -259,8 +274,16 @@
 
     #main {
       display: grid;
-      grid-template-columns: 1fr 390px;
+      grid-template-columns: 1fr 780px;
       min-height: 0;
+    }
+
+    #main.is-sidebar-hidden {
+      grid-template-columns: 1fr;
+    }
+
+    #main.is-sidebar-hidden #sidebar {
+      display: none;
     }
 
     #workspaceWrap {
@@ -356,6 +379,11 @@
       width: 100%;
       resize: vertical;
       min-height: 170px;
+    }
+
+    #logBox {
+      min-height: 340px;
+      height: 340px;
     }
 
     .small {
@@ -494,6 +522,7 @@
       <div id="title">Braille Activity Builder</div>
 
       <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
+      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="false">Hide Right</button>
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="spacer"></div>
@@ -516,6 +545,10 @@
       <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
       <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
       <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+    </div>
+
+    <div class="topbar-row topbar-row--monitor">
+      <div id="brailleMonitorComponent" class="braille-monitor-host"></div>
     </div>
 
     <div class="topbar-row">
@@ -565,16 +598,14 @@
       <div class="card">
         <h3>Log</h3>
         <textarea id="logBox" class="mono" readonly></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button id="clearLogBtn" class="btn" type="button">Clear Log</button>
+        </div>
       </div>
 
       <div class="card">
         <h3>Description</h3>
         <textarea id="scriptMetaDescription" class="meta-textarea" placeholder="What this script does"></textarea>
-      </div>
-
-      <div class="card">
-        <h3>Last brailleLine</h3>
-        <div id="brailleLineBox" class="mono"></div>
       </div>
 
       <div class="card">
@@ -937,7 +968,7 @@
 <script src="./runtime.js"></script>
 <script src="./blocks.js"></script>
 <script src="./generators.js"></script>
-
+<script src="../components/braille-monitor/braillemonitor.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
