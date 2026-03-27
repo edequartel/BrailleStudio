@@ -267,13 +267,9 @@
         <p id="scriptPathLabel" class="script-path">Script: -</p>
         <div class="actions">
           <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
-          <button id="selectBlocklyFileBtn" class="btn" type="button">Select Blockly File</button>
           <button id="runStoryOnlineBtn" class="btn" type="button">Run Story (Online)</button>
-          <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
           <button id="stopExampleBtn" class="btn" type="button">Stop</button>
-          <button id="playCurrentWordBtn" class="btn" type="button">Play Current Word</button>
         </div>
-        <input id="blocklyFileInput" class="file-input" type="file" accept=".blockly,application/xml,text/xml">
         <p class="small">This page loads the online <code>story</code> script via PHP proxy, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
       </section>
 
@@ -294,8 +290,8 @@
 
   <script>
     const EXTERNAL_DATA_URL = "./aanvankelijklijst.json";
-    const ONLINE_STORY_SCRIPT_URL = "https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=story";
-    const DEFAULT_BLOCKLY_SCRIPT = `../api/fetch-remote.php?url=${encodeURIComponent(ONLINE_STORY_SCRIPT_URL)}`;
+    const ONLINE_STORY_SCRIPT_URL = "https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=Story";
+    const DEFAULT_BLOCKLY_SCRIPT = ONLINE_STORY_SCRIPT_URL;
     let externalLessonData = [];
     let selectedBlocklySource = null;
     const searchParams = new URLSearchParams(window.location.search);
@@ -468,15 +464,6 @@
       });
     }
 
-    async function playCurrentWord() {
-      const word = String(window.currentRecord?.word ?? "").trim();
-      if (!word) {
-        logValue("play", "no active word");
-        return;
-      }
-      await playSpeechFile(word);
-    }
-
     function logValue(label, value) {
       const box = document.getElementById("runLogBox");
       box.textContent += `${label}: ${formatValue(value)}\n`;
@@ -595,18 +582,6 @@
       await syncInjectedData();
     }
 
-    async function handleSelectedBlocklyFile(file) {
-      if (!file) return;
-      const text = await file.text();
-      selectedBlocklySource = {
-        label: file.name,
-        text
-      };
-      renderScriptPathLabel();
-      await loadExampleScript();
-      document.getElementById("runLogBox").textContent = `Loaded local Blockly file: ${file.name}\n`;
-    }
-
     async function syncInjectedData() {
       const app = await ensureBlocklyApp();
       const requestedIndex = getRequestedRecordIndex();
@@ -669,34 +644,6 @@
       await runExample();
     }
 
-    async function openBlocklyFilePicker() {
-      if (typeof window.showOpenFilePicker === "function") {
-        try {
-          const [handle] = await window.showOpenFilePicker({
-            multiple: false,
-            types: [
-              {
-                description: "Blockly Files",
-                accept: {
-                  "application/octet-stream": [".blockly"],
-                  "application/xml": [".blockly", ".xml"],
-                  "text/xml": [".blockly", ".xml"]
-                }
-              }
-            ]
-          });
-          if (!handle) return;
-          const file = await handle.getFile();
-          await handleSelectedBlocklyFile(file);
-          return;
-        } catch (error) {
-          if (error && error.name === "AbortError") return;
-        }
-      }
-
-      document.getElementById("blocklyFileInput").click();
-    }
-
     function handleRecordIndexChanged() {
       const input = document.getElementById("recordIndexInput");
       const index = Math.max(0, Math.floor(Number(input?.value) || 0));
@@ -721,26 +668,6 @@
     document.getElementById("recordIndexInput").addEventListener("input", handleRecordIndexChanged);
     document.getElementById("recordIndexInput").addEventListener("change", handleRecordIndexChanged);
 
-    document.getElementById("playCurrentWordBtn").addEventListener("click", async () => {
-      try {
-        document.getElementById("runLogBox").textContent = "";
-        logStage(`Play Current Word clicked for: ${window.currentRecord?.word ?? "(none)"}`);
-        await playCurrentWord();
-      } catch (error) {
-        logStage(`Play Current Word error: ${error.message}`);
-        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
-      }
-    });
-
-    document.getElementById("runExampleBtn").addEventListener("click", async () => {
-      try {
-        await runExample();
-      } catch (error) {
-        logStage(`Run Example error: ${error.message}`);
-        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
-      }
-    });
-
     document.getElementById("runStoryOnlineBtn").addEventListener("click", async () => {
       try {
         await runOnlineStoryScript();
@@ -760,29 +687,6 @@
       } catch (error) {
         logStage(`Stop error: ${error.message}`);
         document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
-      }
-    });
-
-    document.getElementById("selectBlocklyFileBtn").addEventListener("click", async () => {
-      try {
-        logStage("Opening Blockly file picker");
-        await openBlocklyFilePicker();
-      } catch (error) {
-        logStage(`File picker error: ${error.message}`);
-        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
-      }
-    });
-
-    document.getElementById("blocklyFileInput").addEventListener("change", async (event) => {
-      try {
-        const file = event.target.files && event.target.files[0];
-        logStage(`Selected Blockly file: ${file?.name ?? "(none)"}`);
-        await handleSelectedBlocklyFile(file);
-      } catch (error) {
-        logStage(`Selected file load error: ${error.message}`);
-        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
-      } finally {
-        event.target.value = "";
       }
     });
 
