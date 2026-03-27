@@ -21,10 +21,11 @@ if (!filter_var($url, FILTER_VALIDATE_URL)) {
 $parts = parse_url($url);
 $scheme = strtolower((string)($parts['scheme'] ?? ''));
 $host = strtolower((string)($parts['host'] ?? ''));
+$allowedHosts = ['tastenbraille.com', 'www.tastenbraille.com'];
 
-if ($scheme !== 'https' || $host !== 'tastenbraille.com') {
+if ($scheme !== 'https' || !in_array($host, $allowedHosts, true)) {
     http_response_code(403);
-    echo json_encode(['error' => 'Only https://tastenbraille.com is allowed'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['error' => 'Only https://tastenbraille.com or https://www.tastenbraille.com is allowed'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 

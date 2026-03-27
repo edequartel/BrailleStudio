@@ -2862,6 +2862,35 @@ function loadWorkspaceFromText(text, sourceName = null) {
   }
 }
 
+function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
+  try {
+    if (!state || typeof state !== 'object') {
+      throw new Error('Invalid Blockly JSON structure');
+    }
+    suppressDirtyTracking++;
+    workspace.clear();
+    Blockly.serialization.workspaces.load(state, workspace);
+    ensureDefaultVariable();
+    initVariableValues();
+    if (metadata && typeof metadata === 'object') {
+      renderScriptMetadata({
+        title: String(metadata.title || sourceName || ''),
+        description: String(metadata.description || '')
+      });
+    } else {
+      renderScriptMetadata(sourceName ? { title: String(sourceName), description: '' } : null);
+    }
+    if (sourceName) setSelectedFileName(sourceName);
+    suppressDirtyTracking--;
+    markWorkspaceSaved(getWorkspaceSignature());
+    log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
+  } catch (err) {
+    suppressDirtyTracking = 0;
+    log('Load failed: ' + err.message);
+    alert('Could not load file: ' + err.message);
+  }
+}
+
 async function newWorkspace() {
   if (!(await confirmActionWithUnsavedChanges('creating a new file'))) return;
   runtime.stopped = true;
@@ -2888,12 +2917,66 @@ setWsBadge(false);
 
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,
+  loadWorkspaceFromState,
   async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, index = 0, onLog = null, lockInjectedRecord = false } = {}) {
     if (typeof onLog === 'function') {
       externalLogHandler = onLog;
     }
     if (typeof text === 'string' && text.trim()) {
       loadWorkspaceFromText(text, sourceName);
+    }
+    const startedBlocks = workspace ? workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started') : [];
+    const overridingIndexBlocks = workspace ? workspace.getAllBlocks(false).filter(b => b.type === 'lesson_set_active_record_index') : [];
+    if (lessonData != null) {
+      window.aanvankelijkData = Array.isArray(lessonData) ? structuredClone(lessonData) : [];
+      await setActiveLessonRecordByIndex(index);
+    }
+    clearLogBox();
+    stopAllTimers();
+    stopSound();
+    runtime.stopped = false;
+    runtime.lockInjectedLessonRecord = !!lockInjectedRecord;
+    runGeneration++;
+    const generation = runGeneration;
+    pendingStart = false;
+    renderStatus();
+    if (!workspace) {
+      throw new Error('Blockly workspace is not ready');
+    }
+    log('Headless run started' + (sourceName ? ': ' + sourceName : ''));
+    log('Headless when started blocks: ' + startedBlocks.length);
+    log('Headless requested record index: ' + Math.max(0, Math.floor(toNumber(index))));
+    log('Headless injected record index: ' + window.currentRecordIndex);
+    if (overridingIndexBlocks.length > 0) {
+      log(
+        runtime.lockInjectedLessonRecord
+          ? 'Workspace contains lesson_set_active_record_index blocks, but injected record lock is active'
+          : 'Warning: workspace contains lesson_set_active_record_index blocks that can override the injected record'
+      );
+    }
+    if (startedBlocks.length === 0) {
+      runtime.lockInjectedLessonRecord = false;
+      throw new Error('No "when started" block found in workspace');
+    }
+    try {
+      await dispatchEvent({ type: 'started' }, generation);
+      return {
+        generation,
+        startedBlockCount: startedBlocks.length,
+        currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
+        currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
+      runtime: { ...runtime }
+      };
+    } finally {
+      runtime.lockInjectedLessonRecord = false;
+    }
+  },
+  async runWorkspaceStateHeadless({ state, sourceName = null, metadata = null, lessonData = null, index = 0, onLog = null, lockInjectedRecord = false } = {}) {
+    if (typeof onLog === 'function') {
+      externalLogHandler = onLog;
+    }
+    if (state && typeof state === 'object') {
+      loadWorkspaceFromState(state, sourceName, metadata);
     }
     const startedBlocks = workspace ? workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started') : [];
     const overridingIndexBlocks = workspace ? workspace.getAllBlocks(false).filter(b => b.type === 'lesson_set_active_record_index') : [];

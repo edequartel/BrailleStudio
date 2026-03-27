@@ -268,12 +268,13 @@
         <div class="actions">
           <input id="recordIndexInput" class="index-input" type="number" min="0" step="1" value="0" aria-label="Record index">
           <button id="selectBlocklyFileBtn" class="btn" type="button">Select Blockly File</button>
+          <button id="runStoryOnlineBtn" class="btn" type="button">Run Story (Online)</button>
           <button id="runExampleBtn" class="btn btn-primary" type="button">Run Example</button>
           <button id="stopExampleBtn" class="btn" type="button">Stop</button>
           <button id="playCurrentWordBtn" class="btn" type="button">Play Current Word</button>
         </div>
         <input id="blocklyFileInput" class="file-input" type="file" accept=".blockly,application/xml,text/xml">
-        <p class="small">This page loads a Blockly file, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
+        <p class="small">This page loads the online <code>story</code> script via PHP proxy, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
       </section>
 
       <div class="stack">
@@ -293,7 +294,8 @@
 
   <script>
     const EXTERNAL_DATA_URL = "./aanvankelijklijst.json";
-    const DEFAULT_BLOCKLY_SCRIPT = "../blockly/scripts/injection.blockly";
+    const ONLINE_STORY_SCRIPT_URL = "https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=story";
+    const DEFAULT_BLOCKLY_SCRIPT = `../api/fetch-remote.php?url=${encodeURIComponent(ONLINE_STORY_SCRIPT_URL)}`;
     let externalLessonData = [];
     let selectedBlocklySource = null;
     const searchParams = new URLSearchParams(window.location.search);
@@ -538,26 +540,58 @@
       return app;
     }
 
-    async function getSelectedBlocklyText(scriptPath = getRequestedScriptPath()) {
+    async function getSelectedBlocklySource(scriptPath = getRequestedScriptPath()) {
       if (selectedBlocklySource?.text) {
         logStage(`Using selected local Blockly file: ${selectedBlocklySource.label}`);
-        return selectedBlocklySource.text;
+        return {
+          type: "xml",
+          sourceName: selectedBlocklySource.label,
+          text: selectedBlocklySource.text
+        };
       }
       logStage(`Fetching Blockly file: ${scriptPath}`);
       const response = await fetch(scriptPath, { cache: "no-store" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
+      const raw = await response.text();
       logStage(`Fetched Blockly file successfully: ${scriptPath}`);
-      return text;
+
+      try {
+        const payload = JSON.parse(raw);
+        if (payload && typeof payload === "object" && payload.blockly && typeof payload.blockly === "object") {
+          const remoteId = String(payload.id || "story").trim() || "story";
+          const remoteTitle = String(payload.title || remoteId).trim() || remoteId;
+          return {
+            type: "state",
+            sourceName: `${remoteTitle}.json`,
+            state: payload.blockly,
+            metadata: {
+              title: String(payload?.meta?.title || payload.title || remoteId),
+              description: String(payload?.meta?.description || "")
+            }
+          };
+        }
+      } catch {}
+
+      return {
+        type: "xml",
+        sourceName: scriptPath,
+        text: raw
+      };
     }
 
     async function loadExampleScript(scriptPath = getRequestedScriptPath()) {
       const app = await ensureBlocklyApp();
-      const text = await getSelectedBlocklyText(scriptPath);
-      const sourceName = selectedBlocklySource?.label || scriptPath;
-      logStage(`Loading Blockly workspace: ${sourceName}`);
-      app.loadWorkspaceFromText(text, sourceName);
-      logStage(`Blockly workspace loaded: ${sourceName}`);
+      const source = await getSelectedBlocklySource(scriptPath);
+      logStage(`Loading Blockly workspace: ${source.sourceName}`);
+      if (source.type === "state") {
+        if (typeof app.loadWorkspaceFromState !== "function") {
+          throw new Error("Blockly runtime does not support online JSON script loading");
+        }
+        app.loadWorkspaceFromState(source.state, source.sourceName, source.metadata || null);
+      } else {
+        app.loadWorkspaceFromText(source.text, source.sourceName);
+      }
+      logStage(`Blockly workspace loaded: ${source.sourceName}`);
       await syncInjectedData();
     }
 
@@ -598,20 +632,41 @@
       logStage(`Requested record index: ${requestedIndex}`);
       logStage(`Expected word for requested index: ${expectedRecord?.word ?? "(none)"}`);
       await syncInjectedData();
-      const text = await getSelectedBlocklyText();
-      const sourceName = selectedBlocklySource?.label || getRequestedScriptPath();
+      const source = await getSelectedBlocklySource();
+      const sourceName = source.sourceName;
       logStage(`Starting headless run for: ${sourceName}`);
-      const result = await app.runWorkspaceTextHeadless({
-        text,
-        sourceName,
-        lessonData: externalLessonData,
-        index: requestedIndex,
-        onLog: appendRuntimeLog,
-        lockInjectedRecord: true
-      });
+      const result = source.type === "state"
+        ? await app.runWorkspaceStateHeadless({
+            state: source.state,
+            sourceName,
+            metadata: source.metadata || null,
+            lessonData: externalLessonData,
+            index: requestedIndex,
+            onLog: appendRuntimeLog,
+            lockInjectedRecord: true
+          })
+        : await app.runWorkspaceTextHeadless({
+            text: source.text,
+            sourceName,
+            lessonData: externalLessonData,
+            index: requestedIndex,
+            onLog: appendRuntimeLog,
+            lockInjectedRecord: true
+          });
       window.currentRecord = result?.currentRecord || app.getCurrentRecord();
       renderInjectedData();
       logStage(`Headless run finished. Active record: index=${result?.currentRecordIndex ?? -1}, word=${window.currentRecord?.word ?? "(none)"}`);
+    }
+
+    async function runOnlineStoryScript() {
+      selectedBlocklySource = null;
+      renderScriptPathLabel();
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("script", DEFAULT_BLOCKLY_SCRIPT);
+      window.history.replaceState({}, "", nextUrl);
+      logStage("Run Story (Online) clicked");
+      await loadExampleScript(DEFAULT_BLOCKLY_SCRIPT);
+      await runExample();
     }
 
     async function openBlocklyFilePicker() {
@@ -682,6 +737,15 @@
         await runExample();
       } catch (error) {
         logStage(`Run Example error: ${error.message}`);
+        document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
+      }
+    });
+
+    document.getElementById("runStoryOnlineBtn").addEventListener("click", async () => {
+      try {
+        await runOnlineStoryScript();
+      } catch (error) {
+        logStage(`Run Story (Online) error: ${error.message}`);
         document.getElementById("runLogBox").textContent += `Error: ${error.message}\n`;
       }
     });
