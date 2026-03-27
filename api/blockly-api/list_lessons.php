@@ -31,6 +31,7 @@ foreach ($files as $file) {
         'word' => $content['word'] ?? '',
         'updatedAt' => $content['updatedAt'] ?? '',
         'steps' => $content['steps'] ?? [],
+        'stepConfigs' => $content['stepConfigs'] ?? (($content['meta']['stepConfigs'] ?? [])),
         'meta' => $content['meta'] ?? [],
         'filename' => basename($file),
     ];

@@ -59,6 +59,38 @@ foreach ($steps as $stepId) {
     }
 }
 
+$incomingStepConfigs = [];
+if (is_array($meta) && is_array($meta['stepConfigs'] ?? null)) {
+    $incomingStepConfigs = $meta['stepConfigs'];
+}
+
+$cleanStepConfigs = [];
+foreach ($incomingStepConfigs as $row) {
+    if (!is_array($row)) {
+        continue;
+    }
+    $rowId = trim((string)($row['id'] ?? ''));
+    $rowId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $rowId);
+    $rowId = trim($rowId, '-_');
+    if ($rowId === '') {
+        continue;
+    }
+    $rowVariable = trim((string)($row['variable'] ?? ''));
+    $cleanStepConfigs[] = [
+        'id' => $rowId,
+        'variable' => $rowVariable
+    ];
+}
+
+if (count($cleanStepConfigs) === 0 && count($cleanSteps) > 0) {
+    foreach ($cleanSteps as $stepId) {
+        $cleanStepConfigs[] = [
+            'id' => $stepId,
+            'variable' => ''
+        ];
+    }
+}
+
 $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $id);
 $safeId = trim($safeId, '-_');
 
@@ -86,7 +118,11 @@ $payload = [
     'word' => $word,
     'updatedAt' => gmdate('c'),
     'steps' => $cleanSteps,
-    'meta' => is_array($meta) ? $meta : [],
+    'stepConfigs' => $cleanStepConfigs,
+    'meta' => array_merge(
+        is_array($meta) ? $meta : [],
+        ['stepConfigs' => $cleanStepConfigs]
+    ),
 ];
 
 $written = file_put_contents(
