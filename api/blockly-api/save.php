@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$saveDir = dirname(__DIR__) . '/blockly-saves/lessons';
+$saveDir = dirname(__DIR__) . '/blockly-saves/scripts';
 
 if (!is_dir($saveDir)) {
     mkdir($saveDir, 0775, true);
@@ -32,8 +32,7 @@ if (!is_array($data)) {
 
 $id = isset($data['id']) ? trim((string)$data['id']) : '';
 $title = isset($data['title']) ? trim((string)$data['title']) : '';
-$word = isset($data['word']) ? trim((string)$data['word']) : '';
-$steps = $data['steps'] ?? [];
+$blockly = $data['blockly'] ?? null;
 $meta = $data['meta'] ?? [];
 $overwrite = array_key_exists('overwrite', $data) ? (bool)$data['overwrite'] : true;
 
@@ -43,20 +42,10 @@ if ($id === '') {
     exit;
 }
 
-if (!is_array($steps)) {
+if ($blockly === null) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'Steps must be an array']);
+    echo json_encode(['ok' => false, 'error' => 'Missing blockly']);
     exit;
-}
-
-$cleanSteps = [];
-foreach ($steps as $stepId) {
-    $stepId = trim((string)$stepId);
-    $stepId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $stepId);
-    $stepId = trim($stepId, '-_');
-    if ($stepId !== '') {
-        $cleanSteps[] = $stepId;
-    }
 }
 
 $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $id);
@@ -75,7 +64,7 @@ if (file_exists($filePath) && !$overwrite) {
     http_response_code(409);
     echo json_encode([
         'ok' => false,
-        'error' => 'Lesson already exists'
+        'error' => 'Script already exists'
     ]);
     exit;
 }
@@ -83,9 +72,8 @@ if (file_exists($filePath) && !$overwrite) {
 $payload = [
     'id' => $safeId,
     'title' => $title,
-    'word' => $word,
     'updatedAt' => gmdate('c'),
-    'steps' => $cleanSteps,
+    'blockly' => $blockly,
     'meta' => is_array($meta) ? $meta : [],
 ];
 
@@ -97,7 +85,7 @@ $written = file_put_contents(
 
 if ($written === false) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Failed to save lesson']);
+    echo json_encode(['ok' => false, 'error' => 'Failed to save file']);
     exit;
 }
 
@@ -105,5 +93,5 @@ echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => 'blockly-saves/lessons/' . $filename
+    'path' => 'blockly-saves/scripts/' . $filename,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
