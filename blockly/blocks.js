@@ -813,6 +813,17 @@
     }
   };
 
+  Blockly.Blocks['audio_get_speech_audio_by_onlyletters_length'] = {
+    init() {
+      this.appendValueInput('ONLYLETTERS')
+        .appendField('get speech audio list only letters');
+      this.appendValueInput('LENGTH')
+        .appendField('and length');
+      this.setOutput(true);
+      this.setColour('#0EA5E9');
+    }
+  };
+
   Blockly.Blocks['controls_for_each_audio_item'] = {
     init() {
       this.appendValueInput('LIST').appendField('for each audio item in');
@@ -872,6 +883,25 @@
   Blockly.Blocks['klanken_play_word_sounds_with_pause'] = {
     init() {
       this.appendValueInput('WORD').appendField('play sounds of word');
+      this.appendValueInput('SECONDS').appendField('wait seconds between');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['klanken_play_word_phonemes_nl'] = {
+    init() {
+      this.appendValueInput('WORD').appendField('play phonemes of word (nl)');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['klanken_play_word_phonemes_nl_with_pause'] = {
+    init() {
+      this.appendValueInput('WORD').appendField('play phonemes of word (nl)');
       this.appendValueInput('SECONDS').appendField('wait seconds between');
       this.setPreviousStatement(true);
       this.setNextStatement(true);

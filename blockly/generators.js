@@ -217,6 +217,60 @@
     );
   };
 
+  javascriptGenerator.forBlock['klanken_play_word_phonemes_nl'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return (
+      `{\n` +
+      `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
+      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
+      `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
+      `    .filter(Boolean)\n` +
+      `    .sort((a, b) => b.length - a.length);\n` +
+      `  const __fonemen = [];\n` +
+      `  for (let __i = 0; __i < __word.length;) {\n` +
+      `    const __ch = __word[__i];\n` +
+      `    if (!/[a-z]/.test(__ch)) { __i += 1; continue; }\n` +
+      `    let __m = '';\n` +
+      `    for (const __t of __tokens) { if (__t && __word.startsWith(__t, __i)) { __m = __t; break; } }\n` +
+      `    if (__m) { __fonemen.push(__m); __i += __m.length; } else { __fonemen.push(__ch); __i += 1; }\n` +
+      `  }\n` +
+      `  for (const __f of __fonemen) {\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
+      `  }\n` +
+      `}\n`
+    );
+  };
+
+  javascriptGenerator.forBlock['klanken_play_word_phonemes_nl_with_pause'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    const secondsCode = valueToCodeOr(block, 'SECONDS', '0');
+    return (
+      `{\n` +
+      `  const __pauseMs = Math.max(0, Math.round((Number(${secondsCode}) || 0) * 1000));\n` +
+      `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
+      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
+      `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
+      `    .filter(Boolean)\n` +
+      `    .sort((a, b) => b.length - a.length);\n` +
+      `  const __fonemen = [];\n` +
+      `  for (let __i = 0; __i < __word.length;) {\n` +
+      `    const __ch = __word[__i];\n` +
+      `    if (!/[a-z]/.test(__ch)) { __i += 1; continue; }\n` +
+      `    let __m = '';\n` +
+      `    for (const __t of __tokens) { if (__t && __word.startsWith(__t, __i)) { __m = __t; break; } }\n` +
+      `    if (__m) { __fonemen.push(__m); __i += __m.length; } else { __fonemen.push(__ch); __i += 1; }\n` +
+      `  }\n` +
+      `  for (let __k = 0; __k < __fonemen.length; __k++) {\n` +
+      `    const __f = __fonemen[__k];\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
+      `    if (__pauseMs > 0 && __k < __fonemen.length - 1) await new Promise(resolve => setTimeout(resolve, __pauseMs));\n` +
+      `  }\n` +
+      `}\n`
+    );
+  };
+
   javascriptGenerator.forBlock['klanken_item_get_word'] = function (block) {
     const itemCode = valueToCodeOr(block, 'ITEM', 'null');
     return [`((${itemCode})?.word ?? '')`, ORDER_ATOMIC];

@@ -431,6 +431,12 @@
       color: #991b1b;
     }
 
+    #onlineSaveBtn.is-dirty {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -518,12 +524,6 @@
       <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
         <option value="">-- Select online script --</option>
       </select>
-      <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
-        <option value="draft">draft</option>
-        <option value="started">started</option>
-        <option value="in review">in review</option>
-        <option value="approved">approved</option>
-      </select>
       <button id="onlineRefreshBtn" class="btn" type="button">Refresh</button>
     </div>
 
@@ -542,6 +542,12 @@
       <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
       <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>
       <button id="clearBtn" class="btn" type="button">Clear</button>
+      <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
+        <option value="draft">⚪ draft</option>
+        <option value="started">🟡 started</option>
+        <option value="in review">🔵 in review</option>
+        <option value="approved">🟢 approved</option>
+      </select>
     </div>
   </div>
 
@@ -562,10 +568,7 @@
       </div>
 
       <div class="card">
-        <h3>Function</h3>
-        <div class="small">Title</div>
-        <input id="scriptMetaTitle" class="meta-input" type="text" placeholder="Script title">
-        <div class="small" style="margin-top:8px;">Description</div>
+        <h3>Description</h3>
         <textarea id="scriptMetaDescription" class="meta-textarea" placeholder="What this script does"></textarea>
       </div>
 
@@ -771,6 +774,18 @@
         </shadow>
       </value>
     </block>
+    <block type="audio_get_speech_audio_by_onlyletters_length">
+      <value name="ONLYLETTERS">
+        <shadow type="text">
+          <field name="TEXT">p,a,r,d,i,e,l,b,r</field>
+        </shadow>
+      </value>
+      <value name="LENGTH">
+        <shadow type="math_number">
+          <field name="NUM">5</field>
+        </shadow>
+      </value>
+    </block>
     <block type="list_pick_random"></block>
     <block type="audio_item_get_word"></block>
     <block type="audio_item_get_url"></block>
@@ -796,8 +811,38 @@
     <block type="klanken_word_get_sounds"></block>
     <block type="klanken_word_get_new_sounds"></block>
     <block type="klanken_word_get_known_sounds"></block>
-    <block type="klanken_play_word_sounds"></block>
+    <block type="klanken_play_word_sounds">
+      <value name="WORD">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
     <block type="klanken_play_word_sounds_with_pause">
+      <value name="WORD">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+      <value name="SECONDS">
+        <shadow type="math_number">
+          <field name="NUM">0.5</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="klanken_play_word_phonemes_nl">
+      <value name="WORD">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="klanken_play_word_phonemes_nl_with_pause">
+      <value name="WORD">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
       <value name="SECONDS">
         <shadow type="math_number">
           <field name="NUM">0.5</field>
@@ -811,6 +856,9 @@
 
   <category name="Logic" colour="#16A34A">
     <block type="controls_if"></block>
+    <block type="controls_if">
+      <mutation else="1"></mutation>
+    </block>
     <block type="logic_compare"></block>
     <block type="logic_operation"></block>
     <block type="logic_negate"></block>

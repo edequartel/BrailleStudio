@@ -25,11 +25,13 @@ foreach ($files as $file) {
         continue;
     }
 
+    $meta = array_key_exists('meta', $content) ? $content['meta'] : [];
+
     $items[] = [
         'id' => $content['id'] ?? pathinfo($file, PATHINFO_FILENAME),
         'title' => $content['title'] ?? '',
         'updatedAt' => $content['updatedAt'] ?? '',
-        'meta' => $content['meta'] ?? [],
+        'meta' => $meta,
         'filename' => basename($file),
     ];
 }

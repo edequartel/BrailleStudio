@@ -1,4 +1,4 @@
-/* ---------------- UI helpers ---------------- */
+﻿/* ---------------- UI helpers ---------------- */
 function setBootStage(stage, extra = {}) {
   if (typeof window.__setBrailleBlocklyBootStage === 'function') {
     window.__setBrailleBlocklyBootStage(stage, extra);
@@ -80,9 +80,8 @@ function renderBrailleLine(msg) {
 function renderScriptMetadata(meta = null) {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
-  if (!titleInput || !descriptionInput) return;
-  titleInput.value = String(meta?.title || '');
-  descriptionInput.value = String(meta?.description || '');
+  if (titleInput) titleInput.value = String(meta?.title || '');
+  if (descriptionInput) descriptionInput.value = String(meta?.description || '');
 }
 
 function readScriptMetadataFromInputs() {
@@ -115,6 +114,7 @@ function renderGridSnapControl() {
 function renderFileState() {
   const badge = document.getElementById('fileStateBadge');
   const text = document.getElementById('fileStateText');
+  const saveBtn = document.getElementById('onlineSaveBtn');
   if (!badge) return;
   const setText = (value) => {
     if (text) text.textContent = value;
@@ -122,6 +122,9 @@ function renderFileState() {
   };
   setText('');
   badge.classList.toggle('is-dirty', workspaceDirty);
+  if (saveBtn) {
+    saveBtn.classList.toggle('is-dirty', workspaceDirty);
+  }
 }
 
 function getWorkspaceSignature() {
@@ -215,8 +218,7 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
     return false;
   }
   if (choice === 'save') {
-    const onlineIdInput = document.getElementById('onlineScriptIdInput');
-    const onlineTargetId = String(onlineIdInput?.value || currentOnlineScriptId || '').trim();
+    const onlineTargetId = resolveOnlineScriptId();
     const saved = onlineTargetId
       ? await saveWorkspaceOnline({ overwrite: true })
       : await saveWorkspace({ skipNoChangesLog: true });
@@ -269,6 +271,7 @@ const SOUND_FOLDER_URLS = {
 };
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
+const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 let currentFileHandle = null;
 let ws = null;
@@ -281,6 +284,7 @@ let pendingStartGeneration = 0;
 let runGeneration = 0;
 let workspace = null;
 let klankenJsonCache = null;
+let fonemenNlJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
 let lastSavedOnlineScriptTitle = '';
@@ -402,6 +406,14 @@ function readOnlineScriptInputs() {
   };
 }
 
+function resolveOnlineScriptId() {
+  const select = document.getElementById('onlineScriptsSelect');
+  const inputId = String(document.getElementById('onlineScriptIdInput')?.value || '').trim();
+  const currentId = String(currentOnlineScriptId || '').trim();
+  const selectedId = String(select?.value || '').trim();
+  return inputId || currentId || selectedId || '';
+}
+
 function setOnlineScriptInputs({ id = '', title = '', status = 'draft' } = {}) {
   const idInput = document.getElementById('onlineScriptIdInput');
   const titleInput = document.getElementById('onlineScriptTitleInput');
@@ -433,22 +445,46 @@ function renderOnlineScriptsSelect(items) {
   placeholder.textContent = '-- Select online script --';
   select.appendChild(placeholder);
 
+  const normalizeStatus = (value) => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw === 'started') return 'started';
+    if (raw === 'in review') return 'in review';
+    if (raw === 'approved') return 'approved';
+    return 'draft';
+  };
+  const statusDot = (status) => {
+    if (status === 'started') return '🟡';
+    if (status === 'in review') return '🔵';
+    if (status === 'approved') return '🟢';
+    return '⚪';
+  };
+
+  const applySelectedStatusColor = () => {
+    const selected = select.selectedOptions && select.selectedOptions[0]
+      ? select.selectedOptions[0]
+      : null;
+    select.style.removeProperty('color');
+  };
+
   for (const item of normalized) {
     const id = String(item?.id || '').trim();
     if (!id) continue;
     const title = String(item?.title || '').trim();
-    const status = String(item?.meta?.status || 'draft').trim() || 'draft';
+    const status = normalizeStatus(item?.meta?.status);
     const option = document.createElement('option');
     option.value = id;
     option.dataset.title = title;
     option.dataset.status = status;
-    option.textContent = title ? `${id} - ${title}` : id;
+    option.textContent = title
+      ? `${statusDot(status)}\u00A0\u00A0${id} - ${title}`
+      : `${statusDot(status)}\u00A0\u00A0${id}`;
     select.appendChild(option);
   }
 
   if (currentOnlineScriptId) {
     select.value = currentOnlineScriptId;
   }
+  applySelectedStatusColor();
 }
 
 async function listOnlineScripts() {
@@ -469,7 +505,21 @@ async function refreshOnlineScripts() {
 async function saveWorkspaceOnline({ overwrite = true } = {}) {
   if (!workspace) throw new Error('Blockly workspace is not ready');
 
-  const { id, title, status } = readOnlineScriptInputs();
+  const inputs = readOnlineScriptInputs();
+  let id = String(inputs.id || '').trim();
+  const title = String(inputs.title || '').trim();
+  const status = String(inputs.status || 'draft').trim() || 'draft';
+
+  if (!id) {
+    id = resolveOnlineScriptId();
+  }
+  if (!id) {
+    const entered = prompt('Script id is required. Enter script id:', '');
+    if (!entered) {
+      throw new Error('Online script id is required');
+    }
+    id = String(entered).trim();
+  }
   if (!id) {
     throw new Error('Online script id is required');
   }
@@ -598,7 +648,7 @@ async function loadWorkspaceOnline(id) {
   if (!targetId) throw new Error('Online script id is required');
   log(`Online load requested: id=${targetId}`);
 
-  const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}`);
+  const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}&_=${Date.now()}`);
   const state = data?.blockly;
   if (!state || typeof state !== 'object') {
     throw new Error('Loaded script does not contain valid Blockly JSON');
@@ -1348,6 +1398,7 @@ function bindAppControls() {
         : null;
       const selectedTitle = String(selectedOption?.dataset?.title || '').trim();
       const selectedStatus = String(selectedOption?.dataset?.status || 'draft').trim() || 'draft';
+      onlineSelect.style.removeProperty('color');
       if (!(await confirmActionWithUnsavedChanges('loading an online script'))) {
         onlineSelect.value = previousOnlineId || '';
         setOnlineCurrentScript({ id: previousOnlineId, title: previousOnlineTitle, status: previousOnlineStatus });
@@ -1629,6 +1680,60 @@ async function getAanvankelijklijst() {
     ? data
     : (Array.isArray(data?.items) ? data.items : []);
   return klankenJsonCache;
+}
+
+async function getFonemenNlStandaard() {
+  if (fonemenNlJsonCache && typeof fonemenNlJsonCache === 'object') {
+    return fonemenNlJsonCache;
+  }
+
+  const res = await fetch(FONEMEN_NL_JSON_URL, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  }
+
+  const data = await res.json();
+  fonemenNlJsonCache = data && typeof data === 'object' ? data : { phonemes: [] };
+  return fonemenNlJsonCache;
+}
+
+function splitWordToNlFonemen(word, fonemenData) {
+  const normalized = String(word ?? '').trim().toLowerCase();
+  if (!normalized) return [];
+
+  const allFonemen = Array.isArray(fonemenData?.phonemes) ? fonemenData.phonemes : [];
+  const tokens = allFonemen
+    .map(item => String(item?.phoneme ?? '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  const out = [];
+  let i = 0;
+  while (i < normalized.length) {
+    const ch = normalized[i];
+    if (!/[a-z]/.test(ch)) {
+      i += 1;
+      continue;
+    }
+
+    let matched = '';
+    for (const token of tokens) {
+      if (token && normalized.startsWith(token, i)) {
+        matched = token;
+        break;
+      }
+    }
+
+    if (matched) {
+      out.push(matched);
+      i += matched.length;
+    } else {
+      out.push(ch);
+      i += 1;
+    }
+  }
+
+  return out;
 }
 
 async function findAanvankelijklijstItemByWord(word) {
@@ -1979,6 +2084,27 @@ async function evalValue(block) {
       });
     }
 
+    case 'audio_get_speech_audio_by_onlyletters_length': {
+      if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getAudioList !== 'function') {
+        throw new Error('BrailleStudioAPI.getAudioList is not available');
+      }
+      const onlyletters = String(await evalValue(block.getInputTargetBlock('ONLYLETTERS')) ?? '');
+      const length = String(await evalValue(block.getInputTargetBlock('LENGTH')) ?? '');
+      return await window.BrailleStudioAPI.getAudioList({
+        folder: 'speech',
+        letters: '',
+        klanken: '',
+        onlyletters,
+        onlyklanken: '',
+        onlycombo: false,
+        maxlength: '',
+        length,
+        limit: '',
+        randomlimit: '',
+        sort: ''
+      });
+    }
+
     case 'audio_item_get_word': {
       const item = await evalValue(block.getInputTargetBlock('ITEM'));
       if (!item || typeof item !== 'object') return '';
@@ -2254,6 +2380,43 @@ async function executeChain(startBlock, generation) {
             await playSound(resolveFolderSoundUrl('letters', sounds[i]));
             await waitForAudioStopped();
             if (pauseMs > 0 && i < sounds.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, pauseMs));
+            }
+          }
+        } catch (err) {
+          log(`Phonems play failed: ${err}`);
+        }
+        break;
+      }
+
+      case 'klanken_play_word_phonemes_nl': {
+        try {
+          const word = await evalValue(current.getInputTargetBlock('WORD'));
+          const fonemenData = await getFonemenNlStandaard();
+          const fonemen = splitWordToNlFonemen(word, fonemenData);
+          for (const foneem of fonemen) {
+            if (runtime.stopped || generation !== runGeneration) break;
+            await playSound(resolveFolderSoundUrl('letters', foneem));
+            await waitForAudioStopped();
+          }
+        } catch (err) {
+          log(`Phonems play failed: ${err}`);
+        }
+        break;
+      }
+
+      case 'klanken_play_word_phonemes_nl_with_pause': {
+        try {
+          const word = await evalValue(current.getInputTargetBlock('WORD'));
+          const pauseSeconds = Math.max(0, toNumber(await evalValue(current.getInputTargetBlock('SECONDS'))));
+          const pauseMs = Math.round(pauseSeconds * 1000);
+          const fonemenData = await getFonemenNlStandaard();
+          const fonemen = splitWordToNlFonemen(word, fonemenData);
+          for (let i = 0; i < fonemen.length; i++) {
+            if (runtime.stopped || generation !== runGeneration) break;
+            await playSound(resolveFolderSoundUrl('letters', fonemen[i]));
+            await waitForAudioStopped();
+            if (pauseMs > 0 && i < fonemen.length - 1) {
               await new Promise(resolve => setTimeout(resolve, pauseMs));
             }
           }
@@ -2823,3 +2986,4 @@ window.BrailleBlocklyApp = {
   }
 };
 setBootStage('api-ready');
+
