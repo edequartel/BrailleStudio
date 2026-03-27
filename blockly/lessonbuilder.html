@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BrailleStudio Builder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    .small-label { font-size: 0.875rem; font-weight: 600; color: #334155; }
+    .field { width: 100%; border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.5rem 0.75rem; background: white; }
+    .btn { border-radius: 0.75rem; padding: 0.6rem 0.9rem; font-weight: 600; border: 1px solid #cbd5e1; background: white; cursor: pointer; }
+    .btn:hover { background: #f8fafc; }
+    .btn-primary { background: #2563eb; color: white; border-color: #2563eb; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-danger { background: #dc2626; color: white; border-color: #dc2626; }
+    .btn-danger:hover { background: #b91c1c; }
+    .status-box { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+  <div class="max-w-7xl mx-auto p-4 space-y-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+      <h1 class="text-2xl font-bold">BrailleStudio Builder</h1>
+      <p class="text-slate-600">Build flows from online scripts and manage items online.</p>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
+        <h2 class="text-xl font-bold">Online Scripts</h2>
+        <p class="text-sm text-slate-600">Select an online script and add it to steps.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="small-label" for="scriptsSelect">Script list</label>
+            <select id="scriptsSelect" class="field"></select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button class="btn" id="refreshScriptsBtn">Refresh Scripts</button>
+            <button class="btn" id="addStepBtn">Add Script</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
+        <h2 class="text-xl font-bold">Builder</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="small-label" for="lessonIdInput">ID</label>
+            <input id="lessonIdInput" class="field" type="text" placeholder="item-bal" />
+          </div>
+          <div>
+            <label class="small-label" for="lessonTitleInput">Title</label>
+            <input id="lessonTitleInput" class="field" type="text" placeholder="Les bal" />
+          </div>
+          <div>
+            <label class="small-label" for="lessonWordInput">Word</label>
+            <input id="lessonWordInput" class="field" type="text" placeholder="bal" />
+          </div>
+          <div>
+            <label class="small-label">Steps</label>
+            <div class="border border-slate-200 rounded-lg overflow-hidden">
+              <div class="grid grid-cols-[1fr_1fr_auto] bg-slate-50 text-xs font-semibold text-slate-600 px-3 py-2">
+                <div>Script</div>
+                <div>Variable</div>
+                <div></div>
+              </div>
+              <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="small-label" for="lessonsSelect">Items</label>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="lessonsSelect" class="field w-full sm:w-64"></select>
+            <button class="btn" id="saveLessonBtn">Save</button>
+            <button class="btn" id="deleteLessonBtn">Delete Selected</button>
+            <button class="btn" id="refreshLessonsBtn">Refresh</button>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <div class="small-label">Steps preview</div>
+          <ul id="lessonStepsPreview" class="list-disc pl-5 text-sm text-slate-700"></ul>
+        </div>
+
+        <div class="space-y-2">
+          <div class="small-label">Status</div>
+          <div id="statusBox" class="status-box bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[180px]"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+    const API_FALLBACK_BASE = '/braillestudio/blockly-api';
+
+    let scriptsCache = [];
+
+    const statusBox = document.getElementById('statusBox');
+    const scriptsSelect = document.getElementById('scriptsSelect');
+    const lessonIdInput = document.getElementById('lessonIdInput');
+    const lessonTitleInput = document.getElementById('lessonTitleInput');
+    const lessonWordInput = document.getElementById('lessonWordInput');
+    const stepsTableBody = document.getElementById('stepsTableBody');
+    const lessonsSelect = document.getElementById('lessonsSelect');
+    const lessonStepsPreview = document.getElementById('lessonStepsPreview');
+    let stepConfigs = [];
+
+    function setStatus(message, data = null) {
+      const text = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
+      statusBox.textContent = text;
+      console.log(message, data || '');
+    }
+
+    function debugLog(scope, message, data = null) {
+      const stamp = new Date().toISOString();
+      if (data !== null) console.log(`[${stamp}] [${scope}] ${message}`, data);
+      else console.log(`[${stamp}] [${scope}] ${message}`);
+    }
+
+    function getApiBases() {
+      return [...new Set([API_BASE, API_FALLBACK_BASE])];
+    }
+
+    async function apiFetchJson(path, options = {}) {
+      const bases = getApiBases();
+      let lastError = null;
+      for (const base of bases) {
+        const url = `${base}${path}`;
+        try {
+          debugLog('apiFetchJson', `${options.method || 'GET'} ${url}`);
+          const res = await fetch(url, options);
+          const raw = await res.text();
+          let data = null;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            if (!res.ok || /^\s*</.test(raw)) {
+              throw new Error(`Non-JSON response from ${url} (HTTP ${res.status}). First chars: ${raw.slice(0, 80)}`);
+            }
+          }
+          if (!res.ok) {
+            const msg = data && data.error ? data.error : `HTTP ${res.status}`;
+            throw new Error(`${msg} at ${url}`);
+          }
+          debugLog('apiFetchJson', `Response ${res.status} ${url}`, data);
+          return data;
+        } catch (err) {
+          debugLog('apiFetchJson', `Failed ${url}`, { error: err.message });
+          lastError = err;
+        }
+      }
+      throw lastError || new Error(`API request failed for ${path}`);
+    }
+
+    async function listScripts() {
+      const data = await apiFetchJson('/list.php');
+      return data.items || [];
+    }
+
+    async function saveLesson(id, title, word, steps, meta = {}, overwrite = true) {
+      return await apiFetchJson('/save_lesson.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, title, word, steps, meta, overwrite })
+      });
+    }
+
+    async function loadLesson(id) {
+      return await apiFetchJson(`/load_lesson.php?id=${encodeURIComponent(id)}`);
+    }
+
+    async function deleteLesson(id) {
+      return await apiFetchJson('/delete_lesson.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+    }
+
+    async function listLessons() {
+      const data = await apiFetchJson('/list_lessons.php');
+      return data.items || [];
+    }
+
+    function renderScriptsSelect(items) {
+      scriptsSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- Select script --';
+      scriptsSelect.appendChild(placeholder);
+      for (const item of items) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.title ? `${item.id} - ${item.title}` : item.id;
+        scriptsSelect.appendChild(option);
+      }
+    }
+
+    function renderLessonsSelect(items) {
+      lessonsSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- Select item --';
+      lessonsSelect.appendChild(placeholder);
+      for (const item of items) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.title ? `${item.id} - ${item.title}` : item.id;
+        lessonsSelect.appendChild(option);
+      }
+    }
+
+    function renderLessonStepsPreview(configs = stepConfigs) {
+      const byId = new Map((scriptsCache || []).map(item => [String(item.id), item]));
+      lessonStepsPreview.innerHTML = '';
+      for (const config of configs) {
+        const step = String(config?.id ?? '').trim();
+        if (!step) continue;
+        const li = document.createElement('li');
+        const item = byId.get(String(step));
+        const label = item && item.title ? `${step} - ${item.title}` : step;
+        const variable = String(config?.variable ?? '').trim();
+        li.textContent = variable ? `${label} (var: ${variable})` : label;
+        lessonStepsPreview.appendChild(li);
+      }
+    }
+
+    function normalizeStepConfigs(configs) {
+      if (!Array.isArray(configs)) return [];
+      return configs
+        .map(cfg => ({
+          id: String(cfg?.id ?? '').trim(),
+          variable: String(cfg?.variable ?? '').trim()
+        }))
+        .filter(cfg => cfg.id);
+    }
+
+    function updateStepVariable(index, value) {
+      if (!stepConfigs[index]) return;
+      stepConfigs[index].variable = String(value ?? '').trim();
+      renderLessonStepsPreview(stepConfigs);
+    }
+
+    function removeStep(index) {
+      if (index < 0 || index >= stepConfigs.length) return;
+      stepConfigs.splice(index, 1);
+      renderStepsTable();
+      renderLessonStepsPreview(stepConfigs);
+    }
+
+    function renderStepsTable() {
+      stepsTableBody.innerHTML = '';
+      if (stepConfigs.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'px-3 py-2 text-sm text-slate-500';
+        empty.textContent = 'No steps yet. Add a script from the list.';
+        stepsTableBody.appendChild(empty);
+        return;
+      }
+
+      stepConfigs.forEach((cfg, index) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-[1fr_1fr_auto] gap-2 items-center px-3 py-2';
+
+        const scriptCell = document.createElement('div');
+        scriptCell.className = 'text-sm text-slate-800';
+        scriptCell.textContent = cfg.id;
+
+        const variableInput = document.createElement('input');
+        variableInput.type = 'text';
+        variableInput.className = 'field text-sm';
+        variableInput.value = cfg.variable || '';
+        variableInput.placeholder = 'variable';
+        variableInput.addEventListener('input', (e) => updateStepVariable(index, e.target.value));
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn text-xs px-2 py-1';
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => removeStep(index));
+
+        row.appendChild(scriptCell);
+        row.appendChild(variableInput);
+        row.appendChild(removeBtn);
+        stepsTableBody.appendChild(row);
+      });
+    }
+
+    function validateStepConfigs(stepConfigs) {
+      const errors = [];
+      const seenVars = new Set();
+      for (const cfg of stepConfigs) {
+        const id = String(cfg?.id ?? '').trim();
+        const variable = String(cfg?.variable ?? '').trim();
+        if (!id) continue;
+        if (!variable) {
+          errors.push(`Script "${id}" mist een variabele.`);
+          continue;
+        }
+        const key = variable.toLowerCase();
+        if (seenVars.has(key)) {
+          errors.push(`Dubbele variabele: "${variable}".`);
+          continue;
+        }
+        seenVars.add(key);
+      }
+      return errors;
+    }
+
+    async function refreshScripts() {
+      const items = await listScripts();
+      scriptsCache = items;
+      renderScriptsSelect(items);
+      renderLessonStepsPreview(stepConfigs);
+      setStatus(`Loaded ${items.length} scripts.`);
+    }
+
+    async function refreshLessons() {
+      const items = await listLessons();
+      renderLessonsSelect(items);
+      setStatus(`Loaded ${items.length} items.`);
+    }
+
+    function addSelectedScriptToLesson() {
+      const selected = scriptsSelect.value;
+      if (!selected) {
+        setStatus('Please select a script first.');
+        return;
+      }
+      stepConfigs.push({ id: selected, variable: '' });
+      renderStepsTable();
+      renderLessonStepsPreview(stepConfigs);
+      setStatus(`Added script "${selected}".`);
+    }
+
+    async function handleSaveLesson() {
+      const id = lessonIdInput.value.trim();
+      const title = lessonTitleInput.value.trim() || id;
+      const word = lessonWordInput.value.trim();
+      const normalized = normalizeStepConfigs(stepConfigs);
+      const validationErrors = validateStepConfigs(normalized);
+      const steps = normalized.map(s => s.id);
+      if (!id) {
+        setStatus('ID is required.');
+        return;
+      }
+      if (validationErrors.length) {
+        setStatus(`Validatie mislukt:\n- ${validationErrors.join('\n- ')}`);
+        return;
+      }
+      const meta = {
+        stepConfigs: normalized.map(s => ({
+          id: s.id,
+          variable: s.variable || ''
+        }))
+      };
+      const result = await saveLesson(id, title, word, steps, meta, true);
+      if (!result.ok) throw new Error(result.error || 'Failed to save');
+      renderLessonStepsPreview(normalized);
+      setStatus(`Saved: ${id}`, result);
+      await refreshLessons();
+    }
+
+    async function handleLoadSelectedLesson() {
+      const id = lessonsSelect.value;
+      if (!id) {
+        setStatus('Please select an item first.');
+        return;
+      }
+      const data = await loadLesson(id);
+      if (!data.ok && data.error) throw new Error(data.error);
+      lessonIdInput.value = data.id || '';
+      lessonTitleInput.value = data.title || '';
+      lessonWordInput.value = data.word || '';
+      const loadedConfigs = Array.isArray(data?.meta?.stepConfigs) && data.meta.stepConfigs.length
+        ? data.meta.stepConfigs
+        : (Array.isArray(data.steps) ? data.steps.map(id => ({ id: String(id ?? '').trim(), variable: '' })) : []);
+      stepConfigs = normalizeStepConfigs(loadedConfigs);
+      renderStepsTable();
+      renderLessonStepsPreview(stepConfigs);
+      setStatus(`Loaded: ${id}`, data);
+    }
+
+    async function handleDeleteSelectedLesson() {
+      const id = lessonsSelect.value || lessonIdInput.value.trim();
+      if (!id) {
+        setStatus('Please select an item first.');
+        return;
+      }
+      if (!confirm(`Delete "${id}"?`)) return;
+      const result = await deleteLesson(id);
+      if (!result.ok) throw new Error(result.error || 'Failed to delete');
+      if (lessonIdInput.value.trim() === id) {
+        lessonIdInput.value = '';
+        lessonTitleInput.value = '';
+        lessonWordInput.value = '';
+        stepConfigs = [];
+        renderStepsTable();
+        renderLessonStepsPreview([]);
+      }
+      setStatus(`Deleted: ${id}`, result);
+      await refreshLessons();
+    }
+
+    async function init() {
+      document.getElementById('refreshScriptsBtn').addEventListener('click', refreshScripts);
+      document.getElementById('addStepBtn').addEventListener('click', addSelectedScriptToLesson);
+      document.getElementById('saveLessonBtn').addEventListener('click', handleSaveLesson);
+      document.getElementById('deleteLessonBtn').addEventListener('click', handleDeleteSelectedLesson);
+      document.getElementById('refreshLessonsBtn').addEventListener('click', refreshLessons);
+      lessonsSelect.addEventListener('change', async () => {
+        const id = lessonsSelect.value;
+        if (!id) return;
+        lessonIdInput.value = id;
+        try {
+          await handleLoadSelectedLesson();
+        } catch (err) {
+          setStatus(`Load error: ${err.message}`);
+        }
+      });
+      try {
+        renderStepsTable();
+        await refreshScripts();
+        await refreshLessons();
+        setStatus('Ready.');
+      } catch (err) {
+        setStatus(`Startup error: ${err.message}`);
+      }
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
