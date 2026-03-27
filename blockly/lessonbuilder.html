@@ -359,7 +359,16 @@
       stepConfigs = normalizeStepConfigs(loadedConfigs);
       renderStepsTable();
       renderLessonStepsPreview(stepConfigs);
-      setStatus(`Loaded: ${id}`, data);
+      const loadedAt = new Date().toLocaleTimeString();
+      setStatus(`Loaded: ${id} (${stepConfigs.length} steps) at ${loadedAt}`, {
+        id: data.id || id,
+        title: data.title || '',
+        word: data.word || '',
+        steps: Array.isArray(data.steps) ? data.steps : [],
+        stepConfigs: stepConfigs,
+        rawStepConfigs: data.stepConfigs ?? null,
+        rawMetaStepConfigs: data?.meta?.stepConfigs ?? null
+      });
     }
 
     async function handleDeleteSelectedLesson() {

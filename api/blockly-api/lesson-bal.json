@@ -1,0 +1,41 @@
+{
+    "id": "lesson-bal",
+    "title": "lesson-bal",
+    "word": "",
+    "updatedAt": "2026-03-27T11:57:57+00:00",
+    "steps": [
+        "injection-extended",
+        "injection-extended",
+        "Compare"
+    ],
+    "stepConfigs": [
+        {
+            "id": "injection-extended",
+            "variable": "a"
+        },
+        {
+            "id": "injection-extended",
+            "variable": "s"
+        },
+        {
+            "id": "Compare",
+            "variable": "c"
+        }
+    ],
+    "meta": {
+        "stepConfigs": [
+            {
+                "id": "injection-extended",
+                "variable": "a"
+            },
+            {
+                "id": "injection-extended",
+                "variable": "s"
+            },
+            {
+                "id": "Compare",
+                "variable": "c"
+            }
+        ]
+    }
+}
