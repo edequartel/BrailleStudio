@@ -242,6 +242,30 @@
     );
   };
 
+  javascriptGenerator.forBlock['klanken_split_word_phonemes_nl'] = function (block) {
+    const wordCode = valueToCodeOr(block, 'WORD', "''");
+    return [
+      `(await (async () => {\n` +
+      `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
+      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
+      `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
+      `    .filter(Boolean)\n` +
+      `    .sort((a, b) => b.length - a.length);\n` +
+      `  const __fonemen = [];\n` +
+      `  for (let __i = 0; __i < __word.length;) {\n` +
+      `    const __ch = __word[__i];\n` +
+      `    if (!/[a-z]/.test(__ch)) { __i += 1; continue; }\n` +
+      `    let __m = '';\n` +
+      `    for (const __t of __tokens) { if (__t && __word.startsWith(__t, __i)) { __m = __t; break; } }\n` +
+      `    if (__m) { __fonemen.push(__m); __i += __m.length; } else { __fonemen.push(__ch); __i += 1; }\n` +
+      `  }\n` +
+      `  return __fonemen;\n` +
+      `})())`,
+      ORDER_ATOMIC
+    ];
+  };
+
   javascriptGenerator.forBlock['klanken_play_word_phonemes_nl_with_pause'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     const secondsCode = valueToCodeOr(block, 'SECONDS', '0');
@@ -297,7 +321,7 @@
 
   javascriptGenerator.forBlock['sound_play_folder_file'] = function (block) {
     const folder = q(block.getFieldValue('FOLDER') || 'speech');
-    const file = q(block.getFieldValue('FILE') || 'voorbeeld');
+    const file = valueToCodeOr(block, 'FILE', "'voorbeeld'");
     const code =
       `await BrailleStudioAPI.playUrl((() => { ` +
       `const bases = {` +
@@ -358,5 +382,15 @@
     const b = valueToCodeOr(block, 'B', "''");
     const c = valueToCodeOr(block, 'C', "''");
     return [`BrailleStudioAPI.joinCsv([${a}, ${b}, ${c}])`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_first_letter'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [`(() => { const chars = Array.from(String(${textCode} ?? '')); return chars[0] ?? ''; })()`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_last_letter'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [`(() => { const chars = Array.from(String(${textCode} ?? '')); return chars.length ? chars[chars.length - 1] : ''; })()`, ORDER_ATOMIC];
   };
 })();

@@ -101,6 +101,10 @@
       align-items: stretch;
     }
 
+    .topbar-row--monitor.is-hidden {
+      display: none;
+    }
+
     .braille-monitor-host {
       width: 100%;
       min-height: 84px;
@@ -255,10 +259,15 @@
 
     #runBtn,
     #stopBtn,
-    #gridSnapBtn,
-    #sidebarToggleBtn {
+    #gridSnapBtn {
       width: 96px;
       justify-content: center;
+    }
+
+    #sidebarToggleBtn {
+      width: 116px;
+      justify-content: center;
+      white-space: nowrap;
     }
 
     #fileStateBadge {
@@ -522,6 +531,7 @@
       <div id="title">Braille Activity Builder</div>
 
       <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
+      <button id="monitorToggleBtn" class="btn btn-soft is-active" type="button" aria-pressed="false">Hide Monitor</button>
       <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="false">Hide Right</button>
       <input id="fileInput" type="file" accept=".blockly">
 
@@ -547,7 +557,7 @@
       <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
     </div>
 
-    <div class="topbar-row topbar-row--monitor">
+    <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor">
       <div id="brailleMonitorComponent" class="braille-monitor-host"></div>
     </div>
 
@@ -711,46 +721,11 @@
   </category>
 
   <category name="Play" colour="#10B981">
-    <block type="sound_play_speech_file">
+    <block type="sound_play_folder_file">
       <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="sound_play_letters_file">
-      <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="sound_play_instructions_file">
-      <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="sound_play_feedback_file">
-      <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="sound_play_story_file">
-      <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="sound_play_general_file">
-      <value name="FILE">
-        <shadow type="text">
-          <field name="TEXT">voorbeeld</field>
-        </shadow>
+        <block type="variables_get">
+          <field name="VAR">text</field>
+        </block>
       </value>
     </block>
     <block type="sound_play_url"></block>
@@ -842,22 +817,10 @@
     <block type="klanken_word_get_sounds"></block>
     <block type="klanken_word_get_new_sounds"></block>
     <block type="klanken_word_get_known_sounds"></block>
-    <block type="klanken_play_word_sounds">
+    <block type="klanken_split_word_phonemes_nl">
       <value name="WORD">
         <shadow type="text">
           <field name="TEXT">bal</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="klanken_play_word_sounds_with_pause">
-      <value name="WORD">
-        <shadow type="text">
-          <field name="TEXT">bal</field>
-        </shadow>
-      </value>
-      <value name="SECONDS">
-        <shadow type="math_number">
-          <field name="NUM">0.5</field>
         </shadow>
       </value>
     </block>
@@ -916,16 +879,13 @@
     <block type="list_empty"></block>
     <block type="list_get_item"></block>
     <block type="list_set_item"></block>
-    <block type="list_length"></block>
     <block type="list_nrof_items"></block>
     <block type="list_random_item"></block>
     <block type="list_next_item"></block>
     <block type="list_contains_item"></block>
     <block type="list_add_item"></block>
     <block type="list_remove_item"></block>
-    <block type="list_from_json"></block>
     <block type="list_random_other_item"></block>
-    <block type="text_join_csv"></block>
   </category>
 
   <category name="State values" colour="#7C3AED">
@@ -962,6 +922,8 @@
   <category name="Text" colour="#0891B2">
     <block type="text"></block>
     <block type="text_join"></block>
+    <block type="text_first_letter"></block>
+    <block type="text_last_letter"></block>
   </category>
 </xml>
 

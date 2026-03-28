@@ -416,9 +416,8 @@
           ['feedback', 'feedback'],
           ['story', 'story'],
           ['general', 'general']
-        ]), 'FOLDER')
-        .appendField('file')
-        .appendField(new Blockly.FieldTextInput('voorbeeld'), 'FILE');
+        ]), 'FOLDER');
+      this.appendValueInput('FILE').appendField('file');
       this.setPreviousStatement(true);
       this.setNextStatement(true);
       this.setColour('#10B981');
@@ -847,6 +846,22 @@
     }
   };
 
+  Blockly.Blocks['text_first_letter'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('first letter of');
+      this.setOutput(true);
+      this.setColour('#0891B2');
+    }
+  };
+
+  Blockly.Blocks['text_last_letter'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('last letter of');
+      this.setOutput(true);
+      this.setColour('#0891B2');
+    }
+  };
+
   Blockly.Blocks['klanken_word_get_sounds'] = {
     init() {
       this.appendValueInput('WORD').appendField('sounds of word');
@@ -886,6 +901,14 @@
       this.appendValueInput('SECONDS').appendField('wait seconds between');
       this.setPreviousStatement(true);
       this.setNextStatement(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['klanken_split_word_phonemes_nl'] = {
+    init() {
+      this.appendValueInput('WORD').appendField('split word into phonemes (nl)');
+      this.setOutput(true);
       this.setColour('#14B8A6');
     }
   };

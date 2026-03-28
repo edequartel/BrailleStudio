@@ -156,6 +156,22 @@ function renderSidebarToggleControl() {
   btn.textContent = isHidden ? 'Show Right' : 'Hide Right';
 }
 
+function renderBrailleMonitorToggleControl() {
+  const btn = document.getElementById('monitorToggleBtn');
+  const row = document.getElementById('brailleMonitorRow');
+  if (!btn || !row) return;
+  row.classList.toggle('is-hidden', !brailleMonitorVisible);
+  btn.classList.toggle('is-active', !!brailleMonitorVisible);
+  btn.setAttribute('aria-pressed', brailleMonitorVisible ? 'false' : 'true');
+  btn.textContent = brailleMonitorVisible ? 'Hide Monitor' : 'Show Monitor';
+}
+
+function applyBrailleMonitorVisibility(visible) {
+  brailleMonitorVisible = !!visible;
+  localStorage.setItem(BLOCKLY_MONITOR_VISIBLE_KEY, brailleMonitorVisible ? 'true' : 'false');
+  renderBrailleMonitorToggleControl();
+}
+
 function toggleSidebarPanel() {
   const main = document.getElementById('main');
   if (!main) return;
@@ -325,6 +341,7 @@ const SOUND_FOLDER_URLS = {
   general: 'https://www.tastenbraille.com/braillestudio/sounds/general/'
 };
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
+const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
@@ -334,6 +351,7 @@ let wsConnected = false;
 let reconnectTimer = null;
 let autoConnectEnabled = true;
 let gridSnapEnabled = true;
+let brailleMonitorVisible = true;
 let pendingStart = false;
 let pendingStartGeneration = 0;
 let runGeneration = 0;
@@ -1281,6 +1299,9 @@ function bindAppControls() {
   bind('gridSnapBtn', 'click', () => {
     applyGridSnap(!gridSnapEnabled);
   });
+  bind('monitorToggleBtn', 'click', () => {
+    applyBrailleMonitorVisibility(!brailleMonitorVisible);
+  });
   bind('sidebarToggleBtn', 'click', () => {
     toggleSidebarPanel();
   });
@@ -1423,11 +1444,18 @@ function bindAppControls() {
     gridSnapBtn.dataset.initialized = '1';
   }
 
+  const monitorToggleBtn = document.getElementById('monitorToggleBtn');
+  if (monitorToggleBtn && !monitorToggleBtn.dataset.initialized) {
+    brailleMonitorVisible = localStorage.getItem(BLOCKLY_MONITOR_VISIBLE_KEY) !== 'false';
+    renderBrailleMonitorToggleControl();
+    monitorToggleBtn.dataset.initialized = '1';
+  }
+
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
   if (sidebarToggleBtn && !sidebarToggleBtn.dataset.initialized) {
     const main = document.getElementById('main');
     if (main) {
-      main.classList.remove('is-sidebar-hidden');
+      main.classList.add('is-sidebar-hidden');
     }
     renderSidebarToggleControl();
     sidebarToggleBtn.dataset.initialized = '1';
@@ -3138,4 +3166,3 @@ window.BrailleBlocklyApp = {
   }
 };
 setBootStage('api-ready');
-
