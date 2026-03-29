@@ -321,7 +321,8 @@ const runtime = {
   lastWsNotice: '',
   activeTable: '',
   lineId: 0,
-  lockInjectedLessonRecord: false
+  lockInjectedLessonRecord: false,
+  procedures: new Map()
 };
 
 const variableValues = {};
@@ -704,9 +705,11 @@ async function importWorkspaceJsonFromClipboard() {
     throw new Error('Invalid Blockly JSON structure');
   }
 
+  registerProcedures(state, runtime);
   suppressDirtyTracking++;
   workspace.clear();
   Blockly.serialization.workspaces.load(state, workspace);
+  refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
   suppressDirtyTracking--;
@@ -727,9 +730,11 @@ async function loadWorkspaceOnline(id) {
     throw new Error('Loaded script does not contain valid Blockly JSON');
   }
 
+  registerProcedures(state, runtime);
   suppressDirtyTracking++;
   workspace.clear();
   Blockly.serialization.workspaces.load(state, workspace);
+  refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
   suppressDirtyTracking--;
@@ -1227,6 +1232,7 @@ async function runStartedProgram(generation) {
     log('Start blocked: Blockly workspace is not ready');
     return;
   }
+  refreshProcedureRegistry(workspace);
   if (generation !== runGeneration || runtime.stopped) return;
   const startedBlocks = workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started');
   if (startedBlocks.length === 0) {
@@ -1526,6 +1532,112 @@ window.addEventListener('beforeunload', (event) => {
 });
 
 /* ---------------- Workspace ---------------- */
+function ensureProcedureToolboxCategory() {
+  const toolbox = document.getElementById('toolbox');
+  if (!toolbox || toolbox.querySelector('category[custom="PROCEDURE"]')) return;
+  const category = document.createElement('category');
+  category.setAttribute('name', 'Procedures');
+  category.setAttribute('custom', 'PROCEDURE');
+  category.setAttribute('colour', '#BE185D');
+  toolbox.appendChild(category);
+}
+
+function verifyProcedureBlocksAvailable() {
+  const hasDefNoReturn = !!Blockly?.Blocks?.procedures_defnoreturn;
+  const hasCallNoReturn = !!Blockly?.Blocks?.procedures_callnoreturn;
+  if (!hasDefNoReturn || !hasCallNoReturn) {
+    log('Warning: standard Blockly procedure blocks are missing from this bundle');
+  }
+}
+
+function getProcedureName(block) {
+  if (!block) return '';
+
+  if (typeof block.getFieldValue === 'function') {
+    const fromField = String(block.getFieldValue('NAME') ?? '').trim();
+    if (fromField) return fromField;
+
+    const extraState = typeof block.getExtraState === 'function'
+      ? block.getExtraState()
+      : (block.extraState_ ?? block.extraState ?? null);
+    const fromExtra = String(extraState?.name ?? '').trim();
+    if (fromExtra) return fromExtra;
+
+    return '';
+  }
+
+  const fromJsonField = String(block?.fields?.NAME ?? '').trim();
+  if (fromJsonField) return fromJsonField;
+
+  const fromJsonExtra = String(block?.extraState?.name ?? '').trim();
+  if (fromJsonExtra) return fromJsonExtra;
+
+  return '';
+}
+
+function walkSerializedBlocks(block, visit) {
+  if (!block || typeof block !== 'object') return;
+  visit(block);
+
+  const inputs = block.inputs;
+  if (inputs && typeof inputs === 'object') {
+    Object.values(inputs).forEach(input => {
+      if (!input || typeof input !== 'object') return;
+      if (input.block) walkSerializedBlocks(input.block, visit);
+      if (input.shadow) walkSerializedBlocks(input.shadow, visit);
+    });
+  }
+
+  const nextBlock = block.next?.block;
+  if (nextBlock) walkSerializedBlocks(nextBlock, visit);
+}
+
+function registerProcedures(workspaceJson, runtimeState = runtime) {
+  const procedureMap = new Map();
+  const setProcedure = (name, entry) => {
+    const key = String(name ?? '').trim();
+    if (!key) return;
+    procedureMap.set(key, entry);
+  };
+
+  if (workspaceJson && typeof workspaceJson.getAllBlocks === 'function') {
+    workspaceJson.getAllBlocks(false).forEach(block => {
+      if (block.type !== 'procedures_defnoreturn') return;
+      const name = getProcedureName(block);
+      setProcedure(name, {
+        name,
+        blockId: String(block.id || ''),
+        block
+      });
+    });
+  } else {
+    const topBlocks = Array.isArray(workspaceJson?.blocks?.blocks)
+      ? workspaceJson.blocks.blocks
+      : [];
+    topBlocks.forEach(topBlock => {
+      walkSerializedBlocks(topBlock, block => {
+        if (block?.type !== 'procedures_defnoreturn') return;
+        const name = getProcedureName(block);
+        setProcedure(name, {
+          name,
+          blockId: String(block.id || ''),
+          block: null
+        });
+      });
+    });
+  }
+
+  runtimeState.procedures = procedureMap;
+  return procedureMap;
+}
+
+function refreshProcedureRegistry(source = workspace) {
+  registerProcedures(source, runtime);
+}
+
+ensureProcedureToolboxCategory();
+verifyProcedureBlocksAvailable();
+
 setBootStage('before-workspace-inject');
 workspace = Blockly.inject('blocklyDiv', {
   toolbox: document.getElementById('toolbox'),
@@ -1603,6 +1715,7 @@ function initVariableValues() {
 }
 
 workspace.addChangeListener(() => {
+  refreshProcedureRegistry(workspace);
   initVariableValues();
   refreshWorkspaceDirtyState();
 });
@@ -1687,6 +1800,7 @@ function loadDefaultWorkspace() {
   const xmlDom = Blockly.utils.xml.textToDom(defaultXmlText);
   patchVariableFieldIds(xmlDom);
   Blockly.Xml.domToWorkspace(xmlDom, workspace);
+  refreshProcedureRegistry(workspace);
   initVariableValues();
   suppressDirtyTracking--;
   markWorkspaceSaved(getWorkspaceSignature());
@@ -2289,6 +2403,44 @@ async function evalValue(block) {
 }
 
 /* ---------------- Execution ---------------- */
+async function runProcedureCall(block, ctx = {}) {
+  const callName = getProcedureName(block);
+  if (!callName) {
+    log('Warning: skipped procedure call with missing NAME');
+    return;
+  }
+
+  const runtimeState = ctx.runtime || runtime;
+  const targetWorkspace = ctx.workspace || workspace;
+  const generation = Number.isFinite(ctx.generation) ? ctx.generation : runGeneration;
+  const procedures = runtimeState?.procedures instanceof Map ? runtimeState.procedures : new Map();
+
+  let entry = procedures.get(callName) || null;
+  let definition = entry?.block || null;
+  if (!definition && entry?.blockId && targetWorkspace && typeof targetWorkspace.getBlockById === 'function') {
+    definition = targetWorkspace.getBlockById(entry.blockId);
+  }
+
+  if (!definition && targetWorkspace && typeof targetWorkspace.getAllBlocks === 'function') {
+    refreshProcedureRegistry(targetWorkspace);
+    entry = runtimeState.procedures.get(callName) || null;
+    definition = entry?.block || null;
+    if (!definition && entry?.blockId && typeof targetWorkspace.getBlockById === 'function') {
+      definition = targetWorkspace.getBlockById(entry.blockId);
+    }
+  }
+
+  if (!definition || definition.type !== 'procedures_defnoreturn') {
+    log(`Warning: procedure not found: ${callName}`);
+    return;
+  }
+
+  const firstStatement = definition.getInputTargetBlock('STACK');
+  if (firstStatement) {
+    await executeChain(firstStatement, generation);
+  }
+}
+
 async function executeChain(startBlock, generation) {
   let current = startBlock;
 
@@ -2717,6 +2869,23 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'procedures_callnoreturn': {
+        await runProcedureCall(current, { runtime, workspace, generation });
+        break;
+      }
+
+      case 'procedures_defnoreturn': {
+        // Procedure definitions are registered separately and executed only via explicit calls.
+        break;
+      }
+
+      case 'procedures_defreturn':
+      case 'procedures_ifreturn': {
+        // TODO: Support return-value procedures in the runtime executor.
+        log('Skipped unsupported procedure block: ' + current.type);
+        break;
+      }
+
       default:
         log('Skipped unsupported block: ' + current.type);
         break;
@@ -2945,6 +3114,7 @@ function loadWorkspaceFromText(text, sourceName = null) {
     suppressDirtyTracking++;
     workspace.clear();
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
+    refreshProcedureRegistry(workspace);
     ensureDefaultVariable();
     initVariableValues();
     renderScriptMetadata(extractWorkspaceMetadata(xmlDom, sourceName));
@@ -2964,9 +3134,11 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
     if (!state || typeof state !== 'object') {
       throw new Error('Invalid Blockly JSON structure');
     }
+    registerProcedures(state, runtime);
     suppressDirtyTracking++;
     workspace.clear();
     Blockly.serialization.workspaces.load(state, workspace);
+    refreshProcedureRegistry(workspace);
     ensureDefaultVariable();
     initVariableValues();
     if (metadata && typeof metadata === 'object') {
@@ -2998,6 +3170,7 @@ async function newWorkspace() {
   setSelectedFileName('braille-activity.blockly');
   suppressDirtyTracking++;
   workspace.clear();
+  refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
   renderScriptMetadata(null);
@@ -3040,6 +3213,7 @@ window.BrailleBlocklyApp = {
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
     }
+    refreshProcedureRegistry(workspace);
     log('Headless run started' + (sourceName ? ': ' + sourceName : ''));
     log('Headless when started blocks: ' + startedBlocks.length);
     log('Headless requested record index: ' + Math.max(0, Math.floor(toNumber(index))));
@@ -3093,6 +3267,7 @@ window.BrailleBlocklyApp = {
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
     }
+    refreshProcedureRegistry(workspace);
     log('Headless run started' + (sourceName ? ': ' + sourceName : ''));
     log('Headless when started blocks: ' + startedBlocks.length);
     log('Headless requested record index: ' + Math.max(0, Math.floor(toNumber(index))));
@@ -3131,6 +3306,7 @@ window.BrailleBlocklyApp = {
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
     }
+    refreshProcedureRegistry(workspace);
     await dispatchEvent({ type: 'started' }, generation);
     return generation;
   },
