@@ -2397,6 +2397,29 @@ async function evalValue(block) {
         .join(',');
     }
 
+    case 'text_first_letter': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      const chars = Array.from(text);
+      return chars[0] ?? '';
+    }
+
+    case 'text_last_letter': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      const chars = Array.from(text);
+      return chars.length ? chars[chars.length - 1] : '';
+    }
+
+    case 'klanken_split_word_phonemes_nl': {
+      try {
+        const word = await evalValue(block.getInputTargetBlock('WORD'));
+        const fonemenData = await getFonemenNlStandaard();
+        return splitWordToNlFonemen(word, fonemenData);
+      } catch (err) {
+        log(`Phonems split failed: ${err}`);
+        return [];
+      }
+    }
+
     default:
       return null;
   }
@@ -2554,7 +2577,7 @@ async function executeChain(startBlock, generation) {
 
       case 'sound_play_folder_file': {
         const folder = current.getFieldValue('FOLDER');
-        const file = current.getFieldValue('FILE');
+        const file = await evalValue(current.getInputTargetBlock('FILE'));
         await playSound(resolveFolderSoundUrl(folder, file));
         break;
       }
