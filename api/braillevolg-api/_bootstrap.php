@@ -30,6 +30,8 @@ $db->exec("
         leessnelheid TEXT NOT NULL DEFAULT '',
         laatste_toetsdatum TEXT NOT NULL DEFAULT '',
         opmerkingen TEXT NOT NULL DEFAULT '',
+        deleted_at TEXT NOT NULL DEFAULT '',
+        deleted_by TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
@@ -44,6 +46,12 @@ if ($leerlingInfo) {
 }
 if (!in_array('doelstellingen', $leerlingColumns, true)) {
     $db->exec("ALTER TABLE leerlingen ADD COLUMN doelstellingen TEXT NOT NULL DEFAULT ''");
+}
+if (!in_array('deleted_at', $leerlingColumns, true)) {
+    $db->exec("ALTER TABLE leerlingen ADD COLUMN deleted_at TEXT NOT NULL DEFAULT ''");
+}
+if (!in_array('deleted_by', $leerlingColumns, true)) {
+    $db->exec("ALTER TABLE leerlingen ADD COLUMN deleted_by TEXT NOT NULL DEFAULT ''");
 }
 
 $db->exec("
@@ -68,6 +76,8 @@ $db->exec("
         woorden_beheerst INTEGER NOT NULL DEFAULT 0,
         leessnelheid TEXT NOT NULL DEFAULT '',
         notitie TEXT NOT NULL DEFAULT '',
+        deleted_at TEXT NOT NULL DEFAULT '',
+        deleted_by TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (leerling_id) REFERENCES leerlingen(id) ON DELETE CASCADE
@@ -84,6 +94,25 @@ if ($voortgangInfo) {
 if (!in_array('auteur', $voortgangColumns, true)) {
     $db->exec("ALTER TABLE voortgang ADD COLUMN auteur TEXT NOT NULL DEFAULT ''");
 }
+if (!in_array('deleted_at', $voortgangColumns, true)) {
+    $db->exec("ALTER TABLE voortgang ADD COLUMN deleted_at TEXT NOT NULL DEFAULT ''");
+}
+if (!in_array('deleted_by', $voortgangColumns, true)) {
+    $db->exec("ALTER TABLE voortgang ADD COLUMN deleted_by TEXT NOT NULL DEFAULT ''");
+}
+
+$db->exec("
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor TEXT NOT NULL DEFAULT '',
+        actor_role TEXT NOT NULL DEFAULT '',
+        entity_type TEXT NOT NULL DEFAULT '',
+        entity_id INTEGER NOT NULL DEFAULT 0,
+        action TEXT NOT NULL DEFAULT '',
+        details_json TEXT NOT NULL DEFAULT '',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+");
 
 $db->exec("
     CREATE TRIGGER IF NOT EXISTS voortgang_updated_at
@@ -123,7 +152,7 @@ function fetch_leerling_by_id(SQLite3 $db, int $id): ?array
     if ($id <= 0) {
         return null;
     }
-    $stmt = $db->prepare("SELECT * FROM leerlingen WHERE id = :id LIMIT 1");
+    $stmt = $db->prepare("SELECT * FROM leerlingen WHERE id = :id AND deleted_at = '' LIMIT 1");
     $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
     $res = $stmt->execute();
     $row = $res ? $res->fetchArray(SQLITE3_ASSOC) : false;
@@ -135,7 +164,7 @@ function fetch_voortgang_by_id(SQLite3 $db, int $id): ?array
     if ($id <= 0) {
         return null;
     }
-    $stmt = $db->prepare("SELECT * FROM voortgang WHERE id = :id LIMIT 1");
+    $stmt = $db->prepare("SELECT * FROM voortgang WHERE id = :id AND deleted_at = '' LIMIT 1");
     $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
     $res = $stmt->execute();
     $row = $res ? $res->fetchArray(SQLITE3_ASSOC) : false;
@@ -152,6 +181,7 @@ function sync_leerling_latest_voortgang(SQLite3 $db, int $leerlingId): void
         SELECT datum, letters_beheerst, woorden_beheerst, leessnelheid
         FROM voortgang
         WHERE leerling_id = :leerling_id
+          AND deleted_at = ''
         ORDER BY datum DESC, id DESC
         LIMIT 1
     ");
@@ -181,11 +211,12 @@ function render_page_start(string $title, string $intro = ''): void
     $safeTitle = e($title);
     $safeIntro = e($intro);
     $currentUser = e((string)($_SESSION['braillevolg_auth_user'] ?? ''));
+    $currentRole = e((string)($_SESSION['braillevolg_auth_role'] ?? ''));
     $authTools = '';
     if ($currentUser !== '') {
         $authTools = <<<HTML
         <div class="hero-tools">
-          <span class="hero-user">Ingelogd als {$currentUser}</span>
+          <span class="hero-user">Ingelogd als {$currentUser} ({$currentRole})</span>
           <a class="btn btn-secondary" href="logout.php">Uitloggen</a>
         </div>
 HTML;
@@ -388,6 +419,7 @@ HTML;
     .auth-card .card-header {
       margin-bottom:20px;
     }
+    .is-hidden { display:none; }
     .auth-note {
       margin-top:14px;
       padding:14px 16px;
@@ -433,10 +465,12 @@ function get_auth_config(): array
     }
 
     return [
+        'retention_days' => 1825,
+        'purge_after_soft_delete_days' => 90,
         'users' => [
-            ['username' => 'Gerda', 'password_sha256' => 'ccc0b903bce51fb554262d742d0a282e1f8a87d064f1cf44f8ff5148ca4beb42'],
-            ['username' => 'Manon', 'password_sha256' => 'ccc0b903bce51fb554262d742d0a282e1f8a87d064f1cf44f8ff5148ca4beb42'],
-            ['username' => 'Eric', 'password_sha256' => 'ccc0b903bce51fb554262d742d0a282e1f8a87d064f1cf44f8ff5148ca4beb42'],
+            ['username' => 'Gerda', 'role' => 'editor', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
+            ['username' => 'Manon', 'role' => 'editor', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
+            ['username' => 'Eric', 'role' => 'admin', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
         ],
     ];
 }
@@ -455,22 +489,22 @@ function authenticate_user(string $username, string $password): bool
         return false;
     }
 
-    $submittedHash = hash('sha256', $password);
-
     foreach ($users as $user) {
         if (!is_array($user)) {
             continue;
         }
         $expectedUser = (string)($user['username'] ?? '');
-        $expectedHash = strtolower((string)($user['password_sha256'] ?? ''));
+        $expectedHash = (string)($user['password_hash'] ?? '');
+        $expectedRole = (string)($user['role'] ?? 'editor');
 
         if ($expectedUser === '' || $expectedHash === '') {
             continue;
         }
 
-        if (hash_equals($expectedUser, $username) && hash_equals($expectedHash, $submittedHash)) {
+        if (hash_equals($expectedUser, $username) && password_verify($password, $expectedHash)) {
             $_SESSION['braillevolg_authenticated'] = true;
             $_SESSION['braillevolg_auth_user'] = $expectedUser;
+            $_SESSION['braillevolg_auth_role'] = $expectedRole;
             return true;
         }
     }
@@ -492,6 +526,111 @@ function current_auth_user(): string
 {
     return (string)($_SESSION['braillevolg_auth_user'] ?? '');
 }
+
+function current_auth_role(): string
+{
+    return (string)($_SESSION['braillevolg_auth_role'] ?? '');
+}
+
+function is_admin(): bool
+{
+    return current_auth_role() === 'admin';
+}
+
+function require_admin(): void
+{
+    if (is_admin()) {
+        return;
+    }
+    http_response_code(403);
+    exit('403 - Alleen admins mogen deze actie uitvoeren.');
+}
+
+function write_audit_log(SQLite3 $db, string $entityType, int $entityId, string $action, array $details = []): void
+{
+    $stmt = $db->prepare("
+        INSERT INTO audit_log (actor, actor_role, entity_type, entity_id, action, details_json)
+        VALUES (:actor, :actor_role, :entity_type, :entity_id, :action, :details_json)
+    ");
+    $stmt->bindValue(':actor', current_auth_user(), SQLITE3_TEXT);
+    $stmt->bindValue(':actor_role', current_auth_role(), SQLITE3_TEXT);
+    $stmt->bindValue(':entity_type', $entityType, SQLITE3_TEXT);
+    $stmt->bindValue(':entity_id', $entityId, SQLITE3_INTEGER);
+    $stmt->bindValue(':action', $action, SQLITE3_TEXT);
+    $stmt->bindValue(':details_json', json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), SQLITE3_TEXT);
+    $stmt->execute();
+}
+
+function soft_delete_leerling(SQLite3 $db, int $leerlingId): void
+{
+    $deletedAt = gmdate('Y-m-d H:i:s');
+    $deletedBy = current_auth_user();
+
+    $stmt = $db->prepare("UPDATE leerlingen SET deleted_at = :deleted_at, deleted_by = :deleted_by WHERE id = :id AND deleted_at = ''");
+    $stmt->bindValue(':deleted_at', $deletedAt, SQLITE3_TEXT);
+    $stmt->bindValue(':deleted_by', $deletedBy, SQLITE3_TEXT);
+    $stmt->bindValue(':id', $leerlingId, SQLITE3_INTEGER);
+    $stmt->execute();
+
+    $stmt = $db->prepare("UPDATE voortgang SET deleted_at = :deleted_at, deleted_by = :deleted_by WHERE leerling_id = :leerling_id AND deleted_at = ''");
+    $stmt->bindValue(':deleted_at', $deletedAt, SQLITE3_TEXT);
+    $stmt->bindValue(':deleted_by', $deletedBy, SQLITE3_TEXT);
+    $stmt->bindValue(':leerling_id', $leerlingId, SQLITE3_INTEGER);
+    $stmt->execute();
+}
+
+function soft_delete_voortgang(SQLite3 $db, int $voortgangId, int $leerlingId): void
+{
+    $stmt = $db->prepare("UPDATE voortgang SET deleted_at = :deleted_at, deleted_by = :deleted_by WHERE id = :id AND leerling_id = :leerling_id AND deleted_at = ''");
+    $stmt->bindValue(':deleted_at', gmdate('Y-m-d H:i:s'), SQLITE3_TEXT);
+    $stmt->bindValue(':deleted_by', current_auth_user(), SQLITE3_TEXT);
+    $stmt->bindValue(':id', $voortgangId, SQLITE3_INTEGER);
+    $stmt->bindValue(':leerling_id', $leerlingId, SQLITE3_INTEGER);
+    $stmt->execute();
+}
+
+function export_leerling_bundle(SQLite3 $db, int $leerlingId): ?array
+{
+    $leerling = fetch_leerling_by_id($db, $leerlingId);
+    if (!$leerling) {
+        return null;
+    }
+
+    $stmt = $db->prepare("SELECT * FROM voortgang WHERE leerling_id = :leerling_id AND deleted_at = '' ORDER BY datum DESC, id DESC");
+    $stmt->bindValue(':leerling_id', $leerlingId, SQLITE3_INTEGER);
+    $res = $stmt->execute();
+    $items = [];
+    while ($row = $res ? $res->fetchArray(SQLITE3_ASSOC) : false) {
+        $items[] = $row;
+    }
+
+    return [
+        'exportedAt' => gmdate('c'),
+        'exportedBy' => current_auth_user(),
+        'leerling' => $leerling,
+        'voortgang' => $items,
+    ];
+}
+
+function apply_retention_policy(SQLite3 $db): void
+{
+    $config = get_auth_config();
+    $purgeAfterDays = (int)($config['purge_after_soft_delete_days'] ?? 90);
+    if ($purgeAfterDays <= 0) {
+        return;
+    }
+
+    $threshold = gmdate('Y-m-d H:i:s', time() - ($purgeAfterDays * 86400));
+    $stmt = $db->prepare("DELETE FROM voortgang WHERE deleted_at != '' AND deleted_at < :threshold");
+    $stmt->bindValue(':threshold', $threshold, SQLITE3_TEXT);
+    $stmt->execute();
+
+    $stmt = $db->prepare("DELETE FROM leerlingen WHERE deleted_at != '' AND deleted_at < :threshold");
+    $stmt->bindValue(':threshold', $threshold, SQLITE3_TEXT);
+    $stmt->execute();
+}
+
+apply_retention_policy($db);
 
 function require_authentication(): void
 {

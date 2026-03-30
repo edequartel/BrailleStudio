@@ -46,6 +46,8 @@ if ($actie === 'voortgang_toevoegen') {
         $stmt->bindValue(':leessnelheid', $leessnelheid, SQLITE3_TEXT);
         $stmt->bindValue(':notitie', $notitie, SQLITE3_TEXT);
         $stmt->execute();
+        $newId = (int)$db->lastInsertRowID();
+        write_audit_log($db, 'voortgang', $newId, 'create', ['leerling_id' => $gekozenLeerlingId, 'datum' => $datum]);
         sync_leerling_latest_voortgang($db, $gekozenLeerlingId);
         redirect_with_query('voortgang.php', [
             'melding' => 'voortgang_toegevoegd',
@@ -89,6 +91,7 @@ if ($actie === 'voortgang_bewerken_opslaan') {
         $stmt->bindValue(':leessnelheid', $leessnelheid, SQLITE3_TEXT);
         $stmt->bindValue(':notitie', $notitie, SQLITE3_TEXT);
         $stmt->execute();
+        write_audit_log($db, 'voortgang', $id, 'update', ['leerling_id' => $gekozenLeerlingId, 'datum' => $datum]);
         sync_leerling_latest_voortgang($db, $gekozenLeerlingId);
         redirect_with_query('voortgang.php', [
             'melding' => 'voortgang_bijgewerkt',
@@ -100,10 +103,8 @@ if ($actie === 'voortgang_bewerken_opslaan') {
 if ($actie === 'voortgang_verwijderen') {
     $id = (int)post('id', '0');
     if ($id > 0) {
-        $stmt = $db->prepare("DELETE FROM voortgang WHERE id = :id AND leerling_id = :leerling_id");
-        $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-        $stmt->bindValue(':leerling_id', $gekozenLeerlingId, SQLITE3_INTEGER);
-        $stmt->execute();
+        soft_delete_voortgang($db, $id, $gekozenLeerlingId);
+        write_audit_log($db, 'voortgang', $id, 'soft_delete', ['leerling_id' => $gekozenLeerlingId]);
         sync_leerling_latest_voortgang($db, $gekozenLeerlingId);
         redirect_with_query('voortgang.php', [
             'melding' => 'voortgang_verwijderd',
@@ -156,18 +157,19 @@ $voortgangResult = null;
 $stmt = $db->prepare("
     SELECT * FROM voortgang
     WHERE leerling_id = :leerling_id
+      AND deleted_at = ''
     ORDER BY datum DESC, id DESC
 ");
 $stmt->bindValue(':leerling_id', $gekozenLeerlingId, SQLITE3_INTEGER);
 $voortgangResult = $stmt->execute();
 
-$countRes = $db->prepare("SELECT COUNT(*) AS total FROM voortgang WHERE leerling_id = :leerling_id");
+$countRes = $db->prepare("SELECT COUNT(*) AS total FROM voortgang WHERE leerling_id = :leerling_id AND deleted_at = ''");
 $countRes->bindValue(':leerling_id', $gekozenLeerlingId, SQLITE3_INTEGER);
 $countRow = $countRes->execute()->fetchArray(SQLITE3_ASSOC) ?: ['total' => 0];
 
 render_page_start(
     'Braille Aantekeningen',
-    'Leg per datum aantekeningen en voortgang vast voor de gekozen leerling. Deze pagina is alleen bedoeld voor notities en meetmomenten.'
+    ''
 );
 ?>
 
@@ -186,7 +188,10 @@ render_page_start(
       </div>
       <div class="actions">
         <a class="btn btn-secondary" href="index.php">Terug naar leerlingen</a>
+        <a class="btn btn-secondary" href="voortgang_pdf.php?leerling=<?= $gekozenLeerlingId ?>">PDF</a>
+        <?php if (is_admin()): ?>
         <a class="btn btn-edit" href="index.php?bewerk=<?= $gekozenLeerlingId ?>&leerling=<?= $gekozenLeerlingId ?>">Bewerk leerling</a>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -203,7 +208,6 @@ render_page_start(
     <div class="card-header">
       <div>
         <h2><?= $bewerkVoortgang ? 'Aantekening bewerken' : 'Nieuwe aantekening' ?></h2>
-        <p class="card-subtitle">Voeg een datum, resultaat en korte notitie toe voor deze leerling.</p>
       </div>
       <?php if ($bewerkVoortgang): ?>
         <div class="actions"><a class="btn btn-secondary" href="voortgang.php?leerling=<?= $gekozenLeerlingId ?>">Nieuw</a></div>
@@ -247,7 +251,6 @@ render_page_start(
     <div class="card-header">
       <div>
         <h2>Aantekeningen</h2>
-        <p class="card-subtitle">Nieuwste aantekeningen en meetmomenten bovenaan.</p>
       </div>
     </div>
 

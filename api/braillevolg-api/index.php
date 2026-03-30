@@ -9,6 +9,7 @@ $melding = '';
 $fout = '';
 
 if ($actie === 'toevoegen') {
+    require_admin();
     $naam = post('naam');
     $groepKlas = post('groep_klas');
     $niveau = post('niveau');
@@ -38,15 +39,18 @@ if ($actie === 'toevoegen') {
         $stmt->bindValue(':laatste_toetsdatum', $laatsteToetsdatum, SQLITE3_TEXT);
         $stmt->bindValue(':opmerkingen', $opmerkingen, SQLITE3_TEXT);
         $stmt->execute();
+        $newId = (int)$db->lastInsertRowID();
+        write_audit_log($db, 'leerling', $newId, 'create', ['naam' => $naam]);
 
         redirect_with_query('index.php', [
             'melding' => 'leerling_toegevoegd',
-            'leerling' => (string)$db->lastInsertRowID(),
+            'leerling' => (string)$newId,
         ]);
     }
 }
 
 if ($actie === 'bewerken_opslaan') {
+    require_admin();
     $id = (int)post('id', '0');
     $naam = post('naam');
     $groepKlas = post('groep_klas');
@@ -86,6 +90,7 @@ if ($actie === 'bewerken_opslaan') {
         $stmt->bindValue(':laatste_toetsdatum', $laatsteToetsdatum, SQLITE3_TEXT);
         $stmt->bindValue(':opmerkingen', $opmerkingen, SQLITE3_TEXT);
         $stmt->execute();
+        write_audit_log($db, 'leerling', $id, 'update', ['naam' => $naam]);
 
         redirect_with_query('index.php', [
             'melding' => 'leerling_bijgewerkt',
@@ -95,14 +100,29 @@ if ($actie === 'bewerken_opslaan') {
 }
 
 if ($actie === 'verwijderen') {
+    require_admin();
     $id = (int)post('id', '0');
     if ($id > 0) {
-        $stmt = $db->prepare("DELETE FROM leerlingen WHERE id = :id");
-        $stmt->bindValue(':id', $id, SQLITE3_INTEGER);
-        $stmt->execute();
+        soft_delete_leerling($db, $id);
+        write_audit_log($db, 'leerling', $id, 'soft_delete');
         redirect_with_query('index.php', ['melding' => 'leerling_verwijderd']);
     } else {
         $fout = 'Ongeldig ID voor verwijderen.';
+    }
+}
+
+if ($actie === 'exporteren') {
+    require_admin();
+    $id = (int)post('id', '0');
+    $bundle = export_leerling_bundle($db, $id);
+    if ($bundle === null) {
+        $fout = 'Leerling niet gevonden voor export.';
+    } else {
+        write_audit_log($db, 'leerling', $id, 'export');
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="leerling-' . $id . '-export.json"');
+        echo json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
 }
 
@@ -117,30 +137,41 @@ if ($queryMelding === 'leerling_toegevoegd') {
 
 $zoek = get('zoek');
 $bewerkId = (int)get('bewerk', '0');
+$canManageLeerlingen = is_admin();
 $bewerkLeerling = $bewerkId > 0 ? fetch_leerling_by_id($db, $bewerkId) : null;
+if (!$canManageLeerlingen) {
+    $bewerkLeerling = null;
+}
 
 if ($zoek !== '') {
     $stmt = $db->prepare("
         SELECT * FROM leerlingen
-        WHERE naam LIKE :zoek
-           OR groep_klas LIKE :zoek
-           OR niveau LIKE :zoek
-           OR doelstellingen LIKE :zoek
-           OR opmerkingen LIKE :zoek
+        WHERE (
+               naam LIKE :zoek
+            OR groep_klas LIKE :zoek
+            OR niveau LIKE :zoek
+            OR doelstellingen LIKE :zoek
+            OR opmerkingen LIKE :zoek
+        )
+          AND deleted_at = ''
         ORDER BY naam ASC
     ");
     $stmt->bindValue(':zoek', '%' . $zoek . '%', SQLITE3_TEXT);
     $result = $stmt->execute();
 } else {
-    $result = $db->query("SELECT * FROM leerlingen ORDER BY naam ASC");
+    $result = $db->query("SELECT * FROM leerlingen WHERE deleted_at = '' ORDER BY naam ASC");
 }
 
-$studentCountRes = $db->querySingle("SELECT COUNT(*) FROM leerlingen");
-$progressCountRes = $db->querySingle("SELECT COUNT(*) FROM voortgang");
+$studentCountRes = $db->querySingle("SELECT COUNT(*) FROM leerlingen WHERE deleted_at = ''");
+$progressCountRes = $db->querySingle("SELECT COUNT(*) FROM voortgang WHERE deleted_at = ''");
+$auditResult = null;
+if (is_admin()) {
+    $auditResult = $db->query("SELECT * FROM audit_log ORDER BY created_at DESC, id DESC LIMIT 20");
+}
 
 render_page_start(
     'Braille Leerlingen',
-    'Beheer leerlingen hier. Kies daarna een leerling om op de aparte pagina aantekeningen en voortgang per datum vast te leggen.'
+    ''
 );
 ?>
 
@@ -154,12 +185,63 @@ render_page_start(
       <div class="summary-tile"><strong><?= (int)$studentCountRes ?></strong><span>Leerlingen</span></div>
       <div class="summary-tile"><strong><?= (int)$progressCountRes ?></strong><span>Vorderingen</span></div>
       <div class="summary-tile"><strong><?= $bewerkLeerling ? e($bewerkLeerling['naam']) : '-' ?></strong><span>Bewerken</span></div>
-      <div class="summary-tile"><strong><?= $bewerkLeerling ? e($bewerkLeerling['laatste_toetsdatum'] ?: '-') : '-' ?></strong><span>Laatste toets</span></div>
+      <div class="summary-tile"><strong><?= $bewerkLeerling ? e($bewerkLeerling['groep_klas'] ?: '-') : '-' ?></strong><span>Groep / klas</span></div>
     </div>
   </div>
 
+  <div class="section-title">Leerlingenlijst</div>
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h2>Alle leerlingen</h2>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Naam</th>
+          <th>Groep/klas</th>
+          <th>Niveau</th>
+          <th>Laatste toets</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php
+      $hasRows = false;
+      while ($row = $result->fetchArray(SQLITE3_ASSOC)):
+          $hasRows = true;
+      ?>
+        <tr>
+          <td><?= e($row['naam']) ?></td>
+          <td><?= e($row['groep_klas']) ?></td>
+          <td><?= e($row['niveau']) ?></td>
+          <td><?= e($row['laatste_toetsdatum']) ?></td>
+          <td class="table-actions">
+            <a class="btn btn-success" href="voortgang.php?leerling=<?= (int)$row['id'] ?>">Aantekeningen</a>
+            <?php if ($canManageLeerlingen): ?>
+            <a class="btn btn-edit" href="index.php?bewerk=<?= (int)$row['id'] ?>">Bewerken</a>
+            <?php endif; ?>
+            <?php if (is_admin()): ?>
+            <form method="post" action="index.php" class="inline-delete" onsubmit="return confirm('Weet je zeker dat je deze leerling soft delete wilt verwijderen?');">
+              <input type="hidden" name="actie" value="verwijderen">
+              <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+              <button type="submit" class="btn-delete">Verwijderen</button>
+            </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endwhile; ?>
+      <?php if (!$hasRows): ?>
+        <tr><td colspan="5">Nog geen leerlingen gevonden.</td></tr>
+      <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+
   <div class="section-title">Leerlingenbeheer</div>
-  <div class="grid-2">
+  <div class="<?= $canManageLeerlingen ? 'grid-2' : 'layout' ?>">
+    <?php if ($canManageLeerlingen): ?>
     <div class="card soft">
       <div class="card-header">
         <div>
@@ -211,12 +293,12 @@ render_page_start(
         </div>
       </form>
     </div>
+    <?php endif; ?>
 
     <div class="card soft">
       <div class="card-header">
         <div>
           <h2>Zoeken</h2>
-          <p class="card-subtitle">Zoek een leerling in de lijst hieronder.</p>
         </div>
         <div class="actions"><a class="btn btn-secondary" href="index.php">Reset</a></div>
       </div>
@@ -228,56 +310,54 @@ render_page_start(
         </div>
         <button type="submit">Zoeken</button>
       </form>
-      <div class="empty">Gebruik in de lijst direct de knoppen voor bewerken, aantekeningen en verwijderen.</div>
     </div>
   </div>
 
-  <div class="section-title">Leerlingenlijst</div>
-  <div class="card">
+  <?php if (is_admin() && $auditResult): ?>
+  <div class="section-title">Auditlog</div>
+  <div class="actions" style="margin:-4px 0 12px;">
+    <button type="button" class="btn btn-secondary" onclick="var card=document.getElementById('auditlogCard'); if(card){ card.classList.toggle('is-hidden'); this.textContent = card.classList.contains('is-hidden') ? 'Unhide' : 'Hide'; }">Unhide</button>
+  </div>
+  <div class="card is-hidden" id="auditlogCard">
     <div class="card-header">
       <div>
-        <h2>Alle leerlingen</h2>
-        <p class="card-subtitle">Beheer leerlingen hier en open per leerling de aparte pagina voor aantekeningen en voortgang.</p>
+        <h2>Laatste acties</h2>
+        <p class="card-subtitle">Recente wijzigingen, exports en soft deletes.</p>
       </div>
     </div>
     <table>
       <thead>
         <tr>
-          <th>Naam</th>
-          <th>Groep/klas</th>
-          <th>Niveau</th>
-          <th>Laatste toets</th>
-          <th></th>
+          <th>Moment</th>
+          <th>Gebruiker</th>
+          <th>Rol</th>
+          <th>Type</th>
+          <th>Actie</th>
+          <th>Details</th>
         </tr>
       </thead>
       <tbody>
       <?php
-      $hasRows = false;
-      while ($row = $result->fetchArray(SQLITE3_ASSOC)):
-          $hasRows = true;
+      $hasAuditRows = false;
+      while ($auditRow = $auditResult->fetchArray(SQLITE3_ASSOC)):
+          $hasAuditRows = true;
       ?>
         <tr>
-          <td><?= e($row['naam']) ?></td>
-          <td><?= e($row['groep_klas']) ?></td>
-          <td><?= e($row['niveau']) ?></td>
-          <td><?= e($row['laatste_toetsdatum']) ?></td>
-          <td class="table-actions">
-            <a class="btn btn-success" href="voortgang.php?leerling=<?= (int)$row['id'] ?>">Aantekeningen</a>
-            <a class="btn btn-edit" href="index.php?bewerk=<?= (int)$row['id'] ?>">Bewerken</a>
-            <form method="post" action="index.php" class="inline-delete" onsubmit="return confirm('Weet je zeker dat je deze leerling wilt verwijderen?');">
-              <input type="hidden" name="actie" value="verwijderen">
-              <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
-              <button type="submit" class="btn-delete">Verwijderen</button>
-            </form>
-          </td>
+          <td><?= e((string)$auditRow['created_at']) ?></td>
+          <td><?= e((string)$auditRow['actor']) ?></td>
+          <td><?= e((string)$auditRow['actor_role']) ?></td>
+          <td><?= e((string)$auditRow['entity_type']) ?> #<?= (int)$auditRow['entity_id'] ?></td>
+          <td><?= e((string)$auditRow['action']) ?></td>
+          <td><div class="notes-text"><?= e((string)$auditRow['details_json']) ?></div></td>
         </tr>
       <?php endwhile; ?>
-      <?php if (!$hasRows): ?>
-        <tr><td colspan="5">Nog geen leerlingen gevonden.</td></tr>
+      <?php if (!$hasAuditRows): ?>
+        <tr><td colspan="6">Nog geen auditregels beschikbaar.</td></tr>
       <?php endif; ?>
       </tbody>
     </table>
   </div>
+  <?php endif; ?>
 </div>
 
 <?php render_page_end(); ?>
