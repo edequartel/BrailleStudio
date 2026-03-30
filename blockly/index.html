@@ -135,6 +135,14 @@
       cursor: pointer;
     }
 
+    #onlineScriptsSelect,
+    #onlineScriptStatusInput {
+      min-height: 40px;
+      height: 40px;
+      padding: 8px 12px;
+      box-sizing: border-box;
+    }
+
     .btn-icon {
       display: inline-flex;
       align-items: center;
@@ -532,7 +540,7 @@
 
       <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
       <button id="monitorToggleBtn" class="btn btn-soft is-active" type="button" aria-pressed="false">Hide Monitor</button>
-      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="false">Hide Right</button>
+      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="true" aria-label="Hide status panel">Status</button>
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="spacer"></div>
@@ -806,7 +814,7 @@
     <block type="audio_item_get_url"></block>
   </category>
 
-  <category name="External" colour="#14B8A6">
+  <category name="Lesson" colour="#14B8A6">
     <block type="lesson_set_active_record_index">
       <value name="INDEX">
         <shadow type="math_number">
@@ -821,7 +829,7 @@
     <block type="lesson_get_active_category"></block>
   </category>
 
-  <category name="Phonems" colour="#14B8A6">
+  <category name="Phonemes" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
     <block type="klanken_word_get_sounds"></block>
     <block type="klanken_word_get_new_sounds"></block>
@@ -881,7 +889,6 @@
     <block type="controls_for_each_audio_item"></block>
   </category>
 
-  <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
   <category name="Procedures" custom="PROCEDURE" colour="#BE185D"></category>
 
   <category name="Lists" colour="#F97316">
@@ -935,6 +942,8 @@
     <block type="text_first_letter"></block>
     <block type="text_last_letter"></block>
   </category>
+
+  <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
 </xml>
 
 <script src="./runtime.js"></script>

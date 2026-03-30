@@ -179,18 +179,25 @@ function renderSidebarToggleControl() {
   const main = document.getElementById('main');
   if (!btn || !main) return;
   const isHidden = main.classList.contains('is-sidebar-hidden');
-  btn.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
-  btn.textContent = isHidden ? 'Show Right' : 'Hide Right';
+  const isVisible = !isHidden;
+  btn.classList.toggle('is-active', isVisible);
+  btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
+  btn.setAttribute('aria-label', isVisible ? 'Hide status panel' : 'Show status panel');
+  btn.title = isVisible ? 'Hide status panel' : 'Show status panel';
+  btn.textContent = 'Status';
 }
 
 function renderBrailleMonitorToggleControl() {
   const btn = document.getElementById('monitorToggleBtn');
   const row = document.getElementById('brailleMonitorRow');
   if (!btn || !row) return;
-  row.classList.toggle('is-hidden', !brailleMonitorVisible);
-  btn.classList.toggle('is-active', !!brailleMonitorVisible);
-  btn.setAttribute('aria-pressed', brailleMonitorVisible ? 'false' : 'true');
-  btn.textContent = brailleMonitorVisible ? 'Hide Monitor' : 'Show Monitor';
+  const isVisible = !!brailleMonitorVisible;
+  row.classList.toggle('is-hidden', !isVisible);
+  btn.classList.toggle('is-active', isVisible);
+  btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
+  btn.setAttribute('aria-label', isVisible ? 'Hide monitor' : 'Show monitor');
+  btn.title = isVisible ? 'Hide monitor' : 'Show monitor';
+  btn.textContent = 'Monitor';
 }
 
 function applyBrailleMonitorVisibility(visible) {
@@ -793,7 +800,25 @@ async function deleteWorkspaceOnline(id) {
   });
 
   if (currentOnlineScriptId === targetId) {
-    setOnlineCurrentScript({ id: '', title: '' });
+    if (workspace) {
+      runtime.stopped = true;
+      runGeneration++;
+      stopAllTimers();
+      stopSound();
+      currentFileHandle = null;
+      suppressDirtyTracking++;
+      workspace.clear();
+      refreshProcedureRegistry(workspace);
+      ensureDefaultVariable();
+      initVariableValues();
+      renderScriptMetadata(null);
+      renderBrailleLine(null);
+      suppressDirtyTracking--;
+      markWorkspaceSaved(getWorkspaceSignature());
+      setSelectedFileName('braille-activity.blockly');
+      log('Workspace cleared after online delete');
+    }
+    setOnlineCurrentScript({ id: '', title: '', status: 'draft' });
   }
   await refreshOnlineScripts();
   log(`Online script deleted: ${targetId}`);
@@ -938,18 +963,11 @@ async function fetchInstructionById(id) {
   if (!instructionId) {
     throw new Error('Instruction id is required');
   }
-  const remoteUrl = `https://www.tastenbraille.com/braillestudio/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`;
+  const remoteUrl = `https://www.tastenbraille.com/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`;
   let parsed;
   try {
     parsed = await fetchJsonFromCandidates([
-      `../api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
-      `/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
-      `https://www.tastenbraille.com/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
-      remoteUrl,
-      `/braillestudio/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
-      `../api/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
-      `/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
-      `../api/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`
+      remoteUrl
     ], `Failed to load instruction "${instructionId}"`);
   } catch (err) {
     const fallbackItem = getInstructionCatalogItems().find((item) => String(item?.id ?? '').trim() === instructionId);
@@ -967,19 +985,25 @@ async function fetchInstructionById(id) {
 
 async function playInstructionById(id, options = {}) {
   const item = await fetchInstructionById(id);
+  const instructionId = String(id ?? '').trim();
   if (String(item.audioMode || 'single_mp3') === 'playlist') {
     const playlist = Array.isArray(item.audioPlaylist) ? item.audioPlaylist : [];
-    for (const entry of playlist) {
-      const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(entry, options));
+    for (let index = 0; index < playlist.length; index++) {
+      const entry = playlist[index];
+      const resolvedEntry = applyInstructionAudioOverrides(entry, options);
+      const url = resolveInstructionAudioUrl(resolvedEntry);
       if (!url) continue;
+      log(`Instruction play [${instructionId}] step ${index + 1}/${playlist.length}: ${String(entry)} -> ${url}`);
       await playSound(url);
     }
     return item;
   }
-  const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(item.audioRef, options));
+  const resolvedEntry = applyInstructionAudioOverrides(item.audioRef, options);
+  const url = resolveInstructionAudioUrl(resolvedEntry);
   if (!url) {
-    throw new Error(`Instruction "${String(id ?? '').trim()}" has no playable audio`);
+    throw new Error(`Instruction "${instructionId}" has no playable audio`);
   }
+  log(`Instruction play [${instructionId}] single: ${String(item.audioRef ?? '')} -> ${url}`);
   await playSound(url);
   return item;
 }
@@ -1079,12 +1103,17 @@ async function playSound(input) {
   const audio = new Audio(url);
   audio.volume = soundVolume;
   activeAudio = audio;
+  let settlePlayback = null;
+  const playbackDone = new Promise((resolve, reject) => {
+    settlePlayback = { resolve, reject };
+  });
   const onEnded = () => {
     if (activeAudio === audio) {
       clearActiveAudio();
       resolveAudioStoppedWaiters();
     }
     log('Sound ended');
+    settlePlayback?.resolve();
   };
   const onError = () => {
     if (activeAudio === audio) {
@@ -1092,12 +1121,14 @@ async function playSound(input) {
       resolveAudioStoppedWaiters();
     }
     log('Sound failed: playback error');
+    settlePlayback?.reject(new Error('Audio playback failed'));
   };
   const onAbort = () => {
     if (activeAudio === audio) {
       clearActiveAudio();
       resolveAudioStoppedWaiters();
     }
+    settlePlayback?.resolve();
   };
   audio.addEventListener('ended', onEnded);
   audio.addEventListener('error', onError);
@@ -1112,6 +1143,7 @@ async function playSound(input) {
   log('Sound play: ' + url);
   try {
     await audio.play();
+    await playbackDone;
   } catch (err) {
     if (activeAudio === audio) {
       clearActiveAudio();
@@ -2310,7 +2342,7 @@ async function evalValue(block) {
         const item = await findAanvankelijklijstItemByWord(word);
         return toList(item?.sounds);
       } catch (err) {
-        log(`Phonems word lookup failed: ${err}`);
+        log(`Phonemes word lookup failed: ${err}`);
         return [];
       }
     }
@@ -2321,7 +2353,7 @@ async function evalValue(block) {
         const item = await findAanvankelijklijstItemByWord(word);
         return toList(item?.newSounds);
       } catch (err) {
-        log(`Phonems new sounds lookup failed: ${err}`);
+        log(`Phonemes new sounds lookup failed: ${err}`);
         return [];
       }
     }
@@ -2332,7 +2364,7 @@ async function evalValue(block) {
         const item = await findAanvankelijklijstItemByWord(word);
         return toList(item?.knownSounds);
       } catch (err) {
-        log(`Phonems known sounds lookup failed: ${err}`);
+        log(`Phonemes known sounds lookup failed: ${err}`);
         return [];
       }
     }
@@ -2559,7 +2591,7 @@ async function evalValue(block) {
         const fonemenData = await getFonemenNlStandaard();
         return splitWordToNlFonemen(word, fonemenData);
       } catch (err) {
-        log(`Phonems split failed: ${err}`);
+        log(`Phonemes split failed: ${err}`);
         return [];
       }
     }
@@ -2792,7 +2824,7 @@ async function executeChain(startBlock, generation) {
             await waitForAudioStopped();
           }
         } catch (err) {
-          log(`Phonems play failed: ${err}`);
+          log(`Phonemes play failed: ${err}`);
         }
         break;
       }
@@ -2813,7 +2845,7 @@ async function executeChain(startBlock, generation) {
             }
           }
         } catch (err) {
-          log(`Phonems play failed: ${err}`);
+          log(`Phonemes play failed: ${err}`);
         }
         break;
       }
@@ -2829,7 +2861,7 @@ async function executeChain(startBlock, generation) {
             await waitForAudioStopped();
           }
         } catch (err) {
-          log(`Phonems play failed: ${err}`);
+          log(`Phonemes play failed: ${err}`);
         }
         break;
       }
@@ -2850,7 +2882,7 @@ async function executeChain(startBlock, generation) {
             }
           }
         } catch (err) {
-          log(`Phonems play failed: ${err}`);
+          log(`Phonemes play failed: ${err}`);
         }
         break;
       }

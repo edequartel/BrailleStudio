@@ -1,17 +1,7 @@
 (function () {
   const DEFAULT_BASE_URL = 'https://tastenbraille.com/api/list.php';
   const INSTRUCTIONS_API_BASE_URLS = [
-    'https://www.tastenbraille.com/braillestudio/blockly-api',
-    '/braillestudio/blockly-api',
-    '../api/blockly-api',
-    'https://www.tastenbraille.com/braillestudio/instructions-api',
-    '/braillestudio/instructions-api',
-    '../api/instructions-api'
-  ];
-  const INSTRUCTIONS_API_PROXY_URLS = [
-    '../api/fetch-remote.php',
-    '/braillestudio/api/fetch-remote.php',
-    'https://www.tastenbraille.com/braillestudio/api/fetch-remote.php'
+    'https://www.tastenbraille.com/braillestudio/instructions-api'
   ];
   const INSTRUCTIONS_SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/';
   const INSTRUCTION_AUDIO_FOLDER_URLS = {
@@ -25,6 +15,16 @@
     speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/'
   };
   const instructionCache = new Map();
+
+  function logInstructionPlayback(message) {
+    if (typeof window.BrailleBlocklyLog === 'function') {
+      window.BrailleBlocklyLog(message);
+      return;
+    }
+    try {
+      console.log(message);
+    } catch {}
+  }
 
   function getInstructionCatalogItems() {
     return Array.isArray(window.BrailleStudioInstructionCatalog)
@@ -179,12 +179,7 @@
     if (!isEmpty(options.status)) params.set('status', String(options.status).trim());
     if (!isEmpty(options.q)) params.set('q', String(options.q).trim());
     if (!isEmpty(options.tag)) params.set('tag', String(options.tag).trim());
-    const remoteUrl = params.toString() ? `${baseUrls[0]}?${params.toString()}` : baseUrls[0];
-    const urls = [
-      ...INSTRUCTIONS_API_PROXY_URLS.map(url => `${url}?url=${encodeURIComponent(remoteUrl)}`),
-      remoteUrl,
-      ...baseUrls.slice(1).map(url => params.toString() ? `${url}?${params.toString()}` : url)
-    ];
+    const urls = [params.toString() ? `${baseUrls[0]}?${params.toString()}` : baseUrls[0]];
     const parsed = await fetchJsonFromCandidates(urls, 'BrailleStudioAPI.getInstructionsList');
 
     if (Array.isArray(parsed)) {
@@ -209,12 +204,7 @@
     const baseUrls = options.baseUrl
       ? [String(options.baseUrl)]
       : INSTRUCTIONS_API_BASE_URLS.map(base => `${base}/instructions_get.php`);
-    const remoteUrl = `${baseUrls[0]}?id=${encodeURIComponent(instructionId)}`;
-    const urls = [
-      ...INSTRUCTIONS_API_PROXY_URLS.map(url => `${url}?url=${encodeURIComponent(remoteUrl)}`),
-      remoteUrl,
-      ...baseUrls.slice(1).map(url => `${url}?id=${encodeURIComponent(instructionId)}`)
-    ];
+    const urls = [`${baseUrls[0]}?id=${encodeURIComponent(instructionId)}`];
     let parsed = null;
     try {
       parsed = await fetchJsonFromCandidates(urls, `BrailleStudioAPI.getInstructionById("${instructionId}")`);
@@ -237,22 +227,28 @@
 
   async function playInstructionById(id, options = {}) {
     const item = await getInstructionById(id, options);
+    const instructionId = String(id ?? '').trim();
     const mode = String(item.audioMode || 'single_mp3').trim();
 
     if (mode === 'playlist') {
       const playlist = Array.isArray(item.audioPlaylist) ? item.audioPlaylist : [];
-      for (const entry of playlist) {
-        const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(entry, options));
+      for (let index = 0; index < playlist.length; index++) {
+        const entry = playlist[index];
+        const resolvedEntry = applyInstructionAudioOverrides(entry, options);
+        const url = resolveInstructionAudioUrl(resolvedEntry);
         if (!url) continue;
+        logInstructionPlayback(`Instruction play [${instructionId}] step ${index + 1}/${playlist.length}: ${String(entry)} -> ${url}`);
         await playUrl(url);
       }
       return item;
     }
 
-    const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(item.audioRef, options));
+    const resolvedEntry = applyInstructionAudioOverrides(item.audioRef, options);
+    const url = resolveInstructionAudioUrl(resolvedEntry);
     if (!url) {
-      throw new Error(`BrailleStudioAPI.playInstructionById: instruction "${String(id ?? '').trim()}" has no playable audio`);
+      throw new Error(`BrailleStudioAPI.playInstructionById: instruction "${instructionId}" has no playable audio`);
     }
+    logInstructionPlayback(`Instruction play [${instructionId}] single: ${String(item.audioRef ?? '')} -> ${url}`);
     await playUrl(url);
     return item;
   }

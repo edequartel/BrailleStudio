@@ -2,17 +2,7 @@
   if (!window.Blockly) return;
 
   const INSTRUCTIONS_API_LIST_URLS = [
-    'https://www.tastenbraille.com/braillestudio/blockly-api/instructions_list.php',
-    '/braillestudio/blockly-api/instructions_list.php',
-    '../api/blockly-api/instructions_list.php',
-    'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php',
-    '/braillestudio/instructions-api/instructions_list.php',
-    '../api/instructions-api/instructions_list.php'
-  ];
-  const INSTRUCTIONS_API_PROXY_URLS = [
-    '../api/fetch-remote.php',
-    '/braillestudio/api/fetch-remote.php',
-    'https://www.tastenbraille.com/braillestudio/api/fetch-remote.php'
+    'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php'
   ];
   const INSTRUCTION_DROPDOWN_LOADING = '__loading__';
   const INSTRUCTION_DROPDOWN_ERROR = '__error__';
@@ -68,13 +58,7 @@
   }
 
   function buildInstructionListCandidates() {
-    const remoteUrl = INSTRUCTIONS_API_LIST_URLS[0];
-    return [
-      ...INSTRUCTIONS_API_PROXY_URLS.map((proxyUrl) => `${proxyUrl}?url=${encodeURIComponent(remoteUrl)}`),
-      remoteUrl,
-      INSTRUCTIONS_API_LIST_URLS[1],
-      INSTRUCTIONS_API_LIST_URLS[2]
-    ];
+    return [INSTRUCTIONS_API_LIST_URLS[0]];
   }
 
   function normalizeInstructionDropdownItems(items) {
@@ -664,7 +648,7 @@
   Blockly.Blocks['sound_play_instruction_by_id'] = {
     init() {
       this.appendDummyInput()
-        .appendField('play instruction by id')
+        .appendField('play instruction')
         .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
       this.setPreviousStatement(true);
       this.setNextStatement(true);
@@ -675,7 +659,7 @@
   Blockly.Blocks['sound_play_instruction_by_id_with_phoneme'] = {
     init() {
       this.appendDummyInput()
-        .appendField('play instruction by id')
+        .appendField('play instruction')
         .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
       this.appendValueInput('PHONEME').appendField('phoneme optional');
       this.setPreviousStatement(true);
@@ -687,7 +671,7 @@
   Blockly.Blocks['instruction_get_info_by_id'] = {
     init() {
       this.appendDummyInput()
-        .appendField('instruction info by id')
+        .appendField('instruction info')
         .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
       this.setOutput(true);
       this.setColour('#10B981');
@@ -1036,7 +1020,7 @@
       this.appendValueInput('LETTERS')
         .appendField('get speech audio list letters');
       this.appendValueInput('KLANKEN')
-        .appendField('with klanken');
+        .appendField('with phonemes');
       this.setOutput(true);
       this.setColour('#0EA5E9');
     }
@@ -1047,7 +1031,7 @@
       this.appendValueInput('ONLYLETTERS')
         .appendField('get speech audio list only letters');
       this.appendValueInput('KLANKEN')
-        .appendField('with klanken');
+        .appendField('with phonemes');
       this.appendValueInput('LENGTH')
         .appendField('and length');
       this.setOutput(true);
@@ -1177,7 +1161,7 @@
 
   Blockly.Blocks['klanken_item_get_word'] = {
     init() {
-      this.appendValueInput('ITEM').appendField('woord van klanken item');
+      this.appendValueInput('ITEM').appendField('word of phonemes item');
       this.setOutput(true);
       this.setColour('#14B8A6');
     }
@@ -1186,7 +1170,7 @@
   Blockly.Blocks['klanken_item_get_sounds'] = {
     init() {
       this.appendValueInput('ITEM')
-        .appendField('klanken uit item')
+        .appendField('phonemes from item')
         .appendField(new Blockly.FieldDropdown([
           ['alle', 'ALL'],
           ['nieuw', 'NEW'],
