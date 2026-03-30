@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/_instructions_lib.php';
 
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    json_response(['ok' => true]);
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     method_not_allowed(['GET']);
 }

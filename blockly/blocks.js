@@ -1,6 +1,213 @@
 (function () {
   if (!window.Blockly) return;
 
+  const INSTRUCTIONS_API_LIST_URLS = [
+    'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php',
+    '/braillestudio/instructions-api/instructions_list.php',
+    '../api/instructions-api/instructions_list.php'
+  ];
+  const INSTRUCTIONS_API_PROXY_URLS = [
+    '../api/fetch-remote.php',
+    '/braillestudio/api/fetch-remote.php',
+    'https://www.tastenbraille.com/braillestudio/api/fetch-remote.php'
+  ];
+  const INSTRUCTION_DROPDOWN_LOADING = '__loading__';
+  const INSTRUCTION_DROPDOWN_ERROR = '__error__';
+  const INSTRUCTION_DROPDOWN_EMPTY = '__empty__';
+  const initialCatalogItems = Array.isArray(window.BrailleStudioInstructionCatalog)
+    ? window.BrailleStudioInstructionCatalog
+    : [];
+  const instructionDropdownState = {
+    loading: false,
+    loaded: initialCatalogItems.length > 0,
+    options: initialCatalogItems.length > 0
+      ? normalizeInitialInstructionOptions(initialCatalogItems)
+      : [['loading instructions...', INSTRUCTION_DROPDOWN_LOADING]],
+    attempts: [],
+    lastError: ''
+  };
+
+  function normalizeInitialInstructionOptions(items) {
+    return items
+      .map((item) => {
+        const id = String(item?.id ?? '').trim();
+        const title = String(item?.title ?? '').trim();
+        if (!id) return null;
+        return [title ? `${id} - ${title}` : id, id];
+      })
+      .filter(Boolean);
+  }
+
+  function setInstructionDebugState(extra = {}) {
+    const state = {
+      loading: instructionDropdownState.loading,
+      loaded: instructionDropdownState.loaded,
+      options: instructionDropdownState.options,
+      attempts: instructionDropdownState.attempts,
+      lastError: instructionDropdownState.lastError,
+      urls: INSTRUCTIONS_API_LIST_URLS,
+      ...extra
+    };
+    window.BrailleBlocklyInstructionDebug = state;
+    return state;
+  }
+
+  function logInstructionDebug(message, details = null) {
+    const text = details == null
+      ? `[Instruction block] ${message}`
+      : `[Instruction block] ${message} ${typeof details === 'string' ? details : JSON.stringify(details)}`;
+    if (typeof window.BrailleBlocklyLog === 'function') {
+      window.BrailleBlocklyLog(text);
+    }
+    try {
+      console.log(text);
+    } catch {}
+  }
+
+  function buildInstructionListCandidates() {
+    const remoteUrl = INSTRUCTIONS_API_LIST_URLS[0];
+    return [
+      ...INSTRUCTIONS_API_PROXY_URLS.map((proxyUrl) => `${proxyUrl}?url=${encodeURIComponent(remoteUrl)}`),
+      remoteUrl,
+      INSTRUCTIONS_API_LIST_URLS[1],
+      INSTRUCTIONS_API_LIST_URLS[2]
+    ];
+  }
+
+  function normalizeInstructionDropdownItems(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      return [['no instructions found', INSTRUCTION_DROPDOWN_EMPTY]];
+    }
+    return items
+      .map((item) => {
+        const id = String(item?.id ?? '').trim();
+        const title = String(item?.title ?? '').trim();
+        if (!id) return null;
+        return [title ? `${id} - ${title}` : id, id];
+      })
+      .filter(Boolean);
+  }
+
+  function getCatalogFallbackItems() {
+    return initialCatalogItems;
+  }
+
+  function refreshInstructionDropdownBlocks() {
+    const workspaces = typeof Blockly.Workspace?.getAll === 'function'
+      ? Blockly.Workspace.getAll()
+      : [];
+    workspaces.forEach((workspace) => {
+      const blocks = typeof workspace.getAllBlocks === 'function'
+        ? workspace.getAllBlocks(false)
+        : [];
+      blocks.forEach((block) => {
+        if (block.type !== 'sound_play_instruction_by_id') return;
+        const field = block.getField('INSTRUCTION_ID');
+        if (!field || typeof field.setValue !== 'function') return;
+        const currentValue = String(field.getValue?.() ?? '');
+        const hasCurrentValue = instructionDropdownState.options.some(([, value]) => value === currentValue);
+        if (hasCurrentValue) return;
+        const fallbackValue = instructionDropdownState.options[0]?.[1] ?? '';
+        field.setValue(fallbackValue);
+      });
+    });
+  }
+
+  async function loadInstructionDropdownOptions() {
+    if (instructionDropdownState.loading) return;
+    instructionDropdownState.loading = true;
+    instructionDropdownState.attempts = [];
+    instructionDropdownState.lastError = '';
+    const candidateUrls = buildInstructionListCandidates();
+    setInstructionDebugState({ stage: 'loading' });
+    logInstructionDebug('loading instruction list', { urls: candidateUrls });
+    try {
+      let lastError = null;
+      let data = null;
+      for (const url of candidateUrls) {
+        try {
+          logInstructionDebug('trying list URL', url);
+          const response = await fetch(url, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          }
+          data = await response.json();
+          instructionDropdownState.attempts.push({
+            url,
+            ok: true,
+            count: Array.isArray(data?.items) ? data.items.length : (Array.isArray(data) ? data.length : null)
+          });
+          logInstructionDebug('loaded list URL', {
+            url,
+            count: Array.isArray(data?.items) ? data.items.length : (Array.isArray(data) ? data.length : null),
+            shape: Array.isArray(data) ? 'array' : typeof data
+          });
+          break;
+        } catch (err) {
+          const message = err && err.message ? err.message : String(err);
+          instructionDropdownState.attempts.push({ url, ok: false, error: message });
+          logInstructionDebug('list URL failed', { url, error: message });
+          lastError = err;
+        }
+      }
+      if (!data) {
+        const fallbackItems = getCatalogFallbackItems();
+        if (fallbackItems.length > 0) {
+          instructionDropdownState.options = normalizeInstructionDropdownItems(fallbackItems);
+          logInstructionDebug('using local instruction catalog fallback', {
+            count: fallbackItems.length,
+            ids: fallbackItems.map(item => item?.id).filter(Boolean)
+          });
+          setInstructionDebugState({ stage: 'fallback', items: fallbackItems });
+          return;
+        }
+        throw lastError || new Error('No instructions API endpoint responded');
+      }
+      const items = Array.isArray(data) ? data : data?.items;
+      instructionDropdownState.options = normalizeInstructionDropdownItems(items);
+      logInstructionDebug('instruction list ready', {
+        optionCount: instructionDropdownState.options.length,
+        firstOption: instructionDropdownState.options[0]?.[0] || ''
+      });
+      setInstructionDebugState({ stage: 'loaded', items });
+    } catch (err) {
+      const message = err && err.message ? err.message : String(err);
+      instructionDropdownState.lastError = message;
+      logInstructionDebug('failed to load instruction list', {
+        message,
+        attempts: instructionDropdownState.attempts
+      });
+      console.error('Failed to load Blockly instruction list', {
+        message,
+        attempts: instructionDropdownState.attempts
+      });
+      const shortMessage = message.length > 42 ? `${message.slice(0, 42)}...` : message;
+      instructionDropdownState.options = [[`failed: ${shortMessage}`, INSTRUCTION_DROPDOWN_ERROR]];
+      setInstructionDebugState({ stage: 'failed', error: message });
+    } finally {
+      instructionDropdownState.loaded = true;
+      instructionDropdownState.loading = false;
+      setInstructionDebugState({ stage: instructionDropdownState.lastError ? 'failed' : 'loaded' });
+      refreshInstructionDropdownBlocks();
+    }
+  }
+
+  function getInstructionDropdownOptions() {
+    return instructionDropdownState.options;
+  }
+
+  if (initialCatalogItems.length > 0) {
+    logInstructionDebug('using preloaded instruction catalog', {
+      count: initialCatalogItems.length,
+      ids: initialCatalogItems.map(item => item?.id).filter(Boolean)
+    });
+    setInstructionDebugState({ stage: 'preloaded', items: initialCatalogItems });
+  } else {
+    setTimeout(() => {
+      loadInstructionDropdownOptions();
+    }, 0);
+  }
+
   Blockly.Blocks['event_when_started'] = {
     init() {
       this.appendDummyInput().appendField('when started');
@@ -447,6 +654,39 @@
       this.appendValueInput('FILE').appendField('play instructions file');
       this.setPreviousStatement(true);
       this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_instruction_by_id'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('play instruction by id')
+        .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_instruction_by_id_with_phoneme'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('play instruction by id')
+        .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
+      this.appendValueInput('PHONEME').appendField('phoneme optional');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['instruction_get_info_by_id'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('instruction info by id')
+        .appendField(new Blockly.FieldDropdown(getInstructionDropdownOptions), 'INSTRUCTION_ID');
+      this.setOutput(true);
       this.setColour('#10B981');
     }
   };

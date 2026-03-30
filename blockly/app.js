@@ -24,14 +24,30 @@ function log(message) {
   const box = document.getElementById('logBox');
   const now = new Date().toLocaleTimeString();
   const line = `[${now}] ${text}`;
-  box.value = `${line}\n${box.value}`;
-  box.scrollTop = 0;
+  if (box) {
+    box.value = `${line}\n${box.value}`;
+    box.scrollTop = 0;
+  }
   if (typeof externalLogHandler === 'function') {
     try {
       externalLogHandler(line);
     } catch {}
   }
 }
+
+window.BrailleBlocklyLog = function (message) {
+  log(message);
+};
+
+function getInstructionCatalogItems() {
+  return Array.isArray(window.BrailleStudioInstructionCatalog)
+    ? window.BrailleStudioInstructionCatalog
+    : [];
+}
+
+log(`Page href: ${window.location.href}`);
+log(`Page origin: ${window.location.origin || '(none)'}`);
+log(`Page protocol: ${window.location.protocol || '(none)'}`);
 
 function clearLogBox() {
   const box = document.getElementById('logBox');
@@ -43,7 +59,18 @@ function formatLogValue(value) {
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (value == null) return '';
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatTextJoinValue(value) {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value == null) return '';
+  try {
+    return JSON.stringify(value, null, 2);
   } catch {
     return String(value);
   }
@@ -850,6 +877,109 @@ function resolveFolderSoundUrl(folder, input) {
   const baseUrl = SOUND_FOLDER_URLS[String(folder || 'speech')] || SOUND_BASE_URL;
   const filename = raw.toLowerCase().endsWith('.mp3') ? raw : (raw + '.mp3');
   return baseUrl + encodeURIComponent(filename);
+}
+
+function resolveInstructionAudioUrl(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const normalized = raw.replace(/^\/+/, '');
+  const match = normalized.match(/^([^/]+)\/(.+)$/);
+  if (!match) {
+    return SOUND_FOLDER_URLS.instructions + normalized.split('/').map(encodeURIComponent).join('/');
+  }
+  const [, folder, rest] = match;
+  const folderKey = String(folder).toLowerCase();
+  const baseUrl = folderKey === 'phonemes'
+    ? SOUND_FOLDER_URLS.letters
+    : (SOUND_FOLDER_URLS[folderKey] || SOUND_FOLDER_URLS.instructions);
+  return baseUrl + String(rest).split('/').map(encodeURIComponent).join('/');
+}
+
+function applyInstructionAudioOverrides(input, options = {}) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  const phoneme = String(options.phoneme ?? '').trim();
+  if (!phoneme) return raw;
+  const normalized = raw.replace(/^\/+/, '');
+  const match = normalized.match(/^([^/]+)\/(.+)$/);
+  if (!match) return raw;
+  const [, folder, rest] = match;
+  const folderKey = String(folder).toLowerCase();
+  if (folderKey !== 'phonemes' && folderKey !== 'phonems') return raw;
+  const suffix = String(rest).toLowerCase().endsWith('.mp3') ? '.mp3' : '';
+  const nextFile = String(phoneme).toLowerCase().endsWith('.mp3') ? String(phoneme) : `${phoneme}${suffix || '.mp3'}`;
+  return `phonemes/${nextFile}`;
+}
+
+async function fetchJsonFromCandidates(urls, errorPrefix) {
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      const bodyText = await response.text();
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}: ${bodyText.slice(0, 200)}`);
+      }
+      try {
+        return JSON.parse(bodyText);
+      } catch {
+        throw new Error(`Invalid JSON from ${url}`);
+      }
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(`${errorPrefix}: ${lastError?.message || 'unknown error'}`);
+}
+
+async function fetchInstructionById(id) {
+  const instructionId = String(id ?? '').trim();
+  if (!instructionId) {
+    throw new Error('Instruction id is required');
+  }
+  const remoteUrl = `https://www.tastenbraille.com/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`;
+  let parsed;
+  try {
+    parsed = await fetchJsonFromCandidates([
+      `../api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
+      `/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
+      `https://www.tastenbraille.com/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
+      remoteUrl,
+      `/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
+      `../api/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`
+    ], `Failed to load instruction "${instructionId}"`);
+  } catch (err) {
+    const fallbackItem = getInstructionCatalogItems().find((item) => String(item?.id ?? '').trim() === instructionId);
+    if (fallbackItem) {
+      log(`Instruction fallback used for ${instructionId}`);
+      return fallbackItem;
+    }
+    throw err;
+  }
+  if (!parsed?.item || typeof parsed.item !== 'object') {
+    throw new Error(`Instruction not found: ${instructionId}`);
+  }
+  return parsed.item;
+}
+
+async function playInstructionById(id, options = {}) {
+  const item = await fetchInstructionById(id);
+  if (String(item.audioMode || 'single_mp3') === 'playlist') {
+    const playlist = Array.isArray(item.audioPlaylist) ? item.audioPlaylist : [];
+    for (const entry of playlist) {
+      const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(entry, options));
+      if (!url) continue;
+      await playSound(url);
+    }
+    return item;
+  }
+  const url = resolveInstructionAudioUrl(applyInstructionAudioOverrides(item.audioRef, options));
+  if (!url) {
+    throw new Error(`Instruction "${String(id ?? '').trim()}" has no playable audio`);
+  }
+  await playSound(url);
+  return item;
 }
 
 function getSoundFolderFromBlockType(type) {
@@ -2328,6 +2458,18 @@ async function evalValue(block) {
       return String(item.url ?? '');
     }
 
+    case 'instruction_get_info_by_id': {
+      if (!window.BrailleStudioAPI || typeof window.BrailleStudioAPI.getInstructionById !== 'function') {
+        throw new Error('BrailleStudioAPI.getInstructionById is not available');
+      }
+      const instructionId = String(block.getFieldValue('INSTRUCTION_ID') || '').trim();
+      if (!instructionId) return { ok: false, item: null };
+      return {
+        ok: true,
+        item: await window.BrailleStudioAPI.getInstructionById(instructionId)
+      };
+    }
+
     case 'variables_get': {
       const id = getVariableIdFromBlock(block);
       return id ? (variableValues[id] ?? 0) : 0;
@@ -2379,7 +2521,7 @@ async function evalValue(block) {
       const count = block.itemCount_ || 0;
       let out = '';
       for (let i = 0; i < count; i++) {
-        out += String(await evalValue(block.getInputTargetBlock('ADD' + i)) ?? '');
+        out += formatTextJoinValue(await evalValue(block.getInputTargetBlock('ADD' + i)));
       }
       return out;
     }
@@ -2591,6 +2733,19 @@ async function executeChain(startBlock, generation) {
         const folder = getSoundFolderFromBlockType(current.type);
         const file = await evalValue(current.getInputTargetBlock('FILE'));
         await playSound(resolveFolderSoundUrl(folder, file));
+        break;
+      }
+
+      case 'sound_play_instruction_by_id': {
+        const instructionId = current.getFieldValue('INSTRUCTION_ID');
+        await playInstructionById(instructionId);
+        break;
+      }
+
+      case 'sound_play_instruction_by_id_with_phoneme': {
+        const instructionId = current.getFieldValue('INSTRUCTION_ID');
+        const phoneme = await evalValue(current.getInputTargetBlock('PHONEME'));
+        await playInstructionById(instructionId, { phoneme });
         break;
       }
 

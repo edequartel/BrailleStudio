@@ -246,6 +246,9 @@ function validate_instruction(array $item, array $existingItems = [], bool $isUp
 }
 
 function json_response(array $payload, int $statusCode = 200): never {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     http_response_code($statusCode);

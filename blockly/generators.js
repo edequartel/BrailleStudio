@@ -369,6 +369,19 @@
   javascriptGenerator.forBlock['sound_play_feedback_file'] = soundFolderPlayGenerator('feedback');
   javascriptGenerator.forBlock['sound_play_story_file'] = soundFolderPlayGenerator('story');
   javascriptGenerator.forBlock['sound_play_general_file'] = soundFolderPlayGenerator('general');
+  javascriptGenerator.forBlock['sound_play_instruction_by_id'] = function (block) {
+    const instructionId = q(block.getFieldValue('INSTRUCTION_ID') || '');
+    return `await BrailleStudioAPI.playInstructionById(${instructionId});\n`;
+  };
+  javascriptGenerator.forBlock['sound_play_instruction_by_id_with_phoneme'] = function (block) {
+    const instructionId = q(block.getFieldValue('INSTRUCTION_ID') || '');
+    const phonemeCode = valueToCodeOr(block, 'PHONEME', "''");
+    return `await BrailleStudioAPI.playInstructionById(${instructionId}, { phoneme: ${phonemeCode} });\n`;
+  };
+  javascriptGenerator.forBlock['instruction_get_info_by_id'] = function (block) {
+    const instructionId = q(block.getFieldValue('INSTRUCTION_ID') || '');
+    return [`({ ok: true, item: await BrailleStudioAPI.getInstructionById(${instructionId}) })`, ORDER_ATOMIC];
+  };
 
   javascriptGenerator.forBlock['controls_for_each_audio_item'] = function (block, generator) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');

@@ -721,6 +721,15 @@
   </category>
 
   <category name="Play" colour="#10B981">
+    <block type="sound_play_instruction_by_id"></block>
+    <block type="sound_play_instruction_by_id_with_phoneme">
+      <value name="PHONEME">
+        <shadow type="text">
+          <field name="TEXT">aa</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="instruction_get_info_by_id"></block>
     <block type="sound_play_folder_file">
       <value name="FILE">
         <block type="variables_get">
@@ -929,9 +938,34 @@
 </xml>
 
 <script src="./runtime.js"></script>
-<script src="./blocks.js"></script>
-<script src="./generators.js"></script>
-<script src="../components/braille-monitor/braillemonitor.js"></script>
-<script src="./app.js"></script>
+<script src="./instructions-catalog.js"></script>
+<script src="./preload-instructions.js"></script>
+<script>
+  (async function () {
+    async function loadScript(src) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.body.appendChild(script);
+      });
+    }
+
+    if (window.BrailleStudioInstructionCatalogReady) {
+      await window.BrailleStudioInstructionCatalogReady;
+    }
+
+    await loadScript('./blocks.js');
+    await loadScript('./generators.js');
+    await loadScript('../components/braille-monitor/braillemonitor.js');
+    await loadScript('./app.js');
+  })().catch((err) => {
+    console.error('Blockly bootstrap failed', err);
+    if (typeof window.__setBrailleBlocklyBootStage === 'function') {
+      window.__setBrailleBlocklyBootStage('error', { error: err.message || String(err) });
+    }
+  });
+</script>
 </body>
 </html>
