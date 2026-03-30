@@ -64,6 +64,7 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
   <style>
     body { font-family: Arial, sans-serif; margin: 24px; color: #222; }
     h1, h2 { margin-bottom: 12px; }
+    h2 { margin-top: 0; }
     .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
     .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; background: #fff; }
     .muted { color: #666; font-size: 14px; }
@@ -84,6 +85,7 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
     .btn.secondary { background: #666; }
     .btn.danger { background: #b91c1c; }
     .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .section-head { margin-bottom: 16px; }
     .small { font-size: 13px; }
     .status-pill {
       display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px;
@@ -130,7 +132,9 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
 
   <div class="grid">
     <div class="card">
-      <h2>Lijst</h2>
+      <div class="section-head">
+        <h2>Lijst</h2>
+      </div>
       <table>
         <thead>
           <tr>
@@ -174,7 +178,14 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
     </div>
 
     <div class="card">
-      <h2><?= $editId !== '' ? 'Instructie bewerken' : 'Nieuwe instructie' ?></h2>
+      <div class="section-head">
+        <h2><?= $editId !== '' ? 'Instructie bewerken' : 'Nieuwe instructie' ?></h2>
+      </div>
+
+      <div class="actions" style="margin-bottom:16px;">
+        <button type="submit" form="instructionForm">Opslaan</button>
+        <a class="btn secondary" href="index.php">Nieuw</a>
+      </div>
 
       <form id="instructionForm">
         <label for="id">ID</label>
@@ -220,10 +231,6 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
         <label for="notes">Notities</label>
         <textarea name="notes" id="notes"><?= h($editItem['notes']) ?></textarea>
 
-        <div class="actions" style="margin-top:16px;">
-          <button type="submit">Opslaan</button>
-          <a class="btn secondary" href="index.php">Nieuw formulier</a>
-        </div>
       </form>
 
       <div id="message" style="margin-top:14px;" class="muted"></div>

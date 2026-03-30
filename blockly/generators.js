@@ -29,6 +29,70 @@
     return [`(Array.isArray(${listCode}) ? ${listCode}.length : 0)`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['list_from_text_items'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [
+      `(() => String(${textCode} ?? '').split(/[\\s,;]+/).map(item => item.trim()).filter(Boolean))()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['list_filter_text_length'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const minCode = valueToCodeOr(block, 'MIN', '1');
+    return [
+      `((Array.isArray(${listCode}) ? ${listCode} : []).filter(item => Array.from(String(item ?? '')).length > (Math.floor(Number(${minCode}) || 0))))`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['list_filter_phoneme_category'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const category = q(block.getFieldValue('CATEGORY') || 'medeklinker');
+    return [
+      `(await (async () => {
+        const __list = Array.isArray(${listCode}) ? ${listCode} : [];
+        const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
+        const __category = ${category};
+        const __allowed = new Set((Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])
+          .filter(item => String(item?.category ?? '').trim().toLowerCase() === __category.toLowerCase())
+          .map(item => String(item?.phoneme ?? '').trim().toLowerCase())
+          .filter(Boolean));
+        return __list.filter(item => __allowed.has(String(item ?? '').trim().toLowerCase()));
+      })())`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['list_filter_phoneme_categories'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const selected = [
+      ['KORTEKLINKER', 'korteKlinker'],
+      ['LANGEKLINKER', 'langeKlinker'],
+      ['TWEETEKENKLANK', 'tweetekenklank'],
+      ['DRIETEKENKLANK', 'drietekenklank'],
+      ['MEDEKLINKER', 'medeklinker'],
+      ['MEDEKLINKERCLUSTER', 'medeklinkercluster'],
+      ['VIERTEKENKLANK', 'viertekenklank']
+    ]
+      .filter(([field]) => String(block.getFieldValue(field)) === 'TRUE')
+      .map(([, value]) => value);
+    return [
+      `(await (async () => {
+        const __list = Array.isArray(${listCode}) ? ${listCode} : [];
+        const __selected = ${JSON.stringify(selected)};
+        if (!__selected.length) return [];
+        const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
+        const __allowed = new Set((Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])
+          .filter(item => __selected.includes(String(item?.category ?? '').trim()))
+          .map(item => String(item?.phoneme ?? '').trim().toLowerCase())
+          .filter(Boolean));
+        return __list.filter(item => __allowed.has(String(item ?? '').trim().toLowerCase()));
+      })())`,
+      ORDER_ATOMIC
+    ];
+  };
+
   javascriptGenerator.forBlock['math_random_10'] = function (block) {
     const maxCode = valueToCodeOr(block, 'MAX', '10');
     return [`(() => { const max = Math.floor(Number(${maxCode}) || 0); return max <= 0 ? 0 : Math.floor(Math.random() * max); })()`, ORDER_ATOMIC];
@@ -266,6 +330,32 @@
     ];
   };
 
+  javascriptGenerator.forBlock['klanken_split_text_phonemes_nl'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [
+      `(await (async () => {\n` +
+      `  const __text = String(${textCode} ?? '').toLowerCase();\n` +
+      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
+      `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
+      `    .filter(Boolean)\n` +
+      `    .sort((a, b) => b.length - a.length);\n` +
+      `  const __words = __text.match(/[a-z]+/g) || [];\n` +
+      `  const __out = [];\n` +
+      `  for (const __word of __words) {\n` +
+      `    for (let __i = 0; __i < __word.length;) {\n` +
+      `      const __ch = __word[__i];\n` +
+      `      let __m = '';\n` +
+      `      for (const __t of __tokens) { if (__t && __word.startsWith(__t, __i)) { __m = __t; break; } }\n` +
+      `      if (__m) { __out.push(__m); __i += __m.length; } else { __out.push(__ch); __i += 1; }\n` +
+      `    }\n` +
+      `  }\n` +
+      `  return __out;\n` +
+      `})())`,
+      ORDER_ATOMIC
+    ];
+  };
+
   javascriptGenerator.forBlock['klanken_play_word_phonemes_nl_with_pause'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     const secondsCode = valueToCodeOr(block, 'SECONDS', '0');
@@ -390,11 +480,27 @@
     return `for (const ${varName} of (Array.isArray(${listCode}) ? ${listCode} : [])) {\n${branch}}\n`;
   };
 
+  javascriptGenerator.forBlock['list_for_each_item'] = function (block, generator) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const varName = getGeneratorVariableName(block, generator, 'VAR', 'item');
+    const branch = generator.statementToCode(block, 'DO');
+    return `for (const ${varName} of (Array.isArray(${listCode}) ? ${listCode} : [])) {\n${branch}}\n`;
+  };
+
   javascriptGenerator.forBlock['text_join_csv'] = function (block) {
     const a = valueToCodeOr(block, 'A', "''");
     const b = valueToCodeOr(block, 'B', "''");
     const c = valueToCodeOr(block, 'C', "''");
     return [`BrailleStudioAPI.joinCsv([${a}, ${b}, ${c}])`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_from_list'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const separatorCode = valueToCodeOr(block, 'SEPARATOR', "' '");
+    return [
+      `((Array.isArray(${listCode}) ? ${listCode} : []).map(item => String(item ?? '')).join(String(${separatorCode} ?? ' ')))`,
+      ORDER_ATOMIC
+    ];
   };
 
   javascriptGenerator.forBlock['text_first_letter'] = function (block) {
@@ -405,5 +511,15 @@
   javascriptGenerator.forBlock['text_last_letter'] = function (block) {
     const textCode = valueToCodeOr(block, 'TEXT', "''");
     return [`(() => { const chars = Array.from(String(${textCode} ?? '')); return chars.length ? chars[chars.length - 1] : ''; })()`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_lowercase'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [`String(${textCode} ?? '').toLowerCase()`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_uppercase'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    return [`String(${textCode} ?? '').toUpperCase()`, ORDER_ATOMIC];
   };
 })();

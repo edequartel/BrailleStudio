@@ -1,8 +1,21 @@
 (function () {
   if (!window.Blockly) return;
 
+  [
+    'text',
+    'text_join'
+  ].forEach((type) => {
+    const block = Blockly.Blocks[type];
+    if (!block || typeof block.init !== 'function') return;
+    const originalInit = block.init;
+    block.init = function patchedTextInit(...args) {
+      originalInit.apply(this, args);
+      this.setColour('#0891B2');
+    };
+  });
+
   const INSTRUCTIONS_API_LIST_URLS = [
-    'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php'
+    'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php?status=active'
   ];
   const INSTRUCTION_DROPDOWN_LOADING = '__loading__';
   const INSTRUCTION_DROPDOWN_ERROR = '__error__';
@@ -850,7 +863,7 @@
     init() {
       this.appendValueInput('LIST').appendField('pick random from list');
       this.setOutput(true);
-      this.setColour('#F97316');
+      this.setColour('#0EA5E9');
     }
   };
 
@@ -899,12 +912,85 @@
     }
   };
 
+  Blockly.Blocks['list_from_text_items'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('maak lijst van tekst');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_filter_text_length'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('filter lijst op tekstlengte');
+      this.appendValueInput('MIN').appendField('groter dan');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_filter_phoneme_category'] = {
+    init() {
+      this.appendValueInput('LIST')
+        .appendField('filter lijst')
+        .appendField(new Blockly.FieldDropdown([
+          ['korte klinker', 'korteKlinker'],
+          ['medeklinker', 'medeklinker'],
+          ['lange klinker', 'langeKlinker'],
+          ['tweetekenklank', 'tweetekenklank'],
+          ['drietekenklank', 'drietekenklank'],
+          ['medeklinkercluster', 'medeklinkercluster'],
+          ['viertekenklank', 'viertekenklank']
+        ]), 'CATEGORY');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_filter_phoneme_categories'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('filter lijst categorieen');
+      this.appendDummyInput()
+        .appendField('korte')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'KORTEKLINKER')
+        .appendField('lange')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'LANGEKLINKER')
+        .appendField('tweeteken')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'TWEETEKENKLANK');
+      this.appendDummyInput()
+        .appendField('drieteken')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'DRIETEKENKLANK')
+        .appendField('medeklinker')
+        .appendField(new Blockly.FieldCheckbox('TRUE'), 'MEDEKLINKER')
+        .appendField('cluster')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'MEDEKLINKERCLUSTER');
+      this.appendDummyInput()
+        .appendField('vierteken')
+        .appendField(new Blockly.FieldCheckbox('FALSE'), 'VIERTEKENKLANK');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
   Blockly.Blocks['list_random_other_item'] = {
     init() {
       this.appendValueInput('LIST').appendField('random ander item uit lijst');
       this.appendValueInput('EXCLUDE').appendField('dan');
       this.setOutput(true);
       this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_for_each_item'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('voor elk item in lijst');
+      this.appendStatementInput('DO').appendField('doe');
+      this.appendDummyInput()
+        .appendField('als')
+        .appendField(new Blockly.FieldVariable('item'), 'VAR');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#D97706');
     }
   };
 
@@ -1073,6 +1159,15 @@
     }
   };
 
+  Blockly.Blocks['text_from_list'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('maak tekst van lijst');
+      this.appendValueInput('SEPARATOR').appendField('gescheiden door');
+      this.setOutput(true);
+      this.setColour('#0891B2');
+    }
+  };
+
   Blockly.Blocks['text_first_letter'] = {
     init() {
       this.appendValueInput('TEXT').appendField('first letter of');
@@ -1084,6 +1179,22 @@
   Blockly.Blocks['text_last_letter'] = {
     init() {
       this.appendValueInput('TEXT').appendField('last letter of');
+      this.setOutput(true);
+      this.setColour('#0891B2');
+    }
+  };
+
+  Blockly.Blocks['text_lowercase'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('lowercase');
+      this.setOutput(true);
+      this.setColour('#0891B2');
+    }
+  };
+
+  Blockly.Blocks['text_uppercase'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('uppercase');
       this.setOutput(true);
       this.setColour('#0891B2');
     }
@@ -1135,6 +1246,14 @@
   Blockly.Blocks['klanken_split_word_phonemes_nl'] = {
     init() {
       this.appendValueInput('WORD').appendField('split word into phonemes (nl)');
+      this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['klanken_split_text_phonemes_nl'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('split text into phonemes (nl)');
       this.setOutput(true);
       this.setColour('#14B8A6');
     }

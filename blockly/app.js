@@ -2111,6 +2111,17 @@ function splitWordToNlFonemen(word, fonemenData) {
   return out;
 }
 
+function splitTextToNlFonemen(text, fonemenData) {
+  const normalized = String(text ?? '').toLowerCase();
+  if (!normalized.trim()) return [];
+  const words = normalized.match(/[a-z]+/g) || [];
+  const out = [];
+  for (const word of words) {
+    out.push(...splitWordToNlFonemen(word, fonemenData));
+  }
+  return out;
+}
+
 async function findAanvankelijklijstItemByWord(word) {
   const target = String(word ?? '').trim().toLowerCase();
   if (!target) return null;
@@ -2192,6 +2203,33 @@ function getKlankenCategoryValue(item, source, category) {
 
   if (!categorySet || typeof categorySet !== 'object') return [];
   return toList(categorySet[key]);
+}
+
+function getPhonemeCategorySet(fonemenData, selectedCategory) {
+  const normalizedCategory = String(selectedCategory || 'medeklinker').trim().toLowerCase();
+  return new Set(
+    (Array.isArray(fonemenData?.phonemes) ? fonemenData.phonemes : [])
+      .filter((item) => String(item?.category ?? '').trim().toLowerCase() === normalizedCategory)
+      .map((item) => String(item?.phoneme ?? '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function getPhonemeCategorySetByList(fonemenData, selectedCategories) {
+  const normalized = new Set(
+    (Array.isArray(selectedCategories) ? selectedCategories : [])
+      .map((item) => String(item || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+  if (!normalized.size) {
+    return new Set();
+  }
+  return new Set(
+    (Array.isArray(fonemenData?.phonemes) ? fonemenData.phonemes : [])
+      .filter((item) => normalized.has(String(item?.category ?? '').trim().toLowerCase()))
+      .map((item) => String(item?.phoneme ?? '').trim().toLowerCase())
+      .filter(Boolean)
+  );
 }
 
 async function evalValue(block) {
@@ -2325,6 +2363,45 @@ async function evalValue(block) {
     case 'list_from_json': {
       const jsonText = await evalValue(block.getInputTargetBlock('JSON'));
       return parseListFromJson(jsonText);
+    }
+
+    case 'list_from_text_items': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      return text
+        .split(/[\s,;]+/)
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    case 'list_filter_text_length': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const min = Math.floor(Number(await evalValue(block.getInputTargetBlock('MIN'))) || 0);
+      return list.filter(item => Array.from(String(item ?? '')).length > min);
+    }
+
+    case 'list_filter_phoneme_category': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const fonemenData = await getFonemenNlStandaard();
+      const allowed = getPhonemeCategorySet(fonemenData, block.getFieldValue('CATEGORY'));
+      return list.filter((item) => allowed.has(String(item ?? '').trim().toLowerCase()));
+    }
+
+    case 'list_filter_phoneme_categories': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const fonemenData = await getFonemenNlStandaard();
+      const selectedCategories = [
+        ['KORTEKLINKER', 'korteKlinker'],
+        ['LANGEKLINKER', 'langeKlinker'],
+        ['TWEETEKENKLANK', 'tweetekenklank'],
+        ['DRIETEKENKLANK', 'drietekenklank'],
+        ['MEDEKLINKER', 'medeklinker'],
+        ['MEDEKLINKERCLUSTER', 'medeklinkercluster'],
+        ['VIERTEKENKLANK', 'viertekenklank']
+      ]
+        .filter(([field]) => String(block.getFieldValue(field)) === 'TRUE')
+        .map(([, value]) => value);
+      const allowed = getPhonemeCategorySetByList(fonemenData, selectedCategories);
+      return list.filter((item) => allowed.has(String(item ?? '').trim().toLowerCase()));
     }
 
     case 'klanken_get_aanvankelijklijst': {
@@ -2579,10 +2656,26 @@ async function evalValue(block) {
       return chars[0] ?? '';
     }
 
+    case 'text_from_list': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const separator = String(await evalValue(block.getInputTargetBlock('SEPARATOR')) ?? ' ');
+      return list.map(item => String(item ?? '')).join(separator);
+    }
+
     case 'text_last_letter': {
       const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
       const chars = Array.from(text);
       return chars.length ? chars[chars.length - 1] : '';
+    }
+
+    case 'text_lowercase': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      return text.toLowerCase();
+    }
+
+    case 'text_uppercase': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      return text.toUpperCase();
     }
 
     case 'klanken_split_word_phonemes_nl': {
@@ -2590,6 +2683,17 @@ async function evalValue(block) {
         const word = await evalValue(block.getInputTargetBlock('WORD'));
         const fonemenData = await getFonemenNlStandaard();
         return splitWordToNlFonemen(word, fonemenData);
+      } catch (err) {
+        log(`Phonemes split failed: ${err}`);
+        return [];
+      }
+    }
+
+    case 'klanken_split_text_phonemes_nl': {
+      try {
+        const text = await evalValue(block.getInputTargetBlock('TEXT'));
+        const fonemenData = await getFonemenNlStandaard();
+        return splitTextToNlFonemen(text, fonemenData);
       } catch (err) {
         log(`Phonemes split failed: ${err}`);
         return [];
@@ -2966,6 +3070,22 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'controls_for_each_audio_item': {
+        const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
+        const body = current.getInputTargetBlock('DO');
+        const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
+        const varId = varModel ? varModel.getId() : null;
+        for (const item of list) {
+          if (runtime.stopped || generation !== runGeneration) break;
+          if (varId) {
+            variableValues[varId] = item;
+            renderStatus();
+          }
+          if (body) await executeChain(body, generation);
+        }
+        break;
+      }
+
+      case 'list_for_each_item': {
         const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
         const body = current.getInputTargetBlock('DO');
         const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
@@ -3396,6 +3516,16 @@ renderStatus();
 renderScriptMetadata(null);
 renderFileState();
 setWsBadge(false);
+
+if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.preloadAudioList === 'function') {
+  window.BrailleStudioAPI.preloadAudioList({ folder: 'speech' })
+    .then((items) => {
+      log(`Speech library preloaded (${Array.isArray(items) ? items.length : 0})`);
+    })
+    .catch((err) => {
+      log(`Speech library preload failed: ${err?.message || err}`);
+    });
+}
 
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,

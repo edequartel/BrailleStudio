@@ -7,6 +7,9 @@ header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 $items = load_instructions();
+$items = array_values(array_filter($items, static function (array $item): bool {
+    return (string)($item['status'] ?? '') === 'active';
+}));
 
 $payload = json_encode(array_values($items), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 if ($payload === false) {
@@ -16,7 +19,7 @@ if ($payload === false) {
     exit;
 }
 
-$sourceUrl = 'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_catalog_js.php';
+$sourceUrl = 'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_catalog_js.php?status=active';
 $count = count($items);
 $loadedAt = gmdate('Y-m-d\TH:i:s\Z');
 

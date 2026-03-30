@@ -1,5 +1,5 @@
 (function () {
-  const REMOTE_URL = 'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_catalog_js.php';
+  const REMOTE_URL = 'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_catalog_js.php?status=active';
 
   if (!Array.isArray(window.BrailleStudioInstructionCatalog)) {
     window.BrailleStudioInstructionCatalog = [];

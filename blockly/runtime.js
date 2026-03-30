@@ -15,6 +15,8 @@
     speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/'
   };
   const instructionCache = new Map();
+  const audioCatalogCache = new Map();
+  const audioCatalogPromiseCache = new Map();
 
   function logInstructionPlayback(message) {
     if (typeof window.BrailleBlocklyLog === 'function') {
@@ -50,47 +52,60 @@
       .join(',');
   }
 
-  function joinCsv(parts) {
-    return normalizeCsv(Array.isArray(parts) ? parts : [parts]);
+  function parseCsvList(value) {
+    return String(value ?? '')
+      .split(',')
+      .map(v => String(v ?? '').trim().toLowerCase())
+      .filter(Boolean)
+      .filter((value, index, list) => list.indexOf(value) === index);
   }
 
-  async function getAudioList(options = {}) {
-    const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
-    const folder = String(options.folder || '').trim();
-    if (!folder) {
-      throw new Error('BrailleStudioAPI.getAudioList: "folder" is required');
-    }
+  function splitKlanken(word) {
+    const patterns = [
+      'sch', 'aai', 'ooi', 'oei',
+      'ng', 'nk', 'ch', 'sj',
+      'aa', 'ee', 'oo', 'uu',
+      'oe', 'eu', 'ui', 'ie',
+      'ei', 'ij', 'ou', 'au',
+      'oi', 'ai',
+      'a', 'e', 'i', 'o', 'u',
+      'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm',
+      'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'
+    ];
 
+    let rest = String(word ?? '').trim().toLowerCase();
+    const result = [];
+    while (rest) {
+      let matched = '';
+      for (const pattern of patterns) {
+        if (rest.startsWith(pattern)) {
+          matched = pattern;
+          break;
+        }
+      }
+      if (matched) {
+        result.push(matched);
+        rest = rest.slice(matched.length);
+      } else {
+        result.push(rest.charAt(0));
+        rest = rest.slice(1);
+      }
+    }
+    return result;
+  }
+
+  function getAudioCatalogCacheKey(baseUrl, folder) {
+    return `${String(baseUrl || DEFAULT_BASE_URL)}::${String(folder || '').trim().toLowerCase()}`;
+  }
+
+  async function fetchBaseAudioCatalog(baseUrl, folder) {
     const params = new URLSearchParams();
     params.set('folder', folder);
-
-    const stringKeys = ['letters', 'klanken', 'onlyletters', 'onlyklanken', 'sort'];
-    for (const key of stringKeys) {
-      if (!isEmpty(options[key])) {
-        params.set(key, normalizeCsv(options[key]));
-      }
-    }
-
-    const intKeys = ['maxlength', 'length', 'limit', 'randomlimit'];
-    for (const key of intKeys) {
-      if (!isEmpty(options[key])) {
-        const num = Number(options[key]);
-        if (!Number.isFinite(num)) {
-          throw new Error(`BrailleStudioAPI.getAudioList: "${key}" must be a number`);
-        }
-        params.set(key, String(Math.floor(num)));
-      }
-    }
-
-    if (typeof options.onlycombo === 'boolean') {
-      params.set('onlycombo', options.onlycombo ? 'true' : 'false');
-    }
-
     const url = `${baseUrl}?${params.toString()}`;
 
     let response;
     try {
-      response = await fetch(url);
+      response = await fetch(url, { cache: 'no-store' });
     } catch (err) {
       const detail = err && err.message ? err.message : String(err);
       throw new Error(`BrailleStudioAPI.getAudioList: fetch failed for ${url}: ${detail}`);
@@ -104,14 +119,168 @@
     let parsed;
     try {
       parsed = JSON.parse(bodyText);
-    } catch (err) {
+    } catch {
       throw new Error(`BrailleStudioAPI.getAudioList: invalid JSON from ${url}`);
     }
 
     if (!Array.isArray(parsed)) {
       throw new Error('BrailleStudioAPI.getAudioList: expected JSON array');
     }
+
     return parsed;
+  }
+
+  async function getBaseAudioCatalog(options = {}) {
+    const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+    const folder = String(options.folder || '').trim().toLowerCase();
+    const cacheKey = getAudioCatalogCacheKey(baseUrl, folder);
+
+    if (options.cache === 'reload') {
+      audioCatalogCache.delete(cacheKey);
+      audioCatalogPromiseCache.delete(cacheKey);
+    }
+
+    if (audioCatalogCache.has(cacheKey)) {
+      return audioCatalogCache.get(cacheKey);
+    }
+
+    if (audioCatalogPromiseCache.has(cacheKey)) {
+      return audioCatalogPromiseCache.get(cacheKey);
+    }
+
+    const pending = fetchBaseAudioCatalog(baseUrl, folder)
+      .then((items) => {
+        audioCatalogCache.set(cacheKey, items);
+        audioCatalogPromiseCache.delete(cacheKey);
+        return items;
+      })
+      .catch((err) => {
+        audioCatalogPromiseCache.delete(cacheKey);
+        throw err;
+      });
+
+    audioCatalogPromiseCache.set(cacheKey, pending);
+    return pending;
+  }
+
+  function filterAudioList(items, options = {}) {
+    const letters = parseCsvList(options.letters);
+    const klanken = parseCsvList(options.klanken);
+    const onlyLetters = parseCsvList(options.onlyletters);
+    const onlyKlanken = parseCsvList(options.onlyklanken);
+    const onlyCombo = !!options.onlycombo;
+    const maxLength = isEmpty(options.maxlength) ? 0 : Math.max(0, Math.floor(Number(options.maxlength) || 0));
+    const exactLength = isEmpty(options.length) ? 0 : Math.max(0, Math.floor(Number(options.length) || 0));
+    const limit = isEmpty(options.limit) ? 0 : Math.max(0, Math.floor(Number(options.limit) || 0));
+    const randomLimit = isEmpty(options.randomlimit) ? 0 : Math.max(0, Math.floor(Number(options.randomlimit) || 0));
+    const sort = ['asc', 'desc', 'random'].includes(String(options.sort || 'asc').toLowerCase())
+      ? String(options.sort || 'asc').toLowerCase()
+      : 'asc';
+
+    let list = (Array.isArray(items) ? items : []).filter((item) => {
+      const name = String(item?.word ?? '').trim().toLowerCase();
+      if (!name) return false;
+      const charLength = Array.from(name).length;
+      let wordKlanken = null;
+
+      if (exactLength > 0 && charLength !== exactLength) return false;
+      if (maxLength > 0 && charLength > maxLength) return false;
+
+      if (letters.length > 0) {
+        const firstLetter = Array.from(name)[0] ?? '';
+        if (!letters.includes(firstLetter)) return false;
+      }
+
+      if (klanken.length > 0) {
+        wordKlanken = wordKlanken || splitKlanken(name);
+        if (!wordKlanken.some((klank) => klanken.includes(klank))) return false;
+      }
+
+      if (onlyLetters.length > 0) {
+        const chars = Array.from(name);
+        if (chars.some((char) => !onlyLetters.includes(char))) return false;
+      }
+
+      if (onlyKlanken.length > 0) {
+        wordKlanken = wordKlanken || splitKlanken(name);
+        if (wordKlanken.some((klank) => !onlyKlanken.includes(klank))) return false;
+      }
+
+      if (onlyCombo) {
+        if (onlyLetters.length > 0) {
+          const chars = Array.from(name);
+          if (chars.some((char) => !onlyLetters.includes(char))) return false;
+        }
+        if (onlyKlanken.length > 0) {
+          wordKlanken = wordKlanken || splitKlanken(name);
+          if (wordKlanken.some((klank) => !onlyKlanken.includes(klank))) return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (sort === 'random') {
+      list = [...list];
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+    } else {
+      list = [...list].sort((a, b) => String(a?.word ?? '').localeCompare(String(b?.word ?? ''), undefined, { sensitivity: 'base', numeric: true }));
+      if (sort === 'desc') {
+        list.reverse();
+      }
+    }
+
+    if (randomLimit > 0) {
+      const randomized = [...list];
+      for (let i = randomized.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [randomized[i], randomized[j]] = [randomized[j], randomized[i]];
+      }
+      list = randomized.slice(0, randomLimit);
+    }
+
+    if (limit > 0) {
+      list = list.slice(0, limit);
+    }
+
+    return list;
+  }
+
+  function joinCsv(parts) {
+    return normalizeCsv(Array.isArray(parts) ? parts : [parts]);
+  }
+
+  async function getAudioList(options = {}) {
+    const baseUrl = options.baseUrl || DEFAULT_BASE_URL;
+    const folder = String(options.folder || '').trim();
+    if (!folder) {
+      throw new Error('BrailleStudioAPI.getAudioList: "folder" is required');
+    }
+
+    const intKeys = ['maxlength', 'length', 'limit', 'randomlimit'];
+    for (const key of intKeys) {
+      if (!isEmpty(options[key])) {
+        const num = Number(options[key]);
+        if (!Number.isFinite(num)) {
+          throw new Error(`BrailleStudioAPI.getAudioList: "${key}" must be a number`);
+        }
+      }
+    }
+
+    const baseItems = await getBaseAudioCatalog({
+      baseUrl,
+      folder,
+      cache: options.cache
+    });
+    return filterAudioList(baseItems, options);
+  }
+
+  async function preloadAudioList(options = {}) {
+    const items = await getBaseAudioCatalog(options);
+    return Array.isArray(items) ? items : [];
   }
 
   async function fetchJsonFromCandidates(urls, errorPrefix) {
@@ -176,7 +345,7 @@
       ? [String(options.baseUrl)]
       : INSTRUCTIONS_API_BASE_URLS.map(base => `${base}/instructions_list.php`);
     const params = new URLSearchParams();
-    if (!isEmpty(options.status)) params.set('status', String(options.status).trim());
+    params.set('status', !isEmpty(options.status) ? String(options.status).trim() : 'active');
     if (!isEmpty(options.q)) params.set('q', String(options.q).trim());
     if (!isEmpty(options.tag)) params.set('tag', String(options.tag).trim());
     const urls = [params.toString() ? `${baseUrls[0]}?${params.toString()}` : baseUrls[0]];
@@ -288,6 +457,7 @@
     playUrl,
     resolveInstructionAudioUrl,
     setPlayHandler,
-    joinCsv
+    joinCsv,
+    preloadAudioList
   };
 })();
