@@ -256,6 +256,11 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
       flex-wrap: wrap;
       margin-bottom: 14px;
     }
+    .audio-col {
+      width: 120px;
+      min-width: 120px;
+      white-space: nowrap;
+    }
     .meta-chip {
       display: inline-flex;
       align-items: center;
@@ -367,9 +372,8 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
       <table>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Titel</th>
-            <th>Audio</th>
+            <th class="audio-col">Audio</th>
             <th>Status</th>
             <th>Acties</th>
           </tr>
@@ -377,18 +381,12 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
         <tbody>
         <?php foreach ($filtered as $item): ?>
           <tr>
-            <td><code><?= h($item['id']) ?></code></td>
             <td>
               <strong><?= h($item['title']) ?></strong><br>
               <span class="small muted"><?= h(implode(', ', $item['tags'] ?? [])) ?></span>
             </td>
-            <td>
-              <?= h($item['audioMode']) ?><br>
-              <?php if (($item['audioMode'] ?? '') === 'single_mp3'): ?>
-                <span class="small muted"><?= h($item['audioRef'] ?? '') ?></span>
-              <?php else: ?>
-                <span class="small muted"><?= count($item['audioPlaylist'] ?? []) ?> delen</span>
-              <?php endif; ?>
+            <td class="audio-col">
+              <?= h($item['audioMode']) ?>
             </td>
             <td>
               <span class="status-pill status-<?= h($item['status']) ?>"><?= h($item['status']) ?></span>
@@ -400,7 +398,7 @@ $tagsText = implode(', ', $editItem['tags'] ?? []);
           </tr>
         <?php endforeach; ?>
         <?php if (count($filtered) === 0): ?>
-          <tr><td colspan="5" class="muted">Geen instructies gevonden.</td></tr>
+          <tr><td colspan="4" class="muted">Geen instructies gevonden.</td></tr>
         <?php endif; ?>
         </tbody>
       </table>

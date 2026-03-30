@@ -20,6 +20,7 @@ if (!$gekozenLeerling) {
 $actie = post('actie');
 
 if ($actie === 'voortgang_toevoegen') {
+    require_voortgang_editor();
     $datum = post('datum');
     $onderdeel = post('onderdeel');
     $auteur = post('auteur', current_auth_user());
@@ -57,6 +58,7 @@ if ($actie === 'voortgang_toevoegen') {
 }
 
 if ($actie === 'voortgang_bewerken_opslaan') {
+    require_voortgang_editor();
     $id = (int)post('id', '0');
     $datum = post('datum');
     $onderdeel = post('onderdeel');
@@ -101,6 +103,7 @@ if ($actie === 'voortgang_bewerken_opslaan') {
 }
 
 if ($actie === 'voortgang_verwijderen') {
+    require_voortgang_editor();
     $id = (int)post('id', '0');
     if ($id > 0) {
         soft_delete_voortgang($db, $id, $gekozenLeerlingId);
@@ -204,6 +207,7 @@ render_page_start(
   </div>
 
   <div class="section-title">Aantekeningen en voortgang</div>
+  <?php if (can_edit_voortgang()): ?>
   <div class="card soft">
     <div class="card-header">
       <div>
@@ -246,6 +250,7 @@ render_page_start(
       </div>
     </form>
   </div>
+  <?php endif; ?>
 
   <div class="card soft">
     <div class="card-header">
@@ -276,12 +281,14 @@ render_page_start(
           <td><?= e((string)($row['auteur'] ?? '')) ?></td>
           <td class="notes-col"><div class="notes-text"><?= nl2br(e($row['notitie'])) ?></div></td>
           <td class="table-actions">
+            <?php if (can_edit_voortgang()): ?>
             <a class="btn btn-edit" href="voortgang.php?leerling=<?= $gekozenLeerlingId ?>&bewerk=<?= (int)$row['id'] ?>">Bewerken</a>
             <form method="post" action="voortgang.php?leerling=<?= $gekozenLeerlingId ?>" class="inline-delete" onsubmit="return confirm('Weet je zeker dat je dit voortgangsmoment wilt verwijderen?');">
               <input type="hidden" name="actie" value="voortgang_verwijderen">
               <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
               <button type="submit" class="btn-delete">Verwijderen</button>
             </form>
+            <?php endif; ?>
           </td>
         </tr>
       <?php endwhile; ?>

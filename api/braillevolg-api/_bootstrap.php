@@ -420,6 +420,23 @@ HTML;
       margin-bottom:20px;
     }
     .is-hidden { display:none; }
+    .site-footer {
+      margin-top:28px;
+      padding:18px 4px 0;
+      border-top:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      color:var(--muted);
+      font-size:14px;
+      font-weight:700;
+    }
+    .site-footer img {
+      display:block;
+      height:32px;
+      width:auto;
+    }
     .auth-note {
       margin-top:14px;
       padding:14px 16px;
@@ -433,6 +450,7 @@ HTML;
       .grid-2, .row, .summary-grid { grid-template-columns:1fr; }
       .hero-header { flex-direction:column; }
       .auth-shell { min-height:auto; }
+      .site-footer { flex-direction:column; align-items:flex-start; }
     }
   </style>
 </head>
@@ -451,7 +469,13 @@ HTML;
 
 function render_page_end(): void
 {
-    echo "</body></html>";
+    echo <<<HTML
+  <footer class="site-footer">
+    <div>Powered by Bartiméus</div>
+    <div><img src="https://edequartel.github.io/BrailleStudio/assets/bartimeus.png" alt="Bartiméus"></div>
+  </footer>
+</body></html>
+HTML;
 }
 
 function get_auth_config(): array
@@ -468,9 +492,10 @@ function get_auth_config(): array
         'retention_days' => 1825,
         'purge_after_soft_delete_days' => 90,
         'users' => [
-            ['username' => 'Gerda', 'role' => 'editor', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
-            ['username' => 'Manon', 'role' => 'editor', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
-            ['username' => 'Eric', 'role' => 'admin', 'password_hash' => '$2y$10$Gcwi5AyrF2hoFq9J0I84X.7sUFz2eJiVJs1mXqf0QQrsyrETe/h2q'],
+            ['username' => 'Gerda', 'role' => 'editor', 'password_hash' => '$2y$10$zP0B1JwuikBSLJvj9/9icuW5HG.tKjiRZO8DlaKSytt7Zv2XIjEFS'],
+            ['username' => 'Manon', 'role' => 'editor', 'password_hash' => '$2y$10$AndwvpYAq3zlE2S0GYpe/uopE0YvF6KJWL1fQhl03quWKeX9qHPyG'],
+            ['username' => 'Eric', 'role' => 'admin', 'password_hash' => '$2y$10$UBx2jqC/x9BharozayKl5u0GJsgVptd41i9kAH2Uo/1id2g9JE4H.'],
+            ['username' => 'bartimeus', 'role' => 'viewer', 'password_hash' => '$2y$10$U5YkVNKWbOFwynZfQAaSdeq9DL6QLiSoy0.uEdlquSxg1ndgarqX.'],
         ],
     ];
 }
@@ -537,6 +562,11 @@ function is_admin(): bool
     return current_auth_role() === 'admin';
 }
 
+function can_edit_voortgang(): bool
+{
+    return in_array(current_auth_role(), ['admin', 'editor'], true);
+}
+
 function require_admin(): void
 {
     if (is_admin()) {
@@ -544,6 +574,15 @@ function require_admin(): void
     }
     http_response_code(403);
     exit('403 - Alleen admins mogen deze actie uitvoeren.');
+}
+
+function require_voortgang_editor(): void
+{
+    if (can_edit_voortgang()) {
+        return;
+    }
+    http_response_code(403);
+    exit('403 - Alleen admins en editors mogen aantekeningen wijzigen.');
 }
 
 function write_audit_log(SQLite3 $db, string $entityType, int $entityId, string $action, array $details = []): void
