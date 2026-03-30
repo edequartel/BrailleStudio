@@ -938,7 +938,7 @@ async function fetchInstructionById(id) {
   if (!instructionId) {
     throw new Error('Instruction id is required');
   }
-  const remoteUrl = `https://www.tastenbraille.com/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`;
+  const remoteUrl = `https://www.tastenbraille.com/braillestudio/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`;
   let parsed;
   try {
     parsed = await fetchJsonFromCandidates([
@@ -946,6 +946,8 @@ async function fetchInstructionById(id) {
       `/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
       `https://www.tastenbraille.com/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(remoteUrl)}`,
       remoteUrl,
+      `/braillestudio/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
+      `../api/blockly-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
       `/braillestudio/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`,
       `../api/instructions-api/instructions_get.php?id=${encodeURIComponent(instructionId)}`
     ], `Failed to load instruction "${instructionId}"`);

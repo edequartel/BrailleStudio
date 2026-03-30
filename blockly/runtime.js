@@ -1,6 +1,9 @@
 (function () {
   const DEFAULT_BASE_URL = 'https://tastenbraille.com/api/list.php';
   const INSTRUCTIONS_API_BASE_URLS = [
+    'https://www.tastenbraille.com/braillestudio/blockly-api',
+    '/braillestudio/blockly-api',
+    '../api/blockly-api',
     'https://www.tastenbraille.com/braillestudio/instructions-api',
     '/braillestudio/instructions-api',
     '../api/instructions-api'

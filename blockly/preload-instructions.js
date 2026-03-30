@@ -1,10 +1,12 @@
 (function () {
-  const REMOTE_URL = 'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php';
+  const REMOTE_URL = 'https://www.tastenbraille.com/braillestudio/blockly-api/instructions_list.php';
   const CANDIDATE_URLS = [
     `../api/fetch-remote.php?url=${encodeURIComponent(REMOTE_URL)}`,
     `/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(REMOTE_URL)}`,
     `https://www.tastenbraille.com/braillestudio/api/fetch-remote.php?url=${encodeURIComponent(REMOTE_URL)}`,
     REMOTE_URL,
+    '/braillestudio/blockly-api/instructions_list.php',
+    '../api/blockly-api/instructions_list.php',
     '/braillestudio/instructions-api/instructions_list.php',
     '../api/instructions-api/instructions_list.php'
   ];

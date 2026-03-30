@@ -2,6 +2,9 @@
   if (!window.Blockly) return;
 
   const INSTRUCTIONS_API_LIST_URLS = [
+    'https://www.tastenbraille.com/braillestudio/blockly-api/instructions_list.php',
+    '/braillestudio/blockly-api/instructions_list.php',
+    '../api/blockly-api/instructions_list.php',
     'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php',
     '/braillestudio/instructions-api/instructions_list.php',
     '../api/instructions-api/instructions_list.php'
