@@ -1,0 +1,30 @@
+[
+  {
+    "id": "instr_raak_woord_aan_v1",
+    "title": "Raak woord aan",
+    "text": "Raak een woord aan met de cursor. Je hoort het woord dat je aanraakt.",
+    "audioMode": "single_mp3",
+    "audioRef": "instructions/raak_een_woord_aan.mp3",
+    "audioPlaylist": [],
+    "tags": ["cursor", "woorden"],
+    "status": "active",
+    "notes": "",
+    "updatedAt": "2026-03-29T08:00:00Z"
+  },
+  {
+    "id": "instr_klank_aa_v1",
+    "title": "Zoek klank aa",
+    "text": "Luister naar de klank aa en raak daarna het juiste woord aan.",
+    "audioMode": "playlist",
+    "audioRef": "",
+    "audioPlaylist": [
+      "instructions/luister_naar_de_klank.mp3",
+      "phonemes/aa.mp3",
+      "instructions/raak_daarna_het_juiste_woord_aan.mp3"
+    ],
+    "tags": ["klank", "aa"],
+    "status": "active",
+    "notes": "",
+    "updatedAt": "2026-03-29T08:00:00Z"
+  }
+]
