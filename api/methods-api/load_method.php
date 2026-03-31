@@ -28,6 +28,8 @@ if (!$item) {
     ], 404);
 }
 
+$item = methods_enrich_with_lessons($item);
+
 methods_json_response([
     'ok' => true,
     'item' => $item

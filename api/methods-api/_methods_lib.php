@@ -8,7 +8,7 @@ function methods_data_file(): string
 
 function methods_save_dir(): string
 {
-    return dirname(__DIR__) . '/methodes-data';
+    return dirname(__DIR__) . '/methods-data';
 }
 
 function ensure_methods_storage_exists(): void
@@ -91,11 +91,19 @@ function methods_normalize_id($value): string
 
 function methods_normalize_method(array $item): array
 {
+    $id = methods_normalize_id($item['id'] ?? '');
+    $basisFile = methods_normalize_string($item['basisFile'] ?? '');
+    $dataSource = methods_normalize_string($item['dataSource'] ?? '');
+    if ($basisFile !== '' && $dataSource === '') {
+        $dataSource = 'https://www.tastenbraille.com/braillestudio/klanken/' . rawurlencode($basisFile);
+    }
+
     return [
-        'id' => methods_normalize_id($item['id'] ?? ''),
+        'id' => $id,
         'title' => methods_normalize_string($item['title'] ?? ''),
         'description' => methods_normalize_string($item['description'] ?? ''),
-        'dataSource' => methods_normalize_string($item['dataSource'] ?? ''),
+        'basisFile' => $basisFile,
+        'dataSource' => $dataSource,
         'status' => methods_normalize_status($item['status'] ?? 'active'),
         'updatedAt' => gmdate('Y-m-d\TH:i:s\Z'),
     ];
@@ -106,6 +114,7 @@ function methods_validate_method(array $item, array $existing = [], bool $isUpda
     $errors = [];
     $id = methods_normalize_id($item['id'] ?? '');
     $title = methods_normalize_string($item['title'] ?? '');
+    $basisFile = methods_normalize_string($item['basisFile'] ?? '');
     $dataSource = methods_normalize_string($item['dataSource'] ?? '');
 
     if ($id === '') {
@@ -114,8 +123,8 @@ function methods_validate_method(array $item, array $existing = [], bool $isUpda
     if ($title === '') {
         $errors[] = 'title is required';
     }
-    if ($dataSource === '') {
-        $errors[] = 'dataSource is required';
+    if ($basisFile === '' && $dataSource === '') {
+        $errors[] = 'basisFile or dataSource is required';
     }
 
     if (!$isUpdate && $id !== '' && methods_find_method_index_by_id($id, $existing) >= 0) {
@@ -262,4 +271,79 @@ function methods_find_method_index_by_id(string $id, array $items): int
         }
     }
     return -1;
+}
+
+function methods_lessons_dir(): string
+{
+    return dirname(__DIR__) . '/lessons-data';
+}
+
+function methods_load_lessons_for_method(string $methodId): array
+{
+    $methodId = methods_normalize_id($methodId);
+    if ($methodId === '') {
+        return [];
+    }
+
+    $dir = methods_lessons_dir();
+    if (!is_dir($dir)) {
+        return [];
+    }
+
+    $items = [];
+    $files = glob($dir . '/*.json') ?: [];
+    foreach ($files as $file) {
+        $json = @file_get_contents($file);
+        if ($json === false || trim($json) === '') {
+            continue;
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+
+        $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
+        if ($lessonMethodId !== $methodId) {
+            continue;
+        }
+
+        $items[] = [
+            'id' => methods_normalize_string($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME)),
+            'title' => methods_normalize_string($decoded['title'] ?? ''),
+            'word' => methods_normalize_string($decoded['word'] ?? ''),
+            'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : (int)($decoded['meta']['basisIndex'] ?? -1),
+            'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ($decoded['meta']['basisWord'] ?? '')),
+            'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : (int)($decoded['meta']['lessonNumber'] ?? 1),
+            'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
+            'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : 0,
+            'filename' => basename($file),
+        ];
+    }
+
+    usort($items, static function ($a, $b) {
+        $aIndex = (int)($a['basisIndex'] ?? -1);
+        $bIndex = (int)($b['basisIndex'] ?? -1);
+        if ($aIndex >= 0 && $bIndex >= 0 && $aIndex !== $bIndex) {
+            return $aIndex <=> $bIndex;
+        }
+
+        $aLessonNumber = (int)($a['lessonNumber'] ?? 1);
+        $bLessonNumber = (int)($b['lessonNumber'] ?? 1);
+        if ($aLessonNumber !== $bLessonNumber) {
+            return $aLessonNumber <=> $bLessonNumber;
+        }
+
+        return strcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
+    });
+
+    return $items;
+}
+
+function methods_enrich_with_lessons(array $method): array
+{
+    $lessons = methods_load_lessons_for_method((string)($method['id'] ?? ''));
+    $method['lessons'] = $lessons;
+    $method['lessonsCount'] = count($lessons);
+    return $method;
 }

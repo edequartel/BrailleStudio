@@ -35,6 +35,10 @@ $filtered = array_values(array_filter($items, static function (array $item) use 
     return true;
 }));
 
+$filtered = array_map(static function (array $item): array {
+    return methods_enrich_with_lessons($item);
+}, $filtered);
+
 methods_json_response([
     'ok' => true,
     'count' => count($filtered),

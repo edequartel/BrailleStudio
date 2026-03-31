@@ -135,12 +135,20 @@ $out['method'] = [
     'title' => trim((string)($methodData['title'] ?? '')),
     'dataSource' => trim((string)($methodData['dataSource'] ?? '')),
 ];
+$out['basisIndex'] = array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : (int)($out['meta']['basisIndex'] ?? -1);
+$out['basisWord'] = trim((string)($content['basisWord'] ?? ($out['meta']['basisWord'] ?? '')));
+$out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : (int)($out['meta']['lessonNumber'] ?? 1);
+$out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($out['meta']['basisRecord'] ?? null) ? $out['meta']['basisRecord'] : []);
 $out['steps'] = $steps;
 $out['stepConfigs'] = $normalizedStepConfigs;
 
 if (!is_array($out['meta'] ?? null)) {
     $out['meta'] = [];
 }
+$out['meta']['basisIndex'] = $out['basisIndex'];
+$out['meta']['basisWord'] = $out['basisWord'];
+$out['meta']['lessonNumber'] = $out['lessonNumber'];
+$out['meta']['basisRecord'] = $out['basisRecord'];
 $out['meta']['stepConfigs'] = $normalizedStepConfigs;
 
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

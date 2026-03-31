@@ -7,6 +7,7 @@ header('Expires: 0');
 
 $saveDir = dirname(__DIR__) . '/lessons-data';
 $filterMethodId = trim((string)($_GET['methodId'] ?? ''));
+$filterBasisIndex = array_key_exists('basisIndex', $_GET) ? (int)$_GET['basisIndex'] : null;
 
 if (!is_dir($saveDir)) {
     echo json_encode([
@@ -112,6 +113,10 @@ foreach ($files as $file) {
             'title' => '',
             'dataSource' => '',
         ],
+        'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : (int)($content['meta']['basisIndex'] ?? -1),
+        'basisWord' => trim((string)($content['basisWord'] ?? ($content['meta']['basisWord'] ?? ''))),
+        'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : (int)($content['meta']['lessonNumber'] ?? 1),
+        'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($content['meta']['basisRecord'] ?? null) ? $content['meta']['basisRecord'] : []),
         'word' => $content['word'] ?? '',
         'updatedAt' => $content['updatedAt'] ?? '',
         'steps' => $content['steps'] ?? [],
@@ -130,7 +135,23 @@ if ($filterMethodId !== '') {
     }));
 }
 
+if ($filterBasisIndex !== null) {
+    $items = array_values(array_filter($items, static function (array $item) use ($filterBasisIndex): bool {
+        return (int)($item['basisIndex'] ?? -1) === $filterBasisIndex;
+    }));
+}
+
 usort($items, function ($a, $b) {
+    $aIndex = (int)($a['basisIndex'] ?? -1);
+    $bIndex = (int)($b['basisIndex'] ?? -1);
+    if ($aIndex >= 0 && $bIndex >= 0 && $aIndex !== $bIndex) {
+        return $aIndex <=> $bIndex;
+    }
+    $aLessonNumber = (int)($a['lessonNumber'] ?? 1);
+    $bLessonNumber = (int)($b['lessonNumber'] ?? 1);
+    if ($aLessonNumber !== $bLessonNumber) {
+        return $aLessonNumber <=> $bLessonNumber;
+    }
     return strcmp($b['updatedAt'] ?? '', $a['updatedAt'] ?? '');
 });
 

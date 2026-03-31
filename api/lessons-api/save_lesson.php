@@ -36,9 +36,13 @@ $method = isset($data['method']) && is_array($data['method']) ? $data['method'] 
 $methodId = isset($data['methodId']) ? trim((string)$data['methodId']) : trim((string)($method['id'] ?? ''));
 $methodTitle = isset($data['methodTitle']) ? trim((string)$data['methodTitle']) : trim((string)($method['title'] ?? ''));
 $methodDataSource = isset($data['methodDataSource']) ? trim((string)$data['methodDataSource']) : trim((string)($method['dataSource'] ?? ''));
+$meta = $data['meta'] ?? [];
+$basisIndex = array_key_exists('basisIndex', $data) ? (int)$data['basisIndex'] : (int)($meta['basisIndex'] ?? -1);
+$basisWord = isset($data['basisWord']) ? trim((string)$data['basisWord']) : trim((string)($meta['basisWord'] ?? ''));
+$lessonNumber = array_key_exists('lessonNumber', $data) ? (int)$data['lessonNumber'] : (int)($meta['lessonNumber'] ?? 1);
+$basisRecord = isset($data['basisRecord']) && is_array($data['basisRecord']) ? $data['basisRecord'] : (is_array($meta['basisRecord'] ?? null) ? $meta['basisRecord'] : []);
 $word = isset($data['word']) ? trim((string)$data['word']) : '';
 $steps = $data['steps'] ?? [];
-$meta = $data['meta'] ?? [];
 $overwrite = array_key_exists('overwrite', $data) ? (bool)$data['overwrite'] : true;
 
 function normalize_lesson_input_key($key)
@@ -120,6 +124,10 @@ if (!is_array($steps)) {
     exit;
 }
 
+if ($lessonNumber < 1) {
+    $lessonNumber = 1;
+}
+
 $cleanSteps = [];
 foreach ($steps as $stepId) {
     $stepId = trim((string)$stepId);
@@ -195,6 +203,10 @@ $payload = [
         'title' => $methodTitle,
         'dataSource' => $methodDataSource,
     ],
+    'basisIndex' => $basisIndex,
+    'basisWord' => $basisWord,
+    'lessonNumber' => $lessonNumber,
+    'basisRecord' => is_array($basisRecord) ? $basisRecord : [],
     'word' => $word,
     'updatedAt' => gmdate('c'),
     'steps' => $cleanSteps,
@@ -207,6 +219,10 @@ $payload = [
                 'title' => $methodTitle,
                 'dataSource' => $methodDataSource,
             ],
+            'basisIndex' => $basisIndex,
+            'basisWord' => $basisWord,
+            'lessonNumber' => $lessonNumber,
+            'basisRecord' => is_array($basisRecord) ? $basisRecord : [],
             'stepConfigs' => $cleanStepConfigs
         ]
     ),

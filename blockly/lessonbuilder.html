@@ -16,27 +16,47 @@
     .btn-danger { background: #dc2626; color: white; border-color: #dc2626; }
     .btn-danger:hover { background: #b91c1c; }
     .status-box { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.875rem; }
+    .panel-title { font-size: 1.05rem; font-weight: 700; color: #0f172a; }
+    .panel-subtitle { font-size: 0.875rem; color: #64748b; }
+    .summary-card { border: 1px solid #dbe4f0; border-radius: 1rem; padding: 1rem; background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%); }
+    .summary-value { font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1; }
+    .summary-meta { font-size: 0.875rem; color: #475569; }
+    .entity-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 320px; overflow: auto; }
+    .entity-item { border: 1px solid #dbe4f0; border-radius: 0.9rem; padding: 0.8rem 0.9rem; background: white; text-align: left; cursor: pointer; }
+    .entity-item:hover { border-color: #93c5fd; background: #f8fbff; }
+    .entity-item.is-active { border-color: #2563eb; background: #eff6ff; box-shadow: inset 0 0 0 1px #2563eb; }
+    .entity-item-title { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
+    .entity-item-meta { font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; }
+    .step-chip { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.35rem 0.7rem; background: #eff6ff; color: #1d4ed8; font-size: 0.8rem; font-weight: 700; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-7xl mx-auto p-4 space-y-4">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-      <h1 class="text-2xl font-bold">BrailleStudio Lesson Builder</h1>
-      <p class="text-slate-600">Build flows from online scripts and manage items online.</p>
-      <div class="mt-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <select id="lessonsSelect" class="field w-full sm:w-64"></select>
-          <button class="btn" id="saveLessonBtn">Save</button>
-          <button class="btn" id="deleteLessonBtn">Delete</button>
-          <button class="btn" id="refreshLessonsBtn">Refresh</button>
+    <div class="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_58%,#60a5fa_100%)] p-6 text-white shadow-sm">
+      <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold tracking-tight">BrailleStudio Lesson Builder</h1>
+          <p class="mt-2 text-sm text-blue-100">Werk in drie duidelijke stappen: kies of beheer een methode, open een lesson binnen die methode, en bouw de lesson op met online Blockly scripts.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-slate-950">
+          <span class="step-chip">1. Methode kiezen</span>
+          <span class="step-chip">2. Lesson beheren</span>
+          <span class="step-chip">3. Steps bouwen</span>
         </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      <div class="xl:order-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
-        <h2 class="text-xl font-bold">Online Methods</h2>
-        <div class="space-y-3">
+    <div class="space-y-4">
+      <div class="space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
+          <div>
+            <div class="panel-title">1. Methode</div>
+            <p class="panel-subtitle">Een methode heeft een basisdataset en bestaat uit de lessons die eraan gekoppeld zijn.</p>
+          </div>
+          <div class="summary-card">
+            <div class="small-label">Geselecteerde methode</div>
+            <div id="currentMethodSummary" class="mt-2 text-sm text-slate-600">Nog geen methode geselecteerd.</div>
+          </div>
           <div>
             <label class="small-label" for="methodsSelect">Method list</label>
             <select id="methodsSelect" class="field"></select>
@@ -51,8 +71,12 @@
               <input id="methodTitleInput" class="field" type="text" placeholder="Aanvankelijk" />
             </div>
             <div>
+              <label class="small-label" for="methodBasisFileSelect">Basisbestand</label>
+              <select id="methodBasisFileSelect" class="field"></select>
+            </div>
+            <div>
               <label class="small-label" for="methodDataSourceInput">Data source</label>
-              <input id="methodDataSourceInput" class="field" type="text" placeholder="https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json" />
+              <input id="methodDataSourceInput" class="field" type="text" placeholder="https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json" readonly />
             </div>
             <div>
               <label class="small-label" for="methodDescriptionInput">Description</label>
@@ -60,78 +84,129 @@
             </div>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button class="btn" id="saveMethodBtn">Save method</button>
-            <button class="btn" id="deleteMethodBtn">Delete method</button>
+            <button class="btn btn-primary" id="saveMethodBtn">Save method</button>
+            <button class="btn btn-danger" id="deleteMethodBtn">Delete method</button>
             <button class="btn" id="refreshMethodsBtn">Refresh methods</button>
           </div>
         </div>
-      </div>
 
-      <div class="xl:order-3 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
-        <h2 class="text-xl font-bold">Online Scripts</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
           <div>
-            <label class="small-label" for="scriptsSelect">Script list</label>
-            <select id="scriptsSelect" class="field"></select>
+            <div class="panel-title">2. Basisrecords En Lessons</div>
+            <p class="panel-subtitle">De methode-data bepaalt de vaste recordvolgorde. Kies eerst een basisrecord, en beheer daarna de lessons die onder dat record vallen.</p>
           </div>
-          <div class="flex items-end gap-2">
-            <button class="btn" id="refreshScriptsBtn">Refresh</button>
-            <button class="btn" id="addStepBtn">Add</button>
+          <div class="summary-card">
+            <div class="small-label">Basisrecord overzicht</div>
+            <div id="basisRecordsSummary" class="mt-2 text-sm text-slate-600">Nog geen methode gekozen.</div>
+          </div>
+          <div>
+            <label class="small-label" for="basisRecordsSelect">Basisrecord</label>
+            <select id="basisRecordsSelect" class="field"></select>
+          </div>
+          <div id="basisRecordsList" class="entity-list"></div>
+          <div class="summary-card">
+            <div class="small-label">Geselecteerd basisrecord</div>
+            <div id="selectedRecordSummary" class="mt-2 text-sm text-slate-600">Nog geen basisrecord geselecteerd.</div>
+          </div>
+          <div class="summary-card">
+            <div class="small-label">Lessons voor dit record</div>
+            <div id="recordLessonsSummary" class="mt-2 text-sm text-slate-600">Kies eerst een basisrecord.</div>
+          </div>
+          <div>
+            <label class="small-label" for="lessonsSelect">Lesson list</label>
+            <select id="lessonsSelect" class="field"></select>
+          </div>
+          <div id="recordLessonsList" class="entity-list"></div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="btn" id="newLessonBtn">New lesson for this record</button>
+            <button class="btn" id="refreshLessonsBtn">Refresh lessons</button>
           </div>
         </div>
       </div>
 
-      <div class="xl:col-span-1 xl:order-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
-        <h2 class="text-xl font-bold">Builder</h2>
-        <div class="space-y-3">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <label class="small-label" for="lessonIdInput">ID</label>
-              <input id="lessonIdInput" class="field" type="text" placeholder="item-bal" />
-            </div>
-            <div>
-              <label class="small-label" for="lessonTitleInput">Title</label>
-              <input id="lessonTitleInput" class="field" type="text" placeholder="Les bal" />
-            </div>
-            <div>
-              <label class="small-label" for="lessonMethodSelect">Method</label>
-              <select id="lessonMethodSelect" class="field"></select>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
-            <div>
-              <label class="small-label" for="lessonWordInput">Word</label>
-              <input id="lessonWordInput" class="field" type="text" placeholder="bal" />
-            </div>
-          </div>
+      <div class="space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
           <div>
-            <label class="small-label">Steps</label>
-            <div class="border border-slate-200 rounded-lg overflow-hidden">
-              <div class="grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto] bg-slate-50 text-xs font-semibold text-slate-600 px-3 py-2 gap-2">
-                <div>Script</div>
-                <div>Text</div>
-                <div>Word</div>
-                <div>Letters</div>
-                <div></div>
+            <div class="panel-title">3. Lesson Builder</div>
+            <p class="panel-subtitle">Bouw de gekozen lesson op met online Blockly scripts. Elke step krijgt zijn eigen inhoud zoals text, word en letters.</p>
+          </div>
+          <div class="space-y-4">
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label class="small-label" for="lessonIdInput">Lesson ID</label>
+                  <input id="lessonIdInput" class="field" type="text" placeholder="item-bal" readonly />
+                </div>
+                <div>
+                  <label class="small-label" for="lessonTitleInput">Lesson title</label>
+                  <input id="lessonTitleInput" class="field" type="text" placeholder="Les bal" readonly />
+                </div>
+                <div>
+                  <label class="small-label" for="lessonMethodInput">Method</label>
+                  <input id="lessonMethodInput" class="field" type="text" placeholder="Aanvankelijk" readonly />
+                </div>
               </div>
-              <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
+              <div>
+                <label class="small-label" for="lessonWordInput">Word</label>
+                <input id="lessonWordInput" class="field" type="text" placeholder="bal" readonly />
+              </div>
+              <div class="summary-card">
+                <div class="small-label">Actieve lesson</div>
+                <div id="currentLessonSummary" class="mt-2 text-sm text-slate-600">Nog geen lesson geopend.</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button class="btn btn-primary" id="saveLessonBtn">Save lesson</button>
+                <button class="btn btn-danger" id="deleteLessonBtn">Delete lesson</button>
+                <button class="btn" id="runLessonBtn">Run lesson</button>
+              </div>
+              <div>
+                <label class="small-label">Steps</label>
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                  <div class="grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto_auto] bg-slate-50 text-xs font-semibold text-slate-600 px-3 py-2 gap-2">
+                    <div>Script</div>
+                    <div>Text</div>
+                    <div>Word</div>
+                    <div>Letters</div>
+                    <div>Run</div>
+                    <div></div>
+                  </div>
+                  <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                <div>
+                  <div class="panel-title">Scriptbibliotheek</div>
+                  <p class="panel-subtitle">Voeg scripts toe als steps binnen de lesson.</p>
+                </div>
+                <div id="scriptsSummary" class="text-sm text-slate-600">Nog geen scripts geladen.</div>
+                <div>
+                  <label class="small-label" for="scriptsSelect">Script list</label>
+                  <select id="scriptsSelect" class="field"></select>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button class="btn" id="refreshScriptsBtn">Refresh scripts</button>
+                  <button class="btn btn-primary" id="addStepBtn">Add script as step</button>
+                </div>
+              </div>
+              <div>
+                <div class="small-label">Steps preview</div>
+                <ul id="lessonStepsPreview" class="mt-2 list-disc pl-5 text-sm text-slate-700"></ul>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <div class="small-label">Steps preview</div>
-          <ul id="lessonStepsPreview" class="list-disc pl-5 text-sm text-slate-700"></ul>
-        </div>
-
-        <div class="space-y-2">
-          <div class="small-label">Status</div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-2">
+          <div class="panel-title">Status</div>
           <div id="statusBox" class="status-box bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[180px]"></div>
         </div>
       </div>
     </div>
 
   </div>
+  <iframe id="lessonRunnerFrame" src="./index.html" title="Lesson runner" hidden></iframe>
 
   <script>
     const SCRIPT_API_BASES = [
@@ -146,26 +221,45 @@
       'https://www.tastenbraille.com/braillestudio/methods-api',
       '/braillestudio/methods-api'
     ];
+    const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
 
     let scriptsCache = [];
     let methodsCache = [];
     let lessonsCache = [];
+    let stepConfigs = [];
+    let activeBasisItems = [];
+    let activeBasisIndex = -1;
+    let activeRecordLessons = [];
+    let activeLessonNumber = 1;
+    let basisFileOptions = [];
+
+    const basisDataCache = new Map();
 
     const statusBox = document.getElementById('statusBox');
     const methodsSelect = document.getElementById('methodsSelect');
     const methodIdInput = document.getElementById('methodIdInput');
     const methodTitleInput = document.getElementById('methodTitleInput');
+    const methodBasisFileSelect = document.getElementById('methodBasisFileSelect');
     const methodDataSourceInput = document.getElementById('methodDataSourceInput');
     const methodDescriptionInput = document.getElementById('methodDescriptionInput');
+    const basisRecordsSummary = document.getElementById('basisRecordsSummary');
+    const basisRecordsSelect = document.getElementById('basisRecordsSelect');
+    const basisRecordsList = document.getElementById('basisRecordsList');
+    const selectedRecordSummary = document.getElementById('selectedRecordSummary');
+    const recordLessonsSummary = document.getElementById('recordLessonsSummary');
+    const recordLessonsList = document.getElementById('recordLessonsList');
     const scriptsSelect = document.getElementById('scriptsSelect');
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
-    const lessonMethodSelect = document.getElementById('lessonMethodSelect');
+    const lessonMethodInput = document.getElementById('lessonMethodInput');
     const lessonWordInput = document.getElementById('lessonWordInput');
     const stepsTableBody = document.getElementById('stepsTableBody');
     const lessonsSelect = document.getElementById('lessonsSelect');
     const lessonStepsPreview = document.getElementById('lessonStepsPreview');
-    let stepConfigs = [];
+    const currentMethodSummary = document.getElementById('currentMethodSummary');
+    const currentLessonSummary = document.getElementById('currentLessonSummary');
+    const scriptsSummary = document.getElementById('scriptsSummary');
+    const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
 
     function setStatus(message, data = null) {
       const text = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
@@ -207,7 +301,6 @@
             const msg = data && data.error ? data.error : `HTTP ${res.status}`;
             throw new Error(`${msg} at ${url}`);
           }
-          debugLog('apiFetchJson', `Response ${res.status} ${url}`, data);
           return data;
         } catch (err) {
           debugLog('apiFetchJson', `Failed ${url}`, { error: err.message });
@@ -232,8 +325,26 @@
       return data.item || null;
     }
 
+    async function listBasisFiles() {
+      try {
+        const data = await apiFetchJson('/list_basis_files.php', {}, 'method');
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (items.length > 0) {
+          return items;
+        }
+      } catch (err) {
+        debugLog('listBasisFiles', 'Falling back to default basis file list', { error: err.message });
+      }
+      return [{
+        id: 'aanvankelijklijst.json',
+        name: 'aanvankelijklijst.json',
+        label: 'aanvankelijklijst.json',
+        url: DEFAULT_BASIS_DATA_URL
+      }];
+    }
+
     async function saveMethod(item) {
-      return await apiFetchJson('/save_method.php', {
+      return apiFetchJson('/save_method.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(item)
@@ -241,43 +352,11 @@
     }
 
     async function deleteMethod(id) {
-      return await apiFetchJson('/delete_method.php', {
+      return apiFetchJson('/delete_method.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       }, 'method');
-    }
-
-    async function saveLesson(id, title, methodId, methodMeta, word, steps, stepConfigs = [], meta = {}, overwrite = true) {
-      return await apiFetchJson('/save_lesson.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          title,
-          methodId,
-          method: methodMeta,
-          methodTitle: methodMeta?.title || '',
-          methodDataSource: methodMeta?.dataSource || '',
-          word,
-          steps,
-          stepConfigs,
-          meta,
-          overwrite
-        })
-      });
-    }
-
-    async function loadLesson(id) {
-      return await apiFetchJson(`/load_lesson.php?id=${encodeURIComponent(id)}`);
-    }
-
-    async function deleteLesson(id) {
-      return await apiFetchJson('/delete_lesson.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
     }
 
     async function listLessons(methodId = '') {
@@ -286,101 +365,77 @@
       return data.items || [];
     }
 
-    function renderScriptsSelect(items) {
-      scriptsSelect.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = '-- Select script --';
-      scriptsSelect.appendChild(placeholder);
-      for (const item of items) {
-        const option = document.createElement('option');
-        option.value = item.id;
-        option.textContent = item.title ? `${item.id} - ${item.title}` : item.id;
-        scriptsSelect.appendChild(option);
+    async function loadLesson(id) {
+      return apiFetchJson(`/load_lesson.php?id=${encodeURIComponent(id)}`);
+    }
+
+    async function loadScript(id) {
+      return apiFetchJson(`/load.php?id=${encodeURIComponent(id)}`, {}, 'script');
+    }
+
+    async function saveLesson(payload) {
+      return apiFetchJson('/save_lesson.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function deleteLesson(id) {
+      return apiFetchJson('/delete_lesson.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+    }
+
+    async function loadBasisData(dataSource) {
+      const source = String(dataSource || '').trim();
+      if (!source) return [];
+      if (basisDataCache.has(source)) {
+        return basisDataCache.get(source) || [];
       }
-    }
-
-    function renderLessonsSelect(items) {
-      lessonsSelect.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = '-- Select lesson --';
-      lessonsSelect.appendChild(placeholder);
-      for (const item of items) {
-        const option = document.createElement('option');
-        option.value = item.id;
-        const method = String(item?.method?.title ?? '').trim();
-        const title = item.title ? `${item.id} - ${item.title}` : item.id;
-        option.textContent = method ? `${method} / ${title}` : title;
-        lessonsSelect.appendChild(option);
+      const res = await fetch(source, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`Failed to load basis data: HTTP ${res.status}`);
       }
+      const raw = await res.json();
+      const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : []);
+      basisDataCache.set(source, items);
+      return items;
     }
 
-    function renderMethodsSelect(items) {
-      methodsSelect.innerHTML = '';
-      lessonMethodSelect.innerHTML = '';
-
-      const managePlaceholder = document.createElement('option');
-      managePlaceholder.value = '';
-      managePlaceholder.textContent = '-- Select method --';
-      methodsSelect.appendChild(managePlaceholder);
-
-      const lessonPlaceholder = document.createElement('option');
-      lessonPlaceholder.value = '';
-      lessonPlaceholder.textContent = '-- Select method --';
-      lessonMethodSelect.appendChild(lessonPlaceholder);
-
-      for (const item of items) {
-        const label = item.title ? `${item.id} - ${item.title}` : item.id;
-
-        const manageOption = document.createElement('option');
-        manageOption.value = item.id;
-        manageOption.textContent = label;
-        methodsSelect.appendChild(manageOption);
-
-        const lessonOption = document.createElement('option');
-        lessonOption.value = item.id;
-        lessonOption.textContent = label;
-        lessonMethodSelect.appendChild(lessonOption);
+    function resolveMethodDataSource(dataSource, methodId = '') {
+      const source = String(dataSource || '').trim();
+      if (!source) {
+        return DEFAULT_BASIS_DATA_URL;
       }
-    }
-
-    function setMethodEditor(item = null) {
-      methodIdInput.value = item?.id || '';
-      methodTitleInput.value = item?.title || '';
-      methodDataSourceInput.value = item?.dataSource || '';
-      methodDescriptionInput.value = item?.description || '';
-      methodsSelect.value = item?.id || '';
-    }
-
-    function getSelectedMethodMeta() {
-      const id = String(lessonMethodSelect.value || '').trim();
-      if (!id) return { id: '', title: '', dataSource: '' };
-      const item = methodsCache.find(row => String(row?.id || '') === id) || null;
-      return item ? {
-        id: String(item.id || '').trim(),
-        title: String(item.title || '').trim(),
-        dataSource: String(item.dataSource || '').trim()
-      } : { id, title: '', dataSource: '' };
-    }
-
-    function renderLessonStepsPreview(configs = stepConfigs) {
-      const byId = new Map((scriptsCache || []).map(item => [String(item.id), item]));
-      lessonStepsPreview.innerHTML = '';
-      for (const config of configs) {
-        const step = String(config?.id ?? '').trim();
-        if (!step) continue;
-        const li = document.createElement('li');
-        const item = byId.get(String(step));
-        const label = item && item.title ? `${step} - ${item.title}` : step;
-        const inputs = config?.inputs && typeof config.inputs === 'object' ? config.inputs : {};
-        const summary = [];
-        if (String(inputs.text ?? '').trim()) summary.push(`text: ${String(inputs.text).trim()}`);
-        if (String(inputs.word ?? '').trim()) summary.push(`word: ${String(inputs.word).trim()}`);
-        if (Array.isArray(inputs.letters) && inputs.letters.length) summary.push(`letters: ${inputs.letters.join(', ')}`);
-        li.textContent = summary.length ? `${label} (${summary.join(' | ')})` : label;
-        lessonStepsPreview.appendChild(li);
+      if (/^https?:\/\//i.test(source)) {
+        return source;
       }
+      if (source.includes('aanvankelijklijst.json') || String(methodId || '').trim() === 'aanvankelijk') {
+        return DEFAULT_BASIS_DATA_URL;
+      }
+      if (source.startsWith('/')) {
+        return `https://www.tastenbraille.com${source}`;
+      }
+      return `https://www.tastenbraille.com/braillestudio/${source.replace(/^\.?\/*/, '')}`;
+    }
+
+    function resolveBasisFileUrl(fileName = '') {
+      const safeName = String(fileName || '').trim();
+      if (!safeName) {
+        return DEFAULT_BASIS_DATA_URL;
+      }
+      return `https://www.tastenbraille.com/braillestudio/klanken/${encodeURIComponent(safeName)}`;
+    }
+
+    function slugifyLessonPart(value) {
+      return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
     }
 
     function normalizeLetters(value) {
@@ -416,19 +471,357 @@
         .filter(cfg => cfg.id);
     }
 
-    function updateStepInput(index, key, value) {
-      if (!stepConfigs[index]) return;
-      const currentInputs = normalizeInputs(stepConfigs[index].inputs);
-      currentInputs[key] = key === 'letters' ? normalizeLetters(value) : String(value ?? '').trim();
-      stepConfigs[index].inputs = currentInputs;
-      renderLessonStepsPreview(stepConfigs);
+    function getSelectedMethodMeta() {
+      const id = String(methodsSelect.value || '').trim();
+      if (!id) {
+        const draftId = String(methodIdInput.value || '').trim();
+        const draftTitle = String(methodTitleInput.value || '').trim();
+        const draftBasisFile = String(methodBasisFileSelect.value || '').trim();
+        return {
+          id: draftId,
+          title: draftTitle,
+          basisFile: draftBasisFile,
+          dataSource: draftBasisFile ? resolveBasisFileUrl(draftBasisFile) : String(methodDataSourceInput.value || DEFAULT_BASIS_DATA_URL).trim()
+        };
+      }
+      const item = methodsCache.find(row => String(row?.id || '') === id) || null;
+      return item ? {
+        id: String(item.id || '').trim(),
+        title: String(item.title || '').trim(),
+        basisFile: String(item.basisFile || '').trim(),
+        dataSource: resolveMethodDataSource(item.dataSource || '', item.id || '')
+      } : { id, title: '', basisFile: '', dataSource: '' };
     }
 
-    function removeStep(index) {
-      if (index < 0 || index >= stepConfigs.length) return;
-      stepConfigs.splice(index, 1);
-      renderStepsTable();
-      renderLessonStepsPreview(stepConfigs);
+    function renderBasisFileSelect(items = [], selectedFile = '') {
+      methodBasisFileSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- Select basis file --';
+      methodBasisFileSelect.appendChild(placeholder);
+
+      items.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = String(item?.name || '');
+        option.textContent = String(item?.label || item?.name || '');
+        methodBasisFileSelect.appendChild(option);
+      });
+
+      if (selectedFile) {
+        methodBasisFileSelect.value = selectedFile;
+      }
+    }
+
+    function getCurrentBasisFileName() {
+      return String(methodBasisFileSelect.value || '').trim();
+    }
+
+    async function loadBasisRecordsFromCurrentSelection({ selectFirst = true } = {}) {
+      const basisFile = getCurrentBasisFileName();
+      const dataSource = basisFile ? resolveBasisFileUrl(basisFile) : DEFAULT_BASIS_DATA_URL;
+      methodDataSourceInput.value = dataSource;
+      activeBasisItems = await loadBasisData(dataSource);
+      activeBasisIndex = selectFirst && activeBasisItems.length ? 0 : -1;
+      activeRecordLessons = activeBasisIndex >= 0 ? getLessonsForBasis(activeBasisIndex) : [];
+      renderBasisRecordsSummary(getSelectedMethodMeta());
+      renderBasisRecordsList();
+      renderSelectedRecordSummary();
+      renderRecordLessonsSummary();
+      renderRecordLessonsList();
+      if (activeBasisIndex >= 0) {
+        await selectBasisRecord(activeBasisIndex);
+      }
+    }
+
+    function getActiveBasisItem() {
+      return activeBasisIndex >= 0 ? activeBasisItems[activeBasisIndex] || null : null;
+    }
+
+    function getBasisWord(item, fallbackIndex = 0) {
+      const word = String(item?.word || '').trim();
+      return word || `item-${fallbackIndex + 1}`;
+    }
+
+    function buildLessonIdFromBasis(methodId, basisIndex, basisItem, lessonNumber = 1) {
+      const word = slugifyLessonPart(getBasisWord(basisItem, basisIndex));
+      const prefix = slugifyLessonPart(methodId || 'lesson');
+      const recordNumber = String(Math.max(0, Number(basisIndex) + 1)).padStart(3, '0');
+      const slotNumber = String(Math.max(1, Number(lessonNumber) || 1)).padStart(2, '0');
+      return `${prefix}-${recordNumber}-${word}-lesson-${slotNumber}`;
+    }
+
+    function buildLessonTitleFromBasis(basisItem, lessonNumber = 1, basisIndex = 0) {
+      const word = getBasisWord(basisItem, basisIndex);
+      return `${word} - les ${Math.max(1, Number(lessonNumber) || 1)}`;
+    }
+
+    function getLessonsForBasis(index) {
+      return lessonsCache
+        .filter(item => Number(item?.basisIndex ?? -1) === Number(index))
+        .sort((a, b) => Number(a?.lessonNumber ?? 1) - Number(b?.lessonNumber ?? 1));
+    }
+
+    function getNextLessonNumber(index) {
+      const existing = getLessonsForBasis(index);
+      return existing.reduce((max, item) => Math.max(max, Number(item?.lessonNumber ?? 1)), 0) + 1;
+    }
+
+    function renderScriptsSelect(items) {
+      scriptsSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- Select script --';
+      scriptsSelect.appendChild(placeholder);
+      for (const item of items) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.title ? `${item.id} - ${item.title}` : item.id;
+        scriptsSelect.appendChild(option);
+      }
+    }
+
+    function renderMethodsSelect(items) {
+      methodsSelect.innerHTML = '';
+
+      const placeholderManage = document.createElement('option');
+      placeholderManage.value = '';
+      placeholderManage.textContent = '-- Select method --';
+      methodsSelect.appendChild(placeholderManage);
+
+      for (const item of items) {
+        const lessonsCount = Number(item?.lessonsCount ?? 0);
+        const label = `${item.id} - ${item.title || item.id} (${lessonsCount} lessons)`;
+
+        const optManage = document.createElement('option');
+        optManage.value = item.id;
+        optManage.textContent = label;
+        methodsSelect.appendChild(optManage);
+      }
+    }
+
+    function renderLessonsSelect(items) {
+      lessonsSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- Select lesson for this record --';
+      lessonsSelect.appendChild(placeholder);
+
+      for (const item of items) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        const lessonNumber = Number(item?.lessonNumber ?? 1);
+        option.textContent = `${lessonNumber}. ${item.title || item.id}`;
+        lessonsSelect.appendChild(option);
+      }
+    }
+
+    function setMethodEditor(item = null) {
+      methodIdInput.value = item?.id || '';
+      methodTitleInput.value = item?.title || '';
+      const basisFile = String(item?.basisFile || '').trim();
+      renderBasisFileSelect(basisFileOptions, basisFile);
+      methodDataSourceInput.value = item
+        ? resolveMethodDataSource(item?.dataSource || (basisFile ? resolveBasisFileUrl(basisFile) : ''), item?.id || '')
+        : DEFAULT_BASIS_DATA_URL;
+      methodDescriptionInput.value = item?.description || '';
+      methodsSelect.value = item?.id || '';
+      lessonMethodInput.value = item?.title || item?.id || '';
+      renderMethodSummary(item);
+    }
+
+    function renderMethodSummary(item = null) {
+      if (!item) {
+        currentMethodSummary.textContent = 'Nog geen methode geselecteerd.';
+        return;
+      }
+      currentMethodSummary.innerHTML = `
+        <div class="summary-value">${item.title || item.id || '-'}</div>
+        <div class="summary-meta mt-2">${item.description || 'Geen beschrijving opgegeven.'}</div>
+        <div class="summary-meta mt-2">ID: ${item.id || '-'} | Basis: ${resolveMethodDataSource(item.dataSource || '', item.id || '')}</div>
+        <div class="summary-meta mt-1">${activeBasisItems.length} basisrecord(s) | ${lessonsCache.length} lesson(s)</div>
+      `;
+    }
+
+    function renderBasisRecordsSummary(methodMeta = null) {
+      const meta = methodMeta && (methodMeta.id || methodMeta.title) ? methodMeta : getSelectedMethodMeta();
+      const basisFile = getCurrentBasisFileName();
+      if (!meta?.id && !meta?.title && !basisFile) {
+        basisRecordsSummary.textContent = 'Kies eerst een basisbestand.';
+        return;
+      }
+      basisRecordsSummary.innerHTML = `
+        <div class="summary-value">${activeBasisItems.length}</div>
+        <div class="summary-meta mt-2">basisrecord(s) uit ${meta.title || meta.id || basisFile || 'nieuwe methode'}</div>
+        <div class="summary-meta mt-1">${lessonsCache.length} lesson(s) gekoppeld aan deze methode.</div>
+      `;
+    }
+
+    function renderBasisRecordsSelect() {
+      basisRecordsSelect.innerHTML = '';
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = activeBasisItems.length
+        ? '-- Kies een basisrecord --'
+        : '-- Geen basisrecords beschikbaar --';
+      basisRecordsSelect.appendChild(placeholder);
+
+      activeBasisItems.forEach((item, index) => {
+        const option = document.createElement('option');
+        const word = getBasisWord(item, index);
+        const lessonsCount = getLessonsForBasis(index).length;
+        option.value = String(index);
+        option.textContent = `${index + 1}. ${word} (${lessonsCount} lessons)`;
+        basisRecordsSelect.appendChild(option);
+      });
+
+      if (activeBasisIndex >= 0 && activeBasisIndex < activeBasisItems.length) {
+        basisRecordsSelect.value = String(activeBasisIndex);
+      } else {
+        basisRecordsSelect.value = '';
+      }
+    }
+
+    function renderSelectedRecordSummary() {
+      const item = getActiveBasisItem();
+      if (!item) {
+        selectedRecordSummary.textContent = 'Nog geen basisrecord geselecteerd.';
+        return;
+      }
+
+      const word = getBasisWord(item, activeBasisIndex);
+      const newSounds = Array.isArray(item?.newSounds) ? item.newSounds.join(', ') : '';
+      const knownSounds = Array.isArray(item?.knownSounds) ? item.knownSounds.join(', ') : '';
+      const sounds = Array.isArray(item?.sounds) ? item.sounds.join(', ') : '';
+
+      selectedRecordSummary.innerHTML = `
+        <div class="summary-value">${word}</div>
+        <div class="summary-meta mt-2">Record ${activeBasisIndex + 1} in de basisdataset</div>
+        <div class="summary-meta mt-1">sounds: ${sounds || '-'}</div>
+        <div class="summary-meta mt-1">newSounds: ${newSounds || '-'}</div>
+        <div class="summary-meta mt-1">knownSounds: ${knownSounds || '-'}</div>
+      `;
+    }
+
+    function renderRecordLessonsSummary() {
+      const item = getActiveBasisItem();
+      if (!item) {
+        recordLessonsSummary.textContent = 'Kies eerst een basisrecord.';
+        return;
+      }
+
+      const word = getBasisWord(item, activeBasisIndex);
+      recordLessonsSummary.innerHTML = `
+        <div class="summary-value">${activeRecordLessons.length}</div>
+        <div class="summary-meta mt-2">lesson(s) voor basiswoord ${word}</div>
+        <div class="summary-meta mt-1">Nieuwe lesson krijgt automatisch het volgende lesnummer.</div>
+      `;
+    }
+
+    function renderBasisRecordsList() {
+      basisRecordsList.innerHTML = '';
+      renderBasisRecordsSelect();
+
+      if (!activeBasisItems.length) {
+        const empty = document.createElement('div');
+        empty.className = 'entity-item';
+        empty.innerHTML = '<div class="entity-item-title">Geen basisrecords gevonden</div><div class="entity-item-meta">Controleer de dataSource van deze methode.</div>';
+        basisRecordsList.appendChild(empty);
+        return;
+      }
+
+      activeBasisItems.forEach((item, index) => {
+        const word = getBasisWord(item, index);
+        const lessons = getLessonsForBasis(index);
+        const newSounds = Array.isArray(item?.newSounds) && item.newSounds.length ? item.newSounds.join(', ') : '-';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `entity-item${index === activeBasisIndex ? ' is-active' : ''}`;
+        btn.innerHTML = `
+          <div class="entity-item-title">${index + 1}. ${word}</div>
+          <div class="entity-item-meta">${lessons.length} lesson(s) | newSounds: ${newSounds}</div>
+        `;
+        btn.addEventListener('click', async () => {
+          await selectBasisRecord(index);
+        });
+        basisRecordsList.appendChild(btn);
+      });
+    }
+
+    function renderRecordLessonsList() {
+      recordLessonsList.innerHTML = '';
+
+      if (activeBasisIndex < 0) {
+        const empty = document.createElement('div');
+        empty.className = 'entity-item';
+        empty.innerHTML = '<div class="entity-item-title">Kies eerst een basisrecord</div><div class="entity-item-meta">Daarna verschijnen hier de lessons voor dat record.</div>';
+        recordLessonsList.appendChild(empty);
+        return;
+      }
+
+      if (!activeRecordLessons.length) {
+        const empty = document.createElement('div');
+        empty.className = 'entity-item';
+        empty.innerHTML = '<div class="entity-item-title">Nog geen lessons</div><div class="entity-item-meta">Gebruik "New lesson for this record" om de eerste lesson te maken.</div>';
+        recordLessonsList.appendChild(empty);
+        return;
+      }
+
+      activeRecordLessons.forEach(item => {
+        const lessonNumber = Number(item?.lessonNumber ?? 1);
+        const isActive = lessonIdInput.value.trim() === String(item.id || '');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `entity-item${isActive ? ' is-active' : ''}`;
+        btn.innerHTML = `
+          <div class="entity-item-title">Les ${lessonNumber}: ${item.title || item.id}</div>
+          <div class="entity-item-meta">ID: ${item.id || '-'} | ${Number(item?.stepsCount ?? (Array.isArray(item?.steps) ? item.steps.length : 0))} step(s)</div>
+        `;
+        btn.addEventListener('click', async () => {
+          lessonsSelect.value = item.id || '';
+          await handleLoadSelectedLesson(item.id || '');
+        });
+        recordLessonsList.appendChild(btn);
+      });
+    }
+
+    function renderLessonStepsPreview(configs = stepConfigs) {
+      const byId = new Map((scriptsCache || []).map(item => [String(item.id), item]));
+      lessonStepsPreview.innerHTML = '';
+      for (const config of configs) {
+        const step = String(config?.id ?? '').trim();
+        if (!step) continue;
+        const li = document.createElement('li');
+        const item = byId.get(step);
+        const label = item && item.title ? `${step} - ${item.title}` : step;
+        const inputs = config?.inputs && typeof config.inputs === 'object' ? config.inputs : {};
+        const summary = [];
+        if (String(inputs.text ?? '').trim()) summary.push(`text: ${String(inputs.text).trim()}`);
+        if (String(inputs.word ?? '').trim()) summary.push(`word: ${String(inputs.word).trim()}`);
+        if (Array.isArray(inputs.letters) && inputs.letters.length) summary.push(`letters: ${inputs.letters.join(', ')}`);
+        li.textContent = summary.length ? `${label} (${summary.join(' | ')})` : label;
+        lessonStepsPreview.appendChild(li);
+      }
+    }
+
+    function renderLessonSummary() {
+      const lessonId = lessonIdInput.value.trim();
+      const lessonTitle = lessonTitleInput.value.trim();
+      const methodMeta = getSelectedMethodMeta();
+      const basisItem = getActiveBasisItem();
+
+      if (!lessonId && !lessonTitle && stepConfigs.length === 0) {
+        currentLessonSummary.textContent = 'Nog geen lesson geopend.';
+        return;
+      }
+
+      const word = lessonWordInput.value.trim() || getBasisWord(basisItem, activeBasisIndex);
+      currentLessonSummary.innerHTML = `
+        <div class="summary-value">${lessonTitle || lessonId || '-'}</div>
+        <div class="summary-meta mt-2">ID: ${lessonId || '-'} | Methode: ${methodMeta.title || methodMeta.id || '-'}</div>
+        <div class="summary-meta mt-1">Basiswoord: ${word || '-'} | Basisindex: ${activeBasisIndex >= 0 ? activeBasisIndex + 1 : '-'} | Lesnummer: ${activeLessonNumber}</div>
+        <div class="summary-meta mt-1">Steps: ${stepConfigs.length}</div>
+      `;
     }
 
     function renderStepsTable() {
@@ -443,7 +836,7 @@
 
       stepConfigs.forEach((cfg, index) => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto] gap-2 items-center px-3 py-2';
+        row.className = 'grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto_auto] gap-2 items-center px-3 py-2';
 
         const scriptCell = document.createElement('div');
         scriptCell.className = 'text-sm text-slate-800';
@@ -478,13 +871,235 @@
         removeBtn.textContent = 'Remove';
         removeBtn.addEventListener('click', () => removeStep(index));
 
+        const runBtn = document.createElement('button');
+        runBtn.type = 'button';
+        runBtn.className = 'btn text-xs px-2 py-1';
+        runBtn.textContent = 'Run';
+        runBtn.addEventListener('click', async () => {
+          try {
+            await runSingleStep(index);
+          } catch (err) {
+            setStatus(`Step run error: ${err.message}`);
+          }
+        });
+
         row.appendChild(scriptCell);
         row.appendChild(textInput);
         row.appendChild(wordInput);
         row.appendChild(lettersInput);
+        row.appendChild(runBtn);
         row.appendChild(removeBtn);
         stepsTableBody.appendChild(row);
       });
+    }
+
+    function getRunnerWindow() {
+      return lessonRunnerFrame?.contentWindow || null;
+    }
+
+    async function waitForRunnerReady(timeoutMs = 15000) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const runnerWindow = getRunnerWindow();
+        const app = runnerWindow?.BrailleBlocklyApp;
+        const boot = runnerWindow?.BrailleBlocklyBoot;
+        if (app && boot?.stage === 'api-ready') {
+          return app;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error('Blockly runner did not become ready in time');
+    }
+
+    async function waitForStepCompletion(app, timeoutMs = 30000) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const completion = app.getStepCompletion();
+        if (completion) {
+          return completion;
+        }
+        const snapshot = app.getRuntimeSnapshot();
+        if (snapshot?.stopped) {
+          return null;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error(`Step timed out after ${Math.floor(timeoutMs / 1000)}s`);
+    }
+
+    function buildActiveStepMeta(stepConfig, stepIndex) {
+      const methodMeta = getSelectedMethodMeta();
+      const basisItem = getActiveBasisItem();
+      return {
+        id: String(stepConfig?.id || '').trim(),
+        stepIndex,
+        lessonId: lessonIdInput.value.trim(),
+        lessonTitle: lessonTitleInput.value.trim(),
+        lessonNumber: activeLessonNumber,
+        methodId: methodMeta.id,
+        methodTitle: methodMeta.title || '',
+        basisIndex: activeBasisIndex,
+        basisWord: lessonWordInput.value.trim() || getBasisWord(basisItem, activeBasisIndex),
+        basisRecord: basisItem
+      };
+    }
+
+    async function runStepConfig(stepConfig, stepIndex = 0) {
+      const scriptId = String(stepConfig?.id || '').trim();
+      if (!scriptId) {
+        throw new Error('Step heeft geen script-id');
+      }
+
+      const methodMeta = getSelectedMethodMeta();
+      const basisItem = getActiveBasisItem();
+      if (!methodMeta.id) {
+        throw new Error('Geen methode geselecteerd');
+      }
+      if (activeBasisIndex < 0 || !basisItem) {
+        throw new Error('Geen basisrecord geselecteerd');
+      }
+
+      const scriptData = await loadScript(scriptId);
+      const state = scriptData?.blockly;
+      if (!state || typeof state !== 'object') {
+        throw new Error(`Script "${scriptId}" bevat geen geldige Blockly state`);
+      }
+
+      const app = await waitForRunnerReady();
+      if (typeof app.clearLog === 'function') {
+        app.clearLog();
+      }
+      if (typeof app.stopProgram === 'function') {
+        app.stopProgram();
+      }
+
+      const logs = [];
+      const onLog = (line) => {
+        logs.push(String(line || ''));
+      };
+
+      const result = await app.runWorkspaceStateHeadless({
+        state,
+        sourceName: scriptData?.title || scriptId,
+        lessonData: activeBasisItems,
+        lessonMethod: methodMeta,
+        index: activeBasisIndex,
+        stepInputs: normalizeInputs(stepConfig?.inputs || {}),
+        stepMeta: buildActiveStepMeta(stepConfig, stepIndex),
+        onLog,
+        lockInjectedRecord: true
+      });
+
+      const completion = result?.stepCompletion || await waitForStepCompletion(app);
+      return {
+        scriptId,
+        title: scriptData?.title || '',
+        result,
+        completion,
+        logs
+      };
+    }
+
+    async function runSingleStep(stepIndex) {
+      const stepConfig = stepConfigs[stepIndex];
+      if (!stepConfig) {
+        throw new Error('Step niet gevonden');
+      }
+      const outcome = await runStepConfig(stepConfig, stepIndex);
+      const status = outcome?.completion?.status || 'no-completion';
+      setStatus(`Step uitgevoerd: ${outcome.scriptId} (${status})`, {
+        step: buildActiveStepMeta(stepConfig, stepIndex),
+        completion: outcome.completion,
+        currentRecord: outcome.result?.currentRecord || null,
+        logs: outcome.logs
+      });
+      return outcome;
+    }
+
+    async function runCurrentLesson() {
+      if (stepConfigs.length === 0) {
+        setStatus('Deze lesson heeft nog geen steps.');
+        return;
+      }
+
+      const results = [];
+      for (let index = 0; index < stepConfigs.length; index++) {
+        const outcome = await runStepConfig(stepConfigs[index], index);
+        results.push({
+          scriptId: outcome.scriptId,
+          status: outcome?.completion?.status || 'no-completion',
+          completion: outcome.completion
+        });
+
+        if (outcome?.completion && outcome.completion.status !== 'completed') {
+          setStatus(`Lesson gestopt bij step ${index + 1}: ${outcome.scriptId}`, {
+            results,
+            stoppedAt: index,
+            logs: outcome.logs
+          });
+          return;
+        }
+      }
+
+      setStatus(`Lesson uitgevoerd: ${lessonIdInput.value.trim() || lessonTitleInput.value.trim()}`, {
+        results
+      });
+    }
+
+    function updateStepInput(index, key, value) {
+      if (!stepConfigs[index]) return;
+      const currentInputs = normalizeInputs(stepConfigs[index].inputs);
+      currentInputs[key] = key === 'letters' ? normalizeLetters(value) : String(value ?? '').trim();
+      stepConfigs[index].inputs = currentInputs;
+      renderLessonStepsPreview(stepConfigs);
+      renderLessonSummary();
+    }
+
+    function removeStep(index) {
+      if (index < 0 || index >= stepConfigs.length) return;
+      stepConfigs.splice(index, 1);
+      renderStepsTable();
+      renderLessonStepsPreview(stepConfigs);
+      renderLessonSummary();
+    }
+
+    function clearLessonEditor(keepMethod = true) {
+      lessonIdInput.value = '';
+      lessonTitleInput.value = '';
+      lessonWordInput.value = '';
+      if (!keepMethod) {
+        lessonMethodInput.value = '';
+      }
+      lessonsSelect.value = '';
+      stepConfigs = [];
+      activeLessonNumber = 1;
+      renderStepsTable();
+      renderLessonStepsPreview([]);
+      renderLessonSummary();
+    }
+
+    function prepareNewLessonForActiveRecord(forcedLessonNumber = null) {
+      const methodMeta = getSelectedMethodMeta();
+      const basisItem = getActiveBasisItem();
+      if (!methodMeta.id || !basisItem || activeBasisIndex < 0) {
+        clearLessonEditor(true);
+        return;
+      }
+
+      activeLessonNumber = forcedLessonNumber && forcedLessonNumber > 0
+        ? forcedLessonNumber
+        : getNextLessonNumber(activeBasisIndex);
+
+      lessonMethodInput.value = methodMeta.title || methodMeta.id;
+      lessonIdInput.value = buildLessonIdFromBasis(methodMeta.id, activeBasisIndex, basisItem, activeLessonNumber);
+      lessonTitleInput.value = buildLessonTitleFromBasis(basisItem, activeLessonNumber, activeBasisIndex);
+      lessonWordInput.value = getBasisWord(basisItem, activeBasisIndex);
+      lessonsSelect.value = '';
+      stepConfigs = [];
+      renderStepsTable();
+      renderLessonStepsPreview([]);
+      renderLessonSummary();
+      renderRecordLessonsList();
     }
 
     async function refreshScripts() {
@@ -492,6 +1107,7 @@
       scriptsCache = items;
       renderScriptsSelect(items);
       renderLessonStepsPreview(stepConfigs);
+      scriptsSummary.textContent = `${items.length} online script(s) beschikbaar om als step toe te voegen.`;
       setStatus(`Loaded ${items.length} scripts.`);
     }
 
@@ -502,31 +1118,65 @@
       setStatus(`Loaded ${items.length} methods.`);
     }
 
-    async function refreshLessons(methodId = '') {
-      const items = await listLessons(methodId);
-      lessonsCache = items;
-      renderLessonsSelect(items);
-      const suffix = methodId ? ` for method "${methodId}"` : '';
-      setStatus(`Loaded ${items.length} lessons${suffix}.`);
+    async function refreshBasisFiles() {
+      basisFileOptions = await listBasisFiles();
+      const current = methodBasisFileSelect.value || basisFileOptions[0]?.name || 'aanvankelijklijst.json';
+      renderBasisFileSelect(basisFileOptions, current);
+      methodDataSourceInput.value = current ? resolveBasisFileUrl(current) : DEFAULT_BASIS_DATA_URL;
     }
 
-    function resetLessonEditor(keepMethod = true) {
-      lessonIdInput.value = '';
-      lessonTitleInput.value = '';
-      if (!keepMethod) {
-        lessonMethodSelect.value = '';
+    async function refreshLessons(methodId = '') {
+      lessonsCache = await listLessons(methodId);
+      activeRecordLessons = activeBasisIndex >= 0 ? getLessonsForBasis(activeBasisIndex) : [];
+      renderLessonsSelect(activeRecordLessons);
+      const methodMeta = methodsCache.find(item => item.id === methodId) || (methodId ? null : getSelectedMethodMeta());
+      renderMethodSummary(methodMeta);
+      renderBasisRecordsSummary(methodMeta);
+      renderBasisRecordsList();
+      renderSelectedRecordSummary();
+      renderRecordLessonsSummary();
+      renderRecordLessonsList();
+      const suffix = methodId ? ` for method "${methodId}"` : '';
+      setStatus(`Loaded ${lessonsCache.length} lessons${suffix}.`);
+    }
+
+    async function loadMethodBasisItems(methodItem) {
+      const resolvedSource = resolveMethodDataSource(methodItem?.dataSource || '', methodItem?.id || '');
+      if (!resolvedSource) {
+        activeBasisItems = [];
+        return;
       }
-      lessonWordInput.value = '';
-      stepConfigs = [];
-      renderStepsTable();
-      renderLessonStepsPreview([]);
+      activeBasisItems = await loadBasisData(resolvedSource);
+    }
+
+    async function selectBasisRecord(index) {
+      activeBasisIndex = Number(index);
+      basisRecordsSelect.value = activeBasisIndex >= 0 ? String(activeBasisIndex) : '';
+      activeRecordLessons = getLessonsForBasis(activeBasisIndex);
+      renderBasisRecordsList();
+      renderLessonsSelect(activeRecordLessons);
+      renderSelectedRecordSummary();
+      renderRecordLessonsSummary();
+      renderRecordLessonsList();
+
+      if (activeRecordLessons.length > 0) {
+        const first = activeRecordLessons[0];
+        lessonsSelect.value = first.id || '';
+        await handleLoadSelectedLesson(first.id || '');
+        return;
+      }
+
+      prepareNewLessonForActiveRecord(1);
+      setStatus(`Basisrecord geselecteerd: ${activeBasisIndex + 1}. ${getBasisWord(getActiveBasisItem(), activeBasisIndex)}`);
     }
 
     async function handleSaveMethod() {
+      const basisFile = methodBasisFileSelect.value.trim();
       const payload = {
         id: methodIdInput.value.trim(),
         title: methodTitleInput.value.trim(),
-        dataSource: methodDataSourceInput.value.trim(),
+        basisFile,
+        dataSource: basisFile ? resolveBasisFileUrl(basisFile) : methodDataSourceInput.value.trim(),
         description: methodDescriptionInput.value.trim(),
         status: 'active'
       };
@@ -538,22 +1188,36 @@
       if (!result.ok) throw new Error(result.error || 'Failed to save method');
       await refreshMethods();
       methodsSelect.value = payload.id;
-      lessonMethodSelect.value = payload.id;
-      await refreshLessons(payload.id);
+      await handleLoadSelectedMethod(payload.id);
       setStatus(`Saved method: ${payload.id}`, result);
     }
 
-    async function handleLoadSelectedMethod() {
-      const id = methodsSelect.value || lessonMethodSelect.value;
+    async function handleLoadSelectedMethod(forcedId = '') {
+      const id = forcedId || methodsSelect.value;
       if (!id) {
+        activeBasisItems = [];
+        activeBasisIndex = -1;
+        activeRecordLessons = [];
         setMethodEditor(null);
+        clearLessonEditor(false);
+        renderBasisRecordsSummary(null);
+        renderBasisRecordsList();
+        renderSelectedRecordSummary();
+        renderRecordLessonsSummary();
+        renderRecordLessonsList();
         return;
       }
+
       const item = await loadMethod(id);
       if (!item) throw new Error('Method not found');
+      methodsSelect.value = item.id || '';
       setMethodEditor(item);
-      lessonMethodSelect.value = item.id || '';
+      await loadMethodBasisItems(item);
+      activeBasisIndex = activeBasisItems.length ? 0 : -1;
       await refreshLessons(item.id || '');
+      if (activeBasisIndex >= 0) {
+        await selectBasisRecord(activeBasisIndex);
+      }
       setStatus(`Loaded method: ${id}`, item);
     }
 
@@ -566,13 +1230,13 @@
       if (!confirm(`Delete method "${id}"?`)) return;
       const result = await deleteMethod(id);
       if (!result.ok) throw new Error(result.error || 'Failed to delete method');
-      if (lessonMethodSelect.value === id) {
-        lessonMethodSelect.value = '';
-      }
+      activeBasisItems = [];
+      activeBasisIndex = -1;
+      activeRecordLessons = [];
       setMethodEditor(null);
+      clearLessonEditor(false);
       await refreshMethods();
       await refreshLessons('');
-      resetLessonEditor(false);
       setStatus(`Deleted method: ${id}`, result);
     }
 
@@ -585,91 +1249,140 @@
       stepConfigs.push({ id: selected, inputs: { text: '', word: '', letters: [] } });
       renderStepsTable();
       renderLessonStepsPreview(stepConfigs);
+      renderLessonSummary();
       setStatus(`Added script "${selected}".`);
     }
 
     async function handleSaveLesson() {
+      const methodMeta = getSelectedMethodMeta();
+      const basisItem = getActiveBasisItem();
       const id = lessonIdInput.value.trim();
       const title = lessonTitleInput.value.trim() || id;
-      const methodMeta = getSelectedMethodMeta();
-      const word = lessonWordInput.value.trim();
       const normalized = normalizeStepConfigs(stepConfigs);
-      const steps = normalized.map(s => s.id);
-      if (!id) {
-        setStatus('ID is required.');
-        return;
-      }
+      const steps = normalized.map(item => item.id);
+
       if (!methodMeta.id) {
         setStatus('Method is required.');
         return;
       }
-      const meta = {
-        method: methodMeta,
-        stepConfigs: normalized.map(s => ({
-          id: s.id,
-          inputs: {
-            text: s.inputs.text || '',
-            word: s.inputs.word || '',
-            letters: Array.isArray(s.inputs.letters) ? s.inputs.letters : []
-          }
-        }))
-      };
-      const result = await saveLesson(id, title, methodMeta.id, methodMeta, word, steps, meta.stepConfigs, meta, true);
-      if (!result.ok) throw new Error(result.error || 'Failed to save');
-      renderLessonStepsPreview(normalized);
-      setStatus(`Saved: ${id}`, result);
-      await refreshLessons(methodMeta.id);
-      lessonsSelect.value = id;
-    }
-
-    async function handleLoadSelectedLesson() {
-      const id = lessonsSelect.value;
-      if (!id) {
-        setStatus('Please select an item first.');
+      if (activeBasisIndex < 0 || !basisItem) {
+        setStatus('Selecteer eerst een basisrecord.');
         return;
       }
+      if (!id) {
+        setStatus('Lesson ID ontbreekt.');
+        return;
+      }
+
+      const basisWord = getBasisWord(basisItem, activeBasisIndex);
+      const payload = {
+        id,
+        title,
+        methodId: methodMeta.id,
+        method: methodMeta,
+        methodTitle: methodMeta.title || '',
+        methodDataSource: resolveMethodDataSource(methodMeta.dataSource || '', methodMeta.id),
+        basisIndex: activeBasisIndex,
+        basisWord,
+        lessonNumber: activeLessonNumber,
+        basisRecord: basisItem,
+        word: basisWord,
+        steps,
+        stepConfigs: normalized,
+        meta: {
+          method: methodMeta,
+          basisIndex: activeBasisIndex,
+          basisWord,
+          lessonNumber: activeLessonNumber,
+          basisRecord: basisItem,
+          stepConfigs: normalized
+        },
+        overwrite: true
+      };
+
+      const result = await saveLesson(payload);
+      if (!result.ok) throw new Error(result.error || 'Failed to save lesson');
+
+      await refreshLessons(methodMeta.id);
+      activeRecordLessons = getLessonsForBasis(activeBasisIndex);
+      renderLessonsSelect(activeRecordLessons);
+      lessonsSelect.value = id;
+      renderRecordLessonsSummary();
+      renderRecordLessonsList();
+      renderLessonStepsPreview(normalized);
+      renderLessonSummary();
+      setStatus(`Saved lesson: ${id}`, result);
+    }
+
+    async function handleLoadSelectedLesson(forcedId = '') {
+      const id = forcedId || lessonsSelect.value;
+      if (!id) {
+        setStatus('Please select a lesson first.');
+        return;
+      }
+
       const data = await loadLesson(id);
       if (!data.ok && data.error) throw new Error(data.error);
+
       lessonIdInput.value = data.id || '';
       lessonTitleInput.value = data.title || '';
-      lessonMethodSelect.value = data.methodId || data?.method?.id || '';
-      lessonWordInput.value = data.word || '';
-      const loadedConfigs = (Array.isArray(data?.stepConfigs) && data.stepConfigs.length)
+      methodsSelect.value = data.methodId || data?.method?.id || '';
+      lessonMethodInput.value = data?.method?.title || data.methodId || '';
+      lessonWordInput.value = data.basisWord || data.word || '';
+      activeBasisIndex = Number(data?.basisIndex ?? -1);
+      activeLessonNumber = Math.max(1, Number(data?.lessonNumber ?? 1));
+
+      const loadedConfigs = Array.isArray(data?.stepConfigs) && data.stepConfigs.length
         ? data.stepConfigs
-        : ((Array.isArray(data?.meta?.stepConfigs) && data.meta.stepConfigs.length)
-          ? data.meta.stepConfigs
-          : (Array.isArray(data.steps) ? data.steps.map(stepId => ({ id: String(stepId ?? '').trim(), inputs: {} })) : []));
+        : (Array.isArray(data?.meta?.stepConfigs) ? data.meta.stepConfigs : []);
       stepConfigs = normalizeStepConfigs(loadedConfigs);
+
+      activeRecordLessons = getLessonsForBasis(activeBasisIndex);
+      renderBasisRecordsList();
+      renderLessonsSelect(activeRecordLessons);
+      lessonsSelect.value = data.id || id;
+      renderSelectedRecordSummary();
+      renderRecordLessonsSummary();
+      renderRecordLessonsList();
       renderStepsTable();
       renderLessonStepsPreview(stepConfigs);
-      const loadedAt = new Date().toLocaleTimeString();
-      setStatus(`Loaded: ${id} (${stepConfigs.length} steps) at ${loadedAt}`, {
+      renderLessonSummary();
+
+      setStatus(`Loaded lesson: ${id}`, {
         id: data.id || id,
         title: data.title || '',
         methodId: data.methodId || '',
-        method: data.method || null,
-        word: data.word || '',
+        basisIndex: data.basisIndex,
+        basisWord: data.basisWord || '',
+        lessonNumber: data.lessonNumber || 1,
+        basisRecord: data.basisRecord || null,
         steps: Array.isArray(data.steps) ? data.steps : [],
-        stepConfigs: stepConfigs,
-        rawStepConfigs: data.stepConfigs ?? null,
-        rawMetaStepConfigs: data?.meta?.stepConfigs ?? null
+        stepConfigs
       });
     }
 
     async function handleDeleteSelectedLesson() {
       const id = lessonsSelect.value || lessonIdInput.value.trim();
+      const methodMeta = getSelectedMethodMeta();
       if (!id) {
-        setStatus('Please select an item first.');
+        setStatus('Please select a lesson first.');
         return;
       }
       if (!confirm(`Delete "${id}"?`)) return;
+
       const result = await deleteLesson(id);
-      if (!result.ok) throw new Error(result.error || 'Failed to delete');
-      if (lessonIdInput.value.trim() === id) {
-        resetLessonEditor(false);
+      if (!result.ok) throw new Error(result.error || 'Failed to delete lesson');
+
+      await refreshLessons(methodMeta.id);
+      activeRecordLessons = activeBasisIndex >= 0 ? getLessonsForBasis(activeBasisIndex) : [];
+      if (activeRecordLessons.length > 0) {
+        lessonsSelect.value = activeRecordLessons[0].id || '';
+        await handleLoadSelectedLesson(activeRecordLessons[0].id || '');
+      } else {
+        prepareNewLessonForActiveRecord(1);
       }
-      setStatus(`Deleted: ${id}`, result);
-      await refreshLessons(getSelectedMethodMeta().id);
+
+      setStatus(`Deleted lesson: ${id}`, result);
     }
 
     async function init() {
@@ -680,7 +1393,25 @@
       document.getElementById('addStepBtn').addEventListener('click', addSelectedScriptToLesson);
       document.getElementById('saveLessonBtn').addEventListener('click', handleSaveLesson);
       document.getElementById('deleteLessonBtn').addEventListener('click', handleDeleteSelectedLesson);
-      document.getElementById('refreshLessonsBtn').addEventListener('click', refreshLessons);
+      document.getElementById('runLessonBtn').addEventListener('click', async () => {
+        try {
+          await runCurrentLesson();
+        } catch (err) {
+          setStatus(`Lesson run error: ${err.message}`);
+        }
+      });
+      document.getElementById('refreshLessonsBtn').addEventListener('click', async () => {
+        await refreshLessons(getSelectedMethodMeta().id);
+      });
+      document.getElementById('newLessonBtn').addEventListener('click', () => {
+        if (activeBasisIndex < 0) {
+          setStatus('Kies eerst een basisrecord.');
+          return;
+        }
+        prepareNewLessonForActiveRecord();
+        setStatus(`Nieuwe lesson voorbereid voor record ${activeBasisIndex + 1}.`);
+      });
+
       methodsSelect.addEventListener('change', async () => {
         try {
           await handleLoadSelectedMethod();
@@ -688,42 +1419,57 @@
           setStatus(`Method load error: ${err.message}`);
         }
       });
-      lessonMethodSelect.addEventListener('change', async () => {
-        const id = lessonMethodSelect.value;
-        methodsSelect.value = id;
+
+      methodBasisFileSelect.addEventListener('change', async () => {
+        lessonMethodInput.value = methodTitleInput.value.trim() || methodIdInput.value.trim() || lessonMethodInput.value;
         try {
-          if (!id) {
-            await refreshLessons('');
-            resetLessonEditor(false);
-            return;
-          }
-          await handleLoadSelectedMethod();
+          await refreshLessons(getSelectedMethodMeta().id);
+          await loadBasisRecordsFromCurrentSelection({ selectFirst: true });
         } catch (err) {
-          setStatus(`Method load error: ${err.message}`);
+          setStatus(`Basisbestand laden mislukt: ${err.message}`);
         }
       });
+
+      basisRecordsSelect.addEventListener('change', async () => {
+        const value = basisRecordsSelect.value;
+        if (value === '') return;
+        try {
+          await selectBasisRecord(Number(value));
+        } catch (err) {
+          setStatus(`Basisrecord load error: ${err.message}`);
+        }
+      });
+
       lessonsSelect.addEventListener('change', async () => {
-        const id = lessonsSelect.value;
-        if (!id) return;
-        lessonIdInput.value = id;
+        if (!lessonsSelect.value) return;
         try {
-          await handleLoadSelectedLesson();
+          await handleLoadSelectedLesson(lessonsSelect.value);
         } catch (err) {
-          setStatus(`Load error: ${err.message}`);
+          setStatus(`Lesson load error: ${err.message}`);
         }
       });
+
       try {
         renderStepsTable();
+        renderBasisRecordsSummary(null);
+        renderSelectedRecordSummary();
+        renderRecordLessonsSummary();
+        renderRecordLessonsList();
+        await refreshBasisFiles();
+        await loadBasisRecordsFromCurrentSelection({ selectFirst: false });
         await refreshMethods();
         await refreshScripts();
+
         if (methodsCache.length > 0) {
-          lessonMethodSelect.value = methodsCache[0].id || '';
-          methodsSelect.value = methodsCache[0].id || '';
-          setMethodEditor(methodsCache[0]);
-          await refreshLessons(methodsCache[0].id || '');
+          const firstMethodId = methodsCache[0].id || '';
+          methodsSelect.value = firstMethodId;
+          await handleLoadSelectedMethod(firstMethodId);
         } else {
-          await refreshLessons('');
+          clearLessonEditor(false);
+          renderMethodSummary(null);
         }
+
+        renderLessonSummary();
         setStatus('Ready.');
       } catch (err) {
         setStatus(`Startup error: ${err.message}`);
