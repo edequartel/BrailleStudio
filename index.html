@@ -305,12 +305,46 @@
       opacity: 0.9;
     }
 
+    .floating-runmethod-btn {
+      position: fixed;
+      left: 18px;
+      bottom: 18px;
+      z-index: 20;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in oklab, #1d4ed8 35%, var(--border));
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      color: #eff6ff;
+      text-decoration: none;
+      font-weight: 700;
+      box-shadow: 0 16px 34px rgba(29, 78, 216, 0.28);
+      transition: transform .06s ease, box-shadow .15s ease;
+    }
+
+    .floating-runmethod-btn:hover {
+      box-shadow: 0 20px 38px rgba(29, 78, 216, 0.34);
+    }
+
+    .floating-runmethod-btn:active {
+      transform: translateY(1px);
+    }
+
+    .floating-runmethod-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.45), 0 20px 38px rgba(29, 78, 216, 0.34);
+    }
+
     @media (max-width: 600px) {
       .footer-row {
         flex-direction: column;
       }
       .footer-logo {
         width: 90px;
+      }
+      .floating-runmethod-btn {
+        left: 14px;
+        bottom: 14px;
+        padding: 11px 14px;
       }
     }
   </style>
@@ -374,6 +408,13 @@
       </div>
     </div>
   </footer>
+
+  <a
+    class="floating-runmethod-btn"
+    href="https://www.tastenbraille.com/braillestudio/runmethod.php?id=lesley-1774965314941"
+  >
+    Open Lesley
+  </a>
 
   <script>
   (async function () {
