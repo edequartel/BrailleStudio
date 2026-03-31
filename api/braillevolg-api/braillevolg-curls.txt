@@ -1,0 +1,49 @@
+GET http://localhost/api/braillevolg-api/login.php
+
+POST http://localhost/api/braillevolg-api/login.php
+Content-Type: application/x-www-form-urlencoded
+
+actie=inloggen&username=admin&password=secret
+
+GET http://localhost/api/braillevolg-api/index.php
+
+POST http://localhost/api/braillevolg-api/index.php
+Content-Type: application/x-www-form-urlencoded
+
+actie=toevoegen&naam=Jan%20Jansen&groep_klas=Groep%203&niveau=Beginner&doelstellingen=Letters%20leren&letters_beheerst=5&woorden_beheerst=2&leessnelheid=Langzaam&laatste_toetsdatum=2026-03-31&opmerkingen=Eerste%20intake
+
+POST http://localhost/api/braillevolg-api/index.php
+Content-Type: application/x-www-form-urlencoded
+
+actie=bewerken_opslaan&id=1&naam=Jan%20Jansen&groep_klas=Groep%204&niveau=Gevorderd&doelstellingen=Meer%20woorden%20lezen&letters_beheerst=12&woorden_beheerst=8&leessnelheid=Gemiddeld&laatste_toetsdatum=2026-03-31&opmerkingen=Bijgewerkt
+
+POST http://localhost/api/braillevolg-api/index.php
+Content-Type: application/x-www-form-urlencoded
+
+actie=verwijderen&id=1
+
+POST http://localhost/api/braillevolg-api/index.php
+Content-Type: application/x-www-form-urlencoded
+
+actie=exporteren&id=1
+
+GET http://localhost/api/braillevolg-api/voortgang.php?leerling=1
+
+POST http://localhost/api/braillevolg-api/voortgang.php?leerling=1
+Content-Type: application/x-www-form-urlencoded
+
+actie=voortgang_toevoegen&datum=2026-03-31&onderdeel=letters&auteur=admin&letters_beheerst=10&woorden_beheerst=4&leessnelheid=Rustig&notitie=Goede%20vooruitgang
+
+POST http://localhost/api/braillevolg-api/voortgang.php?leerling=1
+Content-Type: application/x-www-form-urlencoded
+
+actie=voortgang_bewerken_opslaan&id=1&datum=2026-03-31&onderdeel=woorden&auteur=admin&letters_beheerst=12&woorden_beheerst=6&leessnelheid=Sneller&notitie=Bijgewerkte%20notitie
+
+POST http://localhost/api/braillevolg-api/voortgang.php?leerling=1
+Content-Type: application/x-www-form-urlencoded
+
+actie=voortgang_verwijderen&id=1
+
+GET http://localhost/api/braillevolg-api/voortgang_pdf.php?leerling=1
+
+GET http://localhost/api/braillevolg-api/logout.php

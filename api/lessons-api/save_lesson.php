@@ -32,10 +32,81 @@ if (!is_array($data)) {
 
 $id = isset($data['id']) ? trim((string)$data['id']) : '';
 $title = isset($data['title']) ? trim((string)$data['title']) : '';
+$method = isset($data['method']) && is_array($data['method']) ? $data['method'] : [];
+$methodId = isset($data['methodId']) ? trim((string)$data['methodId']) : trim((string)($method['id'] ?? ''));
+$methodTitle = isset($data['methodTitle']) ? trim((string)$data['methodTitle']) : trim((string)($method['title'] ?? ''));
+$methodDataSource = isset($data['methodDataSource']) ? trim((string)$data['methodDataSource']) : trim((string)($method['dataSource'] ?? ''));
 $word = isset($data['word']) ? trim((string)$data['word']) : '';
 $steps = $data['steps'] ?? [];
 $meta = $data['meta'] ?? [];
 $overwrite = array_key_exists('overwrite', $data) ? (bool)$data['overwrite'] : true;
+
+function normalize_lesson_input_key($key)
+{
+    $key = trim((string)$key);
+    $key = preg_replace('/[^a-zA-Z0-9_-]/', '_', $key);
+    return trim((string)$key, '-_');
+}
+
+function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
+{
+    if (!is_array($inputs)) {
+        $inputs = [];
+    }
+
+    $normalized = [];
+
+    foreach ($inputs as $key => $value) {
+        $safeKey = normalize_lesson_input_key($key);
+        if ($safeKey === '') {
+            continue;
+        }
+
+        if ($safeKey === 'letters') {
+            $letters = [];
+            if (is_array($value)) {
+                foreach ($value as $letter) {
+                    $letter = trim((string)$letter);
+                    if ($letter !== '') {
+                        $letters[] = $letter;
+                    }
+                }
+            } else {
+                $parts = preg_split('/[\r\n,]+/', (string)$value) ?: [];
+                foreach ($parts as $letter) {
+                    $letter = trim((string)$letter);
+                    if ($letter !== '') {
+                        $letters[] = $letter;
+                    }
+                }
+            }
+            $normalized[$safeKey] = $letters;
+            continue;
+        }
+
+        if (is_array($value)) {
+            $cleanList = [];
+            foreach ($value as $item) {
+                if (is_scalar($item) || $item === null) {
+                    $cleanItem = trim((string)$item);
+                    if ($cleanItem !== '') {
+                        $cleanList[] = $cleanItem;
+                    }
+                }
+            }
+            $normalized[$safeKey] = $cleanList;
+            continue;
+        }
+
+        $normalized[$safeKey] = trim((string)$value);
+    }
+
+    if ($normalized === [] && $fallbackVariable !== '') {
+        $normalized['value'] = trim((string)$fallbackVariable);
+    }
+
+    return $normalized;
+}
 
 if ($id === '') {
     http_response_code(400);
@@ -60,7 +131,9 @@ foreach ($steps as $stepId) {
 }
 
 $incomingStepConfigs = [];
-if (is_array($meta) && is_array($meta['stepConfigs'] ?? null)) {
+if (is_array($data['stepConfigs'] ?? null)) {
+    $incomingStepConfigs = $data['stepConfigs'];
+} elseif (is_array($meta) && is_array($meta['stepConfigs'] ?? null)) {
     $incomingStepConfigs = $meta['stepConfigs'];
 }
 
@@ -76,9 +149,10 @@ foreach ($incomingStepConfigs as $row) {
         continue;
     }
     $rowVariable = trim((string)($row['variable'] ?? ''));
+    $rowInputs = normalize_lesson_step_inputs($row['inputs'] ?? [], $rowVariable);
     $cleanStepConfigs[] = [
         'id' => $rowId,
-        'variable' => $rowVariable
+        'inputs' => $rowInputs
     ];
 }
 
@@ -86,7 +160,7 @@ if (count($cleanStepConfigs) === 0 && count($cleanSteps) > 0) {
     foreach ($cleanSteps as $stepId) {
         $cleanStepConfigs[] = [
             'id' => $stepId,
-            'variable' => ''
+            'inputs' => []
         ];
     }
 }
@@ -115,13 +189,26 @@ if (file_exists($filePath) && !$overwrite) {
 $payload = [
     'id' => $safeId,
     'title' => $title,
+    'methodId' => $methodId,
+    'method' => [
+        'id' => $methodId,
+        'title' => $methodTitle,
+        'dataSource' => $methodDataSource,
+    ],
     'word' => $word,
     'updatedAt' => gmdate('c'),
     'steps' => $cleanSteps,
     'stepConfigs' => $cleanStepConfigs,
     'meta' => array_merge(
         is_array($meta) ? $meta : [],
-        ['stepConfigs' => $cleanStepConfigs]
+        [
+            'method' => [
+                'id' => $methodId,
+                'title' => $methodTitle,
+                'dataSource' => $methodDataSource,
+            ],
+            'stepConfigs' => $cleanStepConfigs
+        ]
     ),
 ];
 

@@ -1092,6 +1092,35 @@
     }
   };
 
+  Blockly.Blocks['lesson_get_step_input'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('lesson step input')
+        .appendField(new Blockly.FieldDropdown([
+          ['text', 'text'],
+          ['word', 'word'],
+          ['letters', 'letters']
+        ]), 'FIELD');
+      this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_complete_step'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('complete lesson step as')
+        .appendField(new Blockly.FieldDropdown([
+          ['completed', 'completed'],
+          ['retry', 'retry'],
+          ['failed', 'failed']
+        ]), 'STATUS');
+      this.appendValueInput('OUTPUT').appendField('output');
+      this.setPreviousStatement(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
   Blockly.Blocks['klanken_get_speech_audio_by_onlyletters'] = {
     init() {
       this.appendValueInput('ONLYLETTERS')

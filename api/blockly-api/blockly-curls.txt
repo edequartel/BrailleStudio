@@ -1,0 +1,26 @@
+GET http://localhost/api/blockly-api/list.php
+
+GET http://localhost/api/blockly-api/load.php?id=my-script
+
+POST http://localhost/api/blockly-api/save.php
+Content-Type: application/json
+
+{
+  "id": "my-script",
+  "title": "My Script",
+  "blockly": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": []
+    }
+  },
+  "meta": {},
+  "overwrite": true
+}
+
+POST http://localhost/api/blockly-api/delete.php
+Content-Type: application/json
+
+{
+  "id": "my-script"
+}

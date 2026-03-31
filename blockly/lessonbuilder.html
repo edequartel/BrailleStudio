@@ -35,6 +35,39 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
       <div class="xl:order-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
+        <h2 class="text-xl font-bold">Online Methods</h2>
+        <div class="space-y-3">
+          <div>
+            <label class="small-label" for="methodsSelect">Method list</label>
+            <select id="methodsSelect" class="field"></select>
+          </div>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="small-label" for="methodIdInput">Method ID</label>
+              <input id="methodIdInput" class="field" type="text" placeholder="aanvankelijk" />
+            </div>
+            <div>
+              <label class="small-label" for="methodTitleInput">Method title</label>
+              <input id="methodTitleInput" class="field" type="text" placeholder="Aanvankelijk" />
+            </div>
+            <div>
+              <label class="small-label" for="methodDataSourceInput">Data source</label>
+              <input id="methodDataSourceInput" class="field" type="text" placeholder="https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json" />
+            </div>
+            <div>
+              <label class="small-label" for="methodDescriptionInput">Description</label>
+              <input id="methodDescriptionInput" class="field" type="text" placeholder="Woordenlijst voor aanvankelijk lezen" />
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="btn" id="saveMethodBtn">Save method</button>
+            <button class="btn" id="deleteMethodBtn">Delete method</button>
+            <button class="btn" id="refreshMethodsBtn">Refresh methods</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="xl:order-3 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
         <h2 class="text-xl font-bold">Online Scripts</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -48,7 +81,7 @@
         </div>
       </div>
 
-      <div class="xl:col-span-2 xl:order-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
+      <div class="xl:col-span-1 xl:order-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 space-y-4">
         <h2 class="text-xl font-bold">Builder</h2>
         <div class="space-y-3">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -61,6 +94,12 @@
               <input id="lessonTitleInput" class="field" type="text" placeholder="Les bal" />
             </div>
             <div>
+              <label class="small-label" for="lessonMethodSelect">Method</label>
+              <select id="lessonMethodSelect" class="field"></select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-1 gap-3">
+            <div>
               <label class="small-label" for="lessonWordInput">Word</label>
               <input id="lessonWordInput" class="field" type="text" placeholder="bal" />
             </div>
@@ -68,9 +107,11 @@
           <div>
             <label class="small-label">Steps</label>
             <div class="border border-slate-200 rounded-lg overflow-hidden">
-              <div class="grid grid-cols-[1fr_1fr_auto] bg-slate-50 text-xs font-semibold text-slate-600 px-3 py-2">
+              <div class="grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto] bg-slate-50 text-xs font-semibold text-slate-600 px-3 py-2 gap-2">
                 <div>Script</div>
-                <div>Variable</div>
+                <div>Text</div>
+                <div>Word</div>
+                <div>Letters</div>
                 <div></div>
               </div>
               <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
@@ -93,15 +134,33 @@
   </div>
 
   <script>
-    const API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
-    const API_FALLBACK_BASE = '/braillestudio/blockly-api';
+    const SCRIPT_API_BASES = [
+      'https://www.tastenbraille.com/braillestudio/blockly-api',
+      '/braillestudio/blockly-api'
+    ];
+    const LESSON_API_BASES = [
+      'https://www.tastenbraille.com/braillestudio/lessons-api',
+      '/braillestudio/lessons-api'
+    ];
+    const METHODS_API_BASES = [
+      'https://www.tastenbraille.com/braillestudio/methods-api',
+      '/braillestudio/methods-api'
+    ];
 
     let scriptsCache = [];
+    let methodsCache = [];
+    let lessonsCache = [];
 
     const statusBox = document.getElementById('statusBox');
+    const methodsSelect = document.getElementById('methodsSelect');
+    const methodIdInput = document.getElementById('methodIdInput');
+    const methodTitleInput = document.getElementById('methodTitleInput');
+    const methodDataSourceInput = document.getElementById('methodDataSourceInput');
+    const methodDescriptionInput = document.getElementById('methodDescriptionInput');
     const scriptsSelect = document.getElementById('scriptsSelect');
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
+    const lessonMethodSelect = document.getElementById('lessonMethodSelect');
     const lessonWordInput = document.getElementById('lessonWordInput');
     const stepsTableBody = document.getElementById('stepsTableBody');
     const lessonsSelect = document.getElementById('lessonsSelect');
@@ -120,12 +179,15 @@
       else console.log(`[${stamp}] [${scope}] ${message}`);
     }
 
-    function getApiBases() {
-      return [...new Set([API_BASE, API_FALLBACK_BASE])];
+    function getApiBases(kind = 'lesson') {
+      const bases = kind === 'script'
+        ? SCRIPT_API_BASES
+        : (kind === 'method' ? METHODS_API_BASES : LESSON_API_BASES);
+      return [...new Set(bases)];
     }
 
-    async function apiFetchJson(path, options = {}) {
-      const bases = getApiBases();
+    async function apiFetchJson(path, options = {}, kind = 'lesson') {
+      const bases = getApiBases(kind);
       let lastError = null;
       for (const base of bases) {
         const url = `${base}${path}`;
@@ -156,15 +218,53 @@
     }
 
     async function listScripts() {
-      const data = await apiFetchJson('/list.php');
+      const data = await apiFetchJson('/list.php', {}, 'script');
       return data.items || [];
     }
 
-    async function saveLesson(id, title, word, steps, meta = {}, overwrite = true) {
+    async function listMethods() {
+      const data = await apiFetchJson('/list_methods.php', {}, 'method');
+      return data.items || [];
+    }
+
+    async function loadMethod(id) {
+      const data = await apiFetchJson(`/load_method.php?id=${encodeURIComponent(id)}`, {}, 'method');
+      return data.item || null;
+    }
+
+    async function saveMethod(item) {
+      return await apiFetchJson('/save_method.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      }, 'method');
+    }
+
+    async function deleteMethod(id) {
+      return await apiFetchJson('/delete_method.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      }, 'method');
+    }
+
+    async function saveLesson(id, title, methodId, methodMeta, word, steps, stepConfigs = [], meta = {}, overwrite = true) {
       return await apiFetchJson('/save_lesson.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, title, word, steps, meta, overwrite })
+        body: JSON.stringify({
+          id,
+          title,
+          methodId,
+          method: methodMeta,
+          methodTitle: methodMeta?.title || '',
+          methodDataSource: methodMeta?.dataSource || '',
+          word,
+          steps,
+          stepConfigs,
+          meta,
+          overwrite
+        })
       });
     }
 
@@ -180,8 +280,9 @@
       });
     }
 
-    async function listLessons() {
-      const data = await apiFetchJson('/list_lessons.php');
+    async function listLessons(methodId = '') {
+      const suffix = methodId ? `?methodId=${encodeURIComponent(methodId)}` : '';
+      const data = await apiFetchJson(`/list_lessons.php${suffix}`);
       return data.items || [];
     }
 
@@ -203,14 +304,64 @@
       lessonsSelect.innerHTML = '';
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = '-- Select item --';
+      placeholder.textContent = '-- Select lesson --';
       lessonsSelect.appendChild(placeholder);
       for (const item of items) {
         const option = document.createElement('option');
         option.value = item.id;
-        option.textContent = item.title ? `${item.id} - ${item.title}` : item.id;
+        const method = String(item?.method?.title ?? '').trim();
+        const title = item.title ? `${item.id} - ${item.title}` : item.id;
+        option.textContent = method ? `${method} / ${title}` : title;
         lessonsSelect.appendChild(option);
       }
+    }
+
+    function renderMethodsSelect(items) {
+      methodsSelect.innerHTML = '';
+      lessonMethodSelect.innerHTML = '';
+
+      const managePlaceholder = document.createElement('option');
+      managePlaceholder.value = '';
+      managePlaceholder.textContent = '-- Select method --';
+      methodsSelect.appendChild(managePlaceholder);
+
+      const lessonPlaceholder = document.createElement('option');
+      lessonPlaceholder.value = '';
+      lessonPlaceholder.textContent = '-- Select method --';
+      lessonMethodSelect.appendChild(lessonPlaceholder);
+
+      for (const item of items) {
+        const label = item.title ? `${item.id} - ${item.title}` : item.id;
+
+        const manageOption = document.createElement('option');
+        manageOption.value = item.id;
+        manageOption.textContent = label;
+        methodsSelect.appendChild(manageOption);
+
+        const lessonOption = document.createElement('option');
+        lessonOption.value = item.id;
+        lessonOption.textContent = label;
+        lessonMethodSelect.appendChild(lessonOption);
+      }
+    }
+
+    function setMethodEditor(item = null) {
+      methodIdInput.value = item?.id || '';
+      methodTitleInput.value = item?.title || '';
+      methodDataSourceInput.value = item?.dataSource || '';
+      methodDescriptionInput.value = item?.description || '';
+      methodsSelect.value = item?.id || '';
+    }
+
+    function getSelectedMethodMeta() {
+      const id = String(lessonMethodSelect.value || '').trim();
+      if (!id) return { id: '', title: '', dataSource: '' };
+      const item = methodsCache.find(row => String(row?.id || '') === id) || null;
+      return item ? {
+        id: String(item.id || '').trim(),
+        title: String(item.title || '').trim(),
+        dataSource: String(item.dataSource || '').trim()
+      } : { id, title: '', dataSource: '' };
     }
 
     function renderLessonStepsPreview(configs = stepConfigs) {
@@ -222,10 +373,37 @@
         const li = document.createElement('li');
         const item = byId.get(String(step));
         const label = item && item.title ? `${step} - ${item.title}` : step;
-        const variable = String(config?.variable ?? '').trim();
-        li.textContent = variable ? `${label} (var: ${variable})` : label;
+        const inputs = config?.inputs && typeof config.inputs === 'object' ? config.inputs : {};
+        const summary = [];
+        if (String(inputs.text ?? '').trim()) summary.push(`text: ${String(inputs.text).trim()}`);
+        if (String(inputs.word ?? '').trim()) summary.push(`word: ${String(inputs.word).trim()}`);
+        if (Array.isArray(inputs.letters) && inputs.letters.length) summary.push(`letters: ${inputs.letters.join(', ')}`);
+        li.textContent = summary.length ? `${label} (${summary.join(' | ')})` : label;
         lessonStepsPreview.appendChild(li);
       }
+    }
+
+    function normalizeLetters(value) {
+      if (Array.isArray(value)) {
+        return value.map(item => String(item ?? '').trim()).filter(Boolean);
+      }
+      return String(value ?? '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    function normalizeInputs(inputs = {}, fallbackVariable = '') {
+      const source = inputs && typeof inputs === 'object' ? inputs : {};
+      const normalized = {
+        text: String(source.text ?? '').trim(),
+        word: String(source.word ?? '').trim(),
+        letters: normalizeLetters(source.letters ?? [])
+      };
+      if (!normalized.text && !normalized.word && normalized.letters.length === 0 && String(fallbackVariable ?? '').trim()) {
+        normalized.text = String(fallbackVariable).trim();
+      }
+      return normalized;
     }
 
     function normalizeStepConfigs(configs) {
@@ -233,14 +411,16 @@
       return configs
         .map(cfg => ({
           id: String(cfg?.id ?? '').trim(),
-          variable: String(cfg?.variable ?? '').trim()
+          inputs: normalizeInputs(cfg?.inputs ?? {}, cfg?.variable ?? '')
         }))
         .filter(cfg => cfg.id);
     }
 
-    function updateStepVariable(index, value) {
+    function updateStepInput(index, key, value) {
       if (!stepConfigs[index]) return;
-      stepConfigs[index].variable = String(value ?? '').trim();
+      const currentInputs = normalizeInputs(stepConfigs[index].inputs);
+      currentInputs[key] = key === 'letters' ? normalizeLetters(value) : String(value ?? '').trim();
+      stepConfigs[index].inputs = currentInputs;
       renderLessonStepsPreview(stepConfigs);
     }
 
@@ -263,18 +443,34 @@
 
       stepConfigs.forEach((cfg, index) => {
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[1fr_1fr_auto] gap-2 items-center px-3 py-2';
+        row.className = 'grid grid-cols-[1.1fr_1fr_1fr_1.2fr_auto] gap-2 items-center px-3 py-2';
 
         const scriptCell = document.createElement('div');
         scriptCell.className = 'text-sm text-slate-800';
         scriptCell.textContent = cfg.id;
 
-        const variableInput = document.createElement('input');
-        variableInput.type = 'text';
-        variableInput.className = 'field text-sm';
-        variableInput.value = cfg.variable || '';
-        variableInput.placeholder = 'variable';
-        variableInput.addEventListener('input', (e) => updateStepVariable(index, e.target.value));
+        const normalizedInputs = normalizeInputs(cfg.inputs);
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'field text-sm';
+        textInput.value = normalizedInputs.text;
+        textInput.placeholder = 'text';
+        textInput.addEventListener('input', (e) => updateStepInput(index, 'text', e.target.value));
+
+        const wordInput = document.createElement('input');
+        wordInput.type = 'text';
+        wordInput.className = 'field text-sm';
+        wordInput.value = normalizedInputs.word;
+        wordInput.placeholder = 'word';
+        wordInput.addEventListener('input', (e) => updateStepInput(index, 'word', e.target.value));
+
+        const lettersInput = document.createElement('input');
+        lettersInput.type = 'text';
+        lettersInput.className = 'field text-sm';
+        lettersInput.value = normalizedInputs.letters.join(', ');
+        lettersInput.placeholder = 'l, e, s';
+        lettersInput.addEventListener('input', (e) => updateStepInput(index, 'letters', e.target.value));
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -283,7 +479,9 @@
         removeBtn.addEventListener('click', () => removeStep(index));
 
         row.appendChild(scriptCell);
-        row.appendChild(variableInput);
+        row.appendChild(textInput);
+        row.appendChild(wordInput);
+        row.appendChild(lettersInput);
         row.appendChild(removeBtn);
         stepsTableBody.appendChild(row);
       });
@@ -297,10 +495,85 @@
       setStatus(`Loaded ${items.length} scripts.`);
     }
 
-    async function refreshLessons() {
-      const items = await listLessons();
+    async function refreshMethods() {
+      const items = await listMethods();
+      methodsCache = items;
+      renderMethodsSelect(items);
+      setStatus(`Loaded ${items.length} methods.`);
+    }
+
+    async function refreshLessons(methodId = '') {
+      const items = await listLessons(methodId);
+      lessonsCache = items;
       renderLessonsSelect(items);
-      setStatus(`Loaded ${items.length} items.`);
+      const suffix = methodId ? ` for method "${methodId}"` : '';
+      setStatus(`Loaded ${items.length} lessons${suffix}.`);
+    }
+
+    function resetLessonEditor(keepMethod = true) {
+      lessonIdInput.value = '';
+      lessonTitleInput.value = '';
+      if (!keepMethod) {
+        lessonMethodSelect.value = '';
+      }
+      lessonWordInput.value = '';
+      stepConfigs = [];
+      renderStepsTable();
+      renderLessonStepsPreview([]);
+    }
+
+    async function handleSaveMethod() {
+      const payload = {
+        id: methodIdInput.value.trim(),
+        title: methodTitleInput.value.trim(),
+        dataSource: methodDataSourceInput.value.trim(),
+        description: methodDescriptionInput.value.trim(),
+        status: 'active'
+      };
+      if (!payload.id) {
+        setStatus('Method ID is required.');
+        return;
+      }
+      const result = await saveMethod(payload);
+      if (!result.ok) throw new Error(result.error || 'Failed to save method');
+      await refreshMethods();
+      methodsSelect.value = payload.id;
+      lessonMethodSelect.value = payload.id;
+      await refreshLessons(payload.id);
+      setStatus(`Saved method: ${payload.id}`, result);
+    }
+
+    async function handleLoadSelectedMethod() {
+      const id = methodsSelect.value || lessonMethodSelect.value;
+      if (!id) {
+        setMethodEditor(null);
+        return;
+      }
+      const item = await loadMethod(id);
+      if (!item) throw new Error('Method not found');
+      setMethodEditor(item);
+      lessonMethodSelect.value = item.id || '';
+      await refreshLessons(item.id || '');
+      setStatus(`Loaded method: ${id}`, item);
+    }
+
+    async function handleDeleteSelectedMethod() {
+      const id = methodsSelect.value || methodIdInput.value.trim();
+      if (!id) {
+        setStatus('Please select a method first.');
+        return;
+      }
+      if (!confirm(`Delete method "${id}"?`)) return;
+      const result = await deleteMethod(id);
+      if (!result.ok) throw new Error(result.error || 'Failed to delete method');
+      if (lessonMethodSelect.value === id) {
+        lessonMethodSelect.value = '';
+      }
+      setMethodEditor(null);
+      await refreshMethods();
+      await refreshLessons('');
+      resetLessonEditor(false);
+      setStatus(`Deleted method: ${id}`, result);
     }
 
     function addSelectedScriptToLesson() {
@@ -309,7 +582,7 @@
         setStatus('Please select a script first.');
         return;
       }
-      stepConfigs.push({ id: selected, variable: '' });
+      stepConfigs.push({ id: selected, inputs: { text: '', word: '', letters: [] } });
       renderStepsTable();
       renderLessonStepsPreview(stepConfigs);
       setStatus(`Added script "${selected}".`);
@@ -318,6 +591,7 @@
     async function handleSaveLesson() {
       const id = lessonIdInput.value.trim();
       const title = lessonTitleInput.value.trim() || id;
+      const methodMeta = getSelectedMethodMeta();
       const word = lessonWordInput.value.trim();
       const normalized = normalizeStepConfigs(stepConfigs);
       const steps = normalized.map(s => s.id);
@@ -325,17 +599,27 @@
         setStatus('ID is required.');
         return;
       }
+      if (!methodMeta.id) {
+        setStatus('Method is required.');
+        return;
+      }
       const meta = {
+        method: methodMeta,
         stepConfigs: normalized.map(s => ({
           id: s.id,
-          variable: s.variable || ''
+          inputs: {
+            text: s.inputs.text || '',
+            word: s.inputs.word || '',
+            letters: Array.isArray(s.inputs.letters) ? s.inputs.letters : []
+          }
         }))
       };
-      const result = await saveLesson(id, title, word, steps, meta, true);
+      const result = await saveLesson(id, title, methodMeta.id, methodMeta, word, steps, meta.stepConfigs, meta, true);
       if (!result.ok) throw new Error(result.error || 'Failed to save');
       renderLessonStepsPreview(normalized);
       setStatus(`Saved: ${id}`, result);
-      await refreshLessons();
+      await refreshLessons(methodMeta.id);
+      lessonsSelect.value = id;
     }
 
     async function handleLoadSelectedLesson() {
@@ -348,12 +632,13 @@
       if (!data.ok && data.error) throw new Error(data.error);
       lessonIdInput.value = data.id || '';
       lessonTitleInput.value = data.title || '';
+      lessonMethodSelect.value = data.methodId || data?.method?.id || '';
       lessonWordInput.value = data.word || '';
       const loadedConfigs = (Array.isArray(data?.stepConfigs) && data.stepConfigs.length)
         ? data.stepConfigs
         : ((Array.isArray(data?.meta?.stepConfigs) && data.meta.stepConfigs.length)
           ? data.meta.stepConfigs
-          : (Array.isArray(data.steps) ? data.steps.map(stepId => ({ id: String(stepId ?? '').trim(), variable: '' })) : []));
+          : (Array.isArray(data.steps) ? data.steps.map(stepId => ({ id: String(stepId ?? '').trim(), inputs: {} })) : []));
       stepConfigs = normalizeStepConfigs(loadedConfigs);
       renderStepsTable();
       renderLessonStepsPreview(stepConfigs);
@@ -361,6 +646,8 @@
       setStatus(`Loaded: ${id} (${stepConfigs.length} steps) at ${loadedAt}`, {
         id: data.id || id,
         title: data.title || '',
+        methodId: data.methodId || '',
+        method: data.method || null,
         word: data.word || '',
         steps: Array.isArray(data.steps) ? data.steps : [],
         stepConfigs: stepConfigs,
@@ -379,23 +666,42 @@
       const result = await deleteLesson(id);
       if (!result.ok) throw new Error(result.error || 'Failed to delete');
       if (lessonIdInput.value.trim() === id) {
-        lessonIdInput.value = '';
-        lessonTitleInput.value = '';
-        lessonWordInput.value = '';
-        stepConfigs = [];
-        renderStepsTable();
-        renderLessonStepsPreview([]);
+        resetLessonEditor(false);
       }
       setStatus(`Deleted: ${id}`, result);
-      await refreshLessons();
+      await refreshLessons(getSelectedMethodMeta().id);
     }
 
     async function init() {
+      document.getElementById('saveMethodBtn').addEventListener('click', handleSaveMethod);
+      document.getElementById('deleteMethodBtn').addEventListener('click', handleDeleteSelectedMethod);
+      document.getElementById('refreshMethodsBtn').addEventListener('click', refreshMethods);
       document.getElementById('refreshScriptsBtn').addEventListener('click', refreshScripts);
       document.getElementById('addStepBtn').addEventListener('click', addSelectedScriptToLesson);
       document.getElementById('saveLessonBtn').addEventListener('click', handleSaveLesson);
       document.getElementById('deleteLessonBtn').addEventListener('click', handleDeleteSelectedLesson);
       document.getElementById('refreshLessonsBtn').addEventListener('click', refreshLessons);
+      methodsSelect.addEventListener('change', async () => {
+        try {
+          await handleLoadSelectedMethod();
+        } catch (err) {
+          setStatus(`Method load error: ${err.message}`);
+        }
+      });
+      lessonMethodSelect.addEventListener('change', async () => {
+        const id = lessonMethodSelect.value;
+        methodsSelect.value = id;
+        try {
+          if (!id) {
+            await refreshLessons('');
+            resetLessonEditor(false);
+            return;
+          }
+          await handleLoadSelectedMethod();
+        } catch (err) {
+          setStatus(`Method load error: ${err.message}`);
+        }
+      });
       lessonsSelect.addEventListener('change', async () => {
         const id = lessonsSelect.value;
         if (!id) return;
@@ -408,8 +714,16 @@
       });
       try {
         renderStepsTable();
+        await refreshMethods();
         await refreshScripts();
-        await refreshLessons();
+        if (methodsCache.length > 0) {
+          lessonMethodSelect.value = methodsCache[0].id || '';
+          methodsSelect.value = methodsCache[0].id || '';
+          setMethodEditor(methodsCache[0]);
+          await refreshLessons(methodsCache[0].id || '');
+        } else {
+          await refreshLessons('');
+        }
         setStatus('Ready.');
       } catch (err) {
         setStatus(`Startup error: ${err.message}`);

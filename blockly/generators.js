@@ -151,7 +151,7 @@
   };
 
   javascriptGenerator.forBlock['klanken_get_aanvankelijklijst'] = function () {
-    return [`await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json())`, ORDER_ATOMIC];
+    return [`await window.BrailleBlocklyApp.getLessonData()`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['klanken_get_speech_audio_by_onlyletters'] = function (block) {
@@ -187,9 +187,7 @@
       `await (async () => {\n` +
       `  let list = Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];\n` +
       `  if (!list.length) {\n` +
-      `    list = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })\n` +
-      `      .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); })\n` +
-      `      .then(data => Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []));\n` +
+      `    list = await window.BrailleBlocklyApp.getLessonData();\n` +
       `    window.aanvankelijkData = list;\n` +
       `  }\n` +
       `  const index = Math.floor(Number(${indexCode}) || 0);\n` +
@@ -202,14 +200,14 @@
 
   javascriptGenerator.forBlock['lesson_get_data'] = function () {
     return [
-      `(Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length ? window.aanvankelijkData : await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); }).then(data => { const list = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []); window.aanvankelijkData = list; return list; }))`,
+      `(Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length ? window.aanvankelijkData : await window.BrailleBlocklyApp.getLessonData().then(list => { window.aanvankelijkData = list; return list; }))`,
       ORDER_ATOMIC
     ];
   };
 
   javascriptGenerator.forBlock['lesson_get_record_count'] = function () {
     return [
-      `((Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length) ? window.aanvankelijkData.length : await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => { if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText); return res.json(); }).then(data => { const list = Array.isArray(data) ? data : (Array.isArray(data?.items) ? data.items : []); window.aanvankelijkData = list; return list.length; }))`,
+      `((Array.isArray(window.aanvankelijkData) && window.aanvankelijkData.length) ? window.aanvankelijkData.length : await window.BrailleBlocklyApp.getLessonData().then(list => { window.aanvankelijkData = list; return list.length; }))`,
       ORDER_ATOMIC
     ];
   };
@@ -235,28 +233,39 @@
     ];
   };
 
+  javascriptGenerator.forBlock['lesson_get_step_input'] = function (block) {
+    const field = q(block.getFieldValue('FIELD') || 'text');
+    return [
+      `(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; const key = ${field}; const value = inputs[key]; if (key === 'letters') return Array.isArray(value) ? value : []; return value != null ? value : ''; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {
+    const status = q(block.getFieldValue('STATUS') || 'completed');
+    const outputCode = valueToCodeOr(block, 'OUTPUT', 'null');
+    return `await window.BrailleBlocklyApp.signalLessonStepCompletion({ status: ${status}, output: ${outputCode} });\n`;
+  };
+
   javascriptGenerator.forBlock['klanken_word_get_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
-    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))`, ORDER_ATOMIC];
+    return [`((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? [])`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['klanken_word_get_new_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
-    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.newSounds ?? [])))`, ORDER_ATOMIC];
+    return [`((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.newSounds ?? [])`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['klanken_word_get_known_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
-    return [`(await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' }).then(res => res.json()).then(list => (Array.isArray(list) ? list : [])).then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.knownSounds ?? [])))`, ORDER_ATOMIC];
+    return [`((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.knownSounds ?? [])`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['klanken_play_word_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     return (
-      `for (const sound of (await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })` +
-      `.then(res => res.json())` +
-      `.then(list => (Array.isArray(list) ? list : []))` +
-      `.then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? [])))) {\n` +
+      `for (const sound of ((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? [])) {\n` +
       `  await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
       `}\n`
     );
@@ -268,10 +277,7 @@
     return (
       `{\n` +
       `  const __pauseMs = Math.max(0, Math.round((Number(${secondsCode}) || 0) * 1000));\n` +
-      `  const __sounds = await fetch('../klanken/aanvankelijklijst.json', { cache: 'no-store' })\n` +
-      `    .then(res => res.json())\n` +
-      `    .then(list => (Array.isArray(list) ? list : []))\n` +
-      `    .then(list => (list.find(item => String(item?.word ?? '').trim().toLowerCase() === String(${wordCode} ?? '').trim().toLowerCase())?.sounds ?? []));\n` +
+      `  const __sounds = ((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? []);\n` +
       `  for (let __i = 0; __i < __sounds.length; __i++) {\n` +
       `    const sound = __sounds[__i];\n` +
       `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +

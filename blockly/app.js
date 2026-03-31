@@ -356,6 +356,7 @@ const runtime = {
   activeTable: '',
   lineId: 0,
   lockInjectedLessonRecord: false,
+  stepCompletion: null,
   procedures: new Map()
 };
 
@@ -377,7 +378,7 @@ const SOUND_FOLDER_URLS = {
 };
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
-const KLANGEN_JSON_URL = '../klanken/aanvankelijklijst.json';
+const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 let currentFileHandle = null;
@@ -391,7 +392,7 @@ let pendingStart = false;
 let pendingStartGeneration = 0;
 let runGeneration = 0;
 let workspace = null;
-let klankenJsonCache = null;
+const lessonDataCache = new Map();
 let fonemenNlJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
@@ -2041,20 +2042,28 @@ function extractWorkspaceMetadata(xmlDom, sourceName = null) {
 }
 
 async function getAanvankelijklijst() {
-  if (Array.isArray(klankenJsonCache)) {
-    return klankenJsonCache;
+  const source = String(
+    window.currentLessonMethod?.dataSource ||
+    window.lessonDataSource ||
+    DEFAULT_LESSON_DATA_URL
+  ).trim() || DEFAULT_LESSON_DATA_URL;
+
+  if (lessonDataCache.has(source)) {
+    const cached = lessonDataCache.get(source);
+    return Array.isArray(cached) ? cached : [];
   }
 
-  const res = await fetch(KLANGEN_JSON_URL, { cache: 'no-store' });
+  const res = await fetch(source, { cache: 'no-store' });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} ${res.statusText}`);
   }
 
   const data = await res.json();
-  klankenJsonCache = Array.isArray(data)
+  const list = Array.isArray(data)
     ? data
     : (Array.isArray(data?.items) ? data.items : []);
-  return klankenJsonCache;
+  lessonDataCache.set(source, list);
+  return list;
 }
 
 async function getFonemenNlStandaard() {
@@ -2141,6 +2150,67 @@ async function ensureInjectedLessonData() {
 
 function getInjectedLessonData() {
   return Array.isArray(window.aanvankelijkData) ? window.aanvankelijkData : [];
+}
+
+function setLessonMethod(method = null) {
+  const normalized = method && typeof method === 'object'
+    ? {
+        id: String(method.id ?? '').trim(),
+        title: String(method.title ?? '').trim(),
+        dataSource: String(method.dataSource ?? '').trim() || DEFAULT_LESSON_DATA_URL
+      }
+    : {
+        id: '',
+        title: '',
+        dataSource: DEFAULT_LESSON_DATA_URL
+      };
+  window.currentLessonMethod = normalized;
+  window.lessonDataSource = normalized.dataSource;
+  return normalized;
+}
+
+function getLessonMethod() {
+  return window.currentLessonMethod && typeof window.currentLessonMethod === 'object'
+    ? window.currentLessonMethod
+    : setLessonMethod(null);
+}
+
+function normalizeLessonStepInputs(inputs) {
+  const source = inputs && typeof inputs === 'object' ? inputs : {};
+  return {
+    text: String(source.text ?? '').trim(),
+    word: String(source.word ?? '').trim(),
+    letters: Array.isArray(source.letters)
+      ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
+      : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+  };
+}
+
+function getLessonStepInputs() {
+  return window.lessonStepInputs && typeof window.lessonStepInputs === 'object'
+    ? window.lessonStepInputs
+    : { text: '', word: '', letters: [] };
+}
+
+function resetLessonStepRuntimeState(stepInputs = null) {
+  window.lessonStepInputs = normalizeLessonStepInputs(stepInputs);
+  runtime.stepCompletion = null;
+}
+
+async function signalLessonStepCompletion(payload = {}) {
+  const status = String(payload?.status ?? 'completed').trim() || 'completed';
+  const output = payload && Object.prototype.hasOwnProperty.call(payload, 'output') ? payload.output : null;
+  runtime.stepCompletion = {
+    status,
+    output,
+    stepId: String(window.currentLessonStep?.id ?? '').trim() || null,
+    completedAt: new Date().toISOString()
+  };
+  runtime.stopped = true;
+  stopAllTimers();
+  log('Lesson step completion signaled: ' + status);
+  renderStatus();
+  return runtime.stepCompletion;
 }
 
 function getActiveLessonRecord() {
@@ -2296,6 +2366,16 @@ async function evalValue(block) {
         block.getFieldValue('SOURCE'),
         block.getFieldValue('CATEGORY')
       );
+    }
+
+    case 'lesson_get_step_input': {
+      const field = String(block.getFieldValue('FIELD') || 'text');
+      const inputs = getLessonStepInputs();
+      const value = inputs[field];
+      if (field === 'letters') {
+        return Array.isArray(value) ? value : [];
+      }
+      return value != null ? value : '';
     }
 
     case 'state_last_timer_name':
@@ -3131,6 +3211,14 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'lesson_complete_step': {
+        await signalLessonStepCompletion({
+          status: String(current.getFieldValue('STATUS') || 'completed'),
+          output: await evalValue(current.getInputTargetBlock('OUTPUT'))
+        });
+        break;
+      }
+
       case 'math_inc_var':
       case 'math_dec_var': {
         const varModel = workspace?.getVariableById(current.getFieldValue('VAR'));
@@ -3530,7 +3618,7 @@ if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.preloadAudioList =
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,
   loadWorkspaceFromState,
-  async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, index = 0, onLog = null, lockInjectedRecord = false } = {}) {
+  async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, lessonMethod = null, index = 0, stepInputs = null, stepMeta = null, onLog = null, lockInjectedRecord = false } = {}) {
     if (typeof onLog === 'function') {
       externalLogHandler = onLog;
     }
@@ -3539,10 +3627,13 @@ window.BrailleBlocklyApp = {
     }
     const startedBlocks = workspace ? workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started') : [];
     const overridingIndexBlocks = workspace ? workspace.getAllBlocks(false).filter(b => b.type === 'lesson_set_active_record_index') : [];
+    setLessonMethod(lessonMethod);
     if (lessonData != null) {
       window.aanvankelijkData = Array.isArray(lessonData) ? structuredClone(lessonData) : [];
       await setActiveLessonRecordByIndex(index);
     }
+    window.currentLessonStep = stepMeta && typeof stepMeta === 'object' ? structuredClone(stepMeta) : null;
+    resetLessonStepRuntimeState(stepInputs);
     clearLogBox();
     stopAllTimers();
     stopSound();
@@ -3578,13 +3669,15 @@ window.BrailleBlocklyApp = {
         startedBlockCount: startedBlocks.length,
         currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
+        lessonMethod: structuredClone(getLessonMethod()),
+        stepCompletion: runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null,
       runtime: { ...runtime }
       };
     } finally {
       runtime.lockInjectedLessonRecord = false;
     }
   },
-  async runWorkspaceStateHeadless({ state, sourceName = null, metadata = null, lessonData = null, index = 0, onLog = null, lockInjectedRecord = false } = {}) {
+  async runWorkspaceStateHeadless({ state, sourceName = null, metadata = null, lessonData = null, lessonMethod = null, index = 0, stepInputs = null, stepMeta = null, onLog = null, lockInjectedRecord = false } = {}) {
     if (typeof onLog === 'function') {
       externalLogHandler = onLog;
     }
@@ -3593,10 +3686,13 @@ window.BrailleBlocklyApp = {
     }
     const startedBlocks = workspace ? workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started') : [];
     const overridingIndexBlocks = workspace ? workspace.getAllBlocks(false).filter(b => b.type === 'lesson_set_active_record_index') : [];
+    setLessonMethod(lessonMethod);
     if (lessonData != null) {
       window.aanvankelijkData = Array.isArray(lessonData) ? structuredClone(lessonData) : [];
       await setActiveLessonRecordByIndex(index);
     }
+    window.currentLessonStep = stepMeta && typeof stepMeta === 'object' ? structuredClone(stepMeta) : null;
+    resetLessonStepRuntimeState(stepInputs);
     clearLogBox();
     stopAllTimers();
     stopSound();
@@ -3632,6 +3728,8 @@ window.BrailleBlocklyApp = {
         startedBlockCount: startedBlocks.length,
         currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
+        lessonMethod: structuredClone(getLessonMethod()),
+        stepCompletion: runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null,
         runtime: { ...runtime }
       };
     } finally {
@@ -3658,6 +3756,32 @@ window.BrailleBlocklyApp = {
   async injectLessonData(data, index = 0) {
     window.aanvankelijkData = Array.isArray(data) ? structuredClone(data) : [];
     return await setActiveLessonRecordByIndex(index);
+  },
+  setLessonMethod(method) {
+    return structuredClone(setLessonMethod(method));
+  },
+  getLessonMethod() {
+    return structuredClone(getLessonMethod());
+  },
+  async getLessonData() {
+    return structuredClone(await getAanvankelijklijst());
+  },
+  async findLessonItemByWord(word) {
+    const item = await findAanvankelijklijstItemByWord(word);
+    return item && typeof item === 'object' ? structuredClone(item) : null;
+  },
+  setLessonStepInputs(inputs) {
+    resetLessonStepRuntimeState(inputs);
+    return getLessonStepInputs();
+  },
+  getLessonStepInputs() {
+    return structuredClone(getLessonStepInputs());
+  },
+  async signalLessonStepCompletion(payload = {}) {
+    return await signalLessonStepCompletion(payload);
+  },
+  getStepCompletion() {
+    return runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null;
   },
   async setActiveLessonRecordIndex(index) {
     return await setActiveLessonRecordByIndex(index);
