@@ -8,7 +8,7 @@ function methods_data_file(): string
 
 function methods_save_dir(): string
 {
-    return dirname(__DIR__) . '/blockly-saves/methods';
+    return dirname(__DIR__) . '/methodes-data';
 }
 
 function ensure_methods_storage_exists(): void

@@ -1,0 +1,160 @@
+{
+    "id": "API-Test",
+    "title": "API Test",
+    "updatedAt": "2026-03-27T07:51:12+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": ",iA$l#9Q9G0+IjpW;*5R",
+                    "x": 30,
+                    "y": 30,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": "T1fm^xL?vy|W?-ekam5F",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "audioListVar"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "klanken_get_speech_audio_by_onlyletters",
+                                            "id": "dLKIav(]_]hIbI!^P$~.",
+                                            "inputs": {
+                                                "ONLYLETTERS": {
+                                                    "shadow": {
+                                                        "type": "text",
+                                                        "id": "g[~ghKEM.]SG6)(xw8DB",
+                                                        "fields": {
+                                                            "TEXT": "a,b,k,l"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "variables_set",
+                                        "id": "e3FY6Se#jPH$SY=^Xv=E",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "randomItemVar"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "VALUE": {
+                                                "block": {
+                                                    "type": "list_pick_random",
+                                                    "id": "Ez}+~,L~vTQFW*??acYf",
+                                                    "inputs": {
+                                                        "LIST": {
+                                                            "block": {
+                                                                "type": "variables_get",
+                                                                "id": "nYNVRD8+91``oacY$G;y",
+                                                                "fields": {
+                                                                    "VAR": {
+                                                                        "id": "audioListVar"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "bb_set_text",
+                                                "id": "cVf#!0y!80jx^hz$xp%g",
+                                                "inputs": {
+                                                    "TEXT": {
+                                                        "block": {
+                                                            "type": "audio_item_get_word",
+                                                            "id": "3pOOzv4.C~twKfpVm@WF",
+                                                            "inputs": {
+                                                                "ITEM": {
+                                                                    "block": {
+                                                                        "type": "variables_get",
+                                                                        "id": ";6teS}xb=q^X3TrdB!.c",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "randomItemVar"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "sound_play_url",
+                                                        "id": "n7n}bJh(=LHD7H7~T.d%",
+                                                        "inputs": {
+                                                            "URL": {
+                                                                "block": {
+                                                                    "type": "audio_item_get_url",
+                                                                    "id": "|errek^5KZl!nxGhFJIx",
+                                                                    "inputs": {
+                                                                        "ITEM": {
+                                                                            "block": {
+                                                                                "type": "variables_get",
+                                                                                "id": "MlKd%U.Y5oxj=Qt{:.#O",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "randomItemVar"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "sound_wait_stopped",
+                                                                "id": "EiUeKX_hcPbv)1~.AvcM"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "audioList",
+                "id": "audioListVar"
+            },
+            {
+                "name": "randomItem",
+                "id": "randomItemVar"
+            },
+            {
+                "name": "score",
+                "id": "}`%vJ[F@(BhGb8wa#A,x"
+            }
+        ]
+    },
+    "meta": {
+        "title": "API Test",
+        "description": "Loads an audio list from the API, picks a random item, shows its word, and plays its audio URL."
+    }
+}

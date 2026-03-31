@@ -1,0 +1,85 @@
+{
+    "id": "Template",
+    "title": "Template",
+    "updatedAt": "2026-03-30T11:29:12+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "start_1",
+                    "x": 40,
+                    "y": 40,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "procedures_callnoreturn",
+                                "id": "call_1",
+                                "extraState": {
+                                    "name": "druk op de spatiebalk en het begint"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "procedures_defnoreturn",
+                    "id": "proc_def_1",
+                    "x": 42,
+                    "y": 149,
+                    "icons": {
+                        "comment": {
+                            "text": "Describe this function...",
+                            "pinned": false,
+                            "height": 80,
+                            "width": 160
+                        }
+                    },
+                    "fields": {
+                        "NAME": "druk op de spatiebalk en het begint"
+                    },
+                    "inputs": {
+                        "STACK": {
+                            "block": {
+                                "type": "log_value",
+                                "id": "log_1",
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "text",
+                                            "id": "text_1",
+                                            "fields": {
+                                                "TEXT": "Procedure gestart"
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "sound_play_instruction_by_id",
+                                        "id": "play_1",
+                                        "fields": {
+                                            "INSTRUCTION_ID": "spatiebalk"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "var_score_1"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "",
+        "status": "draft"
+    }
+}

@@ -1,0 +1,48 @@
+{
+    "id": "Phonems",
+    "title": "Phonems",
+    "updatedAt": "2026-03-27T11:08:20+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "coC!c|pgh(i}]xg/0{e%",
+                    "x": 50,
+                    "y": 90,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "klanken_play_word_phonemes_nl",
+                                "id": "SUd!Fi~/q5|ffq$j`fi@",
+                                "inputs": {
+                                    "WORD": {
+                                        "shadow": {
+                                            "type": "text",
+                                            "id": "Hu8x8Dn=X+^pT=Et#pjx",
+                                            "fields": {
+                                                "TEXT": "ooievaar"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "u.^Zb:LFx{87Cpk7mq*r"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "Voorbeeld hoe een woord uitgesrpoken wordt.",
+        "status": "draft"
+    }
+}

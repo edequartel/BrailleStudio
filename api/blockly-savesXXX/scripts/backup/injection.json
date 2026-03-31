@@ -1,0 +1,199 @@
+{
+    "id": "injection",
+    "title": "injection",
+    "updatedAt": "2026-03-27T07:49:40+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "?IBmVE75WTrs6OI92BLT",
+                    "x": 24,
+                    "y": 24,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "log_clear",
+                                "id": "){:9hu*[UzKI7~P|3Uo_",
+                                "next": {
+                                    "block": {
+                                        "type": "bb_set_text",
+                                        "id": "{m$B}?}^|[!p1!acS*[:",
+                                        "inputs": {
+                                            "TEXT": {
+                                                "block": {
+                                                    "type": "lesson_get_active_field",
+                                                    "id": "E4UuTSk{E6hD@xoQow2q",
+                                                    "fields": {
+                                                        "FIELD": "word"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "log_value",
+                                                "id": "KLX.8;/,$`71rgtf8aYG",
+                                                "inputs": {
+                                                    "VALUE": {
+                                                        "block": {
+                                                            "type": "text_join",
+                                                            "id": "M^T%`E+XkH3XfVdDvBmO",
+                                                            "extraState": {
+                                                                "itemCount": 2
+                                                            },
+                                                            "inputs": {
+                                                                "ADD0": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": "7y-KK?Gcm5]]0gL@n4eN",
+                                                                        "fields": {
+                                                                            "TEXT": "active word: "
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD1": {
+                                                                    "block": {
+                                                                        "type": "lesson_get_active_field",
+                                                                        "id": "7pdQl8JebwyGwgIO6DP^",
+                                                                        "fields": {
+                                                                            "FIELD": "word"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "log_value",
+                                                        "id": "#3ZlG:4C?sl-^hDgWyL#",
+                                                        "inputs": {
+                                                            "VALUE": {
+                                                                "block": {
+                                                                    "type": "text_join",
+                                                                    "id": "?FBUN{Q:=@$(Qg6/6c1S",
+                                                                    "extraState": {
+                                                                        "itemCount": 2
+                                                                    },
+                                                                    "inputs": {
+                                                                        "ADD0": {
+                                                                            "block": {
+                                                                                "type": "text",
+                                                                                "id": "b{2z{f]emghLkH.}6kdI",
+                                                                                "fields": {
+                                                                                    "TEXT": "sounds: "
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "ADD1": {
+                                                                            "block": {
+                                                                                "type": "lesson_get_active_field",
+                                                                                "id": "#}_F{k$N#j^]|{5nB9V8",
+                                                                                "fields": {
+                                                                                    "FIELD": "sounds"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "log_value",
+                                                                "id": "iYZv$qDD=s^^?-3[w3p;",
+                                                                "inputs": {
+                                                                    "VALUE": {
+                                                                        "block": {
+                                                                            "type": "text_join",
+                                                                            "id": "^?.L3J]hKPq[`:#DPm*T",
+                                                                            "extraState": {
+                                                                                "itemCount": 2
+                                                                            },
+                                                                            "inputs": {
+                                                                                "ADD0": {
+                                                                                    "block": {
+                                                                                        "type": "text",
+                                                                                        "id": "P3jFa#pm[_bD=]#e|vD;",
+                                                                                        "fields": {
+                                                                                            "TEXT": "medeklinkers: "
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "ADD1": {
+                                                                                    "block": {
+                                                                                        "type": "lesson_get_active_category",
+                                                                                        "id": "@__$NjB(,7!Ztk?_kA..",
+                                                                                        "fields": {
+                                                                                            "SOURCE": "categories",
+                                                                                            "CATEGORY": "medeklinkers"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "next": {
+                                                                    "block": {
+                                                                        "type": "bb_wait",
+                                                                        "id": "lLCC,TDq*.S1[xWKz3d}",
+                                                                        "inputs": {
+                                                                            "SECONDS": {
+                                                                                "shadow": {
+                                                                                    "type": "math_number",
+                                                                                    "id": "37-oASoGY2:beSPR1FYx",
+                                                                                    "fields": {
+                                                                                        "NUM": 1
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "next": {
+                                                                            "block": {
+                                                                                "type": "sound_play_speech_file",
+                                                                                "id": "T;7uuGAsYTU47ZLgjGeH",
+                                                                                "inputs": {
+                                                                                    "FILE": {
+                                                                                        "block": {
+                                                                                            "type": "lesson_get_active_field",
+                                                                                            "id": "L0cxV,UGYhxecopc?]Cn",
+                                                                                            "fields": {
+                                                                                                "FIELD": "word"
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "=n@(AcQdMBeb}8HNn%ho"
+            }
+        ]
+    },
+    "meta": {
+        "title": "Injected Data Example",
+        "description": "Shows how to select one injected lesson record, read its fields and categories, write the active word to the braille display, and play its speech audio."
+    }
+}

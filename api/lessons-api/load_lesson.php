@@ -5,7 +5,7 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
 
-$saveDir = dirname(__DIR__) . '/blockly-saves/lessons';
+$saveDir = dirname(__DIR__) . '/lessons-data';
 
 $id = isset($_GET['id']) ? trim((string)$_GET['id']) : '';
 

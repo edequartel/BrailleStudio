@@ -1,0 +1,533 @@
+{
+    "id": "Example-Klanken",
+    "title": "Example Klanken",
+    "updatedAt": "2026-03-27T07:53:10+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "ypY76BenL5s]DPy!o://",
+                    "x": 20,
+                    "y": 20,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": ",6IpeKxe(r=QkNT4X@oR",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "itemsVar"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "klanken_get_aanvankelijklijst",
+                                            "id": "RPF8GtuCkZkof,},.q*C"
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "variables_set",
+                                        "id": "l2h:+?I:i5)qM@*WKDP*",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "itemVar"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "VALUE": {
+                                                "block": {
+                                                    "type": "list_random_item",
+                                                    "id": "QQMKJ9DKzUe}8sAN~r=Y",
+                                                    "inputs": {
+                                                        "LIST": {
+                                                            "block": {
+                                                                "type": "variables_get",
+                                                                "id": "j=%F,Y%FjV?xPrfjzt*9",
+                                                                "fields": {
+                                                                    "VAR": {
+                                                                        "id": "itemsVar"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "bb_set_text",
+                                                "id": "C*Bv.].|i9n])~4X9tSQ",
+                                                "inputs": {
+                                                    "TEXT": {
+                                                        "block": {
+                                                            "type": "text_join",
+                                                            "id": "V;(n]^AYV%~k!Rk^EjQT",
+                                                            "extraState": {
+                                                                "itemCount": 9
+                                                            },
+                                                            "inputs": {
+                                                                "ADD0": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": "Ldys~h8j?3b%#uA.BJ`l",
+                                                                        "fields": {
+                                                                            "TEXT": "woord: "
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD1": {
+                                                                    "block": {
+                                                                        "type": "klanken_item_get_word",
+                                                                        "id": "^Yxw*Jh=yrs?G_@z2yo7",
+                                                                        "inputs": {
+                                                                            "ITEM": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "]Q,j.bda;@1];y]g|aBa",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "itemVar"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD2": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": ")d0p,VFtGE%3DTH(ul7J",
+                                                                        "fields": {
+                                                                            "TEXT": " mk: "
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD3": {
+                                                                    "block": {
+                                                                        "type": "klanken_item_get_category",
+                                                                        "id": "(8|/4~j{3o-j:V|p^XKy",
+                                                                        "fields": {
+                                                                            "SOURCE": "ALL",
+                                                                            "CATEGORY": "medeklinkers"
+                                                                        },
+                                                                        "inputs": {
+                                                                            "ITEM": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "]=W%Vwtg~_d9SL`EC$%A",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "itemVar"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD4": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": "*]^m~l%hhhrIzR63kuKb",
+                                                                        "fields": {
+                                                                            "TEXT": " kk: "
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD5": {
+                                                                    "block": {
+                                                                        "type": "klanken_item_get_category",
+                                                                        "id": "lTDK.arwFXT]-.epTx=7",
+                                                                        "fields": {
+                                                                            "SOURCE": "ALL",
+                                                                            "CATEGORY": "korteKlinkers"
+                                                                        },
+                                                                        "inputs": {
+                                                                            "ITEM": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "L]py]YW@41M=jF%u]H}#",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "itemVar"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD6": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": "xN-G@;/|F:#[Nao;{f#5",
+                                                                        "fields": {
+                                                                            "TEXT": " lk: "
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD7": {
+                                                                    "block": {
+                                                                        "type": "klanken_item_get_category",
+                                                                        "id": "(qT8NNlhbF%sw:98:^wT",
+                                                                        "fields": {
+                                                                            "SOURCE": "ALL",
+                                                                            "CATEGORY": "langeKlinkers"
+                                                                        },
+                                                                        "inputs": {
+                                                                            "ITEM": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "d^;rUbn@31{Emh,8L2%^",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "itemVar"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "ADD8": {
+                                                                    "block": {
+                                                                        "type": "text",
+                                                                        "id": "4hgdHN}:[CWMpuOm4t{i",
+                                                                        "fields": {
+                                                                            "TEXT": ""
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "p#P6ViXMtr#Cdlga=YrR",
+                    "x": 20,
+                    "y": 240,
+                    "fields": {
+                        "KEY": "right"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": "vp|)DsC54uo^yfJ%_|qt",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "itemVar"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "list_random_item",
+                                            "id": "PRdh{SOK82t?KH*mFIw=",
+                                            "inputs": {
+                                                "LIST": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "9`7a1wtG}Khc#j)}gem:",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "itemsVar"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "bb_set_text",
+                                        "id": "c@C]N`j_;*FfAbU0FE[#",
+                                        "inputs": {
+                                            "TEXT": {
+                                                "block": {
+                                                    "type": "text_join",
+                                                    "id": "rZ2c7~I~!eJKPj-,IKs_",
+                                                    "extraState": {
+                                                        "itemCount": 7
+                                                    },
+                                                    "inputs": {
+                                                        "ADD0": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "Z^!jre=P(UCvowz/eWh:",
+                                                                "fields": {
+                                                                    "TEXT": "nieuw: "
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD1": {
+                                                            "block": {
+                                                                "type": "klanken_item_get_word",
+                                                                "id": "2x3f_Ux4LJmOCk28anE[",
+                                                                "inputs": {
+                                                                    "ITEM": {
+                                                                        "block": {
+                                                                            "type": "variables_get",
+                                                                            "id": "=vLLOYm:?ox-gU3U0~WY",
+                                                                            "fields": {
+                                                                                "VAR": {
+                                                                                    "id": "itemVar"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD2": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "[tp:CvUt7aGYFY$YRkdu",
+                                                                "fields": {
+                                                                    "TEXT": " | klanken: "
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD3": {
+                                                            "block": {
+                                                                "type": "klanken_item_get_sounds",
+                                                                "id": "c!1WhbnDY3t=swVkc]x=",
+                                                                "fields": {
+                                                                    "SOURCE": "NEW"
+                                                                },
+                                                                "inputs": {
+                                                                    "ITEM": {
+                                                                        "block": {
+                                                                            "type": "variables_get",
+                                                                            "id": "`egi{FAjBY^)@8[-JL9C",
+                                                                            "fields": {
+                                                                                "VAR": {
+                                                                                    "id": "itemVar"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD4": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "KJyNWStS9Os^kNwtZYdh",
+                                                                "fields": {
+                                                                    "TEXT": " | clusters: "
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD5": {
+                                                            "block": {
+                                                                "type": "klanken_item_get_category",
+                                                                "id": "8jaY(q%!XT}9aW)QRbU-",
+                                                                "fields": {
+                                                                    "SOURCE": "NEW",
+                                                                    "CATEGORY": "medeklinkerclusters"
+                                                                },
+                                                                "inputs": {
+                                                                    "ITEM": {
+                                                                        "block": {
+                                                                            "type": "variables_get",
+                                                                            "id": "=HE[e2T!Ej!=3WDTue=c",
+                                                                            "fields": {
+                                                                                "VAR": {
+                                                                                    "id": "itemVar"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "ADD6": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "u;mFmHHVuJ/!M6QEu:=Z",
+                                                                "fields": {
+                                                                    "TEXT": ""
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "wf4di}n`%fmWR0%Z;EV%",
+                    "x": 20,
+                    "y": 430,
+                    "fields": {
+                        "KEY": "left"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "bb_set_text",
+                                "id": ";.%Q8Stu`x|T/v=m3Pk6",
+                                "inputs": {
+                                    "TEXT": {
+                                        "block": {
+                                            "type": "text_join",
+                                            "id": "{$leM:!B{t:ha==*,vl~",
+                                            "extraState": {
+                                                "itemCount": 7
+                                            },
+                                            "inputs": {
+                                                "ADD0": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "evT17:-p{oc!`Rf|I9^}",
+                                                        "fields": {
+                                                            "TEXT": "bekend: "
+                                                        }
+                                                    }
+                                                },
+                                                "ADD1": {
+                                                    "block": {
+                                                        "type": "klanken_item_get_word",
+                                                        "id": "iKL%25^cJhJ~OFt{:Bcq",
+                                                        "inputs": {
+                                                            "ITEM": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "N/B0qkuXpw)Nz:,3-7@=",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "itemVar"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "ADD2": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "]5Qi4IKOz*sl%YrK.-91",
+                                                        "fields": {
+                                                            "TEXT": " | klanken: "
+                                                        }
+                                                    }
+                                                },
+                                                "ADD3": {
+                                                    "block": {
+                                                        "type": "klanken_item_get_sounds",
+                                                        "id": "~~Q-QeTB~A[+W)=c)Ti0",
+                                                        "fields": {
+                                                            "SOURCE": "KNOWN"
+                                                        },
+                                                        "inputs": {
+                                                            "ITEM": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "!?O0Bes8fpXe^Dk-iLAs",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "itemVar"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "ADD4": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "YBN*Fej+4eFjyUk#wY^S",
+                                                        "fields": {
+                                                            "TEXT": " | tweeteken: "
+                                                        }
+                                                    }
+                                                },
+                                                "ADD5": {
+                                                    "block": {
+                                                        "type": "klanken_item_get_category",
+                                                        "id": "]7TTrt,X7Bmvk_*pOP*1",
+                                                        "fields": {
+                                                            "SOURCE": "KNOWN",
+                                                            "CATEGORY": "tweetekenklanken"
+                                                        },
+                                                        "inputs": {
+                                                            "ITEM": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "F`eD!4nZQZS=oDq(}qIh",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "itemVar"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "ADD6": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "rofQhJUo2I2w`UY`TGWy",
+                                                        "fields": {
+                                                            "TEXT": ""
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "items",
+                "id": "itemsVar"
+            },
+            {
+                "name": "item",
+                "id": "itemVar"
+            },
+            {
+                "name": "score",
+                "id": "/0}*1k26m}qm*CA+b8)n"
+            }
+        ]
+    },
+    "meta": {
+        "title": "Example Klanken",
+        "description": "Demonstrates how to load the aanvankelijklijst, pick items, and read phoneme categories such as medeklinkers and klinkers."
+    }
+}

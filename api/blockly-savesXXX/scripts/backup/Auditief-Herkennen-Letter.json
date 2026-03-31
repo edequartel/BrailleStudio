@@ -1,0 +1,676 @@
+{
+    "id": "Auditief-Herkennen-Letter",
+    "title": "Auditief Herkennen Letter",
+    "updatedAt": "2026-03-27T07:52:21+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "EU2L8NXa$:0`yzh)J_sM",
+                    "x": 20,
+                    "y": 20,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": "+dRG,EZW|6(!8DDXm}SK",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "score"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "math_number",
+                                            "id": "0$}|Z}:Mv+.-$-++djxD",
+                                            "fields": {
+                                                "NUM": 0
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "variables_set",
+                                        "id": "2GzZ|rQ;z)(KP89l:B:p",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "round"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "VALUE": {
+                                                "block": {
+                                                    "type": "math_number",
+                                                    "id": "MfI6#x%QP3}e?G9LcGj)",
+                                                    "fields": {
+                                                        "NUM": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "variables_set",
+                                                "id": "}bt!k850Y{n?@9GGpt.7",
+                                                "fields": {
+                                                    "VAR": {
+                                                        "id": "currentWord"
+                                                    }
+                                                },
+                                                "inputs": {
+                                                    "VALUE": {
+                                                        "block": {
+                                                            "type": "text",
+                                                            "id": "}QGSLE4S$(KV?,f!XnuX",
+                                                            "fields": {
+                                                                "TEXT": "lamp"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "variables_set",
+                                                        "id": "0ZIC(epS%,L%?t@8HSd*",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "hasL"
+                                                            }
+                                                        },
+                                                        "inputs": {
+                                                            "VALUE": {
+                                                                "block": {
+                                                                    "type": "logic_boolean",
+                                                                    "id": "@3?%oHG.m}Cdd?@RaB+4",
+                                                                    "fields": {
+                                                                        "BOOL": "TRUE"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "bb_set_text",
+                                                                "id": "M,oFTGbI=u3_D|vRlQ$;",
+                                                                "inputs": {
+                                                                    "TEXT": {
+                                                                        "block": {
+                                                                            "type": "text",
+                                                                            "id": "K{Jxs+`}0JOiMj]1r|n9",
+                                                                            "fields": {
+                                                                                "TEXT": "Hoor je l? Rechts = ja, links = nee."
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "next": {
+                                                                    "block": {
+                                                                        "type": "sound_play_url",
+                                                                        "id": "orGa7QV^m9pkyM(_uP1Z",
+                                                                        "inputs": {
+                                                                            "URL": {
+                                                                                "block": {
+                                                                                    "type": "text",
+                                                                                    "id": "ifJxV67Y8dd(-9sFU}n*",
+                                                                                    "fields": {
+                                                                                        "TEXT": "https://yourserver/audio/lamp.mp3"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "{QYunvxBVD4dWjV0$wVG",
+                    "x": 20,
+                    "y": 250,
+                    "fields": {
+                        "KEY": "right"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_if",
+                                "id": "hO?HzENHSzaEop]r:GB|",
+                                "inputs": {
+                                    "IF0": {
+                                        "block": {
+                                            "type": "variables_get",
+                                            "id": ":BSnL9(iT:JqYxcmXl4D",
+                                            "fields": {
+                                                "VAR": {
+                                                    "id": "hasL"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO0": {
+                                        "block": {
+                                            "type": "variables_set",
+                                            "id": "_Aj2UKh=NELL~$I,^tMD",
+                                            "fields": {
+                                                "VAR": {
+                                                    "id": "score"
+                                                }
+                                            },
+                                            "inputs": {
+                                                "VALUE": {
+                                                    "block": {
+                                                        "type": "math_arithmetic",
+                                                        "id": "p49/VMdJ-$qhT[cgTS%!",
+                                                        "fields": {
+                                                            "OP": "ADD"
+                                                        },
+                                                        "inputs": {
+                                                            "A": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "!A]{M.Zb`j}^*0}/g.D6",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "score"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "B": {
+                                                                "block": {
+                                                                    "type": "math_number",
+                                                                    "id": "~m8Y5}~L%^zbnF`;`}@r",
+                                                                    "fields": {
+                                                                        "NUM": 1
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "next": {
+                                                "block": {
+                                                    "type": "sound_play_url",
+                                                    "id": "dU3GPs%RQ8ik5;FSmvR%",
+                                                    "inputs": {
+                                                        "URL": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "[bJv1}~`T=kq]#{^QqP2",
+                                                                "fields": {
+                                                                    "TEXT": "https://yourserver/audio/goed.mp3"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "next": {
+                                                        "block": {
+                                                            "type": "controls_if",
+                                                            "id": "a:/h-=1RibjWM-yqTi=n",
+                                                            "inputs": {
+                                                                "IF0": {
+                                                                    "block": {
+                                                                        "type": "logic_compare",
+                                                                        "id": "t%(x+BLz85P,2:$fGX#!",
+                                                                        "fields": {
+                                                                            "OP": "LT"
+                                                                        },
+                                                                        "inputs": {
+                                                                            "A": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "}kagR$Y)c[duZ166xiGh",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "round"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "B": {
+                                                                                "block": {
+                                                                                    "type": "math_number",
+                                                                                    "id": "Xfu0X|+NvcgdRfoqr4dH",
+                                                                                    "fields": {
+                                                                                        "NUM": 10
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "DO0": {
+                                                                    "block": {
+                                                                        "type": "variables_set",
+                                                                        "id": "g@$GqWgnk-mnSVg,v3Xo",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "round"
+                                                                            }
+                                                                        },
+                                                                        "inputs": {
+                                                                            "VALUE": {
+                                                                                "block": {
+                                                                                    "type": "math_arithmetic",
+                                                                                    "id": ",q;XmE)mU$a~%^mulive",
+                                                                                    "fields": {
+                                                                                        "OP": "ADD"
+                                                                                    },
+                                                                                    "inputs": {
+                                                                                        "A": {
+                                                                                            "block": {
+                                                                                                "type": "variables_get",
+                                                                                                "id": "S*xJwI2@,b@5tit3~{Cg",
+                                                                                                "fields": {
+                                                                                                    "VAR": {
+                                                                                                        "id": "round"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "B": {
+                                                                                            "block": {
+                                                                                                "type": "math_number",
+                                                                                                "id": ":t38qSs`sAUBES|}*1KD",
+                                                                                                "fields": {
+                                                                                                    "NUM": 1
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "next": {
+                                                                            "block": {
+                                                                                "type": "variables_set",
+                                                                                "id": "-~8g3zD=v9:s7*(9iXX:",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "currentWord"
+                                                                                    }
+                                                                                },
+                                                                                "inputs": {
+                                                                                    "VALUE": {
+                                                                                        "block": {
+                                                                                            "type": "text",
+                                                                                            "id": "JdAFL7u@f8jvAff8ye2u",
+                                                                                            "fields": {
+                                                                                                "TEXT": "lamp"
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "next": {
+                                                                                    "block": {
+                                                                                        "type": "variables_set",
+                                                                                        "id": "_~}VAb62yeB@*YxP.MoX",
+                                                                                        "fields": {
+                                                                                            "VAR": {
+                                                                                                "id": "hasL"
+                                                                                            }
+                                                                                        },
+                                                                                        "inputs": {
+                                                                                            "VALUE": {
+                                                                                                "block": {
+                                                                                                    "type": "logic_boolean",
+                                                                                                    "id": "_4N|qLAARsc43*,^#dR]",
+                                                                                                    "fields": {
+                                                                                                        "BOOL": "TRUE"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "next": {
+                                                                                            "block": {
+                                                                                                "type": "bb_set_text",
+                                                                                                "id": "*j+O=6{z-R6oZ,aOT4at",
+                                                                                                "inputs": {
+                                                                                                    "TEXT": {
+                                                                                                        "block": {
+                                                                                                            "type": "text",
+                                                                                                            "id": "t:ta-GcMJOZHXRKv~TDU",
+                                                                                                            "fields": {
+                                                                                                                "TEXT": "Hoor je l? Rechts = ja, links = nee."
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                },
+                                                                                                "next": {
+                                                                                                    "block": {
+                                                                                                        "type": "sound_play_url",
+                                                                                                        "id": "|tYhNWoIQ*[0[(n4Y`T]",
+                                                                                                        "inputs": {
+                                                                                                            "URL": {
+                                                                                                                "block": {
+                                                                                                                    "type": "text",
+                                                                                                                    "id": "-=E!0_-Rl$,v4YI*KGTY",
+                                                                                                                    "fields": {
+                                                                                                                        "TEXT": "https://yourserver/audio/lamp.mp3"
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "X`V)2TeTy8Dds2)fHMd#",
+                    "x": 20,
+                    "y": 470,
+                    "fields": {
+                        "KEY": "left"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_if",
+                                "id": "o:x,x]lDDEd:fvMO-^dt",
+                                "inputs": {
+                                    "IF0": {
+                                        "block": {
+                                            "type": "logic_negate",
+                                            "id": "_?jOvNz86yCL~q:p}?@I",
+                                            "inputs": {
+                                                "BOOL": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "{rVJBSxxn2l?)_(t%]jE",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "hasL"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO0": {
+                                        "block": {
+                                            "type": "variables_set",
+                                            "id": "nOy8KofGo/s^T^]VQTFp",
+                                            "fields": {
+                                                "VAR": {
+                                                    "id": "score"
+                                                }
+                                            },
+                                            "inputs": {
+                                                "VALUE": {
+                                                    "block": {
+                                                        "type": "math_arithmetic",
+                                                        "id": "nC`viB~wdZ+T{FxWZ^{6",
+                                                        "fields": {
+                                                            "OP": "ADD"
+                                                        },
+                                                        "inputs": {
+                                                            "A": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "U]dv=aQj|-qW~A4F4#=A",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "score"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "B": {
+                                                                "block": {
+                                                                    "type": "math_number",
+                                                                    "id": "d#Zf^+;A_xMn`!#_:d}V",
+                                                                    "fields": {
+                                                                        "NUM": 1
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "next": {
+                                                "block": {
+                                                    "type": "sound_play_url",
+                                                    "id": ":WSWl!j7QA:ujQr0~~.q",
+                                                    "inputs": {
+                                                        "URL": {
+                                                            "block": {
+                                                                "type": "text",
+                                                                "id": "!UX3x(^^_3V-z@J;+.N4",
+                                                                "fields": {
+                                                                    "TEXT": "https://yourserver/audio/goed.mp3"
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "next": {
+                                                        "block": {
+                                                            "type": "controls_if",
+                                                            "id": "2R:pzIG(`@B`X,A.GOzj",
+                                                            "inputs": {
+                                                                "IF0": {
+                                                                    "block": {
+                                                                        "type": "logic_compare",
+                                                                        "id": "WF$g~uuB=hR)s@4~-Kvm",
+                                                                        "fields": {
+                                                                            "OP": "LT"
+                                                                        },
+                                                                        "inputs": {
+                                                                            "A": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "U4E0y}zqOj,qy?o5IsY7",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "round"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "B": {
+                                                                                "block": {
+                                                                                    "type": "math_number",
+                                                                                    "id": "?-t9W6WOiXT_ipQS(R4B",
+                                                                                    "fields": {
+                                                                                        "NUM": 10
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "DO0": {
+                                                                    "block": {
+                                                                        "type": "variables_set",
+                                                                        "id": "0)r=JsQ#9JhpleawmTwk",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "round"
+                                                                            }
+                                                                        },
+                                                                        "inputs": {
+                                                                            "VALUE": {
+                                                                                "block": {
+                                                                                    "type": "math_arithmetic",
+                                                                                    "id": "]_}#j?NcG_lTorKjx6`n",
+                                                                                    "fields": {
+                                                                                        "OP": "ADD"
+                                                                                    },
+                                                                                    "inputs": {
+                                                                                        "A": {
+                                                                                            "block": {
+                                                                                                "type": "variables_get",
+                                                                                                "id": "@lWkO`Qt2L6%~D}upXH`",
+                                                                                                "fields": {
+                                                                                                    "VAR": {
+                                                                                                        "id": "round"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "B": {
+                                                                                            "block": {
+                                                                                                "type": "math_number",
+                                                                                                "id": "Ok;bh@yGEBq%HO2wI=@R",
+                                                                                                "fields": {
+                                                                                                    "NUM": 1
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "next": {
+                                                                            "block": {
+                                                                                "type": "variables_set",
+                                                                                "id": "yk5vJgvQPxZii}-[n$qu",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "currentWord"
+                                                                                    }
+                                                                                },
+                                                                                "inputs": {
+                                                                                    "VALUE": {
+                                                                                        "block": {
+                                                                                            "type": "text",
+                                                                                            "id": "G3VsQTv?5oOJ*)YON-84",
+                                                                                            "fields": {
+                                                                                                "TEXT": "lamp"
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "next": {
+                                                                                    "block": {
+                                                                                        "type": "variables_set",
+                                                                                        "id": "]CUm6;Q9YCxJx5*Cdxv}",
+                                                                                        "fields": {
+                                                                                            "VAR": {
+                                                                                                "id": "hasL"
+                                                                                            }
+                                                                                        },
+                                                                                        "inputs": {
+                                                                                            "VALUE": {
+                                                                                                "block": {
+                                                                                                    "type": "logic_boolean",
+                                                                                                    "id": "4|VfNcVRcSnsacQdSVbK",
+                                                                                                    "fields": {
+                                                                                                        "BOOL": "TRUE"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "next": {
+                                                                                            "block": {
+                                                                                                "type": "bb_set_text",
+                                                                                                "id": "G;sKM1BS4EGt#VI$@,2c",
+                                                                                                "inputs": {
+                                                                                                    "TEXT": {
+                                                                                                        "block": {
+                                                                                                            "type": "text",
+                                                                                                            "id": "_=-N5s*(Ba8E(+([(^z=",
+                                                                                                            "fields": {
+                                                                                                                "TEXT": "Hoor je l? Rechts = ja, links = nee."
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                },
+                                                                                                "next": {
+                                                                                                    "block": {
+                                                                                                        "type": "sound_play_url",
+                                                                                                        "id": "/8f|qFt}SU)9EkW2dTxI",
+                                                                                                        "inputs": {
+                                                                                                            "URL": {
+                                                                                                                "block": {
+                                                                                                                    "type": "text",
+                                                                                                                    "id": "D6mWh45ysjXSDS04`5P.",
+                                                                                                                    "fields": {
+                                                                                                                        "TEXT": "https://yourserver/audio/lamp.mp3"
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "currentWord",
+                "id": "currentWord"
+            },
+            {
+                "name": "hasL",
+                "id": "hasL"
+            },
+            {
+                "name": "score",
+                "id": "score"
+            },
+            {
+                "name": "round",
+                "id": "round"
+            }
+        ]
+    },
+    "meta": {
+        "title": "Auditief Herkennen Letter",
+        "description": "Plays a spoken letter exercise and lets the learner answer with left or right thumb input while tracking score and rounds."
+    }
+}

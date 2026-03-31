@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$saveDir = dirname(__DIR__) . '/blockly-saves/scripts';
+$saveDir = dirname(__DIR__) . '/blockly-data';
 
 if (!is_dir($saveDir)) {
     mkdir($saveDir, 0775, true);
@@ -93,5 +93,5 @@ echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => 'blockly-saves/scripts/' . $filename,
+    'path' => 'blockly-data/' . $filename,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$saveDir = dirname(__DIR__) . '/blockly-saves/scripts';
+$saveDir = dirname(__DIR__) . '/blockly-data';
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);

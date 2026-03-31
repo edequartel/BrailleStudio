@@ -1,0 +1,88 @@
+{
+    "id": "split-phonemes",
+    "title": "split phonemes",
+    "updatedAt": "2026-03-28T14:10:42+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "g~QMuI,ln!@#hBlpdRy$",
+                    "x": 76,
+                    "y": 87,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_for_each_audio_item",
+                                "id": "j8R9Xs/jBv^L,AZo)J^M",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "M;go`{7MsRgFVEXU5Wlc"
+                                    }
+                                },
+                                "inputs": {
+                                    "LIST": {
+                                        "block": {
+                                            "type": "klanken_split_word_phonemes_nl",
+                                            "id": "PW;Q45MX}-Tt+)VnKObE",
+                                            "inputs": {
+                                                "WORD": {
+                                                    "shadow": {
+                                                        "type": "text",
+                                                        "id": "18]@C(~)Urx0g4.OMAT^",
+                                                        "fields": {
+                                                            "TEXT": "papegaai"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO": {
+                                        "block": {
+                                            "type": "log_value",
+                                            "id": "?ZbvVx;0Ta=pz]![7j+~",
+                                            "inputs": {
+                                                "VALUE": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "Eo#=p5:_v=sbWMm[Bvol",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "M;go`{7MsRgFVEXU5Wlc"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "C@j_$2,gPCqk`{.OiJI."
+            },
+            {
+                "name": "item",
+                "id": "M;go`{7MsRgFVEXU5Wlc"
+            },
+            {
+                "name": "text",
+                "id": "$1sS/1%*kGm.9=i!};8O"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "",
+        "status": "draft"
+    }
+}

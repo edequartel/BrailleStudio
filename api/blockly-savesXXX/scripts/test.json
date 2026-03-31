@@ -1,0 +1,105 @@
+{
+    "id": "test",
+    "title": "test",
+    "updatedAt": "2026-03-30T12:31:24+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "KxLY.C)gEb:020sy,H6T",
+                    "x": -110,
+                    "y": 130,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "log_value",
+                                "id": "D*4y]r-bc9F.wN6yo^9t",
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "text_from_list",
+                                            "id": "FSe(`d$bk5qKlEe{~z|(",
+                                            "inputs": {
+                                                "LIST": {
+                                                    "block": {
+                                                        "type": "list_filter_phoneme_categories",
+                                                        "id": "E{louq=T5{W2RElS?E=9",
+                                                        "fields": {
+                                                            "KORTEKLINKER": true,
+                                                            "LANGEKLINKER": true,
+                                                            "TWEETEKENKLANK": false,
+                                                            "DRIETEKENKLANK": false,
+                                                            "MEDEKLINKER": true,
+                                                            "MEDEKLINKERCLUSTER": false,
+                                                            "VIERTEKENKLANK": false
+                                                        },
+                                                        "inputs": {
+                                                            "LIST": {
+                                                                "block": {
+                                                                    "type": "klanken_split_text_phonemes_nl",
+                                                                    "id": "1/wEna8Wc#gU]3^odlE=",
+                                                                    "inputs": {
+                                                                        "TEXT": {
+                                                                            "shadow": {
+                                                                                "type": "text",
+                                                                                "id": "%o=2Anhrgsn[/R?ic1nq",
+                                                                                "fields": {
+                                                                                    "TEXT": "bal en raam"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "SEPARATOR": {
+                                                    "shadow": {
+                                                        "type": "text",
+                                                        "id": "b%;hZtx5##F!(57|kk0B",
+                                                        "fields": {
+                                                            "TEXT": " "
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "text",
+                    "id": "DRdJH[s@0(Tj5?^?Ko]V",
+                    "x": 610,
+                    "y": -10,
+                    "fields": {
+                        "TEXT": "aap, noot,mies"
+                    }
+                },
+                {
+                    "type": "list_from_text_items",
+                    "id": "?=h_7J)9kTz`?mo4J=D;",
+                    "x": 370,
+                    "y": 70
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "3AC$t(Ov_I;aFpUfx:cX"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "",
+        "status": "draft"
+    }
+}
