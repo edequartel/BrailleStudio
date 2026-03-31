@@ -472,7 +472,7 @@ function render_page_end(): void
     echo <<<HTML
   <footer class="site-footer">
     <div>Powered by Bartiméus</div>
-    <div><img src="https://edequartel.github.io/BrailleStudio/assets/bartimeus.png" alt="Bartiméus"></div>
+    <div><img src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png" alt="Bartiméus"></div>
   </footer>
 </body></html>
 HTML;
