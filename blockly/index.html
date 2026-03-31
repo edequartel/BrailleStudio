@@ -45,6 +45,7 @@
   <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
 
   <style>
     :root {
@@ -989,13 +990,37 @@
       });
     }
 
+    async function loadScriptCandidates(candidates, { required = true } = {}) {
+      let lastError = null;
+      for (const src of candidates) {
+        try {
+          await loadScript(src);
+          return src;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      if (required) {
+        throw lastError || new Error(`Failed to load script candidates: ${candidates.join(', ')}`);
+      }
+      console.warn('Optional script could not be loaded', {
+        candidates,
+        error: lastError?.message || String(lastError || 'unknown error')
+      });
+      return null;
+    }
+
     if (window.BrailleStudioInstructionCatalogReady) {
       await window.BrailleStudioInstructionCatalogReady;
     }
 
     await loadScript('./blocks.js');
     await loadScript('./generators.js');
-    await loadScript('../components/braille-monitor/braillemonitor.js');
+    await loadScriptCandidates([
+      '../components/braille-monitor/braillemonitor.js',
+      '/braillestudio/components/braille-monitor/braillemonitor.js',
+      'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+    ], { required: false });
     await loadScript('./app.js');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);

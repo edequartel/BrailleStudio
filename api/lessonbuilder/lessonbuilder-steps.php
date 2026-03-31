@@ -84,7 +84,7 @@ declare(strict_types=1);
     </section>
   </div>
 
-  <iframe id="lessonRunnerFrame" src="https://www.tastenbraille.com/braillestudio/blockly/index.html" title="Lesson runner" hidden></iframe>
+  <iframe id="lessonRunnerFrame" title="Lesson runner" hidden></iframe>
 
   <script>
     const shared = window.LessonBuilderShared;
@@ -103,7 +103,17 @@ declare(strict_types=1);
     let scriptsCache = [];
     let stepConfigs = [];
     let basisItems = [];
-    const RUNNER_URL = 'https://www.tastenbraille.com/braillestudio/blockly/index.html';
+
+    function resolveRunnerUrl() {
+      const host = String(window.location.hostname || '').toLowerCase();
+      if (host === '127.0.0.1' || host === 'localhost') {
+        return 'http://127.0.0.1:5500/blockly/index.html';
+      }
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html';
+    }
+
+    const RUNNER_URL = resolveRunnerUrl();
+    lessonRunnerFrame.src = RUNNER_URL;
 
     function setStatus(message, data = null) {
       statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
@@ -242,7 +252,12 @@ declare(strict_types=1);
           hasApp: Boolean(runner.BrailleBlocklyApp),
           bootStage: boot?.stage || '',
           bootError: boot?.error || '',
-          href: runner.location?.href || ''
+          href: runner.location?.href || '',
+          title: runner.document?.title || '',
+          readyState: runner.document?.readyState || '',
+          hasBootObject: Boolean(runner.BrailleBlocklyBoot),
+          hasBootSetter: typeof runner.__setBrailleBlocklyBootStage === 'function',
+          hasBlocklyGlobal: Boolean(runner.Blockly)
         };
       } catch (err) {
         return {
