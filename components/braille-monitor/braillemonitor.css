@@ -15,6 +15,7 @@
   border-radius: 18px;
   background: #ffffff;
   overflow: hidden auto;
+  min-height: 6.4rem;
   padding: 0.6rem 0.7rem;
   font-family: "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.15rem;
@@ -98,7 +99,8 @@
 .monitor-cell__print {
   display: inline-block;
   width: 2ch;
-  min-height: 1em;
+  height: 1.2em;
+  min-height: 1.2em;
   text-align: center;
   line-height: 1;
   font-size: 1.05em;

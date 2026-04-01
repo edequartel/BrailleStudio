@@ -65,8 +65,11 @@ declare(strict_types=1);
     </div>
 
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-      <div class="text-lg font-bold">Debug log</div>
-      <pre id="statusBox" class="min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
+      <div class="flex items-center justify-between gap-3">
+        <div class="text-lg font-bold">Debug log</div>
+        <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+      </div>
+      <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
     </section>
   </div>
 
@@ -79,10 +82,12 @@ declare(strict_types=1);
     const methodDataSourceInput = document.getElementById('methodDataSourceInput');
     const methodDescriptionInput = document.getElementById('methodDescriptionInput');
     const statusBox = document.getElementById('statusBox');
+    const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
 
     let methodsCache = [];
     let basisFileOptions = [];
     let basisItems = [];
+    let isDebugLogVisible = false;
     const METHODS_SAVE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/save_method.php';
     const METHODS_LIST_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/list_methods.php';
     const METHODS_DELETE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/delete_method.php';
@@ -99,6 +104,11 @@ declare(strict_types=1);
         : `[${timestamp}] ${message}`;
       statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
       statusBox.scrollTop = statusBox.scrollHeight;
+    }
+
+    function renderDebugLogVisibility() {
+      statusBox.classList.toggle('hidden', !isDebugLogVisible);
+      toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
     }
 
     function slugifyMethodIdPart(value) {
@@ -254,8 +264,10 @@ declare(strict_types=1);
           await loadBasisPreview();
           setStatus('Ready.');
         }
+        renderDebugLogVisibility();
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
+        renderDebugLogVisibility();
       }
     }
 
@@ -411,6 +423,11 @@ declare(strict_types=1);
       } catch (err) {
         setStatus(`Refresh error: ${err.message}`);
       }
+    });
+
+    toggleDebugLogBtn.addEventListener('click', () => {
+      isDebugLogVisible = !isDebugLogVisible;
+      renderDebugLogVisibility();
     });
 
     window.addEventListener('load', init);

@@ -191,20 +191,20 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+      <section class="h-[220px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
         <div class="text-lg font-bold">Braille monitor</div>
         <div id="brailleMonitorStatus" class="text-xs text-slate-500">Component wordt geladen...</div>
-        <div id="brailleMonitorComponent"></div>
+        <div id="brailleMonitorComponent" class="h-[140px] overflow-hidden"></div>
       </section>
 
       <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <section class="flex h-[620px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Lessons</div>
           <div id="methodInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
-          <div id="lessonsList" class="max-h-[520px] space-y-2 overflow-auto"></div>
+          <div id="lessonsList" class="flex-1 space-y-2 overflow-auto"></div>
         </section>
 
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <section class="flex h-[620px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Runner</div>
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
             <div class="flex flex-wrap items-center gap-3">
@@ -221,10 +221,10 @@ $pagePayload = [
             <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
             <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
           </div>
-          <div id="stepsPreview" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
+          <div id="stepsPreview" class="h-[150px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
             <div class="font-semibold text-slate-900">Lesson return values</div>
-            <div id="lessonReturnValues" class="max-h-[15rem] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
+            <div id="lessonReturnValues" class="h-[180px] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
           </div>
         </section>
       </div>
