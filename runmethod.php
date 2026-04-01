@@ -198,18 +198,34 @@ $pagePayload = [
 
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Runner</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="font-semibold">Lesson status</span>
+              <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                <span id="lessonRunIndicatorText">Not running</span>
+              </span>
+            </div>
+          </div>
           <div id="currentLessonInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
           <div class="flex flex-wrap gap-2">
             <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
             <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
           </div>
           <div id="stepsPreview" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
+            <div class="font-semibold text-slate-900">Lesson return values</div>
+            <div id="lessonReturnValues" class="max-h-[15rem] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
+          </div>
         </section>
       </div>
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-        <div class="text-lg font-bold">Debug log</div>
-        <pre id="statusBox" class="min-h-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-lg font-bold">Debug log</div>
+          <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhidden</button>
+        </div>
+        <pre id="statusBox" class="hidden min-h-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
       </section>
 
       <iframe id="lessonRunnerFrame" src="<?= h($defaultRunnerUrl) ?>" title="Method runner" hidden></iframe>
@@ -234,15 +250,96 @@ $pagePayload = [
     const stepsPreview = document.getElementById('stepsPreview');
     const statusBox = document.getElementById('statusBox');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
+    const lessonRunIndicator = document.getElementById('lessonRunIndicator');
+    const lessonRunIndicatorDot = document.getElementById('lessonRunIndicatorDot');
+    const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
+    const lessonReturnValues = document.getElementById('lessonReturnValues');
+    const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
+    let isLessonRunning = false;
+    let isDebugLogVisible = false;
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function formatValue(value) {
+      if (value == null) return 'null';
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      try {
+        return JSON.stringify(value);
+      } catch (err) {
+        return String(value);
+      }
+    }
+
+    function flattenCompletionValues(completion, prefix = '') {
+      const rows = [];
+      if (!completion || typeof completion !== 'object') {
+        return rows;
+      }
+      Object.entries(completion).forEach(([key, value]) => {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          rows.push(...flattenCompletionValues(value, path));
+          return;
+        }
+        rows.push({
+          key: path,
+          value: formatValue(value)
+        });
+      });
+      return rows;
+    }
+
+    function renderLessonReturnValues(entries = []) {
+      if (!Array.isArray(entries) || !entries.length) {
+        lessonReturnValues.textContent = 'No values yet.';
+        return;
+      }
+      lessonReturnValues.innerHTML = `
+        <ul class="list-disc space-y-1 pl-5">
+          ${entries.map((entry) => `
+            <li>
+              <span class="font-semibold text-slate-900">${escapeHtml(entry.key)}:</span>
+              <span class="break-all">${escapeHtml(entry.value)}</span>
+            </li>
+          `).join('')}
+        </ul>
+      `;
+    }
+
+    function setLessonRunningState(running, label = '') {
+      isLessonRunning = Boolean(running);
+      if (!lessonRunIndicator || !lessonRunIndicatorDot || !lessonRunIndicatorText) return;
+      lessonRunIndicator.className = isLessonRunning
+        ? 'inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700'
+        : 'inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700';
+      lessonRunIndicatorDot.className = isLessonRunning
+        ? 'h-2.5 w-2.5 rounded-full bg-green-500'
+        : 'h-2.5 w-2.5 rounded-full bg-red-500';
+      lessonRunIndicatorText.textContent = label || (isLessonRunning ? 'Running' : 'Not running');
+    }
+
+    function renderDebugLogVisibility() {
+      if (!statusBox || !toggleDebugLogBtn) return;
+      statusBox.classList.toggle('hidden', !isDebugLogVisible);
+      toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hidden' : 'Unhidden';
+    }
 
     function appendStatus(message, data = null) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
       const block = data
-        ? `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}`
+        ? `[${timestamp}] ${message} ${JSON.stringify(data)}`
         : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
+      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n${block}` : block;
       statusBox.scrollTop = statusBox.scrollHeight;
     }
 
@@ -293,6 +390,7 @@ $pagePayload = [
       if (!lesson) {
         currentLessonInfo.textContent = 'No lesson selected.';
         stepsPreview.textContent = 'No steps.';
+        renderLessonReturnValues([]);
         return;
       }
       currentLessonInfo.innerHTML = `
@@ -311,6 +409,9 @@ $pagePayload = [
       stepsPreview.innerHTML = preview.length
         ? `<ul class="list-disc pl-5">${preview.map((item) => `<li>${item}</li>`).join('')}</ul>`
         : 'No steps.';
+      if (!isLessonRunning) {
+        renderLessonReturnValues([]);
+      }
     }
 
     function getRunnerWindow() {
@@ -378,6 +479,12 @@ $pagePayload = [
       const lessonData = basisRecords;
       const lessonMethod = method;
       const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
+      const displayedValues = [
+        { key: 'lessonId', value: lesson.id || '' },
+        { key: 'status', value: 'running' }
+      ];
+      setLessonRunningState(true, `Running ${lesson.title || lesson.id}`);
+      renderLessonReturnValues(displayedValues);
       appendStatus('Lesson run gestart.', {
         lessonId: lesson.id,
         lessonTitle: lesson.title,
@@ -415,6 +522,14 @@ $pagePayload = [
           scriptId: stepConfig.id,
           completion
         });
+        displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
+        flattenCompletionValues(completion).forEach((entry) => {
+          displayedValues.push({
+            key: `step.${stepIndex + 1}.${entry.key}`,
+            value: entry.value
+          });
+        });
+        renderLessonReturnValues(displayedValues);
         appendStatus('Step uitgevoerd.', {
           lessonId: lesson.id,
           scriptId: stepConfig.id,
@@ -428,6 +543,10 @@ $pagePayload = [
           break;
         }
       }
+      const finalStatus = results[results.length - 1]?.completion?.status || 'completed';
+      displayedValues.push({ key: 'finalStatus', value: finalStatus });
+      renderLessonReturnValues(displayedValues);
+      setLessonRunningState(false, `Stopped (${finalStatus})`);
       return results;
     }
 
@@ -437,6 +556,10 @@ $pagePayload = [
         const results = await runLesson(lesson);
         appendStatus('Current lesson afgerond.', { lessonId: lesson?.id || '', results });
       } catch (err) {
+        setLessonRunningState(false, 'Stopped (error)');
+        renderLessonReturnValues([
+          { key: 'error', value: err.message || String(err) }
+        ]);
         appendStatus('Run current lesson mislukt.', {
           error: err.message || String(err),
           runnerState: getRunnerDebugState()
@@ -445,6 +568,7 @@ $pagePayload = [
     }
 
     async function runAllLessons() {
+      setLessonRunningState(false, 'Not running');
       appendStatus('Run all gestart.', { lessons: lessons.length });
       for (let index = 0; index < lessons.length; index += 1) {
         selectedLessonIndex = index;
@@ -455,6 +579,7 @@ $pagePayload = [
           const results = await runLesson(lesson);
           const lastCompletion = results[results.length - 1]?.completion || null;
           if (lastCompletion && lastCompletion.status && lastCompletion.status !== 'completed') {
+            setLessonRunningState(false, `Stopped (${lastCompletion.status})`);
             appendStatus('Run all gestopt.', {
               lessonId: lesson.id,
               status: lastCompletion.status
@@ -462,6 +587,10 @@ $pagePayload = [
             return;
           }
         } catch (err) {
+          setLessonRunningState(false, 'Stopped (error)');
+          renderLessonReturnValues([
+            { key: 'error', value: err.message || String(err) }
+          ]);
           appendStatus('Run all mislukt.', {
             lessonId: lessons[index]?.id || '',
             error: err.message || String(err)
@@ -469,6 +598,7 @@ $pagePayload = [
           return;
         }
       }
+      setLessonRunningState(false, 'Not running');
       appendStatus('Run all afgerond.');
     }
 
@@ -485,12 +615,21 @@ $pagePayload = [
     renderMethodInfo();
     renderLessonsList();
     renderCurrentLesson();
+    setLessonRunningState(false, 'Not running');
+    renderDebugLogVisibility();
     appendStatus('Runner ready.', {
       methodId: method.id || '',
       lessons: lessons.length,
       basisRecords: basisRecords.length,
       runnerUrl
     });
+
+    if (toggleDebugLogBtn) {
+      toggleDebugLogBtn.addEventListener('click', () => {
+        isDebugLogVisible = !isDebugLogVisible;
+        renderDebugLogVisibility();
+      });
+    }
   </script>
   <?php endif; ?>
 </body>

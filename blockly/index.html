@@ -19,6 +19,9 @@
         stage,
         updatedAt: Date.now()
       };
+      window.dispatchEvent(new CustomEvent('braille-blockly-boot-stage', {
+        detail: window.BrailleBlocklyBoot
+      }));
     };
 
     window.addEventListener('error', function (event) {
@@ -76,6 +79,94 @@
       display: grid;
       grid-template-rows: auto 1fr;
       height: 100%;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(900px 520px at 20% 15%, rgba(37, 99, 235, 0.18), transparent 60%),
+        radial-gradient(780px 460px at 82% 20%, rgba(34, 197, 94, 0.12), transparent 58%),
+        rgba(244, 246, 251, 0.94);
+      backdrop-filter: blur(10px);
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .loading-overlay.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loading-overlay.is-error .loading-card {
+      border-color: rgba(239, 68, 68, 0.22);
+      box-shadow: 0 18px 60px rgba(239, 68, 68, 0.18);
+    }
+
+    .loading-card {
+      width: min(520px, 100%);
+      padding: 26px 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(37, 99, 235, 0.16);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .loading-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.08);
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .loading-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
+      animation: loading-pulse 1.4s infinite;
+    }
+
+    .loading-title {
+      margin: 16px 0 8px;
+      font-size: clamp(26px, 3vw, 34px);
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+    }
+
+    .loading-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .loading-stage {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.22);
+      font-size: 13px;
+      color: #475569;
+    }
+
+    @keyframes loading-pulse {
+      0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.28); }
+      70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
+      100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
     }
 
     #topbar {
@@ -530,6 +621,17 @@
   </style>
 </head>
 <body>
+<div id="loadingOverlay" class="loading-overlay" role="status" aria-live="polite" aria-atomic="true">
+  <div class="loading-card">
+    <div class="loading-badge">
+      <span class="loading-dot" aria-hidden="true"></span>
+      Blockly Loading
+    </div>
+    <h1 class="loading-title">Blockly met data wordt geladen</h1>
+    <p id="loadingSubtitle" class="loading-subtitle">De editor en bijbehorende gegevens worden voorbereid. Dit duurt soms een paar seconden.</p>
+    <div id="loadingStage" class="loading-stage">Initialiseren…</div>
+  </div>
+</div>
 <div id="app">
   <div id="topbar">
     <div class="topbar-row">
@@ -978,6 +1080,58 @@
 <script src="./runtime.js"></script>
 <script src="./instructions-catalog.js"></script>
 <script src="./preload-instructions.js"></script>
+<script>
+  (function () {
+    const overlay = document.getElementById('loadingOverlay');
+    const subtitle = document.getElementById('loadingSubtitle');
+    const stage = document.getElementById('loadingStage');
+    if (!overlay || !subtitle || !stage) return;
+
+    const stageLabels = {
+      'index-html': 'Startscherm wordt opgebouwd…',
+      'app-script-start': 'Blockly scripts worden gestart…',
+      'before-workspace-inject': 'Werkruimte wordt opgebouwd…',
+      'workspace-injected': 'Blockly interface is geplaatst…',
+      'workspace-ready': 'Basisdata wordt geladen…',
+      'api-ready': 'Alles staat klaar.'
+    };
+
+    function applyBootState(state) {
+      const current = state || window.BrailleBlocklyBoot || {};
+      const currentStage = String(current.stage || 'index-html');
+      const error = String(current.error || '').trim();
+      const appReady = Boolean(window.BrailleBlocklyApp) && currentStage === 'api-ready' && !error;
+      const label = stageLabels[currentStage] || `Laden: ${currentStage}`;
+      stage.textContent = error ? `Fout: ${error}` : label;
+      subtitle.textContent = error
+        ? 'Blockly kon niet volledig laden. Controleer de foutmelding hieronder of ververs de pagina.'
+        : 'De editor en bijbehorende gegevens worden voorbereid. Dit duurt soms een paar seconden.';
+      overlay.classList.toggle('is-error', Boolean(error));
+      overlay.classList.toggle('is-hidden', appReady);
+    }
+
+    window.addEventListener('braille-blockly-boot-stage', (event) => {
+      applyBootState(event.detail || {});
+    });
+
+    applyBootState(window.BrailleBlocklyBoot || {});
+
+    const readyPoll = window.setInterval(() => {
+      const current = window.BrailleBlocklyBoot || {};
+      const currentStage = String(current.stage || '');
+      const error = String(current.error || '').trim();
+      if (error) {
+        applyBootState(current);
+        window.clearInterval(readyPoll);
+        return;
+      }
+      if (window.BrailleBlocklyApp && currentStage === 'api-ready') {
+        applyBootState(current);
+        window.clearInterval(readyPoll);
+      }
+    }, 150);
+  })();
+</script>
 <script>
   (async function () {
     async function loadScript(src) {

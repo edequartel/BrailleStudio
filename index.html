@@ -305,46 +305,12 @@
       opacity: 0.9;
     }
 
-    .floating-runmethod-btn {
-      position: fixed;
-      left: 18px;
-      bottom: 18px;
-      z-index: 20;
-      padding: 12px 16px;
-      border-radius: 999px;
-      border: 1px solid color-mix(in oklab, #1d4ed8 35%, var(--border));
-      background: linear-gradient(180deg, #2563eb, #1d4ed8);
-      color: #eff6ff;
-      text-decoration: none;
-      font-weight: 700;
-      box-shadow: 0 16px 34px rgba(29, 78, 216, 0.28);
-      transition: transform .06s ease, box-shadow .15s ease;
-    }
-
-    .floating-runmethod-btn:hover {
-      box-shadow: 0 20px 38px rgba(29, 78, 216, 0.34);
-    }
-
-    .floating-runmethod-btn:active {
-      transform: translateY(1px);
-    }
-
-    .floating-runmethod-btn:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.45), 0 20px 38px rgba(29, 78, 216, 0.34);
-    }
-
     @media (max-width: 600px) {
       .footer-row {
         flex-direction: column;
       }
       .footer-logo {
         width: 90px;
-      }
-      .floating-runmethod-btn {
-        left: 14px;
-        bottom: 14px;
-        padding: 11px 14px;
       }
     }
   </style>
@@ -379,14 +345,13 @@
         <div class="layout">
       <nav aria-label="" data-i18n-aria="mainNav">
         <ul>
-          <li><a href="./pages/activity-runner.html" data-i18n="nav.practice"></a></li>
+          <li><a href="https://www.tastenbraille.com/braillestudio/runmethod.php?id=lesley-1774965314941" aria-label="MPOP">MPOP</a></li>
           <li><a href="./pages/websocket-contract.html" aria-label="Editor">Editor</a></li>
           <li><a href="./blockly/index.html" aria-label="Blockly">Blockly</a></li>
           <li><a href="./api/lessonbuilder/index.html" aria-label="Lesson Builder">Lesson Builder</a></li>
-          <li><a href="./api/index.html" aria-label="API">API</a></li>
+          <li><a href="./api/index.html" aria-label="Phonemes API">Phonemes API</a></li>
           <li><a href="https://www.tastenbraille.com/braillestudio/instructions/index.php" aria-label="Instructions">Instructions</a></li>
           <li><a href="./klanken/index.html" aria-label="Klanken">Klanken</a></li>
-          <li><a href="./klanken/injected-data-voorbeeld.html" aria-label="Injected Data">Injected Data</a></li>
           <li><a href="https://www.tastenbraille.com/braillevolg/index.php" aria-label="BrailleVolg">BrailleVolg</a></li>
           <li><a href="https://mpop-ssoc.vercel.app/api-elevenlabs/elevenlabs-fem-login.html" aria-label="ElevenLabs Login">ElevenLabs Login</a></li>
         </ul>
@@ -408,13 +373,6 @@
       </div>
     </div>
   </footer>
-
-  <a
-    class="floating-runmethod-btn"
-    href="https://www.tastenbraille.com/braillestudio/runmethod.php?id=lesley-1774965314941"
-  >
-    Open Lesley
-  </a>
 
   <script>
   (async function () {

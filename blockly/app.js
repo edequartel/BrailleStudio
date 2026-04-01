@@ -9,6 +9,56 @@ setBootStage('app-script-start');
 
 let externalLogHandler = null;
 let brailleMonitorUi = null;
+const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
+const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
+const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
+const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
+const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+const WS_URL = 'ws://localhost:5000/ws';
+const AUTO_RECONNECT_MS = 2000;
+let currentFileHandle = null;
+let ws = null;
+let wsConnected = false;
+let reconnectTimer = null;
+let autoConnectEnabled = true;
+let gridSnapEnabled = true;
+let brailleMonitorVisible = true;
+var pendingStart = false;
+var pendingStartGeneration = 0;
+var runGeneration = 0;
+var workspace = null;
+function createInitialRuntimeState() {
+  return {
+    stopped: true,
+    text: '',
+    brailleUnicode: '',
+    textCaret: 0,
+    cellCaret: 0,
+    editorMode: 'off',
+    insertMode: 'off',
+    caretVisible: true,
+    lastThumbKey: '',
+    lastCursorCell: -1,
+    lastChord: '',
+    lastEditorKey: '',
+    lastSound: '',
+    lastTimerName: '',
+    lastTimerTick: 0,
+    lastWsNotice: '',
+    activeTable: '',
+    lineId: 0,
+    lockInjectedLessonRecord: false,
+    stepCompletion: null,
+    procedures: new Map()
+  };
+}
+var runtime = createInitialRuntimeState();
+function getRuntime() {
+  if (!runtime || typeof runtime !== 'object') {
+    runtime = createInitialRuntimeState();
+  }
+  return runtime;
+}
 
 function log(message) {
   const text = String(message ?? '');
@@ -336,30 +386,6 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
 }
 
 /* ---------------- Runtime state ---------------- */
-const runtime = {
-  stopped: true,
-  text: '',
-  brailleUnicode: '',
-  textCaret: 0,
-  cellCaret: 0,
-  editorMode: 'off',
-  insertMode: 'off',
-  caretVisible: true,
-  lastThumbKey: '',
-  lastCursorCell: -1,
-  lastChord: '',
-  lastEditorKey: '',
-  lastSound: '',
-  lastTimerName: '',
-  lastTimerTick: 0,
-  lastWsNotice: '',
-  activeTable: '',
-  lineId: 0,
-  lockInjectedLessonRecord: false,
-  stepCompletion: null,
-  procedures: new Map()
-};
-
 const variableValues = {};
 const timerHandles = new Map();
 const listNextIndex = new WeakMap();
@@ -376,22 +402,6 @@ const SOUND_FOLDER_URLS = {
   story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
   general: 'https://www.tastenbraille.com/braillestudio/sounds/general/'
 };
-const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
-const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
-const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
-const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
-const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
-let currentFileHandle = null;
-let ws = null;
-let wsConnected = false;
-let reconnectTimer = null;
-let autoConnectEnabled = true;
-let gridSnapEnabled = true;
-let brailleMonitorVisible = true;
-let pendingStart = false;
-let pendingStartGeneration = 0;
-let runGeneration = 0;
-let workspace = null;
 const lessonDataCache = new Map();
 let fonemenNlJsonCache = null;
 let workspaceDirty = false;
@@ -400,14 +410,13 @@ let lastSavedOnlineScriptTitle = '';
 let lastSavedOnlineScriptStatus = 'draft';
 let suppressDirtyTracking = 0;
 let currentOnlineScriptId = '';
-const WS_URL = 'ws://localhost:5000/ws';
-const AUTO_RECONNECT_MS = 2000;
 
 function renderStatus() {
+  const rt = getRuntime();
   const varLines = workspace
     ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
     : [];
-  const isRunning = !runtime.stopped;
+  const isRunning = !rt.stopped;
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
 
@@ -423,24 +432,24 @@ function renderStatus() {
 
   document.getElementById('statusBox').textContent =
 `ws connected     : ${wsConnected}
-text             : ${runtime.text}
-braille unicode  : ${runtime.brailleUnicode}
-text caret       : ${runtime.textCaret}
-cell caret       : ${runtime.cellCaret}
-editor mode      : ${runtime.editorMode}
-insert mode      : ${runtime.insertMode}
-caret visible    : ${runtime.caretVisible}
-last thumb key   : ${runtime.lastThumbKey}
-last cursor cell : ${runtime.lastCursorCell}
-last chord       : ${runtime.lastChord}
-last editor key  : ${runtime.lastEditorKey}
-last sound       : ${runtime.lastSound}
-last timer name  : ${runtime.lastTimerName}
-last timer tick  : ${runtime.lastTimerTick}
-last ws notice   : ${runtime.lastWsNotice}
-active table     : ${runtime.activeTable}
-line id          : ${runtime.lineId}
-stopped          : ${runtime.stopped}
+text             : ${rt.text}
+braille unicode  : ${rt.brailleUnicode}
+text caret       : ${rt.textCaret}
+cell caret       : ${rt.cellCaret}
+editor mode      : ${rt.editorMode}
+insert mode      : ${rt.insertMode}
+caret visible    : ${rt.caretVisible}
+last thumb key   : ${rt.lastThumbKey}
+last cursor cell : ${rt.lastCursorCell}
+last chord       : ${rt.lastChord}
+last editor key  : ${rt.lastEditorKey}
+last sound       : ${rt.lastSound}
+last timer name  : ${rt.lastTimerName}
+last timer tick  : ${rt.lastTimerTick}
+last ws notice   : ${rt.lastWsNotice}
+active table     : ${rt.activeTable}
+line id          : ${rt.lineId}
+stopped          : ${rt.stopped}
 
 variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
@@ -802,7 +811,7 @@ async function deleteWorkspaceOnline(id) {
 
   if (currentOnlineScriptId === targetId) {
     if (workspace) {
-      runtime.stopped = true;
+      getRuntime().stopped = true;
       runGeneration++;
       stopAllTimers();
       stopSound();
@@ -876,10 +885,10 @@ function startTimer(name, seconds, generation) {
   stopTimerByName(key);
   const state = { id: 0, tick: 0, generation };
   state.id = setInterval(() => {
-    if (state.generation !== runGeneration || runtime.stopped) return;
+    if (state.generation !== runGeneration || getRuntime().stopped) return;
     state.tick += 1;
-    runtime.lastTimerName = key;
-    runtime.lastTimerTick = state.tick;
+    getRuntime().lastTimerName = key;
+    getRuntime().lastTimerTick = state.tick;
     renderStatus();
     dispatchEvent({ type: 'timer', name: key, tick: state.tick }, state.generation)
       .catch(err => log('Timer dispatch failed (' + key + '): ' + err.message));
@@ -1224,13 +1233,13 @@ function connectWs(reason = 'manual') {
   socket.onopen = () => {
     if (ws !== socket) return;
     wsConnected = true;
-    runtime.lastWsNotice = '';
+    getRuntime().lastWsNotice = '';
     clearReconnectTimer();
     renderWsControl();
     renderStatus();
     log('WS connected to ' + WS_URL);
     sendWs({ type: 'getBrailleLine' });
-    if (pendingStart && pendingStartGeneration === runGeneration && !runtime.stopped) {
+    if (pendingStart && pendingStartGeneration === runGeneration && !getRuntime().stopped) {
       pendingStart = false;
       runStartedProgram(runGeneration).catch(err => log('Start failed: ' + err.message));
     }
@@ -1393,12 +1402,13 @@ function extractChord(msg) {
 }
 
 async function runStartedProgram(generation) {
+  const rt = getRuntime();
   if (!workspace) {
     log('Start blocked: Blockly workspace is not ready');
     return;
   }
   refreshProcedureRegistry(workspace);
-  if (generation !== runGeneration || runtime.stopped) return;
+  if (generation !== runGeneration || rt.stopped) return;
   const startedBlocks = workspace.getTopBlocks(true).filter(b => b.type === 'event_when_started');
   if (startedBlocks.length === 0) {
     log('Start warning: no "when started" block found');
@@ -1424,7 +1434,7 @@ function bindWsControls() {
 
 async function onRunClicked() {
   stopAllTimers();
-  runtime.stopped = false;
+  getRuntime().stopped = false;
   runGeneration++;
   const generation = runGeneration;
   renderStatus();
@@ -1443,7 +1453,7 @@ async function onRunClicked() {
 }
 
 function onStopClicked() {
-  runtime.stopped = true;
+  getRuntime().stopped = true;
   runGeneration++;
   pendingStart = false;
   stopAllTimers();
@@ -1561,22 +1571,22 @@ function bindAppControls() {
     e.target.value = '';
   });
   bind('simThumbLeftBtn', 'click', async () => {
-    runtime.stopped = false;
+    getRuntime().stopped = false;
     runGeneration++;
     await dispatchEvent({ type: 'thumbKey', key: 'left' }, runGeneration);
   });
   bind('simThumbRightBtn', 'click', async () => {
-    runtime.stopped = false;
+    getRuntime().stopped = false;
     runGeneration++;
     await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
   });
   bind('simCursor5Btn', 'click', async () => {
-    runtime.stopped = false;
+    getRuntime().stopped = false;
     runGeneration++;
-    await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: runtime.textCaret }, runGeneration);
+    await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: getRuntime().textCaret }, runGeneration);
   });
   bind('simChord1Btn', 'click', async () => {
-    runtime.stopped = false;
+    getRuntime().stopped = false;
     runGeneration++;
     await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
   });
@@ -1757,7 +1767,8 @@ function walkSerializedBlocks(block, visit) {
   if (nextBlock) walkSerializedBlocks(nextBlock, visit);
 }
 
-function registerProcedures(workspaceJson, runtimeState = runtime) {
+function registerProcedures(workspaceJson, runtimeState = null) {
+  runtimeState = runtimeState || getRuntime();
   const procedureMap = new Map();
   const setProcedure = (name, entry) => {
     const key = String(name ?? '').trim();
@@ -2194,23 +2205,23 @@ function getLessonStepInputs() {
 
 function resetLessonStepRuntimeState(stepInputs = null) {
   window.lessonStepInputs = normalizeLessonStepInputs(stepInputs);
-  runtime.stepCompletion = null;
+  getRuntime().stepCompletion = null;
 }
 
 async function signalLessonStepCompletion(payload = {}) {
   const status = String(payload?.status ?? 'completed').trim() || 'completed';
   const output = payload && Object.prototype.hasOwnProperty.call(payload, 'output') ? payload.output : null;
-  runtime.stepCompletion = {
+  getRuntime().stepCompletion = {
     status,
     output,
     stepId: String(window.currentLessonStep?.id ?? '').trim() || null,
     completedAt: new Date().toISOString()
   };
-  runtime.stopped = true;
+  getRuntime().stopped = true;
   stopAllTimers();
   log('Lesson step completion signaled: ' + status);
   renderStatus();
-  return runtime.stepCompletion;
+  return getRuntime().stepCompletion;
 }
 
 function getActiveLessonRecord() {
@@ -2793,7 +2804,7 @@ async function runProcedureCall(block, ctx = {}) {
     return;
   }
 
-  const runtimeState = ctx.runtime || runtime;
+  const runtimeState = ctx.runtime || getRuntime();
   const targetWorkspace = ctx.workspace || workspace;
   const generation = Number.isFinite(ctx.generation) ? ctx.generation : runGeneration;
   const procedures = runtimeState?.procedures instanceof Map ? runtimeState.procedures : new Map();
@@ -2827,7 +2838,7 @@ async function runProcedureCall(block, ctx = {}) {
 async function executeChain(startBlock, generation) {
   let current = startBlock;
 
-  while (current && !runtime.stopped && generation === runGeneration) {
+  while (current && !getRuntime().stopped && generation === runGeneration) {
     highlightBlock(current.id);
 
     switch (current.type) {
@@ -3003,7 +3014,7 @@ async function executeChain(startBlock, generation) {
           const item = await findAanvankelijklijstItemByWord(word);
           const sounds = toList(item?.sounds);
           for (const sound of sounds) {
-            if (runtime.stopped || generation !== runGeneration) break;
+            if (getRuntime().stopped || generation !== runGeneration) break;
             await playSound(resolveFolderSoundUrl('letters', sound));
             await waitForAudioStopped();
           }
@@ -3021,7 +3032,7 @@ async function executeChain(startBlock, generation) {
           const item = await findAanvankelijklijstItemByWord(word);
           const sounds = toList(item?.sounds);
           for (let i = 0; i < sounds.length; i++) {
-            if (runtime.stopped || generation !== runGeneration) break;
+            if (getRuntime().stopped || generation !== runGeneration) break;
             await playSound(resolveFolderSoundUrl('letters', sounds[i]));
             await waitForAudioStopped();
             if (pauseMs > 0 && i < sounds.length - 1) {
@@ -3040,7 +3051,7 @@ async function executeChain(startBlock, generation) {
           const fonemenData = await getFonemenNlStandaard();
           const fonemen = splitWordToNlFonemen(word, fonemenData);
           for (const foneem of fonemen) {
-            if (runtime.stopped || generation !== runGeneration) break;
+            if (getRuntime().stopped || generation !== runGeneration) break;
             await playSound(resolveFolderSoundUrl('letters', foneem));
             await waitForAudioStopped();
           }
@@ -3058,7 +3069,7 @@ async function executeChain(startBlock, generation) {
           const fonemenData = await getFonemenNlStandaard();
           const fonemen = splitWordToNlFonemen(word, fonemenData);
           for (let i = 0; i < fonemen.length; i++) {
-            if (runtime.stopped || generation !== runGeneration) break;
+            if (getRuntime().stopped || generation !== runGeneration) break;
             await playSound(resolveFolderSoundUrl('letters', fonemen[i]));
             await waitForAudioStopped();
             if (pauseMs > 0 && i < fonemen.length - 1) {
@@ -3155,7 +3166,7 @@ async function executeChain(startBlock, generation) {
         const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
         const varId = varModel ? varModel.getId() : null;
         for (const item of list) {
-          if (runtime.stopped || generation !== runGeneration) break;
+          if (getRuntime().stopped || generation !== runGeneration) break;
           if (varId) {
             variableValues[varId] = item;
             renderStatus();
@@ -3171,7 +3182,7 @@ async function executeChain(startBlock, generation) {
         const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
         const varId = varModel ? varModel.getId() : null;
         for (const item of list) {
-          if (runtime.stopped || generation !== runGeneration) break;
+          if (getRuntime().stopped || generation !== runGeneration) break;
           if (varId) {
             variableValues[varId] = item;
             renderStatus();
@@ -3203,7 +3214,7 @@ async function executeChain(startBlock, generation) {
       }
 
       case 'lesson_set_active_record_index': {
-        if (runtime.lockInjectedLessonRecord) {
+        if (getRuntime().lockInjectedLessonRecord) {
           log('Ignored lesson_set_active_record_index because injected record lock is active');
         } else {
           await setActiveLessonRecordByIndex(await evalValue(current.getInputTargetBlock('INDEX')));
@@ -3252,7 +3263,7 @@ async function executeChain(startBlock, generation) {
       case 'controls_repeat_ext': {
         const count = toNumber(await evalValue(current.getInputTargetBlock('TIMES')));
         const body = current.getInputTargetBlock('DO');
-        for (let i = 0; i < count && !runtime.stopped && generation === runGeneration; i++) {
+        for (let i = 0; i < count && !getRuntime().stopped && generation === runGeneration; i++) {
           if (body) await executeChain(body, generation);
         }
         break;
@@ -3262,7 +3273,7 @@ async function executeChain(startBlock, generation) {
         const body = current.getInputTargetBlock('DO');
         let guard = 0;
         while (
-          !runtime.stopped &&
+          !getRuntime().stopped &&
           generation === runGeneration &&
           Boolean(await evalValue(current.getInputTargetBlock('COND')))
         ) {
@@ -3279,7 +3290,7 @@ async function executeChain(startBlock, generation) {
         const body = current.getInputTargetBlock('DO');
         let guard = 0;
         do {
-          if (runtime.stopped || generation !== runGeneration) break;
+          if (getRuntime().stopped || generation !== runGeneration) break;
           if (++guard > 10000) {
             log('Loop stopped: do while exceeded 10000 iterations');
             break;
@@ -3352,28 +3363,29 @@ function eventMatches(block, event) {
 }
 
 async function dispatchEvent(event, generation = runGeneration) {
-  if (generation !== runGeneration || runtime.stopped) return;
+  const rt = getRuntime();
+  if (generation !== runGeneration || rt.stopped) return;
   if (!workspace) return;
 
   if (event.type === 'thumbKey') {
-    runtime.lastThumbKey = event.key ?? '';
+    rt.lastThumbKey = event.key ?? '';
   }
   if (event.type === 'cursorRouting') {
-    runtime.lastCursorCell = Number(event.cell ?? -1);
-    if (typeof event.textIndex === 'number') runtime.textCaret = event.textIndex;
+    rt.lastCursorCell = Number(event.cell ?? -1);
+    if (typeof event.textIndex === 'number') rt.textCaret = event.textIndex;
   }
   if (event.type === 'cursorPositionChanged') {
-    runtime.textCaret = Number(event.position ?? runtime.textCaret);
+    rt.textCaret = Number(event.position ?? rt.textCaret);
   }
   if (event.type === 'chord') {
-    runtime.lastChord = String(event.dots ?? '');
+    rt.lastChord = String(event.dots ?? '');
   }
   if (event.type === 'editorKey') {
-    runtime.lastEditorKey = String(event.key ?? '');
+    rt.lastEditorKey = String(event.key ?? '');
   }
   if (event.type === 'timer') {
-    runtime.lastTimerName = String(event.name ?? '');
-    runtime.lastTimerTick = Number(event.tick ?? runtime.lastTimerTick);
+    rt.lastTimerName = String(event.name ?? '');
+    rt.lastTimerTick = Number(event.tick ?? rt.lastTimerTick);
   }
 
   renderStatus();
@@ -3381,7 +3393,7 @@ async function dispatchEvent(event, generation = runGeneration) {
 
   const topBlocks = workspace.getTopBlocks(true);
   for (const block of topBlocks) {
-    if (generation !== runGeneration || runtime.stopped) return;
+    if (generation !== runGeneration || getRuntime().stopped) return;
     if (eventMatches(block, event)) {
       const first = block.getInputTargetBlock('DO');
       if (first) await executeChain(first, generation);
@@ -3582,7 +3594,7 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
 
 async function newWorkspace() {
   if (!(await confirmActionWithUnsavedChanges('creating a new file'))) return;
-  runtime.stopped = true;
+  getRuntime().stopped = true;
   runGeneration++;
   stopAllTimers();
   stopSound();
@@ -3637,8 +3649,8 @@ window.BrailleBlocklyApp = {
     clearLogBox();
     stopAllTimers();
     stopSound();
-    runtime.stopped = false;
-    runtime.lockInjectedLessonRecord = !!lockInjectedRecord;
+    getRuntime().stopped = false;
+    getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
@@ -3653,13 +3665,13 @@ window.BrailleBlocklyApp = {
     log('Headless injected record index: ' + window.currentRecordIndex);
     if (overridingIndexBlocks.length > 0) {
       log(
-        runtime.lockInjectedLessonRecord
+        getRuntime().lockInjectedLessonRecord
           ? 'Workspace contains lesson_set_active_record_index blocks, but injected record lock is active'
           : 'Warning: workspace contains lesson_set_active_record_index blocks that can override the injected record'
       );
     }
     if (startedBlocks.length === 0) {
-      runtime.lockInjectedLessonRecord = false;
+      getRuntime().lockInjectedLessonRecord = false;
       throw new Error('No "when started" block found in workspace');
     }
     try {
@@ -3670,11 +3682,11 @@ window.BrailleBlocklyApp = {
         currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
         lessonMethod: structuredClone(getLessonMethod()),
-        stepCompletion: runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null,
-      runtime: { ...runtime }
+        stepCompletion: getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null,
+        runtime: { ...getRuntime() }
       };
     } finally {
-      runtime.lockInjectedLessonRecord = false;
+      getRuntime().lockInjectedLessonRecord = false;
     }
   },
   async runWorkspaceStateHeadless({ state, sourceName = null, metadata = null, lessonData = null, lessonMethod = null, index = 0, stepInputs = null, stepMeta = null, onLog = null, lockInjectedRecord = false } = {}) {
@@ -3696,8 +3708,8 @@ window.BrailleBlocklyApp = {
     clearLogBox();
     stopAllTimers();
     stopSound();
-    runtime.stopped = false;
-    runtime.lockInjectedLessonRecord = !!lockInjectedRecord;
+    getRuntime().stopped = false;
+    getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
@@ -3712,13 +3724,13 @@ window.BrailleBlocklyApp = {
     log('Headless injected record index: ' + window.currentRecordIndex);
     if (overridingIndexBlocks.length > 0) {
       log(
-        runtime.lockInjectedLessonRecord
+        getRuntime().lockInjectedLessonRecord
           ? 'Workspace contains lesson_set_active_record_index blocks, but injected record lock is active'
           : 'Warning: workspace contains lesson_set_active_record_index blocks that can override the injected record'
       );
     }
     if (startedBlocks.length === 0) {
-      runtime.lockInjectedLessonRecord = false;
+      getRuntime().lockInjectedLessonRecord = false;
       throw new Error('No "when started" block found in workspace');
     }
     try {
@@ -3729,16 +3741,16 @@ window.BrailleBlocklyApp = {
         currentRecordIndex: Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1,
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
         lessonMethod: structuredClone(getLessonMethod()),
-        stepCompletion: runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null,
-        runtime: { ...runtime }
+        stepCompletion: getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null,
+        runtime: { ...getRuntime() }
       };
     } finally {
-      runtime.lockInjectedLessonRecord = false;
+      getRuntime().lockInjectedLessonRecord = false;
     }
   },
   async runHeadlessProgram() {
     stopAllTimers();
-    runtime.stopped = false;
+    getRuntime().stopped = false;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
@@ -3781,7 +3793,7 @@ window.BrailleBlocklyApp = {
     return await signalLessonStepCompletion(payload);
   },
   getStepCompletion() {
-    return runtime.stepCompletion ? structuredClone(runtime.stepCompletion) : null;
+    return getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null;
   },
   async setActiveLessonRecordIndex(index) {
     return await setActiveLessonRecordByIndex(index);
@@ -3793,7 +3805,7 @@ window.BrailleBlocklyApp = {
     return Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1;
   },
   getRuntimeSnapshot() {
-    return { ...runtime };
+    return { ...getRuntime() };
   },
   clearLog() {
     clearLogBox();
