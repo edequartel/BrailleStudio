@@ -15,8 +15,8 @@
   border-radius: 18px;
   background: #ffffff;
   overflow: hidden auto;
-  min-height: 6.4rem;
-  padding: 0.6rem 0.7rem;
+  min-height: 5rem;
+  padding: 0.45rem 0.55rem;
   font-family: "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.15rem;
 
@@ -35,10 +35,10 @@
   align-items: center;
   justify-content: center;
   gap: 0.18rem;
-  height: 4em;
+  height: 3.2em;
 
   width: 2ch;                 /* fixed width keeps braille + print perfectly column-aligned */
-  padding: 0.34rem 0.2rem;
+  padding: 0.22rem 0.16rem;
   margin: 0 0.06rem;
 
   border-radius: 6px;

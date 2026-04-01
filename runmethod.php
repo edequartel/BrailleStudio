@@ -191,10 +191,10 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
-      <section class="h-[220px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+      <section class="h-[190px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
         <div class="text-lg font-bold">Braille monitor</div>
         <div id="brailleMonitorStatus" class="text-xs text-slate-500">Component wordt geladen...</div>
-        <div id="brailleMonitorComponent" class="h-[140px] overflow-hidden"></div>
+        <div id="brailleMonitorComponent" class="h-[100px] overflow-hidden"></div>
       </section>
 
       <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
