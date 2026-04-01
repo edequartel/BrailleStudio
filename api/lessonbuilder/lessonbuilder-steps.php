@@ -22,7 +22,7 @@ declare(strict_types=1);
       </div>
     </div>
 
-    <div class="grid gap-5 lg:grid-cols-[1.74fr_0.46fr]">
+    <div class="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.95fr)]">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
         <div id="lessonSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
@@ -46,8 +46,8 @@ declare(strict_types=1);
 
         <div>
           <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
-          <div class="rounded-xl border border-slate-200 overflow-x-auto">
-            <div class="grid min-w-[980px] grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_72px_72px_72px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+          <div class="rounded-xl border border-slate-200 overflow-hidden">
+            <div class="grid w-full grid-cols-[minmax(0,2.8fr)_minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_64px_64px_64px_80px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
               <div class="min-w-0 pr-2 text-left">Step</div>
               <div class="min-w-0 text-left">Text</div>
               <div class="min-w-0 text-left">Word</div>
@@ -62,7 +62,7 @@ declare(strict_types=1);
         </div>
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+      <section class="min-h-[360px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Bibliotheek</div>
         <div id="scriptsSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Nog geen scripts geladen.</div>
         <div>
@@ -183,14 +183,14 @@ declare(strict_types=1);
       stepConfigs.forEach((cfg, index) => {
         const inputs = shared.normalizeInputs(cfg.inputs || {});
         const row = document.createElement('div');
-        row.className = 'grid min-w-[980px] grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_72px_72px_72px] gap-2 items-start px-3 py-2';
+        row.className = 'grid w-full grid-cols-[minmax(0,2.8fr)_minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_64px_64px_64px_80px] gap-2 items-start px-3 py-2';
 
         const script = document.createElement('div');
-        script.className = 'min-w-0 pr-2 text-sm text-slate-800 break-words leading-5';
+        script.className = 'min-w-0 pr-2 pt-1 text-sm text-slate-800 break-words leading-5';
         script.textContent = cfg.id;
 
         const text = document.createElement('input');
-        text.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        text.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         text.value = inputs.text;
         text.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...inputs, text: e.target.value, word: stepConfigs[index].inputs?.word || inputs.word, letters: shared.normalizeInputs(stepConfigs[index].inputs || {}).letters };
@@ -198,7 +198,7 @@ declare(strict_types=1);
         });
 
         const word = document.createElement('input');
-        word.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        word.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         word.value = inputs.word;
         word.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), word: e.target.value };
@@ -206,7 +206,7 @@ declare(strict_types=1);
         });
 
         const letters = document.createElement('input');
-        letters.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        letters.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
@@ -460,7 +460,6 @@ declare(strict_types=1);
         lessonWordInput.value = state.lessonWord || state.basisWord || '';
         stepConfigs = shared.normalizeStepConfigs(state.stepConfigs || []);
         renderLessonSummary();
-        renderPreview();
         renderStepsTable();
         renderDebugLogVisibility();
         setStatus('Ready.');
@@ -495,7 +494,6 @@ declare(strict_types=1);
       stepConfigs.push({ id: scriptsSelect.value, inputs: { text: '', word: '', letters: [] } });
       state = shared.updateState({ stepConfigs });
       renderStepsTable();
-      renderPreview();
       setStatus(`Script toegevoegd: ${scriptsSelect.value}`);
     });
 
@@ -521,7 +519,6 @@ declare(strict_types=1);
         stepConfigs = [];
         renderLessonSummary();
         renderStepsTable();
-        renderPreview();
         setStatus('Lesson deleted.', result);
       } catch (err) {
         setStatus(`Delete error: ${err.message}`);

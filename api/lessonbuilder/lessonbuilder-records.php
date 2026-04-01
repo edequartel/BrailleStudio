@@ -26,7 +26,7 @@ declare(strict_types=1);
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
       <div class="text-lg font-bold">Actieve methode</div>
       <div id="methodSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
-      <div id="recordSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Klik op een basisrecord om de step builder te openen.</div>
+      <div id="recordSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Selecteer een basisrecord. Open daarna met dubbelklik of Enter.</div>
       <div id="basisRecordsList" class="max-h-[520px] space-y-2 overflow-auto"></div>
     </section>
 
@@ -73,12 +73,17 @@ declare(strict_types=1);
         const stepCount = lesson ? getLessonStepCount(lesson) : 0;
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `w-full rounded-xl border px-4 py-3 text-left ${index === Number(state.basisIndex ?? -1) ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
+        button.dataset.index = String(index);
+        button.className = `w-full rounded-xl border px-4 py-3 text-left focus:outline-none focus:ring-0 ${index === Number(state.basisIndex ?? -1) ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
         button.innerHTML = `
           <div class="font-bold">${index + 1}. ${word}</div>
           <div class="mt-1 text-xs text-slate-500">${stepCount} step(s)</div>
         `;
-        button.addEventListener('click', () => openBasisIndex(index));
+        button.addEventListener('click', () => selectBasisIndex(index));
+        button.addEventListener('dblclick', () => {
+          selectBasisIndex(index);
+          openSelectedLesson();
+        });
         basisRecordsList.appendChild(button);
       });
     }
@@ -114,7 +119,7 @@ declare(strict_types=1);
       const basisIndex = Number(state.basisIndex ?? -1);
       const item = basisIndex >= 0 ? basisItems[basisIndex] : null;
       if (!item) {
-        recordSummary.textContent = 'Klik op een basisrecord om de step builder te openen.';
+        recordSummary.textContent = 'Selecteer een basisrecord. Open daarna met dubbelklik of Enter.';
         return;
       }
       const lesson = getLessonForBasis(basisIndex) || buildDraftLessonForBasis(basisIndex);
@@ -148,11 +153,6 @@ declare(strict_types=1);
         lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex)
       });
       setStatus(`Basisrecord gekozen: ${shared.getBasisWord(item, basisIndex)}`);
-    }
-
-    function openBasisIndex(index) {
-      selectBasisIndex(index);
-      openSelectedLesson();
     }
 
     async function openSelectedLesson() {
@@ -220,6 +220,43 @@ declare(strict_types=1);
         setStatus(`Init error: ${err.message}`);
       }
     }
+
+    document.addEventListener('keydown', (event) => {
+      const target = event.target;
+      const tagName = String(target?.tagName || '').toUpperCase();
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+        return;
+      }
+      if (!basisItems.length) {
+        return;
+      }
+
+      const currentIndex = Number.isInteger(state.basisIndex) ? Number(state.basisIndex) : -1;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, basisItems.length - 1);
+        selectBasisIndex(nextIndex);
+        basisRecordsList.querySelector(`[data-index="${nextIndex}"]`)?.focus();
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const previousIndex = currentIndex < 0 ? 0 : Math.max(currentIndex - 1, 0);
+        selectBasisIndex(previousIndex);
+        basisRecordsList.querySelector(`[data-index="${previousIndex}"]`)?.focus();
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        if (currentIndex < 0) {
+          return;
+        }
+        event.preventDefault();
+        openSelectedLesson();
+      }
+    });
 
     window.addEventListener('load', init);
   </script>
