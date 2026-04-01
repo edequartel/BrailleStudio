@@ -3,15 +3,18 @@
 .braille-monitor-component {
   display: grid;
   gap: 0.6rem;
-  background: #ffffff;
+  background: transparent;
   color: #6b7280;
+  border-radius: 0;
+  padding: 0;
 }
 
 /* CHANGED: allow stacked (2-line) cells while keeping horizontal scroll */
 .mono-box.braille-monitor-cells {
   border: 1px solid #cfd6e4;
-  border-radius: 10px;
+  border-radius: 18px;
   background: #ffffff;
+  overflow: hidden auto;
   padding: 0.6rem 0.7rem;
   font-family: "Courier New", Courier, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 1.15rem;

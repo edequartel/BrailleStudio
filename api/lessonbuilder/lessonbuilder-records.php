@@ -179,11 +179,12 @@ declare(strict_types=1);
       }
       try {
         const data = await shared.loadLesson(state.lessonId);
+        const resolvedWord = data.basisWord || data.word || state.basisWord || '';
         shared.updateState({
           lessonId: data.id || state.lessonId,
-          lessonTitle: data.title || '',
+          lessonTitle: resolvedWord ? `les - ${resolvedWord}` : (data.title || ''),
           lessonNumber: data.lessonNumber || 1,
-          lessonWord: data.basisWord || data.word || '',
+          lessonWord: resolvedWord,
           stepConfigs: shared.normalizeStepConfigs(data.stepConfigs || data?.meta?.stepConfigs || [])
         });
         window.location.href = 'https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php';

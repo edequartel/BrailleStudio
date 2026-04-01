@@ -22,7 +22,7 @@ declare(strict_types=1);
       </div>
     </div>
 
-    <div class="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+    <div class="grid gap-5 lg:grid-cols-[1.74fr_0.46fr]">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
         <div id="lessonSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
@@ -39,21 +39,23 @@ declare(strict_types=1);
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button id="saveLessonBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save lesson</button>
-          <button id="deleteLessonBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete lesson</button>
-          <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run lesson</button>
+          <button id="saveLessonBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
+          <button id="deleteLessonBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete</button>
+          <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run</button>
         </div>
 
         <div>
           <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
-          <div class="rounded-xl border border-slate-200 overflow-hidden">
-            <div class="grid grid-cols-[1.2fr_1fr_1fr_1.2fr_auto_auto] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-              <div>Script</div>
-              <div>Text</div>
-              <div>Word</div>
-              <div>Letters</div>
-              <div>Run</div>
-              <div></div>
+          <div class="rounded-xl border border-slate-200 overflow-x-auto">
+            <div class="grid min-w-[980px] grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_72px_72px_72px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              <div class="min-w-0 pr-2 text-left">Step</div>
+              <div class="min-w-0 text-left">Text</div>
+              <div class="min-w-0 text-left">Word</div>
+              <div class="min-w-0 text-left">Letters</div>
+              <div class="text-center">Run</div>
+              <div class="text-center">Up</div>
+              <div class="text-center">Down</div>
+              <div class="text-center">Remove</div>
             </div>
             <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
           </div>
@@ -61,27 +63,26 @@ declare(strict_types=1);
       </section>
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="text-lg font-bold">Scriptbibliotheek</div>
+        <div class="text-lg font-bold">Bibliotheek</div>
         <div id="scriptsSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Nog geen scripts geladen.</div>
         <div>
           <label class="block text-sm font-semibold text-slate-700 mb-1" for="scriptsSelect">Script list</label>
           <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="refreshScriptsBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh scripts</button>
-          <button id="addStepBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Add script as step</button>
-        </div>
-        <div>
-          <div class="mb-2 text-sm font-semibold text-slate-700">Preview</div>
-          <ul id="lessonStepsPreview" class="list-disc pl-5 text-sm text-slate-700"></ul>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="refreshScriptsBtn" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh</button>
+          <button id="addStepBtn" class="w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Add</button>
         </div>
       </section>
-    </div>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-      <div class="text-lg font-bold">Debug log</div>
-      <pre id="statusBox" class="min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
-    </section>
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2 lg:col-span-2">
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-lg font-bold">Debug log</div>
+          <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+        </div>
+        <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
+      </section>
+    </div>
   </div>
 
   <iframe id="lessonRunnerFrame" title="Lesson runner" hidden></iframe>
@@ -95,14 +96,15 @@ declare(strict_types=1);
     const stepsTableBody = document.getElementById('stepsTableBody');
     const scriptsSelect = document.getElementById('scriptsSelect');
     const scriptsSummary = document.getElementById('scriptsSummary');
-    const lessonStepsPreview = document.getElementById('lessonStepsPreview');
     const statusBox = document.getElementById('statusBox');
+    const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
 
     let state = shared.loadState();
     let scriptsCache = [];
     let stepConfigs = [];
     let basisItems = [];
+    let isDebugLogVisible = false;
 
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
@@ -115,17 +117,32 @@ declare(strict_types=1);
     const RUNNER_URL = resolveRunnerUrl();
     lessonRunnerFrame.src = RUNNER_URL;
 
+    function formatDebugData(value) {
+      if (value == null) return '';
+      if (typeof value === 'string') return value;
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch (err) {
+        return String(value);
+      }
+    }
+
     function setStatus(message, data = null) {
-      statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
+      statusBox.textContent = data != null ? `${message}\n\n${formatDebugData(data)}` : message;
     }
 
     function appendStatus(message, data = null) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
       const block = data
-        ? `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}`
+        ? `[${timestamp}] ${message}\n${formatDebugData(data)}`
         : `[${timestamp}] ${message}`;
       statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
       statusBox.scrollTop = statusBox.scrollHeight;
+    }
+
+    function renderDebugLogVisibility() {
+      statusBox.classList.toggle('hidden', !isDebugLogVisible);
+      toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
     }
 
     function renderLessonSummary() {
@@ -152,23 +169,8 @@ declare(strict_types=1);
       });
     }
 
-    function renderPreview() {
-      lessonStepsPreview.innerHTML = '';
-      stepConfigs.forEach((cfg) => {
-        const li = document.createElement('li');
-        const inputs = shared.normalizeInputs(cfg.inputs || {});
-        const parts = [];
-        if (inputs.text) parts.push(`text: ${inputs.text}`);
-        if (inputs.word) parts.push(`word: ${inputs.word}`);
-        if (inputs.letters.length) parts.push(`letters: ${inputs.letters.join(', ')}`);
-        li.textContent = parts.length ? `${cfg.id} (${parts.join(' | ')})` : cfg.id;
-        lessonStepsPreview.appendChild(li);
-      });
-    }
-
     function updateStateStepConfigs() {
       state = shared.updateState({ stepConfigs });
-      renderPreview();
       renderLessonSummary();
     }
 
@@ -181,14 +183,14 @@ declare(strict_types=1);
       stepConfigs.forEach((cfg, index) => {
         const inputs = shared.normalizeInputs(cfg.inputs || {});
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-[1.2fr_1fr_1fr_1.2fr_auto_auto] gap-2 items-center px-3 py-2';
+        row.className = 'grid min-w-[980px] grid-cols-[minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_72px_72px_72px] gap-2 items-start px-3 py-2';
 
         const script = document.createElement('div');
-        script.className = 'text-sm text-slate-800';
+        script.className = 'min-w-0 pr-2 text-sm text-slate-800 break-words leading-5';
         script.textContent = cfg.id;
 
         const text = document.createElement('input');
-        text.className = 'rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        text.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         text.value = inputs.text;
         text.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...inputs, text: e.target.value, word: stepConfigs[index].inputs?.word || inputs.word, letters: shared.normalizeInputs(stepConfigs[index].inputs || {}).letters };
@@ -196,7 +198,7 @@ declare(strict_types=1);
         });
 
         const word = document.createElement('input');
-        word.className = 'rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        word.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         word.value = inputs.word;
         word.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), word: e.target.value };
@@ -204,7 +206,7 @@ declare(strict_types=1);
         });
 
         const letters = document.createElement('input');
-        letters.className = 'rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        letters.className = 'w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
@@ -212,7 +214,7 @@ declare(strict_types=1);
         });
 
         const run = document.createElement('button');
-        run.className = 'rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+        run.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
         run.textContent = 'Run';
         run.addEventListener('click', async () => {
           try {
@@ -222,8 +224,34 @@ declare(strict_types=1);
           }
         });
 
+        const moveUp = document.createElement('button');
+        moveUp.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+        moveUp.textContent = 'Up';
+        moveUp.disabled = index === 0;
+        moveUp.addEventListener('click', () => {
+          if (index === 0) return;
+          const current = stepConfigs[index];
+          stepConfigs[index] = stepConfigs[index - 1];
+          stepConfigs[index - 1] = current;
+          updateStateStepConfigs();
+          renderStepsTable();
+        });
+
+        const moveDown = document.createElement('button');
+        moveDown.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+        moveDown.textContent = 'Down';
+        moveDown.disabled = index === stepConfigs.length - 1;
+        moveDown.addEventListener('click', () => {
+          if (index === stepConfigs.length - 1) return;
+          const current = stepConfigs[index];
+          stepConfigs[index] = stepConfigs[index + 1];
+          stepConfigs[index + 1] = current;
+          updateStateStepConfigs();
+          renderStepsTable();
+        });
+
         const remove = document.createElement('button');
-        remove.className = 'rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+        remove.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
         remove.textContent = 'Remove';
         remove.addEventListener('click', () => {
           stepConfigs.splice(index, 1);
@@ -231,7 +259,7 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        row.append(script, text, word, letters, run, remove);
+        row.append(script, text, word, letters, run, moveUp, moveDown, remove);
         stepsTableBody.appendChild(row);
       });
     }
@@ -420,20 +448,21 @@ declare(strict_types=1);
         const basisItem = basisIndex >= 0 ? basisItems[basisIndex] : null;
         if (!state.lessonId && method.id && basisItem) {
           const lessonNumber = Number(state.lessonNumber || 1);
-          state = shared.updateState({
-            lessonId: shared.buildLessonIdFromBasis(method.id, basisIndex, basisItem, lessonNumber),
-            lessonTitle: shared.buildLessonTitleFromBasis(basisItem, lessonNumber, basisIndex),
-            lessonWord: shared.getBasisWord(basisItem, basisIndex)
+        state = shared.updateState({
+          lessonId: shared.buildLessonIdFromBasis(method.id, basisIndex, basisItem, lessonNumber),
+          lessonTitle: shared.buildLessonTitleFromBasis(basisItem, lessonNumber, basisIndex),
+          lessonWord: shared.getBasisWord(basisItem, basisIndex)
           });
         }
 
         lessonIdInput.value = state.lessonId || '';
-        lessonTitleInput.value = state.lessonTitle || '';
+        lessonTitleInput.value = state.lessonWord ? `les - ${state.lessonWord}` : (state.lessonTitle || '');
         lessonWordInput.value = state.lessonWord || state.basisWord || '';
         stepConfigs = shared.normalizeStepConfigs(state.stepConfigs || []);
         renderLessonSummary();
         renderPreview();
         renderStepsTable();
+        renderDebugLogVisibility();
         setStatus('Ready.');
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
@@ -505,6 +534,11 @@ declare(strict_types=1);
       } catch (err) {
         setStatus(`Run error: ${err.message}`);
       }
+    });
+
+    toggleDebugLogBtn.addEventListener('click', () => {
+      isDebugLogVisible = !isDebugLogVisible;
+      renderDebugLogVisibility();
     });
 
     window.addEventListener('load', init);

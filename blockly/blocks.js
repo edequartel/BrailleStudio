@@ -1116,6 +1116,14 @@
           ['failed', 'failed']
         ]), 'STATUS');
       this.appendValueInput('OUTPUT').appendField('output');
+      this.appendValueInput('SCORE').appendField('score');
+      this.appendValueInput('MAX_SCORE').appendField('max score');
+      this.appendValueInput('ATTEMPTS').appendField('attempts');
+      this.appendValueInput('DURATION_MS').appendField('duration ms');
+      this.appendValueInput('ANSWER').appendField('answer');
+      this.appendValueInput('EXPECTED_ANSWER').appendField('expected answer');
+      this.appendValueInput('FEEDBACK').appendField('feedback');
+      this.appendValueInput('METADATA').appendField('metadata');
       this.setPreviousStatement(true);
       this.setColour('#14B8A6');
     }

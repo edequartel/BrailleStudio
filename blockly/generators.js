@@ -244,7 +244,28 @@
   javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {
     const status = q(block.getFieldValue('STATUS') || 'completed');
     const outputCode = valueToCodeOr(block, 'OUTPUT', 'null');
-    return `await window.BrailleBlocklyApp.signalLessonStepCompletion({ status: ${status}, output: ${outputCode} });\n`;
+    const scoreCode = valueToCodeOr(block, 'SCORE', 'null');
+    const maxScoreCode = valueToCodeOr(block, 'MAX_SCORE', 'null');
+    const attemptsCode = valueToCodeOr(block, 'ATTEMPTS', 'null');
+    const durationCode = valueToCodeOr(block, 'DURATION_MS', 'null');
+    const answerCode = valueToCodeOr(block, 'ANSWER', 'null');
+    const expectedAnswerCode = valueToCodeOr(block, 'EXPECTED_ANSWER', 'null');
+    const feedbackCode = valueToCodeOr(block, 'FEEDBACK', 'null');
+    const metadataCode = valueToCodeOr(block, 'METADATA', 'null');
+    return (
+      `await window.BrailleBlocklyApp.signalLessonStepCompletion({ ` +
+      `status: ${status}, ` +
+      `output: ${outputCode}, ` +
+      `score: ${scoreCode}, ` +
+      `maxScore: ${maxScoreCode}, ` +
+      `attempts: ${attemptsCode}, ` +
+      `durationMs: ${durationCode}, ` +
+      `answer: ${answerCode}, ` +
+      `expectedAnswer: ${expectedAnswerCode}, ` +
+      `feedback: ${feedbackCode}, ` +
+      `metadata: ${metadataCode} ` +
+      `});\n`
+    );
   };
 
   javascriptGenerator.forBlock['klanken_word_get_sounds'] = function (block) {

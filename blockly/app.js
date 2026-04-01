@@ -2208,18 +2208,79 @@ function resetLessonStepRuntimeState(stepInputs = null) {
   getRuntime().stepCompletion = null;
 }
 
-async function signalLessonStepCompletion(payload = {}) {
+function normalizeOptionalNumber(value) {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function normalizeOptionalString(value) {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text === '' ? null : text;
+}
+
+function inferCompletionCorrectness(status, answer, expectedAnswer, score, maxScore) {
+  if (status === 'completed') return true;
+  if (answer != null && expectedAnswer != null) {
+    return String(answer) === String(expectedAnswer);
+  }
+  if (score != null && maxScore != null) {
+    return score >= maxScore;
+  }
+  return status !== 'failed';
+}
+
+function normalizeLessonStepCompletionPayload(payload = {}) {
   const status = String(payload?.status ?? 'completed').trim() || 'completed';
   const output = payload && Object.prototype.hasOwnProperty.call(payload, 'output') ? payload.output : null;
-  getRuntime().stepCompletion = {
+  const score = normalizeOptionalNumber(payload?.score);
+  const maxScore = normalizeOptionalNumber(payload?.maxScore);
+  const attempts = normalizeOptionalNumber(payload?.attempts);
+  const durationMs = normalizeOptionalNumber(payload?.durationMs);
+  const answer = payload && Object.prototype.hasOwnProperty.call(payload, 'answer') ? payload.answer : null;
+  const expectedAnswer = payload && Object.prototype.hasOwnProperty.call(payload, 'expectedAnswer') ? payload.expectedAnswer : null;
+  const feedback = normalizeOptionalString(payload?.feedback);
+  const metadata = payload && typeof payload.metadata === 'object' && payload.metadata !== null
+    ? structuredClone(payload.metadata)
+    : null;
+  const stepMeta = window.currentLessonStep && typeof window.currentLessonStep === 'object'
+    ? structuredClone(window.currentLessonStep)
+    : null;
+
+  return {
     status,
     output,
+    analytics: {
+      score,
+      maxScore,
+      attempts,
+      durationMs,
+      isCorrect: inferCompletionCorrectness(status, answer, expectedAnswer, score, maxScore)
+    },
+    response: {
+      answer,
+      expectedAnswer,
+      feedback
+    },
+    metadata,
     stepId: String(window.currentLessonStep?.id ?? '').trim() || null,
+    stepIndex: Number.isFinite(Number(window.currentLessonStep?.stepIndex)) ? Number(window.currentLessonStep.stepIndex) : null,
+    lessonId: normalizeOptionalString(window.currentLessonStep?.lessonId),
+    lessonTitle: normalizeOptionalString(window.currentLessonStep?.lessonTitle),
+    methodId: normalizeOptionalString(window.currentLessonStep?.methodId),
+    basisWord: normalizeOptionalString(window.currentLessonStep?.basisWord),
+    stepMeta,
     completedAt: new Date().toISOString()
   };
+}
+
+async function signalLessonStepCompletion(payload = {}) {
+  const normalized = normalizeLessonStepCompletionPayload(payload);
+  getRuntime().stepCompletion = normalized;
   getRuntime().stopped = true;
   stopAllTimers();
-  log('Lesson step completion signaled: ' + status);
+  log('Lesson step completion signaled: ' + normalized.status);
   renderStatus();
   return getRuntime().stepCompletion;
 }
@@ -3225,7 +3286,15 @@ async function executeChain(startBlock, generation) {
       case 'lesson_complete_step': {
         await signalLessonStepCompletion({
           status: String(current.getFieldValue('STATUS') || 'completed'),
-          output: await evalValue(current.getInputTargetBlock('OUTPUT'))
+          output: await evalValue(current.getInputTargetBlock('OUTPUT')),
+          score: await evalValue(current.getInputTargetBlock('SCORE')),
+          maxScore: await evalValue(current.getInputTargetBlock('MAX_SCORE')),
+          attempts: await evalValue(current.getInputTargetBlock('ATTEMPTS')),
+          durationMs: await evalValue(current.getInputTargetBlock('DURATION_MS')),
+          answer: await evalValue(current.getInputTargetBlock('ANSWER')),
+          expectedAnswer: await evalValue(current.getInputTargetBlock('EXPECTED_ANSWER')),
+          feedback: await evalValue(current.getInputTargetBlock('FEEDBACK')),
+          metadata: await evalValue(current.getInputTargetBlock('METADATA'))
         });
         break;
       }

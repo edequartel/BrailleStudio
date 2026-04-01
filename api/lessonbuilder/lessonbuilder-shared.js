@@ -242,7 +242,7 @@
   }
 
   function buildLessonTitleFromBasis(basisItem, lessonNumber = 1, basisIndex = 0) {
-    return `${getBasisWord(basisItem, basisIndex)} - les ${Math.max(1, Number(lessonNumber) || 1)}`;
+    return `les - ${getBasisWord(basisItem, basisIndex)}`;
   }
 
   function getLessonsForBasis(lessons, basisIndex) {

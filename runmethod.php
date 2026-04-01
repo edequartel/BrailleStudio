@@ -173,6 +173,8 @@ $pagePayload = [
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.css">
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="mx-auto max-w-7xl p-6 space-y-5">
@@ -189,6 +191,12 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+        <div class="text-lg font-bold">Braille monitor</div>
+        <div id="brailleMonitorStatus" class="text-xs text-slate-500">Component wordt geladen...</div>
+        <div id="brailleMonitorComponent"></div>
+      </section>
+
       <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Lessons</div>
@@ -211,6 +219,7 @@ $pagePayload = [
           <div class="flex flex-wrap gap-2">
             <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
             <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
+            <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
           </div>
           <div id="stepsPreview" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
@@ -250,15 +259,21 @@ $pagePayload = [
     const stepsPreview = document.getElementById('stepsPreview');
     const statusBox = document.getElementById('statusBox');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
+    const brailleMonitorStatus = document.getElementById('brailleMonitorStatus');
     const lessonRunIndicator = document.getElementById('lessonRunIndicator');
     const lessonRunIndicatorDot = document.getElementById('lessonRunIndicatorDot');
     const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
     const lessonReturnValues = document.getElementById('lessonReturnValues');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
+    const stopRunBtn = document.getElementById('stopRunBtn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let isLessonRunning = false;
     let isDebugLogVisible = false;
+    let stopRequested = false;
+    let brailleMonitorUi = null;
+    let brailleMonitorSyncTimer = null;
+    let lastBrailleSnapshot = '';
 
     function escapeHtml(value) {
       return String(value)
@@ -275,6 +290,16 @@ $pagePayload = [
       if (typeof value === 'number' || typeof value === 'boolean') return String(value);
       try {
         return JSON.stringify(value);
+      } catch (err) {
+        return String(value);
+      }
+    }
+
+    function formatDebugData(value) {
+      if (value == null) return '';
+      if (typeof value === 'string') return value;
+      try {
+        return JSON.stringify(value, null, 2);
       } catch (err) {
         return String(value);
       }
@@ -336,10 +361,10 @@ $pagePayload = [
 
     function appendStatus(message, data = null) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
-      const block = data
-        ? `[${timestamp}] ${message} ${JSON.stringify(data)}`
+      const block = data != null
+        ? `[${timestamp}] ${message}\n${formatDebugData(data)}`
         : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n${block}` : block;
+      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
       statusBox.scrollTop = statusBox.scrollHeight;
     }
 
@@ -418,6 +443,107 @@ $pagePayload = [
       return lessonRunnerFrame?.contentWindow || null;
     }
 
+    async function loadScriptCandidates(candidates) {
+      let lastError = null;
+      for (const src of candidates) {
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.body.appendChild(script);
+          });
+          return src;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('No braille monitor script could be loaded');
+    }
+
+    async function ensureBrailleMonitorReady() {
+      if (brailleMonitorUi) return brailleMonitorUi;
+      if (!window.BrailleMonitor) {
+        await loadScriptCandidates([
+          '/braillestudio/components/braille-monitor/braillemonitor.js',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+        ]);
+      }
+      if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
+        throw new Error('BrailleMonitor component is not available');
+      }
+      brailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'brailleMonitorComponent',
+        showInfo: false
+      });
+      if (brailleMonitorStatus) {
+        brailleMonitorStatus.textContent = 'Component geladen.';
+      }
+      return brailleMonitorUi;
+    }
+
+    async function syncBrailleMonitorFromRunner() {
+      try {
+        const monitor = await ensureBrailleMonitorReady();
+        const runner = getRunnerWindow();
+        const app = runner?.BrailleBlocklyApp;
+        if (!app || typeof app.getRuntimeSnapshot !== 'function') {
+          if (lastBrailleSnapshot !== '') {
+            monitor.clear();
+            lastBrailleSnapshot = '';
+          }
+          if (brailleMonitorStatus) {
+            brailleMonitorStatus.textContent = 'Wachten op braille-uitvoer...';
+          }
+          return;
+        }
+        const runtime = app.getRuntimeSnapshot();
+        const brailleUnicode = String(runtime?.brailleUnicode || '');
+        const sourceText = String(runtime?.text || '');
+        const signature = JSON.stringify({
+          brailleUnicode,
+          sourceText,
+          cellCaret: runtime?.cellCaret ?? null,
+          textCaret: runtime?.textCaret ?? null,
+          caretVisible: runtime?.caretVisible ?? true
+        });
+        if (signature === lastBrailleSnapshot) {
+          return;
+        }
+        lastBrailleSnapshot = signature;
+        if (!brailleUnicode && !sourceText) {
+          monitor.clear();
+          if (brailleMonitorStatus) {
+            brailleMonitorStatus.textContent = 'Nog geen braille-uitvoer.';
+          }
+          return;
+        }
+        monitor.setBrailleUnicode(brailleUnicode, sourceText, {
+          caretPosition: Number.isInteger(runtime?.cellCaret) ? runtime.cellCaret : undefined,
+          textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
+          caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
+        });
+        if (brailleMonitorStatus) {
+          brailleMonitorStatus.textContent = sourceText
+            ? `Toont: ${sourceText}`
+            : 'Braille-uitvoer ontvangen.';
+        }
+      } catch (err) {
+        if (brailleMonitorStatus) {
+          brailleMonitorStatus.textContent = `Braille monitor fout: ${err.message || String(err)}`;
+        }
+      }
+    }
+
+    function startBrailleMonitorSync() {
+      if (brailleMonitorSyncTimer) return;
+      brailleMonitorSyncTimer = window.setInterval(() => {
+        syncBrailleMonitorFromRunner();
+      }, 250);
+      syncBrailleMonitorFromRunner();
+    }
+
     function getRunnerDebugState() {
       try {
         const runner = getRunnerWindow();
@@ -463,6 +589,25 @@ $pagePayload = [
     async function waitForCompletion(app, timeoutMs = 30000) {
       const start = Date.now();
       while (Date.now() - start < timeoutMs) {
+        if (stopRequested) {
+          return {
+            status: 'stopped',
+            output: null,
+            analytics: {
+              score: null,
+              maxScore: null,
+              attempts: null,
+              durationMs: null,
+              isCorrect: false
+            },
+            response: {
+              answer: null,
+              expectedAnswer: null,
+              feedback: 'Stopped by user'
+            },
+            metadata: null
+          };
+        }
         const completion = app.getStepCompletion();
         if (completion) return completion;
         const runtime = app.getRuntimeSnapshot();
@@ -474,6 +619,7 @@ $pagePayload = [
 
     async function runLesson(lesson) {
       if (!lesson) throw new Error('No lesson selected');
+      stopRequested = false;
       const app = await waitForRunnerReady();
       const basisIndex = Number(lesson.basisIndex ?? -1);
       const lessonData = basisRecords;
@@ -494,6 +640,13 @@ $pagePayload = [
       });
       const results = [];
       for (let stepIndex = 0; stepIndex < stepConfigs.length; stepIndex += 1) {
+        if (stopRequested) {
+          appendStatus('Lesson handmatig gestopt.', {
+            lessonId: lesson.id,
+            stepIndex
+          });
+          break;
+        }
         const stepConfig = stepConfigs[stepIndex];
         const scriptData = await loadScriptData(stepConfig.id);
         const result = await app.runWorkspaceStateHeadless({
@@ -547,6 +700,7 @@ $pagePayload = [
       displayedValues.push({ key: 'finalStatus', value: finalStatus });
       renderLessonReturnValues(displayedValues);
       setLessonRunningState(false, `Stopped (${finalStatus})`);
+      stopRequested = false;
       return results;
     }
 
@@ -569,8 +723,15 @@ $pagePayload = [
 
     async function runAllLessons() {
       setLessonRunningState(false, 'Not running');
+      stopRequested = false;
       appendStatus('Run all gestart.', { lessons: lessons.length });
       for (let index = 0; index < lessons.length; index += 1) {
+        if (stopRequested) {
+          setLessonRunningState(false, 'Stopped (manual)');
+          appendStatus('Run all handmatig gestopt.');
+          stopRequested = false;
+          return;
+        }
         selectedLessonIndex = index;
         renderLessonsList();
         renderCurrentLesson();
@@ -599,7 +760,28 @@ $pagePayload = [
         }
       }
       setLessonRunningState(false, 'Not running');
+      stopRequested = false;
       appendStatus('Run all afgerond.');
+    }
+
+    async function stopCurrentRun() {
+      stopRequested = true;
+      try {
+        const app = await waitForRunnerReady(5000);
+        if (app && typeof app.stopProgram === 'function') {
+          app.stopProgram();
+        }
+      } catch (err) {
+        appendStatus('Stop requested, but runner was not ready.', {
+          error: err.message || String(err)
+        });
+      }
+      setLessonRunningState(false, 'Stopped (manual)');
+      renderLessonReturnValues([
+        { key: 'status', value: 'stopped' },
+        { key: 'feedback', value: 'Stopped by user' }
+      ]);
+      appendStatus('Stop button pressed.');
     }
 
     lessonRunnerFrame.addEventListener('load', () => {
@@ -607,16 +789,19 @@ $pagePayload = [
         runnerUrl,
         runnerState: getRunnerDebugState()
       });
+      startBrailleMonitorSync();
     });
 
     document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
     document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
+    stopRunBtn.addEventListener('click', stopCurrentRun);
 
     renderMethodInfo();
     renderLessonsList();
     renderCurrentLesson();
     setLessonRunningState(false, 'Not running');
     renderDebugLogVisibility();
+    startBrailleMonitorSync();
     appendStatus('Runner ready.', {
       methodId: method.id || '',
       lessons: lessons.length,
