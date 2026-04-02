@@ -106,7 +106,7 @@ function clearLogBox() {
 }
 
 function formatLogValue(value) {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') return value === '' ? '""' : value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (value == null) return '';
   try {
@@ -2202,9 +2202,17 @@ async function ensureInjectedLessonData() {
     return window.aanvankelijkData;
   }
 
-  const list = await getAanvankelijklijst();
-  window.aanvankelijkData = Array.isArray(list) ? structuredClone(list) : [];
-  return window.aanvankelijkData;
+  try {
+    const list = await getAanvankelijklijst();
+    window.aanvankelijkData = Array.isArray(list) ? structuredClone(list) : [];
+    log(`Lesson data loaded (${window.aanvankelijkData.length}) from ${String(window.lessonDataSource || window.currentLessonMethod?.dataSource || DEFAULT_LESSON_DATA_URL)}`);
+    return window.aanvankelijkData;
+  } catch (err) {
+    const message = err?.message || String(err);
+    window.aanvankelijkData = [];
+    log(`Lesson data load failed: ${message}`);
+    throw err;
+  }
 }
 
 function getInjectedLessonData() {
@@ -2344,6 +2352,9 @@ async function setActiveLessonRecordByIndex(index) {
   const record = normalizedIndex >= 0 && normalizedIndex < list.length ? list[normalizedIndex] : null;
   window.currentRecord = record;
   window.currentRecordIndex = record ? normalizedIndex : -1;
+  log(record
+    ? `Active lesson record set: index=${normalizedIndex}, word=${String(record.word || '')}`
+    : `Active lesson record not found for index=${normalizedIndex} (count=${list.length})`);
   return record;
 }
 
@@ -2976,8 +2987,8 @@ async function executeChain(startBlock, generation) {
 
   while (current && !getRuntime().stopped && generation === runGeneration) {
     highlightBlock(current.id);
-
-    switch (current.type) {
+    try {
+      switch (current.type) {
       case 'bb_set_text': {
         const text = String(await evalValue(current.getInputTargetBlock('TEXT')) ?? '');
         runtime.text = text;
@@ -3475,6 +3486,11 @@ async function executeChain(startBlock, generation) {
       default:
         log('Skipped unsupported block: ' + current.type);
         break;
+      }
+    } catch (err) {
+      const message = err?.message || String(err);
+      log(`Block failed (${current.type}): ${message}`);
+      throw err;
     }
 
     current = current.getNextBlock();
