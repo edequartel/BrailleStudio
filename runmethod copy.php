@@ -197,33 +197,6 @@ $pagePayload = [
         <div id="brailleMonitorComponent" class="h-[100px] overflow-hidden"></div>
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-lg font-bold">Runner</div>
-          <button id="toggleRunnerBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="font-semibold">Lesson status</span>
-            <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-              <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-              <span id="lessonRunIndicatorText">Not running</span>
-            </span>
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
-          <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
-          <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
-        </div>
-        <div id="runnerPanel" class="hidden space-y-4">
-          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
-            <div class="font-semibold text-slate-900">Lesson return values</div>
-            <div id="lessonReturnValues" class="h-[180px] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
-          </div>
-        </div>
-      </section>
-
       <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Lessons</div>
@@ -232,9 +205,27 @@ $pagePayload = [
         </section>
 
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div class="text-lg font-bold">Steps</div>
+          <div class="text-lg font-bold">Runner</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="font-semibold">Lesson status</span>
+              <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                <span id="lessonRunIndicatorText">Not running</span>
+              </span>
+            </div>
+          </div>
           <div id="currentLessonInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
-          <div id="stepsPreview" class="flex-1 overflow-auto rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700"></div>
+          <div class="flex flex-wrap gap-2">
+            <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
+            <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
+            <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
+          </div>
+          <div id="stepsPreview" class="h-[240px] overflow-auto rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700"></div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
+            <div class="font-semibold text-slate-900">Lesson return values</div>
+            <div id="lessonReturnValues" class="h-[180px] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
+          </div>
         </section>
       </div>
 
@@ -274,14 +265,11 @@ $pagePayload = [
     const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
     const lessonReturnValues = document.getElementById('lessonReturnValues');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
-    const toggleRunnerBtn = document.getElementById('toggleRunnerBtn');
-    const runnerPanel = document.getElementById('runnerPanel');
     const stopRunBtn = document.getElementById('stopRunBtn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let isLessonRunning = false;
     let isDebugLogVisible = false;
-    let isRunnerVisible = false;
     let stopRequested = false;
     let brailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
@@ -371,12 +359,6 @@ $pagePayload = [
       toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hidden' : 'Unhidden';
     }
 
-    function renderRunnerVisibility() {
-      if (!runnerPanel || !toggleRunnerBtn) return;
-      runnerPanel.classList.toggle('hidden', !isRunnerVisible);
-      toggleRunnerBtn.textContent = isRunnerVisible ? 'Hide' : 'Unhide';
-    }
-
     function appendStatus(message, data = null) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
       const block = data != null
@@ -440,7 +422,6 @@ $pagePayload = [
         <div><strong>Lesson:</strong> ${lesson.title || lesson.id}</div>
         <div><strong>Word:</strong> ${lesson.basisWord || '-'}</div>
         <div><strong>Basisindex:</strong> ${lesson.basisIndex ?? -1}</div>
-        <div><strong>Steps:</strong> ${Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0}</div>
       `;
       const preview = (Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : []).map((step) => {
         const inputs = step.inputs || {};
@@ -448,18 +429,10 @@ $pagePayload = [
         if (inputs.text) parts.push(`text: ${inputs.text}`);
         if (inputs.word) parts.push(`word: ${inputs.word}`);
         if (Array.isArray(inputs.letters) && inputs.letters.length) parts.push(`letters: ${inputs.letters.join(', ')}`);
-        return {
-          id: step.id,
-          detail: parts.length ? parts.join(' | ') : ''
-        };
+        return `${step.id}${parts.length ? ` (${parts.join(' | ')})` : ''}`;
       });
       stepsPreview.innerHTML = preview.length
-        ? `<div class="space-y-2">${preview.map((item, index) => `
-            <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
-              <div class="text-sm font-semibold text-slate-900">${index + 1}. ${escapeHtml(item.id)}</div>
-              <div class="mt-1 text-xs text-slate-600">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
-            </div>
-          `).join('')}</div>`
+        ? `<ul class="list-disc pl-5">${preview.map((item) => `<li>${item}</li>`).join('')}</ul>`
         : 'No steps.';
       if (!isLessonRunning) {
         renderLessonReturnValues([]);
@@ -822,19 +795,12 @@ $pagePayload = [
     document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
     document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
-    if (toggleRunnerBtn) {
-      toggleRunnerBtn.addEventListener('click', () => {
-        isRunnerVisible = !isRunnerVisible;
-        renderRunnerVisibility();
-      });
-    }
 
     renderMethodInfo();
     renderLessonsList();
     renderCurrentLesson();
     setLessonRunningState(false, 'Not running');
     renderDebugLogVisibility();
-    renderRunnerVisibility();
     startBrailleMonitorSync();
     appendStatus('Runner ready.', {
       methodId: method.id || '',

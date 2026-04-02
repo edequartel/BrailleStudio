@@ -93,6 +93,49 @@
     ];
   };
 
+  javascriptGenerator.forBlock['list_shuffle'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    return [
+      `(() => {
+        const __list = Array.isArray(${listCode}) ? [...${listCode}] : [];
+        for (let __i = __list.length - 1; __i > 0; __i--) {
+          const __j = Math.floor(Math.random() * (__i + 1));
+          [__list[__i], __list[__j]] = [__list[__j], __list[__i]];
+        }
+        return __list;
+      })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['list_sort'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const order = q(block.getFieldValue('ORDER') || 'ASC');
+    return [
+      `(() => {
+        const __order = ${order};
+        const __list = Array.isArray(${listCode}) ? [...${listCode}] : [];
+        __list.sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' }));
+        return __order === 'DESC' ? __list.reverse() : __list;
+      })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['list_sort_by_length'] = function (block) {
+    const listCode = valueToCodeOr(block, 'LIST', '[]');
+    const order = q(block.getFieldValue('ORDER') || 'ASC');
+    return [
+      `(() => {
+        const __order = ${order};
+        const __list = Array.isArray(${listCode}) ? [...${listCode}] : [];
+        __list.sort((a, b) => Array.from(String(a ?? '')).length - Array.from(String(b ?? '')).length);
+        return __order === 'DESC' ? __list.reverse() : __list;
+      })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
   javascriptGenerator.forBlock['math_random_10'] = function (block) {
     const maxCode = valueToCodeOr(block, 'MAX', '10');
     return [`(() => { const max = Math.floor(Number(${maxCode}) || 0); return max <= 0 ? 0 : Math.floor(Math.random() * max); })()`, ORDER_ATOMIC];
@@ -124,6 +167,36 @@
 
   javascriptGenerator.forBlock['bb_current_braille_unicode'] = function () {
     return [`runtime.brailleUnicode`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['bb_letter_under_cursor'] = function () {
+    return [
+      `(() => { const text = String(runtime.text ?? ''); const chars = Array.from(text); const index = Math.max(0, Math.floor(Number(runtime.textCaret) || 0)); return chars[index] ?? ''; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['bb_word_under_cursor'] = function () {
+    return [
+      `(() => {
+        const text = String(runtime.text ?? '');
+        const chars = Array.from(text);
+        if (!chars.length) return '';
+        let index = Math.max(0, Math.floor(Number(runtime.textCaret) || 0));
+        if (index >= chars.length) index = chars.length - 1;
+        const isWordChar = (ch) => /[\\p{L}\\p{N}_-]/u.test(String(ch ?? ''));
+        if (!isWordChar(chars[index]) && index > 0 && isWordChar(chars[index - 1])) {
+          index -= 1;
+        }
+        if (!isWordChar(chars[index])) return '';
+        let start = index;
+        let end = index;
+        while (start > 0 && isWordChar(chars[start - 1])) start -= 1;
+        while (end < chars.length - 1 && isWordChar(chars[end + 1])) end += 1;
+        return chars.slice(start, end + 1).join('');
+      })()`,
+      ORDER_ATOMIC
+    ];
   };
 
   javascriptGenerator.forBlock['log_value'] = function (block) {

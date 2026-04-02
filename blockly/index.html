@@ -770,6 +770,7 @@
 <xml id="toolbox" style="display:none">
   <category name="Events" colour="#F59E0B">
     <block type="event_when_started"></block>
+    <block type="event_when_program_ended"></block>
     <block type="event_when_timer"></block>
     <block type="event_when_thumb_key"></block>
     <block type="event_when_any_thumb_key"></block>
@@ -780,8 +781,20 @@
   </category>
 
   <category name="BrailleBridge" colour="#2563EB">
-    <block type="bb_set_text"></block>
-    <block type="bb_append_text"></block>
+    <block type="bb_set_text">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="bb_append_text">
+      <value name="TEXT">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
     <block type="bb_send_key"></block>
     <block type="bb_move_caret">
       <value name="DELTA">
@@ -790,15 +803,35 @@
         </shadow>
       </value>
     </block>
-    <block type="bb_set_caret"></block>
-    <block type="bb_set_caret_from_cell"></block>
-    <block type="bb_cursor_routing"></block>
+    <block type="bb_set_caret">
+      <value name="INDEX">
+        <shadow type="math_number">
+          <field name="NUM">0</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="bb_set_caret_from_cell">
+      <value name="INDEX">
+        <shadow type="math_number">
+          <field name="NUM">0</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="bb_cursor_routing">
+      <value name="INDEX">
+        <shadow type="math_number">
+          <field name="NUM">0</field>
+        </shadow>
+      </value>
+    </block>
     <block type="bb_set_editor_mode"></block>
     <block type="bb_set_insert_mode"></block>
     <block type="bb_set_caret_visibility"></block>
     <block type="bb_get_braille_line"></block>
     <block type="bb_current_text"></block>
     <block type="bb_current_braille_unicode"></block>
+    <block type="bb_letter_under_cursor"></block>
+    <block type="bb_word_under_cursor"></block>
     <block type="bb_set_caret_to_begin"></block>
     <block type="bb_set_caret_to_end"></block>
   </category>
@@ -843,12 +876,18 @@
     <block type="instruction_get_info_by_id"></block>
     <block type="sound_play_folder_file">
       <value name="FILE">
-        <block type="variables_get">
-          <field name="VAR">text</field>
-        </block>
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
       </value>
     </block>
-    <block type="sound_play_url"></block>
+    <block type="sound_play_url">
+      <value name="URL">
+        <shadow type="text">
+          <field name="TEXT">https://www.tastenbraille.com/braillestudio/sounds/nl/letters/b.mp3</field>
+        </shadow>
+      </value>
+    </block>
     <block type="sound_pause"></block>
     <block type="sound_resume"></block>
     <block type="sound_stop"></block>
@@ -913,8 +952,20 @@
       </value>
     </block>
     <block type="list_pick_random"></block>
-    <block type="audio_item_get_word"></block>
-    <block type="audio_item_get_url"></block>
+    <block type="audio_item_get_word">
+      <value name="ITEM">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="audio_item_get_url">
+      <value name="ITEM">
+        <shadow type="text">
+          <field name="TEXT">bal</field>
+        </shadow>
+      </value>
+    </block>
   </category>
 
   <category name="Lesson" colour="#14B8A6">
@@ -1016,6 +1067,9 @@
     </block>
     <block type="list_filter_phoneme_category"></block>
     <block type="list_filter_phoneme_categories"></block>
+    <block type="list_shuffle"></block>
+    <block type="list_sort"></block>
+    <block type="list_sort_by_length"></block>
     <block type="list_get_item"></block>
     <block type="list_set_item"></block>
     <block type="list_nrof_items"></block>

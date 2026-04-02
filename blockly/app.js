@@ -49,6 +49,7 @@ function createInitialRuntimeState() {
     lineId: 0,
     lockInjectedLessonRecord: false,
     stepCompletion: null,
+    programEndedGeneration: -1,
     procedures: new Map()
   };
 }
@@ -1401,6 +1402,16 @@ function extractChord(msg) {
   return '1';
 }
 
+function normalizeChordValue(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .split(/[^0-9]+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+    .join('');
+}
+
 async function runStartedProgram(generation) {
   const rt = getRuntime();
   if (!workspace) {
@@ -1414,6 +1425,9 @@ async function runStartedProgram(generation) {
     log('Start warning: no "when started" block found');
   }
   await dispatchEvent({ type: 'started' }, generation);
+  if (generation === runGeneration && !rt.stopped) {
+    await dispatchProgramEnded(generation, 'completed');
+  }
   sendWs({ type: 'getBrailleLine' });
 }
 
@@ -1435,6 +1449,7 @@ function bindWsControls() {
 async function onRunClicked() {
   stopAllTimers();
   getRuntime().stopped = false;
+  getRuntime().programEndedGeneration = -1;
   runGeneration++;
   const generation = runGeneration;
   renderStatus();
@@ -1453,6 +1468,11 @@ async function onRunClicked() {
 }
 
 function onStopClicked() {
+  const generation = runGeneration;
+  const rt = getRuntime();
+  if (!rt.stopped) {
+    void dispatchProgramEnded(generation, 'stopped');
+  }
   getRuntime().stopped = true;
   runGeneration++;
   pendingStart = false;
@@ -3395,10 +3415,13 @@ async function executeChain(startBlock, generation) {
   }
 }
 
-function eventMatches(block, event) {
+async function eventMatches(block, event) {
   switch (block.type) {
     case 'event_when_started':
       return event.type === 'started';
+
+    case 'event_when_program_ended':
+      return event.type === 'programEnded';
 
     case 'event_when_timer':
       return event.type === 'timer' &&
@@ -3411,16 +3434,23 @@ function eventMatches(block, event) {
     case 'event_when_any_thumb_key':
       return event.type === 'thumbKey';
 
-    case 'event_when_cursor_routing':
-      return event.type === 'cursorRouting' &&
-        Number(block.getFieldValue('CELL')) === Number(event.cell);
+    case 'event_when_cursor_routing': {
+      if (event.type !== 'cursorRouting') return false;
+      const valueBlock = block.getInputTargetBlock('CELL');
+      const expectedCell = valueBlock ? Number(await evalValue(valueBlock)) : 0;
+      return expectedCell === Number(event.cell);
+    }
 
     case 'event_when_cursor_position_changed':
       return event.type === 'cursorPositionChanged';
 
-    case 'event_when_chord':
-      return event.type === 'chord' &&
-        String(block.getFieldValue('DOTS')) === String(event.dots);
+    case 'event_when_chord': {
+      if (event.type !== 'chord') return false;
+      const valueBlock = block.getInputTargetBlock('DOTS');
+      const expectedDots = normalizeChordValue(valueBlock ? await evalValue(valueBlock) : '1');
+      const actualDots = normalizeChordValue(event.dots);
+      return expectedDots === actualDots;
+    }
 
     case 'event_when_editor_key':
       return event.type === 'editorKey' &&
@@ -3428,6 +3458,25 @@ function eventMatches(block, event) {
 
     default:
       return false;
+  }
+}
+
+async function dispatchProgramEnded(generation = runGeneration, reason = 'completed') {
+  const rt = getRuntime();
+  if (!workspace) return;
+  if (rt.programEndedGeneration === generation) return;
+  rt.programEndedGeneration = generation;
+
+  const event = { type: 'programEnded', reason: String(reason || 'completed') };
+  log('Event: ' + JSON.stringify(event));
+
+  const topBlocks = workspace.getTopBlocks(true);
+  for (const block of topBlocks) {
+    if (generation !== runGeneration && reason !== 'stopped') return;
+    if (await eventMatches(block, event)) {
+      const first = block.getInputTargetBlock('DO');
+      if (first) await executeChain(first, generation);
+    }
   }
 }
 
@@ -3719,6 +3768,7 @@ window.BrailleBlocklyApp = {
     stopAllTimers();
     stopSound();
     getRuntime().stopped = false;
+    getRuntime().programEndedGeneration = -1;
     getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
@@ -3745,6 +3795,9 @@ window.BrailleBlocklyApp = {
     }
     try {
       await dispatchEvent({ type: 'started' }, generation);
+      if (generation === runGeneration && !getRuntime().stopped) {
+        await dispatchProgramEnded(generation, 'completed');
+      }
       return {
         generation,
         startedBlockCount: startedBlocks.length,
@@ -3778,6 +3831,7 @@ window.BrailleBlocklyApp = {
     stopAllTimers();
     stopSound();
     getRuntime().stopped = false;
+    getRuntime().programEndedGeneration = -1;
     getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
@@ -3804,6 +3858,9 @@ window.BrailleBlocklyApp = {
     }
     try {
       await dispatchEvent({ type: 'started' }, generation);
+      if (generation === runGeneration && !getRuntime().stopped) {
+        await dispatchProgramEnded(generation, 'completed');
+      }
       return {
         generation,
         startedBlockCount: startedBlocks.length,
@@ -3820,6 +3877,7 @@ window.BrailleBlocklyApp = {
   async runHeadlessProgram() {
     stopAllTimers();
     getRuntime().stopped = false;
+    getRuntime().programEndedGeneration = -1;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
@@ -3829,6 +3887,9 @@ window.BrailleBlocklyApp = {
     }
     refreshProcedureRegistry(workspace);
     await dispatchEvent({ type: 'started' }, generation);
+    if (generation === runGeneration && !getRuntime().stopped) {
+      await dispatchProgramEnded(generation, 'completed');
+    }
     return generation;
   },
   stopProgram() {

@@ -14,6 +14,28 @@
     };
   });
 
+  function attachDefaultShadow(block, inputName, shadowType, fieldValues = {}) {
+    setTimeout(() => {
+      try {
+        if (!block || block.isDisposed?.()) return;
+        const workspace = block.workspace;
+        const input = block.getInput(inputName);
+        const connection = input?.connection;
+        if (!workspace || !connection || connection.targetBlock()) return;
+        const fieldsXml = Object.entries(fieldValues)
+          .map(([name, value]) => `<field name="${String(name)}">${String(value)}</field>`)
+          .join('');
+        const shadowXml = Blockly.utils.xml.textToDom(`<shadow type="${shadowType}">${fieldsXml}</shadow>`);
+        const shadowBlock = Blockly.Xml.domToBlock(shadowXml, workspace);
+        if (!shadowBlock) return;
+        shadowBlock.setShadow(true);
+        if (shadowBlock.outputConnection) {
+          connection.connect(shadowBlock.outputConnection);
+        }
+      } catch {}
+    }, 0);
+  }
+
   const INSTRUCTIONS_API_LIST_URLS = [
     'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php?status=active'
   ];
@@ -218,6 +240,16 @@
     }
   };
 
+  Blockly.Blocks['event_when_program_ended'] = {
+    init() {
+      this.appendDummyInput().appendField('when program ended');
+      this.appendStatementInput('DO').appendField('do');
+      this.setColour('#F59E0B');
+      this.setPreviousStatement(false);
+      this.setNextStatement(false);
+    }
+  };
+
   Blockly.Blocks['event_when_timer'] = {
     init() {
       this.appendDummyInput()
@@ -261,13 +293,15 @@
 
   Blockly.Blocks['event_when_cursor_routing'] = {
     init() {
-      this.appendDummyInput()
-        .appendField('when cursor routing cell')
-        .appendField(new Blockly.FieldNumber(5, 0, 40, 1), 'CELL');
+      this.appendValueInput('CELL')
+        .setCheck('Number')
+        .appendField('when cursor routing cell');
       this.appendStatementInput('DO').appendField('do');
+      this.setInputsInline(true);
       this.setColour('#F59E0B');
       this.setPreviousStatement(false);
       this.setNextStatement(false);
+      attachDefaultShadow(this, 'CELL', 'math_number', { NUM: 0 });
     }
   };
 
@@ -283,14 +317,15 @@
 
   Blockly.Blocks['event_when_chord'] = {
     init() {
-      this.appendDummyInput()
+      this.appendValueInput('DOTS')
         .appendField('when chord')
-        .appendField(new Blockly.FieldTextInput('1'), 'DOTS')
         .appendField('received');
       this.appendStatementInput('DO').appendField('do');
+      this.setInputsInline(true);
       this.setColour('#F59E0B');
       this.setPreviousStatement(false);
       this.setNextStatement(false);
+      attachDefaultShadow(this, 'DOTS', 'text', { TEXT: '1,2,3,7' });
     }
   };
 
@@ -459,6 +494,22 @@
   Blockly.Blocks['bb_current_braille_unicode'] = {
     init() {
       this.appendDummyInput().appendField('current braille unicode');
+      this.setOutput(true);
+      this.setColour('#2563EB');
+    }
+  };
+
+  Blockly.Blocks['bb_letter_under_cursor'] = {
+    init() {
+      this.appendDummyInput().appendField('letter under cursor');
+      this.setOutput(true);
+      this.setColour('#2563EB');
+    }
+  };
+
+  Blockly.Blocks['bb_word_under_cursor'] = {
+    init() {
+      this.appendDummyInput().appendField('word under cursor');
       this.setOutput(true);
       this.setColour('#2563EB');
     }
@@ -967,6 +1018,40 @@
       this.appendDummyInput()
         .appendField('vierteken')
         .appendField(new Blockly.FieldCheckbox('FALSE'), 'VIERTEKENKLANK');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_shuffle'] = {
+    init() {
+      this.appendValueInput('LIST').appendField('shuffle list');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_sort'] = {
+    init() {
+      this.appendValueInput('LIST')
+        .appendField('sort list')
+        .appendField(new Blockly.FieldDropdown([
+          ['ascending', 'ASC'],
+          ['descending', 'DESC']
+        ]), 'ORDER');
+      this.setOutput(true);
+      this.setColour('#F97316');
+    }
+  };
+
+  Blockly.Blocks['list_sort_by_length'] = {
+    init() {
+      this.appendValueInput('LIST')
+        .appendField('sort list by length')
+        .appendField(new Blockly.FieldDropdown([
+          ['short to long', 'ASC'],
+          ['long to short', 'DESC']
+        ]), 'ORDER');
       this.setOutput(true);
       this.setColour('#F97316');
     }
