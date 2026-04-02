@@ -2100,29 +2100,58 @@ function extractWorkspaceMetadata(xmlDom, sourceName = null) {
   return { title, description };
 }
 
+function buildLessonDataCandidates(source) {
+  const normalizedSource = String(source || '').trim();
+  const fileName = normalizedSource.split('/').pop() || 'aanvankelijklijst.json';
+  const candidates = [
+    normalizedSource,
+    `../klanken/${fileName}`,
+    `./klanken/${fileName}`,
+    `/braillestudio/klanken/${fileName}`,
+    `/klanken/${fileName}`,
+    `https://www.tastenbraille.com/braillestudio/klanken/${fileName}`
+  ].filter(Boolean);
+
+  return [...new Set(candidates)];
+}
+
 async function getAanvankelijklijst() {
   const source = String(
     window.currentLessonMethod?.dataSource ||
     window.lessonDataSource ||
-    DEFAULT_LESSON_DATA_URL
+  DEFAULT_LESSON_DATA_URL
   ).trim() || DEFAULT_LESSON_DATA_URL;
 
-  if (lessonDataCache.has(source)) {
-    const cached = lessonDataCache.get(source);
+  const candidates = buildLessonDataCandidates(source);
+  const cacheKey = candidates[0] || source;
+
+  if (lessonDataCache.has(cacheKey)) {
+    const cached = lessonDataCache.get(cacheKey);
     return Array.isArray(cached) ? cached : [];
   }
 
-  const res = await fetch(source, { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  let lastError = null;
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(candidate, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      const list = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.items) ? data.items : []);
+      lessonDataCache.set(cacheKey, list);
+      window.lessonDataSource = candidate;
+      return list;
+    } catch (err) {
+      const message = err?.message || String(err);
+      log(`Lesson data source failed: ${candidate} (${message})`);
+      lastError = new Error(`${candidate}: ${message}`);
+    }
   }
 
-  const data = await res.json();
-  const list = Array.isArray(data)
-    ? data
-    : (Array.isArray(data?.items) ? data.items : []);
-  lessonDataCache.set(source, list);
-  return list;
+  throw lastError || new Error('No lesson data source responded');
 }
 
 async function getFonemenNlStandaard() {
