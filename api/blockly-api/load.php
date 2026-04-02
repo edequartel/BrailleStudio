@@ -32,4 +32,19 @@ if (!file_exists($filePath)) {
     exit;
 }
 
-readfile($filePath);
+$content = json_decode(file_get_contents($filePath), true);
+
+if (!is_array($content)) {
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Invalid stored JSON']);
+    exit;
+}
+
+$meta = isset($content['meta']) && is_array($content['meta']) ? $content['meta'] : [];
+$content['meta'] = [
+    'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+    'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+    'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+];
+
+echo json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

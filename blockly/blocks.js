@@ -36,6 +36,20 @@
     }, 0);
   }
 
+  function getDefaultLessonPlaceholders() {
+    const defaults = window.BrailleBlocklyDefaultLessonPlaceholders;
+    if (!defaults || typeof defaults !== 'object') {
+      return {
+        word: 'bal',
+        soundsCsv: 'b,a,l'
+      };
+    }
+    return {
+      word: String(defaults.word || 'bal'),
+      soundsCsv: String(defaults.soundsCsv || 'b,a,l')
+    };
+  }
+
   const INSTRUCTIONS_API_LIST_URLS = [
     'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php?status=active'
   ];
@@ -1164,6 +1178,22 @@
     }
   };
 
+  Blockly.Blocks['lesson_get_active_record_index'] = {
+    init() {
+      this.appendDummyInput().appendField('active lesson record index');
+      this.setOutput(true, 'Number');
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_get_active_word'] = {
+    init() {
+      this.appendDummyInput().appendField('active lesson word');
+      this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
   Blockly.Blocks['lesson_get_active_field'] = {
     init() {
       this.appendDummyInput()
@@ -1178,6 +1208,34 @@
           ['known sound categories', 'knownSoundCategories']
         ]), 'FIELD');
       this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_get_active_sounds'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('active lesson')
+        .appendField(new Blockly.FieldDropdown([
+          ['sounds', 'ALL'],
+          ['new sounds', 'NEW'],
+          ['known sounds', 'KNOWN']
+        ]), 'SOURCE');
+      this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_get_active_sound_count'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('active lesson')
+        .appendField(new Blockly.FieldDropdown([
+          ['sound count', 'ALL'],
+          ['new sound count', 'NEW'],
+          ['known sound count', 'KNOWN']
+        ]), 'SOURCE');
+      this.setOutput(true, 'Number');
       this.setColour('#14B8A6');
     }
   };
@@ -1200,6 +1258,28 @@
           ['drietekenklanken', 'drietekenklanken']
         ]), 'CATEGORY');
       this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_get_active_category_count'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('active lesson')
+        .appendField(new Blockly.FieldDropdown([
+          ['categories', 'categories'],
+          ['new sound categories', 'newSoundCategories'],
+          ['known sound categories', 'knownSoundCategories']
+        ]), 'SOURCE')
+        .appendField(new Blockly.FieldDropdown([
+          ['korte klinkers count', 'korteKlinkers'],
+          ['lange klinkers count', 'langeKlinkers'],
+          ['tweetekenklanken count', 'tweetekenklanken'],
+          ['medeklinkers count', 'medeklinkers'],
+          ['medeklinkerclusters count', 'medeklinkerclusters'],
+          ['drietekenklanken count', 'drietekenklanken']
+        ]), 'CATEGORY');
+      this.setOutput(true, 'Number');
       this.setColour('#14B8A6');
     }
   };
@@ -1354,6 +1434,7 @@
       this.appendValueInput('WORD').appendField('sounds of word');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'WORD', 'text', { TEXT: getDefaultLessonPlaceholders().word });
     }
   };
 
@@ -1362,6 +1443,7 @@
       this.appendValueInput('WORD').appendField('new sounds of word');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'WORD', 'text', { TEXT: getDefaultLessonPlaceholders().word });
     }
   };
 
@@ -1370,6 +1452,7 @@
       this.appendValueInput('WORD').appendField('known sounds of word');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'WORD', 'text', { TEXT: getDefaultLessonPlaceholders().word });
     }
   };
 
@@ -1432,6 +1515,7 @@
       this.appendValueInput('ITEM').appendField('word of phonemes item');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'ITEM', 'lesson_get_active_record');
     }
   };
 
@@ -1446,6 +1530,7 @@
         ]), 'SOURCE');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'ITEM', 'lesson_get_active_record');
     }
   };
 
@@ -1468,6 +1553,7 @@
         ]), 'CATEGORY');
       this.setOutput(true);
       this.setColour('#14B8A6');
+      attachDefaultShadow(this, 'ITEM', 'lesson_get_active_record');
     }
   };
 

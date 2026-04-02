@@ -69,12 +69,19 @@ if (file_exists($filePath) && !$overwrite) {
     exit;
 }
 
+$meta = is_array($meta) ? $meta : [];
+$normalizedMeta = [
+    'title' => isset($meta['title']) ? trim((string)$meta['title']) : $title,
+    'description' => isset($meta['description']) ? trim((string)$meta['description']) : '',
+    'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+];
+
 $payload = [
     'id' => $safeId,
     'title' => $title,
     'updatedAt' => gmdate('c'),
     'blockly' => $blockly,
-    'meta' => is_array($meta) ? $meta : [],
+    'meta' => $normalizedMeta,
 ];
 
 $written = file_put_contents(

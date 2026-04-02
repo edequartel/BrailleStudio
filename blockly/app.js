@@ -405,6 +405,10 @@ const SOUND_FOLDER_URLS = {
   ux: 'https://www.tastenbraille.com/braillestudio/sounds/ux/'
 };
 const lessonDataCache = new Map();
+window.BrailleBlocklyDefaultLessonPlaceholders = window.BrailleBlocklyDefaultLessonPlaceholders || {
+  word: 'bal',
+  soundsCsv: 'b,a,l'
+};
 let fonemenNlJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
@@ -1833,6 +1837,28 @@ function refreshProcedureRegistry(source = workspace) {
   registerProcedures(source, runtime);
 }
 
+async function preloadLessonToolboxPlaceholders() {
+  try {
+    const res = await fetch(DEFAULT_LESSON_DATA_URL, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    const list = Array.isArray(data)
+      ? data
+      : (Array.isArray(data?.items) ? data.items : []);
+    const first = list.find(item => item && typeof item === 'object') || null;
+    if (!first) return;
+    const word = String(first.word || '').trim() || 'bal';
+    const sounds = Array.isArray(first.sounds) ? first.sounds.map(item => String(item ?? '').trim()).filter(Boolean) : [];
+    window.BrailleBlocklyDefaultLessonPlaceholders = {
+      word,
+      soundsCsv: sounds.length ? sounds.join(',') : 'b,a,l'
+    };
+  } catch {}
+}
+
+preloadLessonToolboxPlaceholders();
 ensureProcedureToolboxCategory();
 verifyProcedureBlocksAvailable();
 
@@ -2448,9 +2474,27 @@ async function evalValue(block) {
     case 'lesson_get_active_record':
       return getActiveLessonRecord();
 
+    case 'lesson_get_active_record_index':
+      return Number.isInteger(window.currentRecordIndex) ? window.currentRecordIndex : -1;
+
+    case 'lesson_get_active_word': {
+      const record = getActiveLessonRecord();
+      return String(record?.word ?? '');
+    }
+
     case 'lesson_get_active_field': {
       const record = getActiveLessonRecord();
       return getLessonFieldValue(record, block.getFieldValue('FIELD'));
+    }
+
+    case 'lesson_get_active_sounds': {
+      const record = getActiveLessonRecord();
+      return getKlankenSourceValue(record, block.getFieldValue('SOURCE'));
+    }
+
+    case 'lesson_get_active_sound_count': {
+      const record = getActiveLessonRecord();
+      return getKlankenSourceValue(record, block.getFieldValue('SOURCE')).length;
     }
 
     case 'lesson_get_active_category': {
@@ -2460,6 +2504,15 @@ async function evalValue(block) {
         block.getFieldValue('SOURCE'),
         block.getFieldValue('CATEGORY')
       );
+    }
+
+    case 'lesson_get_active_category_count': {
+      const record = getActiveLessonRecord();
+      return getLessonCategoryArray(
+        record,
+        block.getFieldValue('SOURCE'),
+        block.getFieldValue('CATEGORY')
+      ).length;
     }
 
     case 'lesson_get_step_input': {

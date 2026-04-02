@@ -289,10 +289,34 @@
     return [`((window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null)`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['lesson_get_active_record_index'] = function () {
+    return [`(Number.isInteger(window.currentRecordIndex) ? window.currentRecordIndex : -1)`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_word'] = function () {
+    return [`(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; return String(record?.word ?? ''); })()`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['lesson_get_active_field'] = function (block) {
     const field = q(block.getFieldValue('FIELD') || 'word');
     return [
       `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const key = ${field}; const value = record ? record[key] : undefined; if (value != null) return value; if (key === 'word') return ''; if (key === 'categories' || key === 'newSoundCategories' || key === 'knownSoundCategories') return {}; return []; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_sounds'] = function (block) {
+    const source = q(block.getFieldValue('SOURCE') || 'ALL');
+    return [
+      `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const src = ${source}; if (!record) return []; if (src === 'NEW') return Array.isArray(record.newSounds) ? record.newSounds : []; if (src === 'KNOWN') return Array.isArray(record.knownSounds) ? record.knownSounds : []; return Array.isArray(record.sounds) ? record.sounds : []; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_sound_count'] = function (block) {
+    const source = q(block.getFieldValue('SOURCE') || 'ALL');
+    return [
+      `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const src = ${source}; if (!record) return 0; const value = src === 'NEW' ? record.newSounds : src === 'KNOWN' ? record.knownSounds : record.sounds; return Array.isArray(value) ? value.length : 0; })()`,
       ORDER_ATOMIC
     ];
   };
@@ -302,6 +326,15 @@
     const category = q(block.getFieldValue('CATEGORY') || 'medeklinkers');
     return [
       `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const root = record && typeof record[${source}] === 'object' && record[${source}] ? record[${source}] : null; const value = root ? root[${category}] : undefined; return Array.isArray(value) ? value : []; })()`,
+      ORDER_ATOMIC
+    ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_active_category_count'] = function (block) {
+    const source = q(block.getFieldValue('SOURCE') || 'categories');
+    const category = q(block.getFieldValue('CATEGORY') || 'medeklinkers');
+    return [
+      `(() => { const record = (window.currentRecord && typeof window.currentRecord === 'object') ? window.currentRecord : null; const root = record && typeof record[${source}] === 'object' && record[${source}] ? record[${source}] : null; const value = root ? root[${category}] : undefined; return Array.isArray(value) ? value.length : 0; })()`,
       ORDER_ATOMIC
     ];
   };

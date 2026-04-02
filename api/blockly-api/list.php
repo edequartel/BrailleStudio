@@ -25,13 +25,18 @@ foreach ($files as $file) {
         continue;
     }
 
-    $meta = array_key_exists('meta', $content) ? $content['meta'] : [];
+    $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
+    $normalizedMeta = [
+        'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+        'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+        'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+    ];
 
     $items[] = [
         'id' => $content['id'] ?? pathinfo($file, PATHINFO_FILENAME),
         'title' => $content['title'] ?? '',
         'updatedAt' => $content['updatedAt'] ?? '',
-        'meta' => $meta,
+        'meta' => $normalizedMeta,
         'filename' => basename($file),
     ];
 }

@@ -514,6 +514,23 @@
       padding: 8px 10px;
     }
 
+    .meta-input--compact {
+      min-height: 32px;
+      height: 32px;
+      padding: 5px 8px;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .meta-textarea--compact {
+      min-height: 48px;
+      max-height: calc(10 * 1.2em + 16px);
+      padding: 6px 8px;
+      font-size: 11px;
+      line-height: 1.2;
+      resize: vertical;
+    }
+
     .meta-textarea {
       min-height: 90px;
       resize: vertical;
@@ -713,6 +730,7 @@
     <div id="sidebar">
       <div class="card">
         <h3>Status</h3>
+        <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <div id="statusBox" class="mono"></div>
       </div>
 
@@ -722,11 +740,6 @@
         <div class="row" style="margin-top:8px;">
           <button id="clearLogBtn" class="btn" type="button">Clear Log</button>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>Description</h3>
-        <textarea id="scriptMetaDescription" class="meta-textarea" placeholder="What this script does"></textarea>
       </div>
 
       <div class="card">
@@ -988,17 +1001,25 @@
     <block type="lesson_get_data"></block>
     <block type="lesson_get_record_count"></block>
     <block type="lesson_get_active_record"></block>
+    <block type="lesson_get_active_record_index"></block>
+    <block type="lesson_get_active_word"></block>
     <block type="lesson_get_active_field"></block>
+    <block type="lesson_get_active_sounds"></block>
+    <block type="lesson_get_active_sound_count"></block>
     <block type="lesson_get_active_category"></block>
+    <block type="lesson_get_active_category_count"></block>
+    <block type="klanken_word_get_sounds"></block>
+    <block type="klanken_word_get_new_sounds"></block>
+    <block type="klanken_word_get_known_sounds"></block>
+    <block type="klanken_item_get_word"></block>
+    <block type="klanken_item_get_sounds"></block>
+    <block type="klanken_item_get_category"></block>
     <block type="lesson_get_step_input"></block>
     <block type="lesson_complete_step"></block>
   </category>
 
   <category name="Phonemes" colour="#14B8A6">
     <block type="klanken_get_aanvankelijklijst"></block>
-    <block type="klanken_word_get_sounds"></block>
-    <block type="klanken_word_get_new_sounds"></block>
-    <block type="klanken_word_get_known_sounds"></block>
     <block type="klanken_split_word_phonemes_nl">
       <value name="WORD">
         <shadow type="text">
@@ -1032,9 +1053,6 @@
         </shadow>
       </value>
     </block>
-    <block type="klanken_item_get_word"></block>
-    <block type="klanken_item_get_sounds"></block>
-    <block type="klanken_item_get_category"></block>
   </category>
 
   <category name="Logic" colour="#16A34A">
