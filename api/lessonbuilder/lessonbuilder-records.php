@@ -137,21 +137,19 @@ declare(strict_types=1);
       const basisIndex = Number(index);
       const item = basisItems[basisIndex];
       if (!item) return;
+      const lesson = getLessonForBasis(basisIndex) || buildDraftLessonForBasis(basisIndex);
       state = shared.updateState({
         basisIndex,
         basisWord: shared.getBasisWord(item, basisIndex),
         basisRecord: item,
-        lessonId: ''
-      });
-      renderBasisList();
-      updateRecordSummary();
-      const lesson = getLessonForBasis(basisIndex) || buildDraftLessonForBasis(basisIndex);
-      state = shared.updateState({
         lessonId: lesson?.id || '',
         lessonTitle: lesson?.title || '',
         lessonNumber: lesson?.lessonNumber || 1,
-        lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex)
+        lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex),
+        stepConfigs: shared.normalizeStepConfigs(lesson?.stepConfigs || lesson?.meta?.stepConfigs || [])
       });
+      renderBasisList();
+      updateRecordSummary();
       setStatus(`Basisrecord gekozen: ${shared.getBasisWord(item, basisIndex)}`);
     }
 
@@ -209,7 +207,8 @@ declare(strict_types=1);
               lessonId: lesson.id || '',
               lessonTitle: lesson.title || '',
               lessonNumber: lesson.lessonNumber || 1,
-              lessonWord: lesson.basisWord || ''
+              lessonWord: lesson.basisWord || '',
+              stepConfigs: shared.normalizeStepConfigs(lesson.stepConfigs || lesson?.meta?.stepConfigs || [])
             });
           }
         } else {

@@ -448,11 +448,30 @@ declare(strict_types=1);
         const basisItem = basisIndex >= 0 ? basisItems[basisIndex] : null;
         if (!state.lessonId && method.id && basisItem) {
           const lessonNumber = Number(state.lessonNumber || 1);
-        state = shared.updateState({
-          lessonId: shared.buildLessonIdFromBasis(method.id, basisIndex, basisItem, lessonNumber),
-          lessonTitle: shared.buildLessonTitleFromBasis(basisItem, lessonNumber, basisIndex),
-          lessonWord: shared.getBasisWord(basisItem, basisIndex)
+          state = shared.updateState({
+            lessonId: shared.buildLessonIdFromBasis(method.id, basisIndex, basisItem, lessonNumber),
+            lessonTitle: shared.buildLessonTitleFromBasis(basisItem, lessonNumber, basisIndex),
+            lessonWord: shared.getBasisWord(basisItem, basisIndex),
+            stepConfigs: []
           });
+        }
+
+        if (state.lessonId) {
+          try {
+            const loadedLesson = await shared.loadLesson(state.lessonId);
+            state = shared.updateState({
+              lessonId: loadedLesson.id || state.lessonId,
+              lessonTitle: loadedLesson.title || state.lessonTitle || '',
+              lessonNumber: loadedLesson.lessonNumber || state.lessonNumber || 1,
+              lessonWord: loadedLesson.basisWord || loadedLesson.word || state.lessonWord || state.basisWord || '',
+              stepConfigs: shared.normalizeStepConfigs(loadedLesson.stepConfigs || loadedLesson?.meta?.stepConfigs || [])
+            });
+          } catch (err) {
+            appendStatus('Lesson load fallback gebruikt.', {
+              lessonId: state.lessonId,
+              error: err.message || String(err)
+            });
+          }
         }
 
         lessonIdInput.value = state.lessonId || '';
