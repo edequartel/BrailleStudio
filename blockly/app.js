@@ -401,7 +401,8 @@ const SOUND_FOLDER_URLS = {
   instructions: 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',
   feedback: 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',
   story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
-  general: 'https://www.tastenbraille.com/braillestudio/sounds/general/'
+  general: 'https://www.tastenbraille.com/braillestudio/sounds/general/',
+  ux: 'https://www.tastenbraille.com/braillestudio/sounds/ux/'
 };
 const lessonDataCache = new Map();
 let fonemenNlJsonCache = null;
@@ -1027,6 +1028,7 @@ function getSoundFolderFromBlockType(type) {
     case 'sound_play_feedback_file': return 'feedback';
     case 'sound_play_story_file': return 'story';
     case 'sound_play_general_file': return 'general';
+    case 'sound_play_ux_file': return 'ux';
     default: return '';
   }
 }
@@ -1151,7 +1153,7 @@ async function playSound(input) {
   };
   runtime.lastSound = url;
   renderStatus();
-  log('Sound play: ' + url);
+  log('Audio URL: ' + url);
   try {
     await audio.play();
     await playbackDone;
@@ -3039,10 +3041,21 @@ async function executeChain(startBlock, generation) {
       case 'sound_play_instructions_file':
       case 'sound_play_feedback_file':
       case 'sound_play_story_file':
-      case 'sound_play_general_file': {
+      case 'sound_play_general_file':
+      case 'sound_play_ux_file': {
         const folder = getSoundFolderFromBlockType(current.type);
         const file = await evalValue(current.getInputTargetBlock('FILE'));
         await playSound(resolveFolderSoundUrl(folder, file));
+        break;
+      }
+
+      case 'sound_play_ux_success': {
+        await playSound(resolveFolderSoundUrl('ux', 'success'));
+        break;
+      }
+
+      case 'sound_play_ux_failure': {
+        await playSound(resolveFolderSoundUrl('ux', 'failure'));
         break;
       }
 
@@ -3512,7 +3525,7 @@ async function dispatchEvent(event, generation = runGeneration) {
   const topBlocks = workspace.getTopBlocks(true);
   for (const block of topBlocks) {
     if (generation !== runGeneration || getRuntime().stopped) return;
-    if (eventMatches(block, event)) {
+    if (await eventMatches(block, event)) {
       const first = block.getInputTargetBlock('DO');
       if (first) await executeChain(first, generation);
     }

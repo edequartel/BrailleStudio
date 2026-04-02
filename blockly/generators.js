@@ -559,6 +559,23 @@
   javascriptGenerator.forBlock['sound_play_feedback_file'] = soundFolderPlayGenerator('feedback');
   javascriptGenerator.forBlock['sound_play_story_file'] = soundFolderPlayGenerator('story');
   javascriptGenerator.forBlock['sound_play_general_file'] = soundFolderPlayGenerator('general');
+  javascriptGenerator.forBlock['sound_play_ux_file'] = function (block) {
+    const file = valueToCodeOr(block, 'FILE', "'bounce'");
+    const code =
+      `await BrailleStudioAPI.playUrl((() => { ` +
+      `const file = ${file}; ` +
+      `const base = 'https://www.tastenbraille.com/braillestudio/sounds/ux/'; ` +
+      `const name = String(file).toLowerCase().endsWith('.mp3') ? String(file) : String(file) + '.mp3'; ` +
+      `return /^https?:\\/\\//i.test(String(file)) ? String(file) : base + encodeURIComponent(name); ` +
+      `})())`;
+    return `${code};\n`;
+  };
+  javascriptGenerator.forBlock['sound_play_ux_success'] = function () {
+    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/ux/success.mp3');\n`;
+  };
+  javascriptGenerator.forBlock['sound_play_ux_failure'] = function () {
+    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/ux/failure.mp3');\n`;
+  };
   javascriptGenerator.forBlock['sound_play_instruction_by_id'] = function (block) {
     const instructionId = q(block.getFieldValue('INSTRUCTION_ID') || '');
     return `await BrailleStudioAPI.playInstructionById(${instructionId});\n`;

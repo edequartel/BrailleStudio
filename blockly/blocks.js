@@ -769,6 +769,33 @@
     }
   };
 
+  Blockly.Blocks['sound_play_ux_file'] = {
+    init() {
+      this.appendValueInput('FILE').appendField('play ux file');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_ux_success'] = {
+    init() {
+      this.appendDummyInput().appendField('play ux success');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
+  Blockly.Blocks['sound_play_ux_failure'] = {
+    init() {
+      this.appendDummyInput().appendField('play ux failure');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
   Blockly.Blocks['sound_play_url'] = {
     init() {
       this.appendValueInput('URL').appendField('play sound url');
