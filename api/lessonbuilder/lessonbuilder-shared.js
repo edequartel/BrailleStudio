@@ -266,6 +266,7 @@
       id: String(state.methodId || '').trim(),
       title: String(state.methodTitle || '').trim(),
       description: String(state.methodDescription || '').trim(),
+      imageUrl: String(state.methodImageUrl || '').trim(),
       basisFile,
       dataSource: resolveMethodDataSource(String(state.methodDataSource || '').trim(), String(state.methodId || '').trim(), basisFile)
     };

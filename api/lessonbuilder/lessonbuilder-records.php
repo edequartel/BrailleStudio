@@ -58,6 +58,8 @@ declare(strict_types=1);
         <div><strong>Title:</strong> ${method.title || '-'}</div>
         <div><strong>Basisbestand:</strong> ${method.basisFile || '-'}</div>
         <div><strong>Data source:</strong> ${method.dataSource || '-'}</div>
+        <div><strong>Image:</strong> ${method.imageUrl || '-'}</div>
+        ${method.imageUrl ? `<div class="mt-3"><img src="${method.imageUrl}" alt="Method image" class="max-h-32 rounded-lg border border-slate-200 bg-white object-contain"></div>` : ''}
       `;
     }
 

@@ -56,6 +56,12 @@ declare(strict_types=1);
           <input id="methodDescriptionInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="Woordenlijst voor aanvankelijk lezen">
         </div>
 
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodImageUrlInput">Image URL</label>
+          <input id="methodImageUrlInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png">
+          <div id="methodImagePreview" class="mt-2 hidden rounded-xl border border-slate-200 bg-slate-50 p-3"></div>
+        </div>
+
         <div class="flex flex-wrap gap-2">
           <button id="saveMethodBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save method</button>
           <button id="deleteMethodBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete method</button>
@@ -81,6 +87,8 @@ declare(strict_types=1);
     const methodBasisFileSelect = document.getElementById('methodBasisFileSelect');
     const methodDataSourceInput = document.getElementById('methodDataSourceInput');
     const methodDescriptionInput = document.getElementById('methodDescriptionInput');
+    const methodImageUrlInput = document.getElementById('methodImageUrlInput');
+    const methodImagePreview = document.getElementById('methodImagePreview');
     const statusBox = document.getElementById('statusBox');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
 
@@ -138,11 +146,27 @@ declare(strict_types=1);
       return `${baseId}-${counter}`;
     }
 
+    function renderMethodImagePreview() {
+      const imageUrl = methodImageUrlInput.value.trim();
+      if (!imageUrl) {
+        methodImagePreview.classList.add('hidden');
+        methodImagePreview.innerHTML = '';
+        return;
+      }
+      methodImagePreview.classList.remove('hidden');
+      methodImagePreview.innerHTML = `
+        <div class="text-xs text-slate-500 break-all mb-2">${imageUrl}</div>
+        <img src="${imageUrl}" alt="Method preview" class="max-h-36 rounded-lg border border-slate-200 bg-white object-contain">
+      `;
+    }
+
     function resetMethodForm() {
       methodsSelect.value = '';
       methodIdInput.value = '';
       methodTitleInput.value = '';
       methodDescriptionInput.value = '';
+      methodImageUrlInput.value = '';
+      renderMethodImagePreview();
       renderBasisFileOptions(basisFileOptions[0]?.name || 'aanvankelijklijst.json');
       methodDataSourceInput.value = methodBasisFileSelect.value
         ? shared.resolveBasisFileUrl(methodBasisFileSelect.value)
@@ -151,6 +175,7 @@ declare(strict_types=1);
         methodId: '',
         methodTitle: '',
         methodDescription: '',
+        methodImageUrl: '',
         methodBasisFile: methodBasisFileSelect.value || '',
         methodDataSource: methodDataSourceInput.value,
         basisIndex: 0
@@ -193,7 +218,8 @@ declare(strict_types=1);
         title: methodTitleInput.value.trim() || state.methodTitle || '',
         basisFile: methodBasisFileSelect.value.trim() || state.methodBasisFile || '',
         dataSource: methodDataSourceInput.value.trim() || state.methodDataSource || shared.DEFAULT_BASIS_DATA_URL,
-        description: methodDescriptionInput.value.trim() || state.methodDescription || ''
+        description: methodDescriptionInput.value.trim() || state.methodDescription || '',
+        imageUrl: methodImageUrlInput.value.trim() || state.methodImageUrl || ''
       };
     }
 
@@ -216,6 +242,7 @@ declare(strict_types=1);
         methodBasisFile: basisFile,
         methodDataSource: dataSource,
         methodDescription: methodDescriptionInput.value.trim(),
+        methodImageUrl: methodImageUrlInput.value.trim(),
         basisIndex: basisItems.length ? 0 : -1
       });
     }
@@ -230,6 +257,8 @@ declare(strict_types=1);
       methodIdInput.value = item.id || '';
       methodTitleInput.value = item.title || '';
       methodDescriptionInput.value = item.description || '';
+      methodImageUrlInput.value = item.imageUrl || '';
+      renderMethodImagePreview();
       renderBasisFileOptions(String(item.basisFile || '').trim());
       methodDataSourceInput.value = shared.resolveMethodDataSource(item.dataSource || '', item.id || '', item.basisFile || '');
       methodsSelect.value = item.id || '';
@@ -238,7 +267,8 @@ declare(strict_types=1);
         methodTitle: item.title || '',
         methodBasisFile: item.basisFile || '',
         methodDataSource: methodDataSourceInput.value,
-        methodDescription: item.description || ''
+        methodDescription: item.description || '',
+        methodImageUrl: item.imageUrl || ''
       });
       await loadBasisPreview();
       setStatus(`Method loaded: ${id}`, item);
@@ -258,6 +288,8 @@ declare(strict_types=1);
         methodIdInput.value = state.methodId || '';
         methodTitleInput.value = state.methodTitle || '';
         methodDescriptionInput.value = state.methodDescription || '';
+        methodImageUrlInput.value = state.methodImageUrl || '';
+        renderMethodImagePreview();
         if (state.methodId) {
           await loadMethodIntoForm(state.methodId);
         } else {
@@ -298,13 +330,17 @@ declare(strict_types=1);
       }
     });
 
-    [methodIdInput, methodTitleInput, methodDescriptionInput].forEach((input) => {
+    [methodIdInput, methodTitleInput, methodDescriptionInput, methodImageUrlInput].forEach((input) => {
       input.addEventListener('input', () => {
         shared.updateState({
           methodId: methodIdInput.value.trim(),
           methodTitle: methodTitleInput.value.trim(),
-          methodDescription: methodDescriptionInput.value.trim()
+          methodDescription: methodDescriptionInput.value.trim(),
+          methodImageUrl: methodImageUrlInput.value.trim()
         });
+        if (input === methodImageUrlInput) {
+          renderMethodImagePreview();
+        }
       });
     });
 
@@ -325,6 +361,7 @@ declare(strict_types=1);
         id: methodIdInput.value.trim(),
         title: methodTitleInput.value.trim(),
         description: methodDescriptionInput.value.trim(),
+        imageUrl: methodImageUrlInput.value.trim(),
         basisFile,
         dataSource: basisFile ? shared.resolveBasisFileUrl(basisFile) : methodDataSourceInput.value.trim(),
         status: 'active'
@@ -362,7 +399,8 @@ declare(strict_types=1);
           methodTitle: payload.title,
           methodBasisFile: payload.basisFile,
           methodDataSource: payload.dataSource,
-          methodDescription: payload.description
+          methodDescription: payload.description,
+          methodImageUrl: payload.imageUrl
         });
         setStatus(`Method saved: ${payload.id}`, {
           result,
@@ -397,7 +435,9 @@ declare(strict_types=1);
         methodIdInput.value = '';
         methodTitleInput.value = '';
         methodDescriptionInput.value = '';
-        shared.updateState({ methodId: '', methodTitle: '', methodDescription: '' });
+        methodImageUrlInput.value = '';
+        renderMethodImagePreview();
+        shared.updateState({ methodId: '', methodTitle: '', methodDescription: '', methodImageUrl: '' });
         setStatus(`Method deleted: ${id}`, result);
       } catch (err) {
         appendStatus('Verwijderen mislukt.', {

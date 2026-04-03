@@ -94,6 +94,7 @@ function methods_normalize_method(array $item): array
     $id = methods_normalize_id($item['id'] ?? '');
     $basisFile = methods_normalize_string($item['basisFile'] ?? '');
     $dataSource = methods_normalize_string($item['dataSource'] ?? '');
+    $imageUrl = methods_normalize_string($item['imageUrl'] ?? '');
     if ($basisFile !== '' && $dataSource === '') {
         $dataSource = 'https://www.tastenbraille.com/braillestudio/klanken/' . rawurlencode($basisFile);
     }
@@ -104,6 +105,7 @@ function methods_normalize_method(array $item): array
         'description' => methods_normalize_string($item['description'] ?? ''),
         'basisFile' => $basisFile,
         'dataSource' => $dataSource,
+        'imageUrl' => $imageUrl,
         'status' => methods_normalize_status($item['status'] ?? 'active'),
         'updatedAt' => gmdate('Y-m-d\TH:i:s\Z'),
     ];

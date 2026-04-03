@@ -190,14 +190,7 @@ $pagePayload = [
         <div class="text-sm font-semibold text-blue-700">Method Runner</div>
         <h1 class="text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="text-sm text-slate-600"><?= h($methodId) ?></div>
-        <?php if (trim((string)($method['imageUrl'] ?? '')) !== ''): ?>
-          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-            <img src="<?= h(trim((string)$method['imageUrl'])) ?>" alt="Method logo" class="h-full w-full object-contain">
-          </div>
-        <?php endif; ?>
-      </div>
+      <div class="text-sm text-slate-600"><?= h($methodId) ?></div>
     </header>
 
     <?php if ($errorMessage !== ''): ?>
@@ -243,6 +236,7 @@ $pagePayload = [
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Lessons</div>
           <div id="methodInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
+          <div id="methodImageBox" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-4"></div>
           <div id="lessonsList" class="flex-1 space-y-2 overflow-auto"></div>
         </section>
 
@@ -279,6 +273,7 @@ $pagePayload = [
 
     const lessonsList = document.getElementById('lessonsList');
     const methodInfo = document.getElementById('methodInfo');
+    const methodImageBox = document.getElementById('methodImageBox');
     const currentLessonInfo = document.getElementById('currentLessonInfo');
     const stepsPreview = document.getElementById('stepsPreview');
     const statusBox = document.getElementById('statusBox');
@@ -413,8 +408,21 @@ $pagePayload = [
       methodInfo.innerHTML = `
         <div><strong>Method:</strong> ${method.title || method.id || '-'}</div>
         <div><strong>Basisbestand:</strong> ${method.basisFile || '-'}</div>
+        <div><strong>Image:</strong> ${method.imageUrl || '-'}</div>
         <div><strong>Lessons:</strong> ${lessons.length}</div>
         <div><strong>Basisrecords:</strong> ${basisRecords.length}</div>
+      `;
+      if (!methodImageBox) return;
+      const imageUrl = String(method.imageUrl || '').trim();
+      if (!imageUrl) {
+        methodImageBox.classList.add('hidden');
+        methodImageBox.innerHTML = '';
+        return;
+      }
+      methodImageBox.classList.remove('hidden');
+      methodImageBox.innerHTML = `
+        <div class="mb-2 text-xs text-slate-500 break-all">${escapeHtml(imageUrl)}</div>
+        <img src="${escapeHtml(imageUrl)}" alt="Method image" class="max-h-48 rounded-lg border border-slate-200 bg-white object-contain">
       `;
     }
 
