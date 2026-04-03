@@ -185,16 +185,21 @@ $pagePayload = [
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="mx-auto max-w-7xl p-6 space-y-5">
-    <header class="flex items-stretch justify-between gap-4">
-      <div class="flex-1">
-        <div class="text-sm font-semibold text-blue-700">Method Runner</div>
-        <h1 class="text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="text-sm text-slate-600"><?= h($methodId) ?></div>
-        <?php if (trim((string)($method['imageUrl'] ?? '')) !== ''): ?>
-          <img src="<?= h(trim((string)$method['imageUrl'])) ?>" alt="Method logo" class="h-full max-h-[96px] w-auto rounded-xl object-contain">
-        <?php endif; ?>
+    <header class="relative h-[80px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <?php if (trim((string)($method['imageUrl'] ?? '')) !== ''): ?>
+        <img
+          src="<?= h(trim((string)$method['imageUrl'])) ?>"
+          alt="Method banner"
+          class="absolute inset-0 h-full w-full object-contain"
+        >
+      <?php endif; ?>
+      <div class="absolute inset-0 bg-white/70"></div>
+      <div class="relative z-10 flex h-full items-center justify-between gap-4 px-5">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-blue-700">Method Runner</div>
+          <h1 class="truncate text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
+        </div>
+        <div class="shrink-0 text-sm text-slate-700"><?= h($methodId) ?></div>
       </div>
     </header>
 
