@@ -1,0 +1,238 @@
+{
+    "id": "lesley-1774965314941-001-bal-lesson-01",
+    "title": "les - bal",
+    "methodId": "lesley-1774965314941",
+    "method": {
+        "id": "lesley-1774965314941",
+        "title": "Met Punt Op Pad",
+        "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json"
+    },
+    "basisIndex": 0,
+    "basisWord": "bal",
+    "lessonNumber": 1,
+    "basisRecord": {
+        "word": "bal",
+        "sounds": [
+            "b",
+            "a",
+            "l"
+        ],
+        "newSounds": [
+            "b",
+            "a",
+            "l"
+        ],
+        "knownSounds": [
+            "b",
+            "a",
+            "l"
+        ],
+        "categories": {
+            "korteKlinkers": [
+                "a"
+            ],
+            "langeKlinkers": [],
+            "tweetekenklanken": [],
+            "medeklinkers": [
+                "b",
+                "l"
+            ],
+            "medeklinkerclusters": [],
+            "drietekenklanken": []
+        },
+        "newSoundCategories": {
+            "korteKlinkers": [
+                "a"
+            ],
+            "langeKlinkers": [],
+            "tweetekenklanken": [],
+            "medeklinkers": [
+                "b",
+                "l"
+            ],
+            "medeklinkerclusters": [],
+            "drietekenklanken": []
+        },
+        "knownSoundCategories": {
+            "korteKlinkers": [
+                "a"
+            ],
+            "langeKlinkers": [],
+            "tweetekenklanken": [],
+            "medeklinkers": [
+                "b",
+                "l"
+            ],
+            "medeklinkerclusters": [],
+            "drietekenklanken": []
+        }
+    },
+    "word": "bal",
+    "updatedAt": "2026-04-02T18:03:17+00:00",
+    "steps": [
+        "lesson-data",
+        "start-ended",
+        "start-ended",
+        "start-ended",
+        "start-ended"
+    ],
+    "stepConfigs": [
+        {
+            "id": "lesson-data",
+            "inputs": {
+                "text": "",
+                "word": "",
+                "letters": []
+            }
+        },
+        {
+            "id": "start-ended",
+            "inputs": {
+                "text": "",
+                "word": "",
+                "letters": []
+            }
+        },
+        {
+            "id": "start-ended",
+            "inputs": {
+                "text": "test",
+                "word": "test",
+                "letters": [
+                    "b"
+                ]
+            }
+        },
+        {
+            "id": "start-ended",
+            "inputs": {
+                "text": "",
+                "word": "",
+                "letters": [
+                    "c"
+                ]
+            }
+        },
+        {
+            "id": "start-ended",
+            "inputs": {
+                "text": "",
+                "word": "",
+                "letters": []
+            }
+        }
+    ],
+    "meta": {
+        "method": {
+            "id": "lesley-1774965314941",
+            "title": "Met Punt Op Pad",
+            "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json"
+        },
+        "basisIndex": 0,
+        "basisWord": "bal",
+        "lessonNumber": 1,
+        "basisRecord": {
+            "word": "bal",
+            "sounds": [
+                "b",
+                "a",
+                "l"
+            ],
+            "newSounds": [
+                "b",
+                "a",
+                "l"
+            ],
+            "knownSounds": [
+                "b",
+                "a",
+                "l"
+            ],
+            "categories": {
+                "korteKlinkers": [
+                    "a"
+                ],
+                "langeKlinkers": [],
+                "tweetekenklanken": [],
+                "medeklinkers": [
+                    "b",
+                    "l"
+                ],
+                "medeklinkerclusters": [],
+                "drietekenklanken": []
+            },
+            "newSoundCategories": {
+                "korteKlinkers": [
+                    "a"
+                ],
+                "langeKlinkers": [],
+                "tweetekenklanken": [],
+                "medeklinkers": [
+                    "b",
+                    "l"
+                ],
+                "medeklinkerclusters": [],
+                "drietekenklanken": []
+            },
+            "knownSoundCategories": {
+                "korteKlinkers": [
+                    "a"
+                ],
+                "langeKlinkers": [],
+                "tweetekenklanken": [],
+                "medeklinkers": [
+                    "b",
+                    "l"
+                ],
+                "medeklinkerclusters": [],
+                "drietekenklanken": []
+            }
+        },
+        "stepConfigs": [
+            {
+                "id": "lesson-data",
+                "inputs": {
+                    "text": "",
+                    "word": "",
+                    "letters": []
+                }
+            },
+            {
+                "id": "start-ended",
+                "inputs": {
+                    "text": "",
+                    "word": "",
+                    "letters": []
+                }
+            },
+            {
+                "id": "start-ended",
+                "inputs": {
+                    "text": "test",
+                    "word": "test",
+                    "letters": [
+                        "b"
+                    ]
+                }
+            },
+            {
+                "id": "start-ended",
+                "inputs": {
+                    "text": "",
+                    "word": "",
+                    "letters": [
+                        "c"
+                    ]
+                }
+            },
+            {
+                "id": "start-ended",
+                "inputs": {
+                    "text": "",
+                    "word": "",
+                    "letters": []
+                }
+            }
+        ]
+    }
+}
