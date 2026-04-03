@@ -190,7 +190,7 @@ $pagePayload = [
         <img
           src="<?= h(trim((string)$method['imageUrl'])) ?>"
           alt="Method banner"
-          class="absolute inset-0 h-full w-full object-contain"
+          class="absolute inset-0 h-full w-full object-cover"
         >
       <?php endif; ?>
       <div class="absolute inset-0 bg-white/70"></div>
