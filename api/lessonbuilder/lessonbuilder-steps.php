@@ -30,12 +30,16 @@ declare(strict_types=1);
           <input id="lessonIdInput" type="hidden">
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonTitleInput">Lesson title</label>
-            <input id="lessonTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 bg-slate-50" type="text" readonly>
+            <input id="lessonTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text">
           </div>
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonWordInput">Word</label>
             <input id="lessonWordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 bg-slate-50" type="text" readonly>
           </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonDescriptionInput">Description</label>
+          <textarea id="lessonDescriptionInput" class="min-h-[92px] w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Lesson description"></textarea>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -47,11 +51,12 @@ declare(strict_types=1);
         <div>
           <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
           <div class="rounded-xl border border-slate-200 overflow-hidden">
-            <div class="grid w-full grid-cols-[minmax(0,2.8fr)_minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_64px_64px_64px_80px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+            <div class="grid w-full grid-cols-[minmax(0,2.5fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_72px_64px_64px_64px_80px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
               <div class="min-w-0 pr-2 text-left">Step</div>
               <div class="min-w-0 text-left">Text</div>
               <div class="min-w-0 text-left">Word</div>
               <div class="min-w-0 text-left">Letters</div>
+              <div class="min-w-0 text-left">Repeat</div>
               <div class="text-center">Run</div>
               <div class="text-center">Up</div>
               <div class="text-center">Down</div>
@@ -92,6 +97,7 @@ declare(strict_types=1);
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
     const lessonWordInput = document.getElementById('lessonWordInput');
+    const lessonDescriptionInput = document.getElementById('lessonDescriptionInput');
     const lessonSummary = document.getElementById('lessonSummary');
     const stepsTableBody = document.getElementById('stepsTableBody');
     const scriptsSelect = document.getElementById('scriptsSelect');
@@ -140,6 +146,12 @@ declare(strict_types=1);
       statusBox.scrollTop = statusBox.scrollHeight;
     }
 
+    function showDebugLog() {
+      if (isDebugLogVisible) return;
+      isDebugLogVisible = true;
+      renderDebugLogVisibility();
+    }
+
     function renderDebugLogVisibility() {
       statusBox.classList.toggle('hidden', !isDebugLogVisible);
       toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
@@ -151,6 +163,7 @@ declare(strict_types=1);
         <div><strong>Method:</strong> ${method.title || method.id || '-'}</div>
         <div><strong>Basisrecord:</strong> ${state.basisWord || '-'}</div>
         <div><strong>Lesson:</strong> ${lessonTitleInput.value || lessonIdInput.value || '-'}</div>
+        <div><strong>Description:</strong> ${lessonDescriptionInput.value.trim() || '-'}</div>
         <div><strong>Lesnummer:</strong> ${state.lessonNumber || 1}</div>
       `;
     }
@@ -170,8 +183,81 @@ declare(strict_types=1);
     }
 
     function updateStateStepConfigs() {
+      stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(stepConfigs));
       state = shared.updateState({ stepConfigs });
       renderLessonSummary();
+    }
+
+    function getScriptItemById(id) {
+      const scriptId = String(id || '').trim();
+      return scriptsCache.find((item) => String(item?.id || '').trim() === scriptId) || null;
+    }
+
+    function getStepDisplayMeta(stepConfig) {
+      const script = getScriptItemById(stepConfig?.id);
+      return {
+        title: String(stepConfig?.title || script?.title || '').trim(),
+        description: String(stepConfig?.description || script?.meta?.description || '').trim()
+      };
+    }
+
+    function serializeStepConfig(stepConfig) {
+      const inputs = shared.normalizeInputs(stepConfig?.inputs || {});
+      const meta = getStepDisplayMeta(stepConfig);
+      return {
+        id: String(stepConfig?.id || '').trim(),
+        title: meta.title,
+        description: meta.description,
+        inputs: {
+          text: String(inputs.text || ''),
+          word: String(inputs.word || ''),
+          letters: Array.isArray(inputs.letters) ? inputs.letters : [],
+          repeat: Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1))
+        }
+      };
+    }
+
+    function serializeStepConfigs(items = stepConfigs) {
+      return (Array.isArray(items) ? items : [])
+        .map((item) => serializeStepConfig(item))
+        .filter((item) => item.id);
+    }
+
+    function buildStepConfigsFromTable() {
+      const rows = stepsTableBody.querySelectorAll('[data-step-index]');
+      const built = [];
+      rows.forEach((row) => {
+        const index = Number(row.getAttribute('data-step-index') || -1);
+        const source = stepConfigs[index] || {};
+        const meta = getStepDisplayMeta(source);
+        const textValue = row.querySelector('[data-field="text"]')?.value ?? '';
+        const wordValue = row.querySelector('[data-field="word"]')?.value ?? '';
+        const lettersValue = row.querySelector('[data-field="letters"]')?.value ?? '';
+        const repeatRaw = row.querySelector('[data-field="repeat"]')?.value ?? '1';
+        built.push({
+          id: String(source.id || '').trim(),
+          title: meta.title,
+          description: meta.description,
+          inputs: {
+            text: String(textValue || ''),
+            word: String(wordValue || ''),
+            letters: String(lettersValue).split(',').map((item) => item.trim()).filter(Boolean),
+            repeat: Math.max(1, Math.floor(Number(repeatRaw) || 1))
+          }
+        });
+      });
+      return built.filter((item) => item.id);
+    }
+
+    function hydrateStepConfigsWithScriptMetadata() {
+      stepConfigs = shared.normalizeStepConfigs(stepConfigs).map((cfg) => {
+        const script = getScriptItemById(cfg.id);
+        return {
+          ...cfg,
+          title: cfg.title || String(script?.title || '').trim(),
+          description: cfg.description || String(script?.meta?.description || '').trim()
+        };
+      });
     }
 
     function renderStepsTable() {
@@ -182,22 +268,30 @@ declare(strict_types=1);
       }
       stepConfigs.forEach((cfg, index) => {
         const inputs = shared.normalizeInputs(cfg.inputs || {});
+        const meta = getStepDisplayMeta(cfg);
         const row = document.createElement('div');
-        row.className = 'grid w-full grid-cols-[minmax(0,2.8fr)_minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1fr)_64px_64px_64px_80px] gap-2 items-start px-3 py-2';
+        row.dataset.stepIndex = String(index);
+        row.className = 'grid w-full grid-cols-[minmax(0,2.5fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_72px_64px_64px_64px_80px] gap-2 items-start px-3 py-2';
 
         const script = document.createElement('div');
         script.className = 'min-w-0 pr-2 pt-1 text-sm text-slate-800 break-words leading-5';
-        script.textContent = cfg.id;
+        script.innerHTML = `
+          <div class="font-semibold text-slate-900">${meta.title || cfg.id}</div>
+          <div class="text-xs text-slate-500">${cfg.id}</div>
+          ${meta.description ? `<div class="mt-1 text-xs text-slate-600">${meta.description}</div>` : ''}
+        `;
 
         const text = document.createElement('input');
+        text.dataset.field = 'text';
         text.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         text.value = inputs.text;
         text.addEventListener('input', (e) => {
-          stepConfigs[index].inputs = { ...inputs, text: e.target.value, word: stepConfigs[index].inputs?.word || inputs.word, letters: shared.normalizeInputs(stepConfigs[index].inputs || {}).letters };
+          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), text: e.target.value };
           updateStateStepConfigs();
         });
 
         const word = document.createElement('input');
+        word.dataset.field = 'word';
         word.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         word.value = inputs.word;
         word.addEventListener('input', (e) => {
@@ -206,12 +300,32 @@ declare(strict_types=1);
         });
 
         const letters = document.createElement('input');
+        letters.dataset.field = 'letters';
         letters.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
           updateStateStepConfigs();
         });
+
+        const repeat = document.createElement('input');
+        repeat.dataset.field = 'repeat';
+        repeat.type = 'number';
+        repeat.min = '1';
+        repeat.step = '1';
+        repeat.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        repeat.value = String(inputs.repeat || 1);
+        const applyRepeatValue = (target) => {
+          const nextRepeat = Math.max(1, Math.floor(Number(target.value) || 1));
+          target.value = String(nextRepeat);
+          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), repeat: nextRepeat };
+          updateStateStepConfigs();
+        };
+        repeat.addEventListener('input', (e) => {
+          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), repeat: Math.max(1, Math.floor(Number(e.target.value) || 1)) };
+        });
+        repeat.addEventListener('change', (e) => applyRepeatValue(e.target));
+        repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
 
         const run = document.createElement('button');
         run.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
@@ -259,9 +373,22 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        row.append(script, text, word, letters, run, moveUp, moveDown, remove);
+        row.append(script, text, word, letters, repeat, run, moveUp, moveDown, remove);
         stepsTableBody.appendChild(row);
       });
+    }
+
+    function syncStepConfigsFromTable() {
+      stepConfigs = buildStepConfigsFromTable();
+      state = shared.updateState({ stepConfigs });
+    }
+
+    function getRepeatDomSnapshot() {
+      return Array.from(stepsTableBody.querySelectorAll('[data-step-index]')).map((row) => ({
+        index: Number(row.getAttribute('data-step-index') || -1),
+        scriptId: String(stepConfigs[Number(row.getAttribute('data-step-index') || -1)]?.id || ''),
+        repeatValue: row.querySelector('[data-field="repeat"]')?.value ?? ''
+      }));
     }
 
     function getRunnerWindow() {
@@ -363,6 +490,7 @@ declare(strict_types=1);
     }
 
     async function runSingleStep(index) {
+      syncStepConfigsFromTable();
       const stepConfig = stepConfigs[index];
       if (!stepConfig) throw new Error('Step not found');
       const outcome = await runStepConfig(stepConfig, index);
@@ -370,6 +498,7 @@ declare(strict_types=1);
     }
 
     async function runLesson() {
+      syncStepConfigsFromTable();
       if (!stepConfigs.length) {
         setStatus('Deze lesson heeft nog geen steps.');
         return;
@@ -390,6 +519,10 @@ declare(strict_types=1);
     }
 
     async function saveCurrentLesson() {
+      showDebugLog();
+      syncStepConfigsFromTable();
+      stepConfigs = buildStepConfigsFromTable();
+      state = shared.updateState({ stepConfigs });
       const method = shared.getDraftMethodMeta(state);
       const basisIndex = Number(state.basisIndex ?? -1);
       const basisItem = basisItems[basisIndex] || state.basisRecord || null;
@@ -414,25 +547,44 @@ declare(strict_types=1);
         basisRecord: basisItem,
         word: lessonWordInput.value.trim(),
         steps: stepConfigs.map((item) => item.id),
-        stepConfigs: stepConfigs,
+        stepConfigs: serializeStepConfigs(stepConfigs),
         meta: {
+          title: String(lessonTitleInput.value.trim() || state.lessonMetaTitle || '').trim(),
+          description: String(lessonDescriptionInput.value.trim() || '').trim(),
           method,
           basisIndex,
           basisWord: state.basisWord || shared.getBasisWord(basisItem, basisIndex),
           lessonNumber: Number(state.lessonNumber || 1),
           basisRecord: basisItem,
-          stepConfigs
+          stepConfigs: serializeStepConfigs(stepConfigs)
         },
         overwrite: true
       };
-      const result = await shared.saveLesson(payload);
+      appendStatus('Repeat DOM snapshot.', getRepeatDomSnapshot());
+      appendStatus('Lesson save gestart.', payload);
+      let result;
+      try {
+        result = await shared.saveLesson(payload);
+      } catch (err) {
+        appendStatus('Lesson save error.', {
+          message: err?.message || String(err),
+          payload
+        });
+        throw err;
+      }
       state = shared.updateState({
         lessonId: payload.id,
         lessonTitle: payload.title,
+        lessonMetaTitle: String(payload.meta.title || payload.title || '').trim(),
+        lessonDescription: String(payload.meta.description || '').trim(),
         lessonWord: payload.word,
         stepConfigs
       });
-      setStatus(`Lesson saved: ${payload.id}`, result);
+      appendStatus('Lesson save response.', result);
+      appendStatus(`Lesson saved: ${payload.id}`, {
+        payload,
+        result
+      });
     }
 
     async function init() {
@@ -462,6 +614,8 @@ declare(strict_types=1);
             state = shared.updateState({
               lessonId: loadedLesson.id || state.lessonId,
               lessonTitle: loadedLesson.title || state.lessonTitle || '',
+              lessonMetaTitle: String(loadedLesson?.meta?.title || loadedLesson.title || state.lessonMetaTitle || '').trim(),
+              lessonDescription: String(loadedLesson?.meta?.description || state.lessonDescription || '').trim(),
               lessonNumber: loadedLesson.lessonNumber || state.lessonNumber || 1,
               lessonWord: loadedLesson.basisWord || loadedLesson.word || state.lessonWord || state.basisWord || '',
               stepConfigs: shared.normalizeStepConfigs(loadedLesson.stepConfigs || loadedLesson?.meta?.stepConfigs || [])
@@ -475,9 +629,12 @@ declare(strict_types=1);
         }
 
         lessonIdInput.value = state.lessonId || '';
-        lessonTitleInput.value = state.lessonWord ? `les - ${state.lessonWord}` : (state.lessonTitle || '');
+        lessonTitleInput.value = state.lessonMetaTitle || state.lessonTitle || (state.lessonWord ? `les - ${state.lessonWord}` : '');
         lessonWordInput.value = state.lessonWord || state.basisWord || '';
-        stepConfigs = shared.normalizeStepConfigs(state.stepConfigs || []);
+        lessonDescriptionInput.value = state.lessonDescription || '';
+        stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(state.stepConfigs || []));
+        hydrateStepConfigsWithScriptMetadata();
+        state = shared.updateState({ stepConfigs });
         renderLessonSummary();
         renderStepsTable();
         renderDebugLogVisibility();
@@ -499,6 +656,9 @@ declare(strict_types=1);
         scriptsCache = await shared.listScripts();
         renderScriptsSelect(scriptsCache);
         scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
+        hydrateStepConfigsWithScriptMetadata();
+        state = shared.updateState({ stepConfigs });
+        renderStepsTable();
         setStatus(`Loaded ${scriptsCache.length} script(s).`);
       } catch (err) {
         setStatus(`Scripts load error: ${err.message}`);
@@ -510,7 +670,14 @@ declare(strict_types=1);
         setStatus('Kies eerst een script.');
         return;
       }
-      stepConfigs.push({ id: scriptsSelect.value, inputs: { text: '', word: '', letters: [] } });
+      const selectedScript = getScriptItemById(scriptsSelect.value);
+      stepConfigs.push({
+        id: scriptsSelect.value,
+        title: String(selectedScript?.title || '').trim(),
+        description: String(selectedScript?.meta?.description || '').trim(),
+        inputs: { text: '', word: '', letters: [], repeat: 1 }
+      });
+      stepConfigs = serializeStepConfigs(stepConfigs);
       state = shared.updateState({ stepConfigs });
       renderStepsTable();
       setStatus(`Script toegevoegd: ${scriptsSelect.value}`);
@@ -520,6 +687,7 @@ declare(strict_types=1);
       try {
         await saveCurrentLesson();
       } catch (err) {
+        showDebugLog();
         setStatus(`Save error: ${err.message}`);
       }
     });
@@ -535,6 +703,7 @@ declare(strict_types=1);
         lessonIdInput.value = '';
         lessonTitleInput.value = '';
         lessonWordInput.value = '';
+        lessonDescriptionInput.value = '';
         stepConfigs = [];
         renderLessonSummary();
         renderStepsTable();
@@ -555,6 +724,21 @@ declare(strict_types=1);
     toggleDebugLogBtn.addEventListener('click', () => {
       isDebugLogVisible = !isDebugLogVisible;
       renderDebugLogVisibility();
+    });
+
+    lessonTitleInput.addEventListener('input', () => {
+      state = shared.updateState({
+        lessonTitle: lessonTitleInput.value.trim(),
+        lessonMetaTitle: lessonTitleInput.value.trim()
+      });
+      renderLessonSummary();
+    });
+
+    lessonDescriptionInput.addEventListener('input', () => {
+      state = shared.updateState({
+        lessonDescription: lessonDescriptionInput.value.trim()
+      });
+      renderLessonSummary();
     });
 
     window.addEventListener('load', init);

@@ -2562,7 +2562,15 @@ async function evalValue(block) {
       if (field === 'letters') {
         return Array.isArray(value) ? value : [];
       }
+      if (field === 'repeat') {
+        return Math.max(1, Math.floor(Number(value) || 1));
+      }
       return value != null ? value : '';
+    }
+
+    case 'lesson_get_step_repeat': {
+      const inputs = getLessonStepInputs();
+      return Math.max(1, Math.floor(Number(inputs.repeat) || 1));
     }
 
     case 'state_last_timer_name':

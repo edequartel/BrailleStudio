@@ -72,6 +72,10 @@ function normalize_loaded_step_inputs($inputs, $fallbackVariable = '')
             $normalized[$safeKey] = $letters;
             continue;
         }
+        if ($safeKey === 'repeat') {
+            $normalized[$safeKey] = max(1, (int)$value);
+            continue;
+        }
         if (is_array($value)) {
             $cleanList = [];
             foreach ($value as $item) {
@@ -88,6 +92,10 @@ function normalize_loaded_step_inputs($inputs, $fallbackVariable = '')
 
     if ($normalized === [] && $fallbackVariable !== '') {
         $normalized['value'] = trim((string)$fallbackVariable);
+    }
+
+    if (!array_key_exists('repeat', $normalized)) {
+        $normalized['repeat'] = 1;
     }
 
     return $normalized;
@@ -121,6 +129,8 @@ foreach ($stepConfigs as $row) {
     $rowVariable = trim((string)($row['variable'] ?? ''));
     $normalizedStepConfigs[] = [
         'id' => $rowId,
+        'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+        'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
         'inputs' => normalize_loaded_step_inputs($row['inputs'] ?? [], $rowVariable)
     ];
 }
@@ -145,6 +155,8 @@ $out['stepConfigs'] = $normalizedStepConfigs;
 if (!is_array($out['meta'] ?? null)) {
     $out['meta'] = [];
 }
+$out['meta']['title'] = trim((string)($out['meta']['title'] ?? ($out['title'] ?? '')));
+$out['meta']['description'] = trim((string)($out['meta']['description'] ?? ($out['description'] ?? '')));
 $out['meta']['basisIndex'] = $out['basisIndex'];
 $out['meta']['basisWord'] = $out['basisWord'];
 $out['meta']['lessonNumber'] = $out['lessonNumber'];

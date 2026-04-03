@@ -1,0 +1,675 @@
+{
+    "id": "gelijk-verbeterd",
+    "title": "Letter horen: gelijk of ongelijk",
+    "updatedAt": "2026-04-03T07:10:08+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "start_evt",
+                    "x": -50,
+                    "y": 30,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": "set_letters",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "var_letters"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "list_from_text_items",
+                                            "id": "letters_list",
+                                            "inputs": {
+                                                "TEXT": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "letters_text",
+                                                        "fields": {
+                                                            "TEXT": "a,b,k,l,m,o,p,q,r,s"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "variables_set",
+                                        "id": "set_score",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "var_score"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "VALUE": {
+                                                "block": {
+                                                    "type": "math_number",
+                                                    "id": "score_zero",
+                                                    "fields": {
+                                                        "NUM": 0
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "variables_set",
+                                                "id": "set_rounds",
+                                                "fields": {
+                                                    "VAR": {
+                                                        "id": "var_rounds"
+                                                    }
+                                                },
+                                                "inputs": {
+                                                    "VALUE": {
+                                                        "block": {
+                                                            "type": "math_number",
+                                                            "id": "rounds_zero",
+                                                            "fields": {
+                                                                "NUM": 0
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "procedures_callnoreturn",
+                                                        "id": "call_next_round_start",
+                                                        "extraState": {
+                                                            "name": "nextRound"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "thumb_right_evt",
+                    "x": 610,
+                    "y": 370,
+                    "fields": {
+                        "KEY": "right"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_if",
+                                "id": "if_right",
+                                "extraState": {
+                                    "hasElse": true
+                                },
+                                "inputs": {
+                                    "IF0": {
+                                        "block": {
+                                            "type": "logic_compare",
+                                            "id": "cmp_right",
+                                            "fields": {
+                                                "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                                "A": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_shown_right",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_shown"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "B": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_target_right",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_target"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO0": {
+                                        "block": {
+                                            "type": "sound_play_ux_success",
+                                            "id": "right_success",
+                                            "next": {
+                                                "block": {
+                                                    "type": "math_change",
+                                                    "id": "score_up_right",
+                                                    "fields": {
+                                                        "VAR": {
+                                                            "id": "var_score"
+                                                        }
+                                                    },
+                                                    "inputs": {
+                                                        "DELTA": {
+                                                            "block": {
+                                                                "type": "math_number",
+                                                                "id": "score_one_right",
+                                                                "fields": {
+                                                                    "NUM": 1
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "ELSE": {
+                                        "block": {
+                                            "type": "sound_play_ux_failure",
+                                            "id": "right_fail"
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "math_change",
+                                        "id": "rounds_up_right",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "var_rounds"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "DELTA": {
+                                                "block": {
+                                                    "type": "math_number",
+                                                    "id": "rounds_one_right",
+                                                    "fields": {
+                                                        "NUM": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "procedures_callnoreturn",
+                                                "id": "call_next_round_right",
+                                                "extraState": {
+                                                    "name": "nextRound"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "thumb_left_evt",
+                    "x": 610,
+                    "y": 70,
+                    "fields": {
+                        "KEY": "left"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_if",
+                                "id": "if_left",
+                                "extraState": {
+                                    "hasElse": true
+                                },
+                                "inputs": {
+                                    "IF0": {
+                                        "block": {
+                                            "type": "logic_compare",
+                                            "id": "cmp_left",
+                                            "fields": {
+                                                "OP": "NEQ"
+                                            },
+                                            "inputs": {
+                                                "A": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_shown_left",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_shown"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "B": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_target_left",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_target"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO0": {
+                                        "block": {
+                                            "type": "sound_play_ux_success",
+                                            "id": "left_success",
+                                            "next": {
+                                                "block": {
+                                                    "type": "math_change",
+                                                    "id": "score_up_left",
+                                                    "fields": {
+                                                        "VAR": {
+                                                            "id": "var_score"
+                                                        }
+                                                    },
+                                                    "inputs": {
+                                                        "DELTA": {
+                                                            "block": {
+                                                                "type": "math_number",
+                                                                "id": "score_one_left",
+                                                                "fields": {
+                                                                    "NUM": 1
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "ELSE": {
+                                        "block": {
+                                            "type": "sound_play_ux_failure",
+                                            "id": "left_fail"
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "math_change",
+                                        "id": "rounds_up_left",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "var_rounds"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "DELTA": {
+                                                "block": {
+                                                    "type": "math_number",
+                                                    "id": "rounds_one_left",
+                                                    "fields": {
+                                                        "NUM": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "procedures_callnoreturn",
+                                                "id": "call_next_round_left",
+                                                "extraState": {
+                                                    "name": "nextRound"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "procedures_defnoreturn",
+                    "id": "def_next_round",
+                    "x": -1,
+                    "y": 257,
+                    "icons": {
+                        "comment": {
+                            "text": "Kies nieuwe target + shown met 50/50 match of mismatch",
+                            "pinned": false,
+                            "height": 80,
+                            "width": 160
+                        }
+                    },
+                    "fields": {
+                        "NAME": "nextRound"
+                    },
+                    "inputs": {
+                        "STACK": {
+                            "block": {
+                                "type": "variables_set",
+                                "id": "set_target_proc",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "var_target"
+                                    }
+                                },
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "list_pick_random",
+                                            "id": "pick_target_proc",
+                                            "inputs": {
+                                                "LIST": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_letters_proc",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_letters"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "variables_set",
+                                        "id": "set_should_match_proc",
+                                        "fields": {
+                                            "VAR": {
+                                                "id": "var_should_match"
+                                            }
+                                        },
+                                        "inputs": {
+                                            "VALUE": {
+                                                "block": {
+                                                    "type": "math_random_int",
+                                                    "id": "rand_match_proc",
+                                                    "inputs": {
+                                                        "FROM": {
+                                                            "block": {
+                                                                "type": "math_number",
+                                                                "id": "rand_from_proc",
+                                                                "fields": {
+                                                                    "NUM": 0
+                                                                }
+                                                            }
+                                                        },
+                                                        "TO": {
+                                                            "block": {
+                                                                "type": "math_number",
+                                                                "id": "rand_to_proc",
+                                                                "fields": {
+                                                                    "NUM": 1
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "controls_if",
+                                                "id": "if_match_proc",
+                                                "extraState": {
+                                                    "hasElse": true
+                                                },
+                                                "inputs": {
+                                                    "IF0": {
+                                                        "block": {
+                                                            "type": "logic_compare",
+                                                            "id": "cmp_match_proc",
+                                                            "fields": {
+                                                                "OP": "EQ"
+                                                            },
+                                                            "inputs": {
+                                                                "A": {
+                                                                    "block": {
+                                                                        "type": "variables_get",
+                                                                        "id": "get_should_match_proc",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "var_should_match"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "B": {
+                                                                    "block": {
+                                                                        "type": "math_number",
+                                                                        "id": "match_one_proc",
+                                                                        "fields": {
+                                                                            "NUM": 1
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "DO0": {
+                                                        "block": {
+                                                            "type": "variables_set",
+                                                            "id": "set_shown_equal_proc",
+                                                            "fields": {
+                                                                "VAR": {
+                                                                    "id": "var_shown"
+                                                                }
+                                                            },
+                                                            "inputs": {
+                                                                "VALUE": {
+                                                                    "block": {
+                                                                        "type": "variables_get",
+                                                                        "id": "get_target_for_shown_proc",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "var_target"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "ELSE": {
+                                                        "block": {
+                                                            "type": "variables_set",
+                                                            "id": "set_shown_other_proc",
+                                                            "fields": {
+                                                                "VAR": {
+                                                                    "id": "var_shown"
+                                                                }
+                                                            },
+                                                            "inputs": {
+                                                                "VALUE": {
+                                                                    "block": {
+                                                                        "type": "list_random_other_item",
+                                                                        "id": "pick_other_proc",
+                                                                        "inputs": {
+                                                                            "LIST": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "get_letters_for_other_proc",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "var_letters"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            },
+                                                                            "EXCLUDE": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "get_target_exclude_proc",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "var_target"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "bb_set_text",
+                                                        "id": "show_proc",
+                                                        "inputs": {
+                                                            "TEXT": {
+                                                                "block": {
+                                                                    "type": "text_join",
+                                                                    "id": "_)rA_F_,gG`pzd[1$/UQ",
+                                                                    "extraState": {
+                                                                        "itemCount": 3
+                                                                    },
+                                                                    "inputs": {
+                                                                        "ADD0": {
+                                                                            "block": {
+                                                                                "type": "variables_get",
+                                                                                "id": "get_shown_text_proc",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "var_shown"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "ADD1": {
+                                                                            "block": {
+                                                                                "type": "text",
+                                                                                "id": "ED/V%$*JU9*ozdVWC+E0",
+                                                                                "fields": {
+                                                                                    "TEXT": "   "
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "ADD2": {
+                                                                            "block": {
+                                                                                "type": "variables_get",
+                                                                                "id": "V3(iYK2e](U?c4/ah{LK",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "var_target"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "sound_play_letters_file",
+                                                                "id": "play_target_proc",
+                                                                "inputs": {
+                                                                    "FILE": {
+                                                                        "block": {
+                                                                            "type": "variables_get",
+                                                                            "id": "get_target_sound_proc",
+                                                                            "fields": {
+                                                                                "VAR": {
+                                                                                    "id": "var_shown"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "next": {
+                                                                    "block": {
+                                                                        "type": "sound_play_letters_file",
+                                                                        "id": "(v;CP?B)wg*0-iFZh$6)",
+                                                                        "inputs": {
+                                                                            "FILE": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "a~gNBUaqMs(O{zCT`+-^",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "var_target"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_program_ended",
+                    "id": "9m(.E@?Ibp:o|vOkgx$V",
+                    "x": 250,
+                    "y": 110,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "sound_play_ux_success",
+                                "id": ":uPYI]I%N2vA_)D*]o~q"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "letters",
+                "id": "var_letters"
+            },
+            {
+                "name": "target",
+                "id": "var_target"
+            },
+            {
+                "name": "shown",
+                "id": "var_shown"
+            },
+            {
+                "name": "shouldMatch",
+                "id": "var_should_match"
+            },
+            {
+                "name": "score",
+                "id": "var_score"
+            },
+            {
+                "name": "rounds",
+                "id": "var_rounds"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "Hier worden letter en letters met elkaar vegeleken",
+        "status": "started"
+    }
+}

@@ -342,9 +342,13 @@
   javascriptGenerator.forBlock['lesson_get_step_input'] = function (block) {
     const field = q(block.getFieldValue('FIELD') || 'text');
     return [
-      `(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; const key = ${field}; const value = inputs[key]; if (key === 'letters') return Array.isArray(value) ? value : []; return value != null ? value : ''; })()`,
+      `(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; const key = ${field}; const value = inputs[key]; if (key === 'letters') return Array.isArray(value) ? value : []; if (key === 'repeat') return Math.max(1, Math.floor(Number(value) || 1)); return value != null ? value : ''; })()`,
       ORDER_ATOMIC
     ];
+  };
+
+  javascriptGenerator.forBlock['lesson_get_step_repeat'] = function () {
+    return [`(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; return Math.max(1, Math.floor(Number(inputs.repeat) || 1)); })()`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {

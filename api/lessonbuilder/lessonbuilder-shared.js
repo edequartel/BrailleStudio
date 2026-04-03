@@ -205,12 +205,14 @@
 
   function normalizeInputs(inputs = {}, fallbackVariable = '') {
     const source = inputs && typeof inputs === 'object' ? inputs : {};
+    const repeatValue = Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1));
     const normalized = {
       text: String(source.text ?? '').trim(),
       word: String(source.word ?? '').trim(),
-      letters: normalizeLetters(source.letters ?? [])
+      letters: normalizeLetters(source.letters ?? []),
+      repeat: repeatValue
     };
-    if (!normalized.text && !normalized.word && normalized.letters.length === 0 && String(fallbackVariable || '').trim()) {
+    if (!normalized.text && !normalized.word && normalized.letters.length === 0 && repeatValue === 1 && String(fallbackVariable || '').trim()) {
       normalized.text = String(fallbackVariable).trim();
     }
     return normalized;
@@ -220,6 +222,8 @@
     if (!Array.isArray(configs)) return [];
     return configs.map((cfg) => ({
       id: String(cfg?.id ?? '').trim(),
+      title: String(cfg?.title ?? cfg?.scriptTitle ?? '').trim(),
+      description: String(cfg?.description ?? cfg?.scriptDescription ?? cfg?.meta?.description ?? '').trim(),
       inputs: normalizeInputs(cfg?.inputs ?? {}, cfg?.variable ?? '')
     })).filter((cfg) => cfg.id);
   }

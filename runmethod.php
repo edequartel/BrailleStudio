@@ -46,6 +46,7 @@ function normalize_step_inputs($inputs): array
         'text' => trim((string)($inputs['text'] ?? '')),
         'word' => trim((string)($inputs['word'] ?? '')),
         'letters' => $letters,
+        'repeat' => max(1, (int)($inputs['repeat'] ?? 1)),
     ];
 }
 
@@ -123,6 +124,8 @@ if ($methodId === '') {
                         }
                         $stepConfigs[] = [
                             'id' => $stepId,
+                            'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+                            'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
                             'inputs' => normalize_step_inputs($row['inputs'] ?? []),
                         ];
                     }
@@ -134,6 +137,10 @@ if ($methodId === '') {
                     $lessons[$lessonId] = [
                         'id' => $lessonId,
                         'title' => trim((string)($lesson['title'] ?? '')),
+                        'meta' => [
+                            'title' => trim((string)(($lesson['meta']['title'] ?? null) ?? ($lesson['title'] ?? ''))),
+                            'description' => trim((string)(($lesson['meta']['description'] ?? null) ?? ($lesson['description'] ?? ''))),
+                        ],
                         'basisIndex' => array_key_exists('basisIndex', $lesson) ? (int)$lesson['basisIndex'] : (int)($lesson['meta']['basisIndex'] ?? -1),
                         'basisWord' => trim((string)($lesson['basisWord'] ?? ($lesson['meta']['basisWord'] ?? ''))),
                         'lessonNumber' => array_key_exists('lessonNumber', $lesson) ? (int)$lesson['lessonNumber'] : (int)($lesson['meta']['lessonNumber'] ?? 1),
@@ -212,6 +219,7 @@ $pagePayload = [
           </div>
         </div>
         <div class="flex flex-wrap gap-2">
+          <button id="runSelectedStepBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run from selected step</button>
           <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
           <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
           <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
@@ -234,7 +242,7 @@ $pagePayload = [
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Steps</div>
           <div id="currentLessonInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
-          <div id="stepsPreview" class="flex-1 overflow-auto rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700"></div>
+          <div id="stepsPreview" class="flex-1 space-y-2 overflow-auto"></div>
         </section>
       </div>
 
@@ -277,12 +285,15 @@ $pagePayload = [
     const toggleRunnerBtn = document.getElementById('toggleRunnerBtn');
     const runnerPanel = document.getElementById('runnerPanel');
     const stopRunBtn = document.getElementById('stopRunBtn');
+    const runSelectedStepBtn = document.getElementById('runSelectedStepBtn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
+    let selectedStepIndex = 0;
     let isLessonRunning = false;
     let isDebugLogVisible = false;
     let isRunnerVisible = false;
     let stopRequested = false;
+    let scriptsCache = [];
     let brailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
@@ -404,6 +415,36 @@ $pagePayload = [
       return selectedLessonIndex >= 0 ? lessons[selectedLessonIndex] : null;
     }
 
+    function getScriptItemById(id) {
+      const scriptId = String(id || '').trim();
+      return scriptsCache.find((item) => String(item?.id || '').trim() === scriptId) || null;
+    }
+
+    function getStepDisplayMeta(stepConfig) {
+      const script = getScriptItemById(stepConfig?.id);
+      return {
+        title: String(stepConfig?.title || script?.title || '').trim(),
+        description: String(stepConfig?.description || script?.meta?.description || '').trim()
+      };
+    }
+
+    function hydrateLessonsWithScriptMetadata() {
+      lessons.forEach((lesson) => {
+        if (!Array.isArray(lesson?.stepConfigs)) {
+          lesson.stepConfigs = [];
+          return;
+        }
+        lesson.stepConfigs = lesson.stepConfigs.map((cfg) => {
+          const script = getScriptItemById(cfg?.id);
+          return {
+            ...cfg,
+            title: String(cfg?.title || script?.title || '').trim(),
+            description: String(cfg?.description || script?.meta?.description || '').trim()
+          };
+        });
+      });
+    }
+
     function renderLessonsList() {
       lessonsList.innerHTML = '';
       if (!lessons.length) {
@@ -411,11 +452,14 @@ $pagePayload = [
         return;
       }
       lessons.forEach((lesson, index) => {
+        const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
+        const lessonDescription = String(lesson?.meta?.description || '').trim();
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `w-full rounded-xl border px-4 py-3 text-left ${index === selectedLessonIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
         button.innerHTML = `
-          <div class="font-bold">${lesson.title || lesson.id}</div>
+          <div class="font-bold">${lessonTitle}</div>
+          ${lessonDescription ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(lessonDescription)}</div>` : ''}
           <div class="mt-1 text-xs text-slate-500">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
           <div class="mt-1 text-xs text-slate-500">${Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0} step(s)</div>
         `;
@@ -436,31 +480,52 @@ $pagePayload = [
         renderLessonReturnValues([]);
         return;
       }
+      const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
+      const lessonDescription = String(lesson?.meta?.description || '').trim();
       currentLessonInfo.innerHTML = `
-        <div><strong>Lesson:</strong> ${lesson.title || lesson.id}</div>
+        <div><strong>Lesson:</strong> ${lessonTitle}</div>
+        <div><strong>Description:</strong> ${lessonDescription || '-'}</div>
         <div><strong>Word:</strong> ${lesson.basisWord || '-'}</div>
         <div><strong>Basisindex:</strong> ${lesson.basisIndex ?? -1}</div>
         <div><strong>Steps:</strong> ${Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0}</div>
       `;
+      const stepCount = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0;
+      if (stepCount === 0) {
+        selectedStepIndex = 0;
+      } else if (selectedStepIndex < 0 || selectedStepIndex >= stepCount) {
+        selectedStepIndex = 0;
+      }
       const preview = (Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : []).map((step) => {
+        const meta = getStepDisplayMeta(step);
         const inputs = step.inputs || {};
         const parts = [];
         if (inputs.text) parts.push(`text: ${inputs.text}`);
         if (inputs.word) parts.push(`word: ${inputs.word}`);
         if (Array.isArray(inputs.letters) && inputs.letters.length) parts.push(`letters: ${inputs.letters.join(', ')}`);
+        if (Number(inputs.repeat || 1) > 1) parts.push(`repeat: ${inputs.repeat}`);
         return {
           id: step.id,
+          title: meta.title,
+          description: meta.description,
           detail: parts.length ? parts.join(' | ') : ''
         };
       });
       stepsPreview.innerHTML = preview.length
-        ? `<div class="space-y-2">${preview.map((item, index) => `
-            <div class="rounded-lg border border-amber-200 bg-white/70 px-3 py-2">
-              <div class="text-sm font-semibold text-slate-900">${index + 1}. ${escapeHtml(item.id)}</div>
-              <div class="mt-1 text-xs text-slate-600">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
-            </div>
-          `).join('')}</div>`
+        ? `${preview.map((item, index) => `
+            <button type="button" data-step-index="${index}" class="w-full rounded-xl border px-4 py-3 text-left ${index === selectedStepIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}">
+              <div class="font-bold text-slate-900">${index + 1}. ${escapeHtml(item.title || item.id)}</div>
+              <div class="mt-1 text-xs text-slate-500">${escapeHtml(item.id)}</div>
+              ${item.description ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(item.description)}</div>` : ''}
+              <div class="mt-1 text-xs text-slate-500">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
+            </button>
+          `).join('')}`
         : 'No steps.';
+      stepsPreview.querySelectorAll('[data-step-index]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedStepIndex = Number(button.getAttribute('data-step-index') || 0);
+          renderCurrentLesson();
+        });
+      });
       if (!isLessonRunning) {
         renderLessonReturnValues([]);
       }
@@ -613,6 +678,14 @@ $pagePayload = [
       return data;
     }
 
+    async function loadScriptsList() {
+      const url = `${blocklyApiBase}/list.php`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to load script list (HTTP ${res.status})`);
+      const data = await res.json();
+      return Array.isArray(data?.items) ? data.items : [];
+    }
+
     async function waitForCompletion(app, timeoutMs = 30000) {
       const start = Date.now();
       while (Date.now() - start < timeoutMs) {
@@ -644,13 +717,41 @@ $pagePayload = [
       throw new Error('Step timed out');
     }
 
+    async function runLessonStep(lesson, stepConfig, stepIndex, app = null) {
+      if (!lesson) throw new Error('No lesson selected');
+      if (!stepConfig) throw new Error('No step selected');
+      const runnerApp = app || await waitForRunnerReady();
+      const basisIndex = Number(lesson.basisIndex ?? -1);
+      const scriptData = await loadScriptData(stepConfig.id);
+      const result = await runnerApp.runWorkspaceStateHeadless({
+        state: scriptData.blockly,
+        sourceName: scriptData.title || stepConfig.title || stepConfig.id,
+        lessonData: basisRecords,
+        lessonMethod: method,
+        index: basisIndex >= 0 ? basisIndex : 0,
+        stepInputs: stepConfig.inputs || {},
+        stepMeta: {
+          id: stepConfig.id,
+          stepIndex,
+          lessonId: lesson.id,
+          lessonTitle: lesson.title,
+          lessonNumber: Number(lesson.lessonNumber || 1),
+          methodId: method.id || '',
+          methodTitle: method.title || '',
+          basisIndex,
+          basisWord: lesson.basisWord || '',
+          basisRecord: lesson.basisRecord || null
+        },
+        lockInjectedRecord: true
+      });
+      const completion = result?.stepCompletion || await waitForCompletion(runnerApp);
+      return { result, completion, scriptData };
+    }
+
     async function runLesson(lesson) {
       if (!lesson) throw new Error('No lesson selected');
       stopRequested = false;
       const app = await waitForRunnerReady();
-      const basisIndex = Number(lesson.basisIndex ?? -1);
-      const lessonData = basisRecords;
-      const lessonMethod = method;
       const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
       const displayedValues = [
         { key: 'lessonId', value: lesson.id || '' },
@@ -675,29 +776,7 @@ $pagePayload = [
           break;
         }
         const stepConfig = stepConfigs[stepIndex];
-        const scriptData = await loadScriptData(stepConfig.id);
-        const result = await app.runWorkspaceStateHeadless({
-          state: scriptData.blockly,
-          sourceName: scriptData.title || stepConfig.id,
-          lessonData,
-          lessonMethod,
-          index: basisIndex >= 0 ? basisIndex : 0,
-          stepInputs: stepConfig.inputs || {},
-          stepMeta: {
-            id: stepConfig.id,
-            stepIndex,
-            lessonId: lesson.id,
-            lessonTitle: lesson.title,
-            lessonNumber: Number(lesson.lessonNumber || 1),
-            methodId: method.id || '',
-            methodTitle: method.title || '',
-            basisIndex,
-            basisWord: lesson.basisWord || '',
-            basisRecord: lesson.basisRecord || null
-          },
-          lockInjectedRecord: true
-        });
-        const completion = result?.stepCompletion || await waitForCompletion(app);
+        const { completion } = await runLessonStep(lesson, stepConfig, stepIndex, app);
         results.push({
           scriptId: stepConfig.id,
           completion
@@ -729,6 +808,86 @@ $pagePayload = [
       setLessonRunningState(false, `Stopped (${finalStatus})`);
       stopRequested = false;
       return results;
+    }
+
+    async function runSelectedStep() {
+      try {
+        const lesson = getSelectedLesson();
+        if (!lesson) throw new Error('No lesson selected');
+        const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
+        if (!stepConfigs[selectedStepIndex]) throw new Error('No step selected');
+        stopRequested = false;
+        setLessonRunningState(true, `Running from step ${selectedStepIndex + 1}`);
+        appendStatus('Run vanaf geselecteerde step gestart.', {
+          lessonId: lesson.id,
+          stepIndex: selectedStepIndex,
+          scriptId: stepConfigs[selectedStepIndex].id,
+          runnerUrl,
+          runnerState: getRunnerDebugState()
+        });
+        const displayedValues = [
+          { key: 'lessonId', value: lesson.id || '' },
+          { key: 'startStepIndex', value: String(selectedStepIndex + 1) },
+          { key: 'status', value: 'running' }
+        ];
+        renderLessonReturnValues(displayedValues);
+        const app = await waitForRunnerReady();
+        const results = [];
+        for (let stepIndex = selectedStepIndex; stepIndex < stepConfigs.length; stepIndex += 1) {
+          if (stopRequested) {
+            appendStatus('Run vanaf geselecteerde step handmatig gestopt.', {
+              lessonId: lesson.id,
+              stepIndex
+            });
+            break;
+          }
+          const stepConfig = stepConfigs[stepIndex];
+          const { completion } = await runLessonStep(lesson, stepConfig, stepIndex, app);
+          results.push({
+            scriptId: stepConfig.id,
+            completion
+          });
+          displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
+          flattenCompletionValues(completion).forEach((entry) => {
+            displayedValues.push({
+              key: `step.${stepIndex + 1}.${entry.key}`,
+              value: entry.value
+            });
+          });
+          renderLessonReturnValues(displayedValues);
+          appendStatus('Step uitgevoerd.', {
+            lessonId: lesson.id,
+            stepIndex,
+            scriptId: stepConfig.id,
+            completion
+          });
+          if (completion && completion.status !== 'completed') {
+            appendStatus('Run vanaf geselecteerde step gestopt door step status.', {
+              lessonId: lesson.id,
+              stoppingStatus: completion.status,
+              stepIndex
+            });
+            break;
+          }
+        }
+        const finalStatus = results[results.length - 1]?.completion?.status || 'completed';
+        displayedValues.push({ key: 'finalStatus', value: finalStatus });
+        renderLessonReturnValues(displayedValues);
+        setLessonRunningState(false, `Stopped (${finalStatus})`);
+        appendStatus('Run vanaf geselecteerde step afgerond.', {
+          lessonId: lesson.id,
+          startStepIndex: selectedStepIndex,
+          results
+        });
+      } catch (err) {
+        setLessonRunningState(false, 'Stopped (error)');
+        renderLessonReturnValues([
+          { key: 'error', value: err.message || String(err) }
+        ]);
+        appendStatus('Run vanaf geselecteerde step mislukt.', {
+          error: err.message || String(err)
+        });
+      }
     }
 
     async function runCurrentLesson() {
@@ -819,6 +978,9 @@ $pagePayload = [
       startBrailleMonitorSync();
     });
 
+    if (runSelectedStepBtn) {
+      runSelectedStepBtn.addEventListener('click', runSelectedStep);
+    }
     document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
     document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
@@ -829,26 +991,40 @@ $pagePayload = [
       });
     }
 
-    renderMethodInfo();
-    renderLessonsList();
-    renderCurrentLesson();
-    setLessonRunningState(false, 'Not running');
-    renderDebugLogVisibility();
-    renderRunnerVisibility();
-    startBrailleMonitorSync();
-    appendStatus('Runner ready.', {
-      methodId: method.id || '',
-      lessons: lessons.length,
-      basisRecords: basisRecords.length,
-      runnerUrl
-    });
-
     if (toggleDebugLogBtn) {
       toggleDebugLogBtn.addEventListener('click', () => {
         isDebugLogVisible = !isDebugLogVisible;
         renderDebugLogVisibility();
       });
     }
+
+    async function init() {
+      try {
+        scriptsCache = await loadScriptsList();
+        hydrateLessonsWithScriptMetadata();
+      } catch (err) {
+        appendStatus('Script metadata load failed.', {
+          error: err.message || String(err)
+        });
+      }
+
+      renderMethodInfo();
+      renderLessonsList();
+      renderCurrentLesson();
+      setLessonRunningState(false, 'Not running');
+      renderDebugLogVisibility();
+      renderRunnerVisibility();
+      startBrailleMonitorSync();
+      appendStatus('Runner ready.', {
+        methodId: method.id || '',
+        lessons: lessons.length,
+        basisRecords: basisRecords.length,
+        scripts: scriptsCache.length,
+        runnerUrl
+      });
+    }
+
+    init();
   </script>
   <?php endif; ?>
 </body>

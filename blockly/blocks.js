@@ -1291,9 +1291,18 @@
         .appendField(new Blockly.FieldDropdown([
           ['text', 'text'],
           ['word', 'word'],
-          ['letters', 'letters']
+          ['letters', 'letters'],
+          ['repeat', 'repeat']
         ]), 'FIELD');
       this.setOutput(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
+  Blockly.Blocks['lesson_get_step_repeat'] = {
+    init() {
+      this.appendDummyInput().appendField('lesson step repeat');
+      this.setOutput(true, 'Number');
       this.setColour('#14B8A6');
     }
   };

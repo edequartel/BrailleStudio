@@ -53,6 +53,10 @@ function normalize_list_step_inputs($inputs, $fallbackVariable = '')
             $normalized[$safeKey] = $letters;
             continue;
         }
+        if ($safeKey === 'repeat') {
+            $normalized[$safeKey] = max(1, (int)$value);
+            continue;
+        }
         if (is_array($value)) {
             $cleanList = [];
             foreach ($value as $item) {
@@ -69,6 +73,10 @@ function normalize_list_step_inputs($inputs, $fallbackVariable = '')
 
     if ($normalized === [] && $fallbackVariable !== '') {
         $normalized['value'] = trim((string)$fallbackVariable);
+    }
+
+    if (!array_key_exists('repeat', $normalized)) {
+        $normalized['repeat'] = 1;
     }
 
     return $normalized;
@@ -100,6 +108,8 @@ foreach ($files as $file) {
         $rowVariable = trim((string)($row['variable'] ?? ''));
         $normalizedStepConfigs[] = [
             'id' => $rowId,
+            'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+            'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
             'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
         ];
     }
@@ -123,7 +133,11 @@ foreach ($files as $file) {
         'stepConfigs' => $normalizedStepConfigs,
         'meta' => array_merge(
             is_array($content['meta'] ?? null) ? $content['meta'] : [],
-            ['stepConfigs' => $normalizedStepConfigs]
+            [
+                'title' => trim((string)(($content['meta']['title'] ?? null) ?? ($content['title'] ?? ''))),
+                'description' => trim((string)(($content['meta']['description'] ?? null) ?? ($content['description'] ?? ''))),
+                'stepConfigs' => $normalizedStepConfigs
+            ]
         ),
         'filename' => basename($file),
     ];

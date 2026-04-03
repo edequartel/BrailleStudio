@@ -44,6 +44,9 @@ $basisRecord = isset($data['basisRecord']) && is_array($data['basisRecord']) ? $
 $word = isset($data['word']) ? trim((string)$data['word']) : '';
 $steps = $data['steps'] ?? [];
 $overwrite = array_key_exists('overwrite', $data) ? (bool)$data['overwrite'] : true;
+$meta = is_array($meta) ? $meta : [];
+$lessonMetaTitle = isset($meta['title']) ? trim((string)$meta['title']) : $title;
+$lessonMetaDescription = isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($data['description'] ?? ''));
 
 function normalize_lesson_input_key($key)
 {
@@ -88,6 +91,11 @@ function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
             continue;
         }
 
+        if ($safeKey === 'repeat') {
+            $normalized[$safeKey] = max(1, (int)$value);
+            continue;
+        }
+
         if (is_array($value)) {
             $cleanList = [];
             foreach ($value as $item) {
@@ -107,6 +115,10 @@ function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
 
     if ($normalized === [] && $fallbackVariable !== '') {
         $normalized['value'] = trim((string)$fallbackVariable);
+    }
+
+    if (!array_key_exists('repeat', $normalized)) {
+        $normalized['repeat'] = 1;
     }
 
     return $normalized;
@@ -160,6 +172,8 @@ foreach ($incomingStepConfigs as $row) {
     $rowInputs = normalize_lesson_step_inputs($row['inputs'] ?? [], $rowVariable);
     $cleanStepConfigs[] = [
         'id' => $rowId,
+        'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+        'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
         'inputs' => $rowInputs
     ];
 }
@@ -168,7 +182,9 @@ if (count($cleanStepConfigs) === 0 && count($cleanSteps) > 0) {
     foreach ($cleanSteps as $stepId) {
         $cleanStepConfigs[] = [
             'id' => $stepId,
-            'inputs' => []
+            'title' => '',
+            'description' => '',
+            'inputs' => normalize_lesson_step_inputs([])
         ];
     }
 }
@@ -212,8 +228,10 @@ $payload = [
     'steps' => $cleanSteps,
     'stepConfigs' => $cleanStepConfigs,
     'meta' => array_merge(
-        is_array($meta) ? $meta : [],
+        $meta,
         [
+            'title' => $lessonMetaTitle,
+            'description' => $lessonMetaDescription,
             'method' => [
                 'id' => $methodId,
                 'title' => $methodTitle,

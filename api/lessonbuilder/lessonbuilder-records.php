@@ -71,12 +71,16 @@ declare(strict_types=1);
         const lesson = getLessonForBasis(index);
         const word = shared.getBasisWord(item, index);
         const stepCount = lesson ? getLessonStepCount(lesson) : 0;
+        const lessonTitle = String(lesson?.meta?.title || lesson?.title || '').trim();
+        const lessonDescription = String(lesson?.meta?.description || '').trim();
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.index = String(index);
         button.className = `w-full rounded-xl border px-4 py-3 text-left focus:outline-none focus:ring-0 ${index === Number(state.basisIndex ?? -1) ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
         button.innerHTML = `
           <div class="font-bold">${index + 1}. ${word}</div>
+          ${lessonTitle ? `<div class="mt-1 text-xs font-semibold text-slate-700">${lessonTitle}</div>` : ''}
+          ${lessonDescription ? `<div class="mt-1 text-xs text-slate-600">${lessonDescription}</div>` : ''}
           <div class="mt-1 text-xs text-slate-500">${stepCount} step(s)</div>
         `;
         button.addEventListener('click', () => selectBasisIndex(index));
@@ -123,12 +127,15 @@ declare(strict_types=1);
         return;
       }
       const lesson = getLessonForBasis(basisIndex) || buildDraftLessonForBasis(basisIndex);
+      const lessonTitle = String(lesson?.meta?.title || lesson?.title || '').trim();
+      const lessonDescription = String(lesson?.meta?.description || '').trim();
       recordSummary.innerHTML = `
         <div><strong>Word:</strong> ${shared.getBasisWord(item, basisIndex)}</div>
         <div><strong>Sounds:</strong> ${(item.sounds || []).join(', ') || '-'}</div>
         <div><strong>newSounds:</strong> ${(item.newSounds || []).join(', ') || '-'}</div>
         <div><strong>knownSounds:</strong> ${(item.knownSounds || []).join(', ') || '-'}</div>
-        <div><strong>Lesson:</strong> ${lesson?.title || '-'}</div>
+        <div><strong>Lesson:</strong> ${lessonTitle || '-'}</div>
+        <div><strong>Description:</strong> ${lessonDescription || '-'}</div>
         <div><strong>Steps:</strong> ${getLessonStepCount(lesson)}</div>
       `;
     }
@@ -144,6 +151,8 @@ declare(strict_types=1);
         basisRecord: item,
         lessonId: lesson?.id || '',
         lessonTitle: lesson?.title || '',
+        lessonMetaTitle: String(lesson?.meta?.title || lesson?.title || '').trim(),
+        lessonDescription: String(lesson?.meta?.description || '').trim(),
         lessonNumber: lesson?.lessonNumber || 1,
         lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex),
         stepConfigs: shared.normalizeStepConfigs(lesson?.stepConfigs || lesson?.meta?.stepConfigs || [])
@@ -166,6 +175,8 @@ declare(strict_types=1);
           shared.updateState({
             lessonId: draftLesson.id,
             lessonTitle: draftLesson.title,
+            lessonMetaTitle: draftLesson.title,
+            lessonDescription: '',
             lessonNumber: 1,
             lessonWord: draftLesson.basisWord,
             basisRecord: draftLesson.basisRecord,
@@ -181,6 +192,8 @@ declare(strict_types=1);
         shared.updateState({
           lessonId: data.id || state.lessonId,
           lessonTitle: resolvedWord ? `les - ${resolvedWord}` : (data.title || ''),
+          lessonMetaTitle: String(data?.meta?.title || data.title || '').trim(),
+          lessonDescription: String(data?.meta?.description || '').trim(),
           lessonNumber: data.lessonNumber || 1,
           lessonWord: resolvedWord,
           stepConfigs: shared.normalizeStepConfigs(data.stepConfigs || data?.meta?.stepConfigs || [])
@@ -206,6 +219,8 @@ declare(strict_types=1);
             state = shared.updateState({
               lessonId: lesson.id || '',
               lessonTitle: lesson.title || '',
+              lessonMetaTitle: String(lesson?.meta?.title || lesson.title || '').trim(),
+              lessonDescription: String(lesson?.meta?.description || '').trim(),
               lessonNumber: lesson.lessonNumber || 1,
               lessonWord: lesson.basisWord || '',
               stepConfigs: shared.normalizeStepConfigs(lesson.stepConfigs || lesson?.meta?.stepConfigs || [])
