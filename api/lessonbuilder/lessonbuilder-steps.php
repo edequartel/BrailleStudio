@@ -460,7 +460,9 @@ declare(strict_types=1);
         const completion = app.getStepCompletion();
         if (completion) return completion;
         const runtime = app.getRuntimeSnapshot();
-        if (runtime?.stopped) return null;
+        if (runtime?.stopped && runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) {
+          return null;
+        }
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       throw new Error('Step timed out');

@@ -161,6 +161,19 @@
     return `${varName} -= 1;\n`;
   };
 
+  javascriptGenerator.forBlock['math_inc_nrof'] = function () {
+    return `count += 1;\n`;
+  };
+
+  javascriptGenerator.forBlock['control_wait_until_nrof'] = function (block) {
+    const targetCode = valueToCodeOr(block, 'TARGET', '1');
+    return (
+      `while ((Number(count) || 0) < (Math.floor(Number(${targetCode}) || 0))) {\n` +
+      `  await new Promise(resolve => setTimeout(resolve, 50));\n` +
+      `}\n`
+    );
+  };
+
   javascriptGenerator.forBlock['bb_current_text'] = function () {
     return [`runtime.text`, ORDER_ATOMIC];
   };

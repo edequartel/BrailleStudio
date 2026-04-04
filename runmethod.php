@@ -696,9 +696,9 @@ $pagePayload = [
       return Array.isArray(data?.items) ? data.items : [];
     }
 
-    async function waitForCompletion(app, timeoutMs = 30000) {
-      const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
+	    async function waitForCompletion(app, timeoutMs = 30000) {
+	      const start = Date.now();
+	      while (Date.now() - start < timeoutMs) {
         if (stopRequested) {
           return {
             status: 'stopped',
@@ -718,14 +718,14 @@ $pagePayload = [
             metadata: null
           };
         }
-        const completion = app.getStepCompletion();
-        if (completion) return completion;
-        const runtime = app.getRuntimeSnapshot();
-        if (runtime?.stopped) return null;
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-      throw new Error('Step timed out');
-    }
+	        const completion = app.getStepCompletion();
+	        if (completion) return completion;
+	        const runtime = app.getRuntimeSnapshot();
+	        if (runtime?.stopped && runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) return null;
+	        await new Promise((resolve) => setTimeout(resolve, 100));
+	      }
+	      throw new Error('Step timed out');
+	    }
 
     async function runLessonStep(lesson, stepConfig, stepIndex, app = null) {
       if (!lesson) throw new Error('No lesson selected');
@@ -763,6 +763,8 @@ $pagePayload = [
       stopRequested = false;
       const app = await waitForRunnerReady();
       const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
+      selectedStepIndex = 0;
+      renderCurrentLesson();
       const displayedValues = [
         { key: 'lessonId', value: lesson.id || '' },
         { key: 'status', value: 'running' }
@@ -778,6 +780,8 @@ $pagePayload = [
       });
       const results = [];
       for (let stepIndex = 0; stepIndex < stepConfigs.length; stepIndex += 1) {
+        selectedStepIndex = stepIndex;
+        renderCurrentLesson();
         if (stopRequested) {
           appendStatus('Lesson handmatig gestopt.', {
             lessonId: lesson.id,
@@ -810,6 +814,10 @@ $pagePayload = [
             stoppingStatus: completion.status
           });
           break;
+        }
+        if (stepIndex + 1 < stepConfigs.length) {
+          selectedStepIndex = stepIndex + 1;
+          renderCurrentLesson();
         }
       }
       const finalStatus = results[results.length - 1]?.completion?.status || 'completed';
@@ -903,6 +911,8 @@ $pagePayload = [
     async function runCurrentLesson() {
       try {
         const lesson = getSelectedLesson();
+        selectedStepIndex = 0;
+        renderCurrentLesson();
         const results = await runLesson(lesson);
         appendStatus('Current lesson afgerond.', { lessonId: lesson?.id || '', results });
       } catch (err) {

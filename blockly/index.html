@@ -707,6 +707,7 @@
         </span>
         <span id="fileStateText">Saved</span>
       </div>
+      <button id="newBtn" class="btn" type="button">New</button>
       <button id="copyJsonBtn" class="btn" type="button">Export</button>
       <button id="importJsonBtn" class="btn" type="button">Import</button>
       <button id="onlineSaveBtn" class="btn" type="button">Save</button>
@@ -791,6 +792,7 @@
     <block type="event_when_cursor_position_changed"></block>
     <block type="event_when_chord"></block>
     <block type="event_when_editor_key"></block>
+    <block type="event_when_key_name"></block>
   </category>
 
   <category name="BrailleBridge" colour="#2563EB">
@@ -1132,6 +1134,8 @@
     </block>
     <block type="math_inc_var"></block>
     <block type="math_dec_var"></block>
+    <block type="math_inc_nrof"></block>
+    <block type="control_wait_until_nrof"></block>
   </category>
 
   <category name="Logging" colour="#64748B">

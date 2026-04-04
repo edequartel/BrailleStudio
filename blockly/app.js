@@ -41,6 +41,7 @@ function createInitialRuntimeState() {
     lastCursorCell: -1,
     lastChord: '',
     lastEditorKey: '',
+    lastVirtualKeyCode: 0,
     lastSound: '',
     lastTimerName: '',
     lastTimerTick: 0,
@@ -50,6 +51,7 @@ function createInitialRuntimeState() {
     lockInjectedLessonRecord: false,
     stepCompletion: null,
     programEndedGeneration: -1,
+    programEndedCompletedGeneration: -1,
     procedures: new Map()
   };
 }
@@ -416,6 +418,40 @@ let lastSavedOnlineScriptTitle = '';
 let lastSavedOnlineScriptStatus = 'draft';
 let suppressDirtyTracking = 0;
 let currentOnlineScriptId = '';
+let runtimeKeyboardListenerAttached = false;
+
+function shouldIgnoreRuntimeKeyboardEvent(event) {
+  const target = event?.target;
+  if (!target || typeof target !== 'object') return false;
+  const tagName = String(target.tagName || '').toUpperCase();
+  if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target.isContentEditable) {
+    return true;
+  }
+  return false;
+}
+
+function getKeyboardVirtualKeyCode(event) {
+  const raw = event?.keyCode ?? event?.which ?? event?.charCode ?? 0;
+  return Math.floor(Number(raw) || 0);
+}
+
+function attachRuntimeKeyboardListener() {
+  if (runtimeKeyboardListenerAttached) return;
+  runtimeKeyboardListenerAttached = true;
+  window.addEventListener('keydown', (event) => {
+    if (shouldIgnoreRuntimeKeyboardEvent(event)) return;
+    const key = String(event?.key || '');
+    const keyCode = getKeyboardVirtualKeyCode(event);
+    const rt = getRuntime();
+    rt.lastEditorKey = key;
+    rt.lastVirtualKeyCode = keyCode;
+    renderStatus();
+    void dispatchEvent({ type: 'editorKey', key }, runGeneration);
+    void dispatchEvent({ type: 'virtualKeyCode', key, keyCode }, runGeneration);
+  });
+}
+
+attachRuntimeKeyboardListener();
 
 function renderStatus() {
   const rt = getRuntime();
@@ -449,6 +485,7 @@ last thumb key   : ${rt.lastThumbKey}
 last cursor cell : ${rt.lastCursorCell}
 last chord       : ${rt.lastChord}
 last editor key  : ${rt.lastEditorKey}
+last vk code    : ${rt.lastVirtualKeyCode}
 last sound       : ${rt.lastSound}
 last timer name  : ${rt.lastTimerName}
 last timer tick  : ${rt.lastTimerTick}
@@ -1430,9 +1467,10 @@ async function runStartedProgram(generation) {
   if (startedBlocks.length === 0) {
     log('Start warning: no "when started" block found');
   }
+  resetRunScopedVariables();
   await dispatchEvent({ type: 'started' }, generation);
-  if (generation === runGeneration && !rt.stopped) {
-    await dispatchProgramEnded(generation, 'completed');
+  if (generation === runGeneration) {
+    await dispatchProgramEnded(generation, rt.stopped ? 'stopped' : 'completed');
   }
   sendWs({ type: 'getBrailleLine' });
 }
@@ -1473,11 +1511,12 @@ async function onRunClicked() {
   await runStartedProgram(generation);
 }
 
-function onStopClicked() {
+async function onStopClicked() {
   const generation = runGeneration;
   const rt = getRuntime();
   if (!rt.stopped) {
-    void dispatchProgramEnded(generation, 'stopped');
+    rt.stopped = true;
+    await dispatchProgramEnded(generation, 'stopped');
   }
   getRuntime().stopped = true;
   runGeneration++;
@@ -1927,6 +1966,7 @@ setTimeout(blurToolboxFocusAfterPointerSelection, 0);
 function ensureDefaultVariable() {
   const names = workspace.getAllVariables().map(v => v.name);
   if (!names.includes('score')) workspace.createVariable('score');
+  if (!names.includes('count')) workspace.createVariable('count');
 }
 
 function initVariableValues() {
@@ -1962,6 +2002,24 @@ function getVariableIdFromBlock(block) {
 
 function getVariableModelByName(name) {
   return workspace.getAllVariables().find(v => v.name === name) || null;
+}
+
+function ensureRuntimeVariableByName(name, fallback = 0) {
+  const model = getVariableModelByName(name);
+  if (!model) return null;
+  const id = model.getId();
+  if (!(id in variableValues)) {
+    variableValues[id] = fallback;
+  }
+  return id;
+}
+
+function resetRunScopedVariables() {
+  const countId = ensureRuntimeVariableByName('count', 0);
+  if (countId) {
+    variableValues[countId] = 0;
+  }
+  renderStatus();
 }
 
 function patchVariableFieldIds(xmlDom) {
@@ -2278,14 +2336,15 @@ function normalizeLessonStepInputs(inputs) {
     word: String(source.word ?? '').trim(),
     letters: Array.isArray(source.letters)
       ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
-      : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+      : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean),
+    repeat: Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1))
   };
 }
 
 function getLessonStepInputs() {
   return window.lessonStepInputs && typeof window.lessonStepInputs === 'object'
     ? window.lessonStepInputs
-    : { text: '', word: '', letters: [] };
+    : { text: '', word: '', letters: [], repeat: 1 };
 }
 
 function resetLessonStepRuntimeState(stepInputs = null) {
@@ -3019,10 +3078,10 @@ async function runProcedureCall(block, ctx = {}) {
   }
 }
 
-async function executeChain(startBlock, generation) {
+async function executeChain(startBlock, generation, allowStopped = false) {
   let current = startBlock;
 
-  while (current && !getRuntime().stopped && generation === runGeneration) {
+  while (current && (allowStopped || !getRuntime().stopped) && generation === runGeneration) {
     highlightBlock(current.id);
     try {
       switch (current.type) {
@@ -3366,7 +3425,7 @@ async function executeChain(startBlock, generation) {
             variableValues[varId] = item;
             renderStatus();
           }
-          if (body) await executeChain(body, generation);
+          if (body) await executeChain(body, generation, allowStopped);
         }
         break;
       }
@@ -3382,7 +3441,7 @@ async function executeChain(startBlock, generation) {
             variableValues[varId] = item;
             renderStatus();
           }
-          if (body) await executeChain(body, generation);
+          if (body) await executeChain(body, generation, allowStopped);
         }
         break;
       }
@@ -3445,20 +3504,40 @@ async function executeChain(startBlock, generation) {
         break;
       }
 
+      case 'math_inc_nrof': {
+        const varId = ensureRuntimeVariableByName('count', 0);
+        if (varId) {
+          variableValues[varId] = toNumber(variableValues[varId] ?? 0) + 1;
+          renderStatus();
+        }
+        break;
+      }
+
+      case 'control_wait_until_nrof': {
+        const varId = ensureRuntimeVariableByName('count', 0);
+        const target = Math.floor(toNumber(await evalValue(current.getInputTargetBlock('TARGET'))));
+        while (!getRuntime().stopped && generation === runGeneration) {
+          const currentValue = varId ? toNumber(variableValues[varId] ?? 0) : 0;
+          if (currentValue >= target) break;
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        break;
+      }
+
       case 'controls_if': {
         let handled = false;
         for (let i = 0; current.getInput('IF' + i); i++) {
           const cond = Boolean(await evalValue(current.getInputTargetBlock('IF' + i)));
           if (cond) {
             const branch = current.getInputTargetBlock('DO' + i);
-            if (branch) await executeChain(branch, generation);
+            if (branch) await executeChain(branch, generation, allowStopped);
             handled = true;
             break;
           }
         }
         if (!handled && current.getInput('ELSE')) {
           const elseBranch = current.getInputTargetBlock('ELSE');
-          if (elseBranch) await executeChain(elseBranch, generation);
+          if (elseBranch) await executeChain(elseBranch, generation, allowStopped);
         }
         break;
       }
@@ -3467,7 +3546,7 @@ async function executeChain(startBlock, generation) {
         const count = toNumber(await evalValue(current.getInputTargetBlock('TIMES')));
         const body = current.getInputTargetBlock('DO');
         for (let i = 0; i < count && !getRuntime().stopped && generation === runGeneration; i++) {
-          if (body) await executeChain(body, generation);
+          if (body) await executeChain(body, generation, allowStopped);
         }
         break;
       }
@@ -3484,7 +3563,7 @@ async function executeChain(startBlock, generation) {
             log('Loop stopped: while do exceeded 10000 iterations');
             break;
           }
-          if (body) await executeChain(body, generation);
+          if (body) await executeChain(body, generation, allowStopped);
         }
         break;
       }
@@ -3498,7 +3577,7 @@ async function executeChain(startBlock, generation) {
             log('Loop stopped: do while exceeded 10000 iterations');
             break;
           }
-          if (body) await executeChain(body, generation);
+          if (body) await executeChain(body, generation, allowStopped);
         } while (Boolean(await evalValue(current.getInputTargetBlock('COND'))));
         break;
       }
@@ -3575,6 +3654,13 @@ async function eventMatches(block, event) {
       return event.type === 'editorKey' &&
         String(block.getFieldValue('KEY')) === String(event.key);
 
+    case 'event_when_key_name': {
+      if (event.type !== 'virtualKeyCode') return false;
+      const expectedKey = String(block.getFieldValue('KEY') || 'F1').trim().toLowerCase();
+      const actualKey = String(event.key ?? '').trim().toLowerCase();
+      return expectedKey !== '' && expectedKey === actualKey;
+    }
+
     default:
       return false;
   }
@@ -3585,6 +3671,7 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
   if (!workspace) return;
   if (rt.programEndedGeneration === generation) return;
   rt.programEndedGeneration = generation;
+  rt.programEndedCompletedGeneration = -1;
 
   const event = { type: 'programEnded', reason: String(reason || 'completed') };
   log('Event: ' + JSON.stringify(event));
@@ -3594,9 +3681,10 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
     if (generation !== runGeneration && reason !== 'stopped') return;
     if (await eventMatches(block, event)) {
       const first = block.getInputTargetBlock('DO');
-      if (first) await executeChain(first, generation);
+      if (first) await executeChain(first, generation, true);
     }
   }
+  rt.programEndedCompletedGeneration = generation;
 }
 
 async function dispatchEvent(event, generation = runGeneration) {
@@ -3619,6 +3707,12 @@ async function dispatchEvent(event, generation = runGeneration) {
   }
   if (event.type === 'editorKey') {
     rt.lastEditorKey = String(event.key ?? '');
+  }
+  if (event.type === 'virtualKeyCode') {
+    rt.lastVirtualKeyCode = Math.floor(Number(event.keyCode) || 0);
+    if (typeof event.key === 'string') {
+      rt.lastEditorKey = event.key;
+    }
   }
   if (event.type === 'timer') {
     rt.lastTimerName = String(event.name ?? '');
@@ -3836,6 +3930,9 @@ async function newWorkspace() {
   stopAllTimers();
   stopSound();
   currentFileHandle = null;
+  setOnlineCurrentScript({ id: '', title: '', status: 'draft' });
+  const onlineSelect = document.getElementById('onlineScriptsSelect');
+  if (onlineSelect) onlineSelect.value = '';
   setSelectedFileName('braille-activity.blockly');
   suppressDirtyTracking++;
   workspace.clear();
@@ -3888,10 +3985,12 @@ window.BrailleBlocklyApp = {
     stopSound();
     getRuntime().stopped = false;
     getRuntime().programEndedGeneration = -1;
+    getRuntime().programEndedCompletedGeneration = -1;
     getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
+    resetRunScopedVariables();
     renderStatus();
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
@@ -3914,8 +4013,8 @@ window.BrailleBlocklyApp = {
     }
     try {
       await dispatchEvent({ type: 'started' }, generation);
-      if (generation === runGeneration && !getRuntime().stopped) {
-        await dispatchProgramEnded(generation, 'completed');
+      if (generation === runGeneration) {
+        await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
       }
       return {
         generation,
@@ -3951,10 +4050,12 @@ window.BrailleBlocklyApp = {
     stopSound();
     getRuntime().stopped = false;
     getRuntime().programEndedGeneration = -1;
+    getRuntime().programEndedCompletedGeneration = -1;
     getRuntime().lockInjectedLessonRecord = !!lockInjectedRecord;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
+    resetRunScopedVariables();
     renderStatus();
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
@@ -3977,8 +4078,8 @@ window.BrailleBlocklyApp = {
     }
     try {
       await dispatchEvent({ type: 'started' }, generation);
-      if (generation === runGeneration && !getRuntime().stopped) {
-        await dispatchProgramEnded(generation, 'completed');
+      if (generation === runGeneration) {
+        await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
       }
       return {
         generation,
@@ -3997,22 +4098,24 @@ window.BrailleBlocklyApp = {
     stopAllTimers();
     getRuntime().stopped = false;
     getRuntime().programEndedGeneration = -1;
+    getRuntime().programEndedCompletedGeneration = -1;
     runGeneration++;
     const generation = runGeneration;
     pendingStart = false;
+    resetRunScopedVariables();
     renderStatus();
     if (!workspace) {
       throw new Error('Blockly workspace is not ready');
     }
     refreshProcedureRegistry(workspace);
     await dispatchEvent({ type: 'started' }, generation);
-    if (generation === runGeneration && !getRuntime().stopped) {
-      await dispatchProgramEnded(generation, 'completed');
+    if (generation === runGeneration) {
+      await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
     }
     return generation;
   },
-  stopProgram() {
-    onStopClicked();
+  async stopProgram() {
+    await onStopClicked();
   },
   async injectLessonData(data, index = 0) {
     window.aanvankelijkData = Array.isArray(data) ? structuredClone(data) : [];

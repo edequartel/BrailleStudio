@@ -366,6 +366,45 @@
     }
   };
 
+  Blockly.Blocks['event_when_key_name'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('when key')
+        .appendField(new Blockly.FieldDropdown([
+          ['F1', 'F1'],
+          ['F2', 'F2'],
+          ['F3', 'F3'],
+          ['F4', 'F4'],
+          ['F5', 'F5'],
+          ['F6', 'F6'],
+          ['F7', 'F7'],
+          ['F8', 'F8'],
+          ['F9', 'F9'],
+          ['F10', 'F10'],
+          ['F11', 'F11'],
+          ['F12', 'F12'],
+          ['Enter', 'Enter'],
+          ['Escape', 'Escape'],
+          ['Space', ' '],
+          ['Tab', 'Tab'],
+          ['Backspace', 'Backspace'],
+          ['Delete', 'Delete'],
+          ['ArrowLeft', 'ArrowLeft'],
+          ['ArrowRight', 'ArrowRight'],
+          ['ArrowUp', 'ArrowUp'],
+          ['ArrowDown', 'ArrowDown'],
+          ['Home', 'Home'],
+          ['End', 'End'],
+          ['PageUp', 'PageUp'],
+          ['PageDown', 'PageDown']
+        ]), 'KEY');
+      this.appendStatementInput('DO').appendField('do');
+      this.setColour('#F59E0B');
+      this.setPreviousStatement(false);
+      this.setNextStatement(false);
+    }
+  };
+
   Blockly.Blocks['bb_set_text'] = {
     init() {
       this.appendValueInput('TEXT').appendField('replace text with');
@@ -612,6 +651,27 @@
       this.setPreviousStatement(true);
       this.setNextStatement(true);
       this.setColour('#C026D3');
+    }
+  };
+
+  Blockly.Blocks['math_inc_nrof'] = {
+    init() {
+      this.appendDummyInput().appendField('inc count');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#C026D3');
+    }
+  };
+
+  Blockly.Blocks['control_wait_until_nrof'] = {
+    init() {
+      this.appendValueInput('TARGET')
+        .setCheck('Number')
+        .appendField('wait until count >=');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#C026D3');
+      attachDefaultShadow(this, 'TARGET', 'math_number', { NUM: 1 });
     }
   };
 
