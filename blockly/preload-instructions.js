@@ -13,7 +13,7 @@
     try {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = `${REMOTE_URL}?_=${Date.now()}`;
+        script.src = `${REMOTE_URL}?_=${Date.now()}`;p
         script.onload = resolve;
         script.onerror = () => reject(new Error('Script load failed'));
         document.head.appendChild(script);
