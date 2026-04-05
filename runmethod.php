@@ -195,11 +195,10 @@ $pagePayload = [
         >
       <?php endif; ?>
       <div class="absolute inset-0 bg-white/70"></div>
-      <div class="relative z-10 flex h-full items-center justify-between gap-4 px-5">
+      <div class="relative z-10 flex h-full items-center gap-4 px-5">
         <div class="min-w-0">
           <h1 class="truncate text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
         </div>
-        <div class="shrink-0 text-sm text-slate-700"><?= h($methodId) ?></div>
       </div>
     </header>
 
@@ -208,25 +207,17 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
-      <section class="h-[190px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
-        <div class="text-lg font-bold">Braille monitor</div>
-        <div id="brailleMonitorStatus" class="text-xs text-slate-500">Component wordt geladen...</div>
-        <div id="brailleMonitorComponent" class="h-[100px] overflow-hidden"></div>
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div id="brailleMonitorComponent" class="overflow-hidden"></div>
       </section>
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="flex items-center justify-between gap-3">
-          <div class="text-lg font-bold">Runner</div>
-          <button id="toggleRunnerBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="font-semibold">Lesson status</span>
-            <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-              <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-              <span id="lessonRunIndicatorText">Not running</span>
-            </span>
-          </div>
+          <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+            <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+            <span id="lessonRunIndicatorText">Not running</span>
+          </span>
+          <button id="toggleRunnerBtn" type="button" class="ml-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
         </div>
         <div class="flex flex-wrap gap-2">
           <button id="runSelectedStepBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run from selected step</button>
@@ -271,13 +262,18 @@ $pagePayload = [
       <iframe id="lessonRunnerFrame" src="<?= h($defaultRunnerUrl) ?>" title="Method runner" hidden></iframe>
     <?php endif; ?>
 
-    <footer class="flex items-center justify-end gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-600 shadow-sm">
-      <span>Powered by Bartim&eacute;us</span>
-      <img
-        src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png"
-        alt="Bartimeus logo"
-        class="h-8 w-auto object-contain"
-      >
+    <footer class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-600 shadow-sm">
+      <div class="font-medium text-slate-700"><?= h($methodId) ?></div>
+      <div class="flex items-center gap-3">
+        <span>Powerd by</span>
+        <a href="https://www.bartimeus.nl" target="_blank" rel="noopener noreferrer">
+          <img
+            src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png"
+            alt="Bartimeus logo"
+            class="h-8 w-auto object-contain"
+          >
+        </a>
+      </div>
     </footer>
   </div>
 
@@ -292,6 +288,7 @@ $pagePayload = [
     const lessons = Array.isArray(bootstrap.lessons) ? bootstrap.lessons : [];
     const runnerUrl = String(bootstrap.runnerUrl || '');
     const blocklyApiBase = String(bootstrap.blocklyApiBase || '');
+    const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     const lessonsList = document.getElementById('lessonsList');
     const methodInfo = document.getElementById('methodInfo');
@@ -321,6 +318,14 @@ $pagePayload = [
     let brailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
+
+    function showBrailleMonitorPlaceholder() {
+      if (!brailleMonitorUi || typeof brailleMonitorUi.setText !== 'function') return;
+      brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+      lastBrailleSnapshot = JSON.stringify({
+        placeholder: BRAILLE_MONITOR_PLACEHOLDER
+      });
+    }
 
     function escapeHtml(value) {
       return String(value)
@@ -642,9 +647,7 @@ $pagePayload = [
         containerId: 'brailleMonitorComponent',
         showInfo: false
       });
-      if (brailleMonitorStatus) {
-        brailleMonitorStatus.textContent = 'Component geladen.';
-      }
+      showBrailleMonitorPlaceholder();
       return brailleMonitorUi;
     }
 
@@ -654,12 +657,8 @@ $pagePayload = [
         const runner = getRunnerWindow();
         const app = runner?.BrailleBlocklyApp;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') {
-          if (lastBrailleSnapshot !== '') {
-            monitor.clear();
-            lastBrailleSnapshot = '';
-          }
-          if (brailleMonitorStatus) {
-            brailleMonitorStatus.textContent = 'Wachten op braille-uitvoer...';
+          if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
+            showBrailleMonitorPlaceholder();
           }
           return;
         }
@@ -678,10 +677,7 @@ $pagePayload = [
         }
         lastBrailleSnapshot = signature;
         if (!brailleUnicode && !sourceText) {
-          monitor.clear();
-          if (brailleMonitorStatus) {
-            brailleMonitorStatus.textContent = 'Nog geen braille-uitvoer.';
-          }
+          showBrailleMonitorPlaceholder();
           return;
         }
         monitor.setBrailleUnicode(brailleUnicode, sourceText, {
@@ -689,14 +685,9 @@ $pagePayload = [
           textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
           caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
         });
-        if (brailleMonitorStatus) {
-          brailleMonitorStatus.textContent = sourceText
-            ? `Toont: ${sourceText}`
-            : 'Braille-uitvoer ontvangen.';
-        }
       } catch (err) {
-        if (brailleMonitorStatus) {
-          brailleMonitorStatus.textContent = `Braille monitor fout: ${err.message || String(err)}`;
+        if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
+          brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
         }
       }
     }
