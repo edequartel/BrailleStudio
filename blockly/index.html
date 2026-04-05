@@ -383,7 +383,7 @@
 
     #main {
       display: grid;
-      grid-template-columns: 1fr 780px;
+      grid-template-columns: minmax(0, 1fr) 18px var(--sidebar-width, 780px);
       min-height: 0;
     }
 
@@ -399,6 +399,52 @@
       min-width: 0;
       min-height: 0;
       padding: 10px;
+    }
+
+    .main-divider {
+      position: relative;
+      min-height: 0;
+      cursor: col-resize;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0)),
+        linear-gradient(180deg, rgba(37, 99, 235, 0.10), rgba(148, 163, 184, 0.18), rgba(37, 99, 235, 0.10));
+    }
+
+    .main-divider:hover,
+    .main-divider.is-dragging {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.08)),
+        linear-gradient(180deg, rgba(37, 99, 235, 0.16), rgba(96, 165, 250, 0.28), rgba(37, 99, 235, 0.16));
+    }
+
+    .main-divider::before {
+      content: "";
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      left: 50%;
+      width: 3px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(37, 99, 235, 0), rgba(37, 99, 235, 0.38), rgba(148, 163, 184, 0.52), rgba(37, 99, 235, 0.38), rgba(37, 99, 235, 0));
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.38);
+    }
+
+    .main-divider::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.65) 0%, rgba(37, 99, 235, 0.20) 45%, rgba(37, 99, 235, 0) 72%);
+      box-shadow: 0 0 22px rgba(37, 99, 235, 0.18);
+    }
+
+    #main.is-sidebar-hidden .main-divider {
+      display: none;
     }
 
     #blocklyDiv {
@@ -728,10 +774,15 @@
       <div id="blocklyDiv"></div>
     </div>
 
+    <div id="mainDivider" class="main-divider" aria-hidden="true" title="Resize status panel"></div>
+
     <div id="sidebar">
       <div class="card">
         <h3>Status</h3>
+        <input id="scriptMetaTitle" class="btn" type="text" placeholder="Title" style="width:100%; margin-bottom:8px; cursor:text;">
         <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptMetaInstruction" class="meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptMetaPrompt" class="meta-textarea meta-textarea--compact" placeholder="Prompt"></textarea>
         <div id="statusBox" class="mono"></div>
       </div>
 

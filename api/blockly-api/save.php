@@ -73,6 +73,8 @@ $meta = is_array($meta) ? $meta : [];
 $normalizedMeta = [
     'title' => isset($meta['title']) ? trim((string)$meta['title']) : $title,
     'description' => isset($meta['description']) ? trim((string)$meta['description']) : '',
+    'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : '',
+    'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : '',
     'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
 ];
 

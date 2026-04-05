@@ -11,6 +11,7 @@ let externalLogHandler = null;
 let brailleMonitorUi = null;
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
+const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
 const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
@@ -23,6 +24,7 @@ let reconnectTimer = null;
 let autoConnectEnabled = true;
 let gridSnapEnabled = true;
 let brailleMonitorVisible = true;
+let sidebarWidth = 780;
 var pendingStart = false;
 var pendingStartGeneration = 0;
 var runGeneration = 0;
@@ -196,16 +198,24 @@ function renderBrailleLine(msg) {
 function renderScriptMetadata(meta = null) {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
+  const instructionInput = document.getElementById('scriptMetaInstruction');
+  const promptInput = document.getElementById('scriptMetaPrompt');
   if (titleInput) titleInput.value = String(meta?.title || '');
   if (descriptionInput) descriptionInput.value = String(meta?.description || '');
+  if (instructionInput) instructionInput.value = String(meta?.instruction || '');
+  if (promptInput) promptInput.value = String(meta?.prompt || '');
 }
 
 function readScriptMetadataFromInputs() {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
+  const instructionInput = document.getElementById('scriptMetaInstruction');
+  const promptInput = document.getElementById('scriptMetaPrompt');
   return {
     title: String(titleInput?.value || '').trim(),
-    description: String(descriptionInput?.value || '').trim()
+    description: String(descriptionInput?.value || '').trim(),
+    instruction: String(instructionInput?.value || '').trim(),
+    prompt: String(promptInput?.value || '').trim()
   };
 }
 
@@ -216,6 +226,10 @@ function applyMetadataToXmlDom(xmlDom) {
   else xmlDom.removeAttribute('data-title');
   if (meta.description) xmlDom.setAttribute('data-description', meta.description);
   else xmlDom.removeAttribute('data-description');
+  if (meta.instruction) xmlDom.setAttribute('data-instruction', meta.instruction);
+  else xmlDom.removeAttribute('data-instruction');
+  if (meta.prompt) xmlDom.setAttribute('data-prompt', meta.prompt);
+  else xmlDom.removeAttribute('data-prompt');
   return xmlDom;
 }
 
@@ -238,6 +252,16 @@ function renderSidebarToggleControl() {
   btn.setAttribute('aria-label', isVisible ? 'Hide status panel' : 'Show status panel');
   btn.title = isVisible ? 'Hide status panel' : 'Show status panel';
   btn.textContent = 'Status';
+}
+
+function applySidebarWidth(nextWidth) {
+  const normalized = Math.max(360, Math.min(1200, Math.round(Number(nextWidth) || 780)));
+  sidebarWidth = normalized;
+  document.documentElement.style.setProperty('--sidebar-width', `${normalized}px`);
+  localStorage.setItem(BLOCKLY_SIDEBAR_WIDTH_KEY, String(normalized));
+  if (workspace && typeof Blockly !== 'undefined' && typeof Blockly.svgResize === 'function') {
+    setTimeout(() => Blockly.svgResize(workspace), 0);
+  }
 }
 
 function renderBrailleMonitorToggleControl() {
@@ -267,6 +291,42 @@ function toggleSidebarPanel() {
   if (workspace && typeof Blockly !== 'undefined' && typeof Blockly.svgResize === 'function') {
     setTimeout(() => Blockly.svgResize(workspace), 0);
   }
+}
+
+function bindMainDividerResize() {
+  const divider = document.getElementById('mainDivider');
+  const main = document.getElementById('main');
+  const sidebar = document.getElementById('sidebar');
+  if (!divider || !main || !sidebar || divider.dataset.initialized) return;
+
+  const onPointerMove = (event) => {
+    if (main.classList.contains('is-sidebar-hidden')) return;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const nextWidth = viewportWidth - event.clientX;
+    applySidebarWidth(nextWidth);
+  };
+
+  const stopDragging = () => {
+    divider.classList.remove('is-dragging');
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', stopDragging);
+    window.removeEventListener('pointercancel', stopDragging);
+  };
+
+  divider.addEventListener('pointerdown', (event) => {
+    if (main.classList.contains('is-sidebar-hidden')) return;
+    event.preventDefault();
+    divider.classList.add('is-dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', stopDragging);
+    window.addEventListener('pointercancel', stopDragging);
+  });
+
+  divider.dataset.initialized = '1';
 }
 
 function renderFileState() {
@@ -694,6 +754,8 @@ async function saveWorkspaceOnline({ overwrite = true } = {}) {
     meta: {
       title: metadata.title || '',
       description: metadata.description || '',
+      instruction: metadata.instruction || '',
+      prompt: metadata.prompt || '',
       status
     }
   };
@@ -829,7 +891,9 @@ async function loadWorkspaceOnline(id) {
   const meta = data?.meta && typeof data.meta === 'object' ? data.meta : {};
   renderScriptMetadata({
     title: String(meta.title || data.title || targetId),
-    description: String(meta.description || '')
+    description: String(meta.description || ''),
+    instruction: String(meta.instruction || ''),
+    prompt: String(meta.prompt || '')
   });
   setOnlineCurrentScript({
     id: String(data?.id || targetId),
@@ -1697,6 +1761,14 @@ function bindAppControls() {
     monitorToggleBtn.dataset.initialized = '1';
   }
 
+  const savedSidebarWidth = localStorage.getItem(BLOCKLY_SIDEBAR_WIDTH_KEY);
+  if (savedSidebarWidth) {
+    applySidebarWidth(savedSidebarWidth);
+  } else {
+    applySidebarWidth(sidebarWidth);
+  }
+  bindMainDividerResize();
+
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
   if (sidebarToggleBtn && !sidebarToggleBtn.dataset.initialized) {
     const main = document.getElementById('main');
@@ -1709,6 +1781,8 @@ function bindAppControls() {
 
   const metaTitle = document.getElementById('scriptMetaTitle');
   const metaDescription = document.getElementById('scriptMetaDescription');
+  const metaInstruction = document.getElementById('scriptMetaInstruction');
+  const metaPrompt = document.getElementById('scriptMetaPrompt');
   const onlineTitle = document.getElementById('onlineScriptTitleInput');
   const onlineStatus = document.getElementById('onlineScriptStatusInput');
   if (metaTitle && !metaTitle.dataset.initialized) {
@@ -1718,6 +1792,14 @@ function bindAppControls() {
   if (metaDescription && !metaDescription.dataset.initialized) {
     metaDescription.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaDescription.dataset.initialized = '1';
+  }
+  if (metaInstruction && !metaInstruction.dataset.initialized) {
+    metaInstruction.addEventListener('input', () => refreshWorkspaceDirtyState());
+    metaInstruction.dataset.initialized = '1';
+  }
+  if (metaPrompt && !metaPrompt.dataset.initialized) {
+    metaPrompt.addEventListener('input', () => refreshWorkspaceDirtyState());
+    metaPrompt.dataset.initialized = '1';
   }
   if (onlineTitle && !onlineTitle.dataset.initialized) {
     onlineTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
@@ -2150,12 +2232,16 @@ function extractWorkspaceMetadata(xmlDom, sourceName = null) {
   if (!xmlDom) {
     return {
       title: sourceName || '',
-      description: ''
+      description: '',
+      instruction: '',
+      prompt: ''
     };
   }
   const title = String(xmlDom.getAttribute('data-title') || sourceName || '').trim();
   const description = String(xmlDom.getAttribute('data-description') || '').trim();
-  return { title, description };
+  const instruction = String(xmlDom.getAttribute('data-instruction') || '').trim();
+  const prompt = String(xmlDom.getAttribute('data-prompt') || '').trim();
+  return { title, description, instruction, prompt };
 }
 
 function buildLessonDataCandidates(source) {
@@ -3907,10 +3993,12 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
     if (metadata && typeof metadata === 'object') {
       renderScriptMetadata({
         title: String(metadata.title || sourceName || ''),
-        description: String(metadata.description || '')
+        description: String(metadata.description || ''),
+        instruction: String(metadata.instruction || ''),
+        prompt: String(metadata.prompt || '')
       });
     } else {
-      renderScriptMetadata(sourceName ? { title: String(sourceName), description: '' } : null);
+      renderScriptMetadata(sourceName ? { title: String(sourceName), description: '', instruction: '', prompt: '' } : null);
     }
     if (sourceName) setSelectedFileName(sourceName);
     suppressDirtyTracking--;
