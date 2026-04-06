@@ -5,3 +5,4 @@
 *.old
 *.tmp
 *~
+api/elevenlabs-api/elevenlabs_config.php

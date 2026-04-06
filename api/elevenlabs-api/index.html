@@ -144,6 +144,26 @@
       font-size: 13px;
     }
 
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .preset-btn {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--blue-dark);
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      padding: 10px 14px;
+    }
+
+    .preset-btn.active {
+      background: linear-gradient(180deg, var(--blue), var(--blue-dark));
+      color: #eff6ff;
+      border-color: transparent;
+    }
+
     code {
       padding: 2px 6px;
       border-radius: 8px;
@@ -165,6 +185,7 @@
           <select id="voiceSelect">
             <option value="">Loading voices…</option>
           </select>
+          <div id="presetButtons" class="preset-row"></div>
         </div>
         <div>
           <label for="modelInput">Model</label>
@@ -199,11 +220,44 @@
     const downloadBtn = document.getElementById('downloadBtn');
     const statusBox = document.getElementById('statusBox');
     const audioPlayer = document.getElementById('audioPlayer');
+    const presetButtons = document.getElementById('presetButtons');
 
     let currentAudioUrl = '';
+    let configuredVoices = [];
+    let defaultVoiceId = '';
 
     function setStatus(message) {
       statusBox.textContent = String(message || '');
+    }
+
+    function renderPresetButtons() {
+      presetButtons.innerHTML = '';
+      if (!configuredVoices.length) {
+        return;
+      }
+
+      for (const voice of configuredVoices) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'preset-btn';
+        button.dataset.voiceId = voice.voice_id || '';
+        button.textContent = voice.language
+          ? `${voice.name} (${voice.language})`
+          : (voice.name || voice.voice_id || 'Voice');
+        button.addEventListener('click', () => {
+          voiceSelect.value = voice.voice_id || '';
+          syncPresetState();
+        });
+        presetButtons.appendChild(button);
+      }
+
+      syncPresetState();
+    }
+
+    function syncPresetState() {
+      for (const button of presetButtons.querySelectorAll('.preset-btn')) {
+        button.classList.toggle('active', button.dataset.voiceId === voiceSelect.value);
+      }
     }
 
     function revokeCurrentAudioUrl() {
@@ -221,6 +275,8 @@
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
+      configuredVoices = Array.isArray(data.configured_voices) ? data.configured_voices : [];
+      defaultVoiceId = String(data.default_voice_id || '').trim();
       voiceSelect.innerHTML = '';
       for (const voice of data.voices || []) {
         const option = document.createElement('option');
@@ -231,9 +287,13 @@
         voiceSelect.appendChild(option);
       }
 
+      if (defaultVoiceId) {
+        voiceSelect.value = defaultVoiceId;
+      }
       if (!voiceSelect.value && voiceSelect.options.length > 0) {
         voiceSelect.selectedIndex = 0;
       }
+      renderPresetButtons();
       setStatus(`Loaded ${voiceSelect.options.length} voices.`);
     }
 
@@ -286,6 +346,7 @@
     }
 
     generateBtn.addEventListener('click', generateMp3);
+    voiceSelect.addEventListener('change', syncPresetState);
     downloadBtn.addEventListener('click', () => {
       if (!currentAudioUrl) return;
       const a = document.createElement('a');

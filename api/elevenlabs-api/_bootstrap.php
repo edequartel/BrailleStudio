@@ -33,6 +33,108 @@ function elevenlabs_normalize_text(mixed $value): string
     return trim((string)$value);
 }
 
+function elevenlabs_load_config(string $path): ?array
+{
+    if (!is_file($path)) {
+        return null;
+    }
+
+    $config = require $path;
+    return is_array($config) ? $config : null;
+}
+
+function elevenlabs_load_config_value(string $path): ?string
+{
+    $config = elevenlabs_load_config($path);
+    if (!is_array($config)) {
+        return null;
+    }
+
+    $value = trim((string)($config['api_key'] ?? ''));
+    return $value !== '' ? $value : null;
+}
+
+function elevenlabs_config_candidates(): array
+{
+    $dir = __DIR__;
+    return [
+        dirname($dir, 4) . '/private/elevenlabs_config.php',
+        dirname($dir, 4) . '/secrets/elevenlabs_config.php',
+        dirname($dir, 3) . '/private/elevenlabs_config.php',
+        dirname($dir, 3) . '/secrets/elevenlabs_config.php',
+    ];
+}
+
+function elevenlabs_server_config(): array
+{
+    static $config = null;
+    if ($config !== null) {
+        return $config;
+    }
+
+    foreach (elevenlabs_config_candidates() as $path) {
+        $loaded = elevenlabs_load_config($path);
+        if (is_array($loaded)) {
+            $config = $loaded;
+            return $config;
+        }
+    }
+
+    $config = [];
+    return $config;
+}
+
+function elevenlabs_configured_voices(): array
+{
+    $configured = elevenlabs_server_config()['voices'] ?? [];
+    if (!is_array($configured)) {
+        return [];
+    }
+
+    $voices = [];
+    foreach ($configured as $key => $voice) {
+        if (!is_array($voice)) {
+            $voiceId = trim((string)$voice);
+            if ($voiceId === '') {
+                continue;
+            }
+            $voices[] = [
+                'key' => trim((string)$key),
+                'voice_id' => $voiceId,
+                'name' => trim((string)$key),
+                'language' => '',
+            ];
+            continue;
+        }
+
+        $voiceId = trim((string)($voice['voice_id'] ?? ''));
+        if ($voiceId === '') {
+            continue;
+        }
+
+        $voices[] = [
+            'key' => trim((string)($voice['key'] ?? $key)),
+            'voice_id' => $voiceId,
+            'name' => trim((string)($voice['name'] ?? $key)),
+            'language' => trim((string)($voice['language'] ?? '')),
+        ];
+    }
+
+    return $voices;
+}
+
+function elevenlabs_default_voice_id(): string
+{
+    $config = elevenlabs_server_config();
+    $defaultVoiceId = trim((string)($config['default_voice_id'] ?? ''));
+    if ($defaultVoiceId !== '') {
+        return $defaultVoiceId;
+    }
+
+    $voices = elevenlabs_configured_voices();
+    return $voices[0]['voice_id'] ?? '';
+}
+
 function elevenlabs_secret_candidates(): array
 {
     $dir = __DIR__;
@@ -40,6 +142,10 @@ function elevenlabs_secret_candidates(): array
         getenv('ELEVENLABS_API_KEY') ?: null,
         $_SERVER['ELEVENLABS_API_KEY'] ?? null,
         $_ENV['ELEVENLABS_API_KEY'] ?? null,
+        elevenlabs_load_config_value(dirname($dir, 4) . '/private/elevenlabs_config.php'),
+        elevenlabs_load_config_value(dirname($dir, 4) . '/secrets/elevenlabs_config.php'),
+        elevenlabs_load_config_value(dirname($dir, 3) . '/private/elevenlabs_config.php'),
+        elevenlabs_load_config_value(dirname($dir, 3) . '/secrets/elevenlabs_config.php'),
         @is_file(dirname($dir, 4) . '/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/elevenlabs_api_key.txt') : null,
         @is_file(dirname($dir, 4) . '/private/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/private/elevenlabs_api_key.txt') : null,
         @is_file(dirname($dir, 4) . '/secrets/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/secrets/elevenlabs_api_key.txt') : null,
@@ -60,7 +166,7 @@ function elevenlabs_api_key(): string
 
     elevenlabs_json_response([
         'ok' => false,
-        'error' => 'ElevenLabs API key not configured. Set ELEVENLABS_API_KEY or place elevenlabs_api_key.txt outside public webroot.'
+        'error' => 'ElevenLabs API key not configured. Set ELEVENLABS_API_KEY or place private/elevenlabs_config.php outside public webroot.'
     ], 500);
 }
 
