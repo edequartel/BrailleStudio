@@ -31,6 +31,7 @@ foreach (($decoded['voices'] ?? []) as $voice) {
 
 elevenlabs_json_response([
     'ok' => true,
+    'debug' => isset($_GET['debug']) ? elevenlabs_debug_info() : null,
     'default_voice_id' => elevenlabs_default_voice_id(),
     'configured_voices' => elevenlabs_configured_voices(),
     'voices' => $voices,

@@ -144,6 +144,41 @@
       font-size: 13px;
     }
 
+    .meta-line {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error-log {
+      margin-top: 16px;
+      border: 1px solid rgba(220, 38, 38, 0.16);
+      background: rgba(254, 242, 242, 0.92);
+      color: #991b1b;
+      border-radius: 18px;
+      padding: 14px 16px;
+    }
+
+    .error-log[hidden] {
+      display: none;
+    }
+
+    .error-log h2 {
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+
+    .error-log-list {
+      margin: 0;
+      padding-left: 18px;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .error-log-list li + li {
+      margin-top: 6px;
+    }
+
     .preset-row {
       display: flex;
       flex-wrap: wrap;
@@ -206,9 +241,15 @@
       <div id="statusBox" class="status"></div>
       <audio id="audioPlayer" controls></audio>
 
+      <div id="errorLog" class="error-log" hidden>
+        <h2>Error log</h2>
+        <ol id="errorLogList" class="error-log-list"></ol>
+      </div>
+
       <div class="small">
         Endpoints: <code>./voices.php</code> and <code>./tts.php</code>
       </div>
+      <div id="apiBaseInfo" class="meta-line"></div>
     </div>
   </div>
 
@@ -221,13 +262,48 @@
     const statusBox = document.getElementById('statusBox');
     const audioPlayer = document.getElementById('audioPlayer');
     const presetButtons = document.getElementById('presetButtons');
+    const errorLog = document.getElementById('errorLog');
+    const errorLogList = document.getElementById('errorLogList');
+    const apiBaseInfo = document.getElementById('apiBaseInfo');
 
     let currentAudioUrl = '';
     let configuredVoices = [];
     let defaultVoiceId = '';
+    const LOCAL_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/elevenlabs-api/';
 
     function setStatus(message) {
       statusBox.textContent = String(message || '');
+    }
+
+    function apiBaseUrl() {
+      const host = String(window.location.hostname || '').toLowerCase();
+      if (host === '127.0.0.1' || host === 'localhost') {
+        return LOCAL_API_BASE;
+      }
+      return window.location.href;
+    }
+
+    function endpointUrl(fileName) {
+      return new URL(fileName, apiBaseUrl()).toString();
+    }
+
+    function renderApiBaseInfo() {
+      apiBaseInfo.textContent = `API base: ${apiBaseUrl()}`;
+    }
+
+    function appendErrorLog(source, error) {
+      const item = document.createElement('li');
+      const timestamp = new Date().toLocaleTimeString();
+      const details = error instanceof Error
+        ? (error.stack || error.message || String(error))
+        : String(error || 'Unknown error');
+      item.textContent = `[${timestamp}] ${source}: ${details}`;
+      errorLogList.prepend(item);
+      while (errorLogList.children.length > 12) {
+        errorLogList.removeChild(errorLogList.lastChild);
+      }
+      errorLog.hidden = false;
+      console.error(`[ElevenLabs] ${source}`, error);
     }
 
     function renderPresetButtons() {
@@ -269,7 +345,8 @@
 
     async function loadVoices() {
       setStatus('Loading voices…');
-      const res = await fetch('./voices.php', { cache: 'no-store' });
+      const voicesUrl = endpointUrl('voices.php');
+      const res = await fetch(voicesUrl, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `HTTP ${res.status}`);
@@ -316,7 +393,8 @@
       setStatus('Generating MP3…');
 
       try {
-        const res = await fetch('./tts.php', {
+        const ttsUrl = endpointUrl('tts.php');
+        const res = await fetch(ttsUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -339,6 +417,7 @@
         downloadBtn.disabled = false;
         setStatus('MP3 ready.');
       } catch (error) {
+        appendErrorLog('generateMp3', error);
         setStatus(`Error: ${error.message || String(error)}`);
       } finally {
         generateBtn.disabled = false;
@@ -358,8 +437,19 @@
     });
 
     loadVoices().catch((error) => {
+      appendErrorLog('loadVoices', `${error.message || String(error)} | page=${window.location.href}`);
       setStatus(`Error loading voices: ${error.message || String(error)}`);
       voiceSelect.innerHTML = '<option value="">Could not load voices</option>';
+    });
+
+    renderApiBaseInfo();
+
+    window.addEventListener('error', (event) => {
+      appendErrorLog('window.error', event.error || event.message || 'Unknown script error');
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      appendErrorLog('unhandledrejection', event.reason || 'Unhandled promise rejection');
     });
   </script>
 </body>

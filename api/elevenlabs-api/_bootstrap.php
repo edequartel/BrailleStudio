@@ -54,15 +54,45 @@ function elevenlabs_load_config_value(string $path): ?string
     return $value !== '' ? $value : null;
 }
 
-function elevenlabs_config_candidates(): array
+function elevenlabs_base_dirs(): array
 {
     $dir = __DIR__;
-    return [
-        dirname($dir, 4) . '/private/elevenlabs_config.php',
-        dirname($dir, 4) . '/secrets/elevenlabs_config.php',
-        dirname($dir, 3) . '/private/elevenlabs_config.php',
-        dirname($dir, 3) . '/secrets/elevenlabs_config.php',
+    $candidates = [
+        dirname($dir, 2),
+        dirname($dir, 3),
+        dirname($dir, 4),
     ];
+
+    $baseDirs = [];
+    foreach ($candidates as $path) {
+        $normalized = rtrim((string)$path, '/');
+        if ($normalized === '' || in_array($normalized, $baseDirs, true)) {
+            continue;
+        }
+        $baseDirs[] = $normalized;
+    }
+
+    return $baseDirs;
+}
+
+function elevenlabs_config_candidates(): array
+{
+    $paths = [];
+    foreach (elevenlabs_base_dirs() as $baseDir) {
+        $paths[] = $baseDir . '/private/elevenlabs_config.php';
+        $paths[] = $baseDir . '/secrets/elevenlabs_config.php';
+    }
+    return $paths;
+}
+
+function elevenlabs_existing_config_path(): ?string
+{
+    foreach (elevenlabs_config_candidates() as $path) {
+        if (is_file($path)) {
+            return $path;
+        }
+    }
+    return null;
 }
 
 function elevenlabs_server_config(): array
@@ -137,22 +167,21 @@ function elevenlabs_default_voice_id(): string
 
 function elevenlabs_secret_candidates(): array
 {
-    $dir = __DIR__;
-    return [
+    $paths = [
         getenv('ELEVENLABS_API_KEY') ?: null,
         $_SERVER['ELEVENLABS_API_KEY'] ?? null,
         $_ENV['ELEVENLABS_API_KEY'] ?? null,
-        elevenlabs_load_config_value(dirname($dir, 4) . '/private/elevenlabs_config.php'),
-        elevenlabs_load_config_value(dirname($dir, 4) . '/secrets/elevenlabs_config.php'),
-        elevenlabs_load_config_value(dirname($dir, 3) . '/private/elevenlabs_config.php'),
-        elevenlabs_load_config_value(dirname($dir, 3) . '/secrets/elevenlabs_config.php'),
-        @is_file(dirname($dir, 4) . '/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/elevenlabs_api_key.txt') : null,
-        @is_file(dirname($dir, 4) . '/private/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/private/elevenlabs_api_key.txt') : null,
-        @is_file(dirname($dir, 4) . '/secrets/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 4) . '/secrets/elevenlabs_api_key.txt') : null,
-        @is_file(dirname($dir, 3) . '/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 3) . '/elevenlabs_api_key.txt') : null,
-        @is_file(dirname($dir, 3) . '/private/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 3) . '/private/elevenlabs_api_key.txt') : null,
-        @is_file(dirname($dir, 3) . '/secrets/elevenlabs_api_key.txt') ? file_get_contents(dirname($dir, 3) . '/secrets/elevenlabs_api_key.txt') : null,
     ];
+
+    foreach (elevenlabs_base_dirs() as $baseDir) {
+        $paths[] = elevenlabs_load_config_value($baseDir . '/private/elevenlabs_config.php');
+        $paths[] = elevenlabs_load_config_value($baseDir . '/secrets/elevenlabs_config.php');
+        $paths[] = @is_file($baseDir . '/elevenlabs_api_key.txt') ? file_get_contents($baseDir . '/elevenlabs_api_key.txt') : null;
+        $paths[] = @is_file($baseDir . '/private/elevenlabs_api_key.txt') ? file_get_contents($baseDir . '/private/elevenlabs_api_key.txt') : null;
+        $paths[] = @is_file($baseDir . '/secrets/elevenlabs_api_key.txt') ? file_get_contents($baseDir . '/secrets/elevenlabs_api_key.txt') : null;
+    }
+
+    return $paths;
 }
 
 function elevenlabs_api_key(): string
@@ -168,6 +197,34 @@ function elevenlabs_api_key(): string
         'ok' => false,
         'error' => 'ElevenLabs API key not configured. Set ELEVENLABS_API_KEY or place private/elevenlabs_config.php outside public webroot.'
     ], 500);
+}
+
+function elevenlabs_debug_info(): array
+{
+    $configCandidates = [];
+    foreach (elevenlabs_config_candidates() as $path) {
+        $configCandidates[] = [
+            'path' => $path,
+            'exists' => is_file($path),
+        ];
+    }
+
+    $hasApiKey = false;
+    foreach (elevenlabs_secret_candidates() as $candidate) {
+        if (trim((string)($candidate ?? '')) !== '') {
+            $hasApiKey = true;
+            break;
+        }
+    }
+
+    return [
+        'base_dirs' => elevenlabs_base_dirs(),
+        'config_candidates' => $configCandidates,
+        'selected_config_path' => elevenlabs_existing_config_path(),
+        'default_voice_id' => elevenlabs_default_voice_id(),
+        'configured_voice_count' => count(elevenlabs_configured_voices()),
+        'has_api_key' => $hasApiKey,
+    ];
 }
 
 function elevenlabs_request(
