@@ -236,13 +236,11 @@ $pagePayload = [
       <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Lessons</div>
-          <div id="methodInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
           <div id="lessonsList" class="flex-1 space-y-2 overflow-auto"></div>
         </section>
 
         <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div class="text-lg font-bold">Steps</div>
-          <div id="currentLessonInfo" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
           <div id="stepsPreview" class="flex-1 space-y-2 overflow-auto"></div>
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-2">
             <div class="font-semibold text-slate-900">Instruction</div>
@@ -291,8 +289,6 @@ $pagePayload = [
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     const lessonsList = document.getElementById('lessonsList');
-    const methodInfo = document.getElementById('methodInfo');
-    const currentLessonInfo = document.getElementById('currentLessonInfo');
     const stepsPreview = document.getElementById('stepsPreview');
     const selectedStepInstruction = document.getElementById('selectedStepInstruction');
     const statusBox = document.getElementById('statusBox');
@@ -461,7 +457,6 @@ $pagePayload = [
     }
 
     function renderMethodInfo() {
-      methodInfo.innerHTML = '';
     }
 
     function getSelectedLesson() {
@@ -540,14 +535,12 @@ $pagePayload = [
     function renderCurrentLesson() {
       const lesson = getSelectedLesson();
       if (!lesson) {
-        currentLessonInfo.textContent = 'No lesson selected.';
         stepsPreview.textContent = 'No steps.';
         renderSelectedStepInstruction(null);
         renderLessonReturnValues([]);
         return;
       }
       const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
-      currentLessonInfo.innerHTML = lessonTitle ? `<div class="font-semibold text-slate-900">${lessonTitle}</div>` : '';
       const stepCount = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0;
       if (stepCount === 0) {
         selectedStepIndex = 0;
