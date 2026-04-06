@@ -461,12 +461,7 @@ $pagePayload = [
     }
 
     function renderMethodInfo() {
-      methodInfo.innerHTML = `
-        <div><strong>Method:</strong> ${method.title || method.id || '-'}</div>
-        <div><strong>Basisbestand:</strong> ${method.basisFile || '-'}</div>
-        <div><strong>Lessons:</strong> ${lessons.length}</div>
-        <div><strong>Basisrecords:</strong> ${basisRecords.length}</div>
-      `;
+      methodInfo.innerHTML = '';
     }
 
     function getSelectedLesson() {
@@ -552,14 +547,7 @@ $pagePayload = [
         return;
       }
       const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
-      const lessonDescription = String(lesson?.meta?.description || '').trim();
-      currentLessonInfo.innerHTML = `
-        <div><strong>Lesson:</strong> ${lessonTitle}</div>
-        <div><strong>Description:</strong> ${lessonDescription || '-'}</div>
-        <div><strong>Word:</strong> ${lesson.basisWord || '-'}</div>
-        <div><strong>Basisindex:</strong> ${lesson.basisIndex ?? -1}</div>
-        <div><strong>Steps:</strong> ${Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0}</div>
-      `;
+      currentLessonInfo.innerHTML = lessonTitle ? `<div class="font-semibold text-slate-900">${lessonTitle}</div>` : '';
       const stepCount = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0;
       if (stepCount === 0) {
         selectedStepIndex = 0;
