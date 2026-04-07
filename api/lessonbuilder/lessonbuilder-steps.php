@@ -90,7 +90,12 @@ declare(strict_types=1);
     </div>
   </div>
 
-  <iframe id="lessonRunnerFrame" title="Lesson runner" hidden></iframe>
+  <iframe
+    id="lessonRunnerFrame"
+    title="Lesson runner"
+    allow="autoplay"
+    style="position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; left:-9999px; top:auto;"
+  ></iframe>
 
   <script>
     const shared = window.LessonBuilderShared;

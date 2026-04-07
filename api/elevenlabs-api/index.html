@@ -232,7 +232,7 @@
         </div>
         <div>
           <label for="modelInput">Model</label>
-          <input id="modelInput" value="eleven_multilingual_v2">
+          <input id="modelInput" value="eleven_v3">
         </div>
       </div>
 
@@ -408,7 +408,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             voice_id: voiceId,
-            model_id: modelId || 'eleven_multilingual_v2',
+            model_id: modelId || 'eleven_v3',
             text,
             save_to_file: saveToFile,
             save_path: savePath,

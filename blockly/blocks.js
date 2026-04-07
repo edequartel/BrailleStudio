@@ -128,7 +128,39 @@
     return initialCatalogItems;
   }
 
+  function getCurrentInstructionOption() {
+    if (typeof window.BrailleBlocklyGetCurrentInstructionOption !== 'function') {
+      return null;
+    }
+    const option = window.BrailleBlocklyGetCurrentInstructionOption();
+    if (!Array.isArray(option) || option.length < 2) {
+      return null;
+    }
+    const label = String(option[0] ?? '').trim();
+    const value = String(option[1] ?? '').trim();
+    if (!label || !value) {
+      return null;
+    }
+    return [label, value];
+  }
+
+  function getDynamicInstructionOptions() {
+    const options = Array.isArray(instructionDropdownState.options)
+      ? [...instructionDropdownState.options]
+      : [];
+    const currentOption = getCurrentInstructionOption();
+    if (currentOption && !options.some(([, value]) => String(value) === String(currentOption[1]))) {
+      options.unshift(currentOption);
+    }
+    return options.length > 0 ? options : [['loading instructions...', INSTRUCTION_DROPDOWN_LOADING]];
+  }
+
   function refreshInstructionDropdownBlocks() {
+    const validTypes = new Set([
+      'sound_play_instruction_by_id',
+      'sound_play_instruction_by_id_with_phoneme',
+      'instruction_get_info_by_id'
+    ]);
     const workspaces = typeof Blockly.Workspace?.getAll === 'function'
       ? Blockly.Workspace.getAll()
       : [];
@@ -137,13 +169,14 @@
         ? workspace.getAllBlocks(false)
         : [];
       blocks.forEach((block) => {
-        if (block.type !== 'sound_play_instruction_by_id') return;
+        if (!validTypes.has(block.type)) return;
         const field = block.getField('INSTRUCTION_ID');
         if (!field || typeof field.setValue !== 'function') return;
         const currentValue = String(field.getValue?.() ?? '');
-        const hasCurrentValue = instructionDropdownState.options.some(([, value]) => value === currentValue);
+        const options = getDynamicInstructionOptions();
+        const hasCurrentValue = options.some(([, value]) => value === currentValue);
         if (hasCurrentValue) return;
-        const fallbackValue = instructionDropdownState.options[0]?.[1] ?? '';
+        const fallbackValue = options[0]?.[1] ?? '';
         field.setValue(fallbackValue);
       });
     });
@@ -229,8 +262,10 @@
   }
 
   function getInstructionDropdownOptions() {
-    return instructionDropdownState.options;
+    return getDynamicInstructionOptions();
   }
+
+  window.BrailleBlocklyRefreshInstructionDropdowns = refreshInstructionDropdownBlocks;
 
   if (initialCatalogItems.length > 0) {
     logInstructionDebug('using preloaded instruction catalog', {
@@ -879,6 +914,15 @@
     }
   };
 
+  Blockly.Blocks['sound_play_sounds_relative'] = {
+    init() {
+      this.appendValueInput('PATH').appendField('play sounds path');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#10B981');
+    }
+  };
+
   Blockly.Blocks['sound_pause'] = {
     init() {
       this.appendDummyInput().appendField('pause sound');
@@ -1169,10 +1213,10 @@
 
   Blockly.Blocks['list_for_each_item'] = {
     init() {
-      this.appendValueInput('LIST').appendField('voor elk item in lijst');
-      this.appendStatementInput('DO').appendField('doe');
+      this.appendValueInput('LIST').appendField('for each item in list');
+      this.appendStatementInput('DO').appendField('do');
       this.appendDummyInput()
-        .appendField('als')
+        .appendField('as')
         .appendField(new Blockly.FieldVariable('item'), 'VAR');
       this.setPreviousStatement(true);
       this.setNextStatement(true);

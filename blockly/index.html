@@ -235,6 +235,13 @@
       box-sizing: border-box;
     }
 
+    #instructionTtsVoiceSelect {
+      min-height: 40px;
+      height: 40px;
+      padding: 8px 12px;
+      box-sizing: border-box;
+    }
+
     .btn-icon {
       display: inline-flex;
       align-items: center;
@@ -547,6 +554,18 @@
       line-height: 1.4;
     }
 
+    .small.is-error {
+      color: #b91c1c;
+    }
+
+    .instruction-tts-controls {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
     .meta-input,
     .meta-textarea {
       width: 100%;
@@ -782,6 +801,14 @@
         <input id="scriptMetaTitle" class="btn" type="text" placeholder="Title" style="width:100%; margin-bottom:8px; cursor:text;">
         <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptMetaInstruction" class="meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <div class="instruction-tts-controls">
+          <select id="instructionTtsVoiceSelect" class="btn" style="min-width:0;">
+            <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
+            <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig</option>
+          </select>
+          <button id="saveInstructionTtsBtn" class="btn btn-blue" type="button" disabled>Produce</button>
+        </div>
+        <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
         <textarea id="scriptMetaPrompt" class="meta-textarea meta-textarea--compact" placeholder="Prompt"></textarea>
         <div id="statusBox" class="mono"></div>
       </div>
@@ -951,6 +978,13 @@
       <value name="URL">
         <shadow type="text">
           <field name="TEXT">https://www.tastenbraille.com/braillestudio/sounds/nl/letters/b.mp3</field>
+        </shadow>
+      </value>
+    </block>
+    <block type="sound_play_sounds_relative">
+      <value name="PATH">
+        <shadow type="text">
+          <field name="TEXT">../nl/instructions/voorbeeld.mp3</field>
         </shadow>
       </value>
     </block>

@@ -559,6 +559,11 @@
     return `await BrailleStudioAPI.playUrl(${urlCode});\n`;
   };
 
+  javascriptGenerator.forBlock['sound_play_sounds_relative'] = function (block) {
+    const pathCode = valueToCodeOr(block, 'PATH', "''");
+    return `await BrailleStudioAPI.playUrl((() => { const raw = String(${pathCode} ?? '').trim(); if (/^https?:\\/\\//i.test(raw)) return raw; const normalized = raw.replace(/^(\\.\\.\\/|\\.\\/|\\/)+/, ''); return 'https://www.tastenbraille.com/braillestudio/sounds/' + normalized.split('/').map(encodeURIComponent).join('/'); })());\n`;
+  };
+
   javascriptGenerator.forBlock['sound_play_folder_file'] = function (block) {
     const folder = q(block.getFieldValue('FOLDER') || 'speech');
     const file = valueToCodeOr(block, 'FILE', "'voorbeeld'");

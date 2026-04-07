@@ -257,7 +257,13 @@ $pagePayload = [
         <pre id="statusBox" class="hidden min-h-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
       </section>
 
-      <iframe id="lessonRunnerFrame" src="<?= h($defaultRunnerUrl) ?>" title="Method runner" hidden></iframe>
+      <iframe
+        id="lessonRunnerFrame"
+        src="<?= h($defaultRunnerUrl) ?>"
+        title="Method runner"
+        allow="autoplay"
+        style="position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; left:-9999px; top:auto;"
+      ></iframe>
     <?php endif; ?>
 
     <footer class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-600 shadow-sm">

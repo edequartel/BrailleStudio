@@ -15,6 +15,7 @@ const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
 const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 let currentFileHandle = null;
@@ -204,6 +205,7 @@ function renderScriptMetadata(meta = null) {
   if (descriptionInput) descriptionInput.value = String(meta?.description || '');
   if (instructionInput) instructionInput.value = String(meta?.instruction || '');
   if (promptInput) promptInput.value = String(meta?.prompt || '');
+  renderInstructionTtsControl();
 }
 
 function readScriptMetadataFromInputs() {
@@ -217,6 +219,355 @@ function readScriptMetadataFromInputs() {
     instruction: String(instructionInput?.value || '').trim(),
     prompt: String(promptInput?.value || '').trim()
   };
+}
+
+function getInstructionTtsState() {
+  const instruction = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
+  const scriptId = String(currentOnlineScriptId || '').trim();
+  const voiceId = String(document.getElementById('instructionTtsVoiceSelect')?.value || 'yO6w2xlECAQRFP6pX7Hw').trim();
+  return {
+    scriptId,
+    instruction,
+    voiceId,
+    canPlay: instruction !== '',
+    canSave: scriptId !== '' && instruction !== ''
+  };
+}
+
+function getCurrentInstructionOption() {
+  const state = getInstructionTtsState();
+  if (!state.scriptId) {
+    return null;
+  }
+  return [`generated - ${state.scriptId}`, state.scriptId];
+}
+
+window.BrailleBlocklyGetCurrentInstructionOption = getCurrentInstructionOption;
+
+function buildGeneratedInstructionFileName(scriptId, index) {
+  const normalizedId = String(scriptId || '').trim();
+  const normalizedIndex = Math.max(1, Number(index) || 1);
+  return `${normalizedId}-${String(normalizedIndex).padStart(3, '0')}.mp3`;
+}
+
+function parseInstructionSegments(scriptId, instructionText) {
+  const normalizedScriptId = String(scriptId || '').trim();
+  const source = String(instructionText || '');
+  const segments = [];
+  let generatedIndex = 0;
+
+  const pushTextSegment = (value) => {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    generatedIndex += 1;
+    segments.push({
+      kind: 'generated',
+      text,
+      audioRef: `instructions/${buildGeneratedInstructionFileName(normalizedScriptId, generatedIndex)}`,
+      fileName: buildGeneratedInstructionFileName(normalizedScriptId, generatedIndex)
+    });
+  };
+
+  const pushPlaceholderSegment = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return;
+    const items = raw.includes(',')
+      ? raw.split(',').map((item) => item.trim()).filter(Boolean)
+      : [raw];
+    items.forEach((item) => {
+      const file = String(item).trim();
+      if (!file) return;
+      segments.push({
+        kind: 'speech',
+        text: file,
+        audioRef: `speech/${file}.mp3`,
+        fileName: `${file}.mp3`
+      });
+    });
+  };
+
+  const lines = source.split(/\r?\n/);
+  for (const line of lines) {
+    const rawLine = String(line || '');
+    if (!rawLine.trim()) continue;
+    const regex = /<([^>]+)>/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(rawLine)) !== null) {
+      pushTextSegment(rawLine.slice(lastIndex, match.index));
+      pushPlaceholderSegment(match[1]);
+      lastIndex = regex.lastIndex;
+    }
+    pushTextSegment(rawLine.slice(lastIndex));
+  }
+
+  return {
+    scriptId: normalizedScriptId,
+    segments,
+    generatedSegments: segments.filter((segment) => segment.kind === 'generated')
+  };
+}
+
+function buildGeneratedInstructionItem(scriptId, instructionText) {
+  const parsed = parseInstructionSegments(scriptId, instructionText);
+  const playlist = parsed.segments.map((segment) => segment.audioRef);
+  if (playlist.length === 0) {
+    return null;
+  }
+  return {
+    id: parsed.scriptId,
+    title: parsed.scriptId,
+    text: String(instructionText || ''),
+    audioMode: playlist.length > 1 ? 'playlist' : 'single_mp3',
+    audioRef: playlist[0] || '',
+    audioPlaylist: playlist,
+    generatedFromBlocklyScript: true
+  };
+}
+
+function toRelativeSoundsPath(audioRef) {
+  const raw = String(audioRef || '').trim().replace(/^\/+/, '');
+  if (!raw) return '';
+  if (raw.startsWith('instructions/')) {
+    return `../nl/instructions/${raw.slice('instructions/'.length)}`;
+  }
+  if (raw.startsWith('speech/')) {
+    return `../nl/speech/${raw.slice('speech/'.length)}`;
+  }
+  if (raw.startsWith('letters/')) {
+    return `../nl/letters/${raw.slice('letters/'.length)}`;
+  }
+  if (raw.startsWith('feedback/')) {
+    return `../nl/feedback/${raw.slice('feedback/'.length)}`;
+  }
+  if (raw.startsWith('story/')) {
+    return `../nl/stories/${raw.slice('story/'.length)}`;
+  }
+  if (raw.startsWith('general/')) {
+    return `../general/${raw.slice('general/'.length)}`;
+  }
+  return `../${raw}`;
+}
+
+async function fetchGeneratedInstructionItemByScriptId(scriptId) {
+  const normalizedId = String(scriptId || '').trim();
+  if (!normalizedId) {
+    return null;
+  }
+
+  let instructionText = '';
+  if (normalizedId === String(currentOnlineScriptId || '').trim()) {
+    instructionText = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
+  }
+
+  if (!instructionText) {
+    try {
+      const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(normalizedId)}&_=${Date.now()}`);
+      instructionText = String(data?.meta?.instruction || '').trim();
+    } catch {
+      instructionText = '';
+    }
+  }
+
+  if (!instructionText) {
+    return null;
+  }
+
+  return buildGeneratedInstructionItem(normalizedId, instructionText);
+}
+
+function renderInstructionTtsControl(message = '') {
+  const button = document.getElementById('saveInstructionTtsBtn');
+  const status = document.getElementById('instructionTtsStatus');
+  if (!button || !status) return;
+
+  const state = getInstructionTtsState();
+  button.disabled = !state.canSave;
+  button.setAttribute('aria-disabled', button.disabled ? 'true' : 'false');
+
+  if (typeof window.BrailleBlocklyRefreshInstructionDropdowns === 'function') {
+    window.BrailleBlocklyRefreshInstructionDropdowns();
+  }
+
+  status.classList.remove('is-error');
+  if (message) {
+    status.textContent = message;
+    return;
+  }
+
+  if (!state.scriptId) {
+    status.textContent = 'Load an online Blockly script to save its instruction playlist.';
+    return;
+  }
+
+  if (!state.instruction) {
+    status.textContent = 'Add instruction text before saving the instruction playlist.';
+    return;
+  }
+
+  status.textContent = `Generated instruction audio will be saved under ${state.scriptId}-NNN.mp3 in /braillestudio/sounds/nl/instructions/.`;
+}
+
+function createInstructionGeneratedItem(instructionId) {
+  const normalizedId = String(instructionId || '').trim();
+  if (!normalizedId) {
+    return null;
+  }
+  const instructionText = normalizedId === String(currentOnlineScriptId || '').trim()
+    ? String(document.getElementById('scriptMetaInstruction')?.value || '').trim()
+    : '';
+  return buildGeneratedInstructionItem(normalizedId, instructionText);
+}
+
+function insertInstructionPlayBlock() {
+  const state = getInstructionTtsState();
+  if (!workspace) {
+    throw new Error('Blockly workspace is not ready');
+  }
+  if (!state.scriptId) {
+    throw new Error('Load an online script first.');
+  }
+
+  const generatedItem = buildGeneratedInstructionItem(state.scriptId, state.instruction);
+  if (!generatedItem || !Array.isArray(generatedItem.audioPlaylist) || generatedItem.audioPlaylist.length === 0) {
+    throw new Error('Instruction has no playable items.');
+  }
+
+  const listBlock = workspace.newBlock('lists_create_with');
+  if (typeof listBlock.itemCount_ === 'number' && typeof listBlock.updateShape_ === 'function') {
+    listBlock.itemCount_ = Math.max(1, generatedItem.audioPlaylist.length);
+    listBlock.updateShape_();
+  }
+  listBlock.initSvg();
+  listBlock.render();
+
+  generatedItem.audioPlaylist.forEach((audioRef, index) => {
+    const textBlock = workspace.newBlock('text');
+    textBlock.setFieldValue(toRelativeSoundsPath(audioRef), 'TEXT');
+    textBlock.initSvg();
+    textBlock.render();
+    const input = listBlock.getInput(`ADD${index}`);
+    if (input?.connection && textBlock.outputConnection) {
+      input.connection.connect(textBlock.outputConnection);
+    }
+  });
+
+  const loopBlock = workspace.newBlock('list_for_each_item');
+  loopBlock.initSvg();
+  loopBlock.render();
+
+  const variableField = loopBlock.getField('VAR');
+  const variableModel = variableField?.getVariable?.();
+  const variableId = variableModel?.getId?.() || '';
+
+  if (loopBlock.getInput('LIST')?.connection && listBlock.outputConnection) {
+    loopBlock.getInput('LIST').connection.connect(listBlock.outputConnection);
+  }
+
+  const playBlock = workspace.newBlock('sound_play_sounds_relative');
+  playBlock.initSvg();
+  playBlock.render();
+
+  const variableGetBlock = workspace.newBlock('variables_get');
+  if (variableId) {
+    variableGetBlock.setFieldValue(variableId, 'VAR');
+  }
+  variableGetBlock.initSvg();
+  variableGetBlock.render();
+
+  if (playBlock.getInput('PATH')?.connection && variableGetBlock.outputConnection) {
+    playBlock.getInput('PATH').connection.connect(variableGetBlock.outputConnection);
+  }
+
+  if (loopBlock.getInput('DO')?.connection && playBlock.previousConnection) {
+    loopBlock.getInput('DO').connection.connect(playBlock.previousConnection);
+  }
+
+  const metrics = workspace.getMetrics?.();
+  const viewLeft = metrics?.viewLeft ?? 0;
+  const viewTop = metrics?.viewTop ?? 0;
+  const viewWidth = metrics?.viewWidth ?? 320;
+  const viewHeight = metrics?.viewHeight ?? 240;
+  loopBlock.moveBy(viewLeft + (viewWidth / 2) - 120, viewTop + (viewHeight / 2) - 40);
+  loopBlock.select();
+  refreshWorkspaceDirtyState();
+  log(`Instruction playlist block inserted: ${state.scriptId} (${generatedItem.audioPlaylist.length} items)`);
+}
+
+async function saveInstructionAsMp3() {
+  const status = document.getElementById('instructionTtsStatus');
+  const button = document.getElementById('saveInstructionTtsBtn');
+  const state = getInstructionTtsState();
+
+  if (!state.scriptId) {
+    renderInstructionTtsControl('Load an online Blockly script before saving the instruction playlist.');
+    if (status) status.classList.add('is-error');
+    return;
+  }
+  if (!state.instruction) {
+    renderInstructionTtsControl('Instruction text is empty.');
+    if (status) status.classList.add('is-error');
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (status) {
+    status.classList.remove('is-error');
+    status.textContent = 'Saving instruction playlist MP3 files...';
+  }
+
+  try {
+    const parsed = parseInstructionSegments(state.scriptId, state.instruction);
+    if (parsed.segments.length === 0) {
+      throw new Error('Instruction has no playable items.');
+    }
+
+    for (const segment of parsed.generatedSegments) {
+      const res = await fetch(ELEVENLABS_TTS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+        voice_id: state.voiceId,
+        model_id: 'eleven_v3',
+        text: segment.text,
+        save_to_file: true,
+        save_path: 'braillestudio/sounds/nl/instructions',
+          file_name: segment.fileName
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+    }
+
+    const summary = `${parsed.generatedSegments.length} generated, ${parsed.segments.length} playlist items`;
+    log(`Instruction playlist saved: ${state.scriptId} (${summary})`);
+    renderInstructionTtsControl(`Instruction playlist saved: ${summary}.`);
+  } catch (err) {
+    log(`Instruction playlist save failed: ${err.message}`);
+    renderInstructionTtsControl(`Instruction playlist save failed: ${err.message}`);
+    if (status) status.classList.add('is-error');
+  } finally {
+    renderInstructionTtsControl(status?.textContent || '');
+    if (status && status.textContent.startsWith('Instruction playlist save failed:')) {
+      status.classList.add('is-error');
+    } else if (status) {
+      status.classList.remove('is-error');
+    }
+    if (button) button.disabled = !getInstructionTtsState().canSave;
+  }
+}
+
+async function saveInstructionPlaylistAndInsertBlock() {
+  await saveInstructionAsMp3();
+  const status = document.getElementById('instructionTtsStatus');
+  if (status && status.classList.contains('is-error')) {
+    return;
+  }
+  insertInstructionPlayBlock();
+  renderInstructionTtsControl('Instruction playlist saved and playlist block inserted.');
 }
 
 function applyMetadataToXmlDom(xmlDom) {
@@ -456,6 +807,7 @@ let soundVolume = 1;
 let activeAudio = null;
 let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
+let instructionPreviewAudio = null;
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const SOUND_FOLDER_URLS = {
   speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
@@ -651,6 +1003,7 @@ function setOnlineCurrentScript({ id = '', title = '', status = 'draft' } = {}) 
     title: String(title || '').trim(),
     status: String(status || 'draft')
   });
+  renderInstructionTtsControl();
   renderFileState();
 }
 
@@ -1021,6 +1374,15 @@ function resolveFolderSoundUrl(folder, input) {
   return baseUrl + encodeURIComponent(filename);
 }
 
+function resolveSoundsRelativeUrl(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const normalized = raw.replace(/^(?:\.\.\/|\.\/|\/)+/, '');
+  if (!normalized) return '';
+  return 'https://www.tastenbraille.com/braillestudio/sounds/' + normalized.split('/').map(encodeURIComponent).join('/');
+}
+
 function resolveInstructionAudioUrl(input) {
   const raw = String(input ?? '').trim();
   if (!raw) return '';
@@ -1092,9 +1454,19 @@ async function fetchInstructionById(id) {
       log(`Instruction fallback used for ${instructionId}`);
       return fallbackItem;
     }
+    const generatedItem = await fetchGeneratedInstructionItemByScriptId(instructionId);
+    if (generatedItem) {
+      log(`Generated instruction fallback used for ${instructionId}`);
+      return generatedItem;
+    }
     throw err;
   }
   if (!parsed?.item || typeof parsed.item !== 'object') {
+    const generatedItem = await fetchGeneratedInstructionItemByScriptId(instructionId);
+    if (generatedItem) {
+      log(`Generated instruction API fallback used for ${instructionId}`);
+      return generatedItem;
+    }
     throw new Error(`Instruction not found: ${instructionId}`);
   }
   return parsed.item;
@@ -1729,6 +2101,14 @@ function bindAppControls() {
   });
   bind('stopSoundBtn', 'click', stopSound);
   bind('clearLogBtn', 'click', clearLogBox);
+  bind('saveInstructionTtsBtn', 'click', async () => {
+    try {
+      await saveInstructionPlaylistAndInsertBlock();
+    } catch (err) {
+      log(`Instruction playlist save/insert failed: ${err.message}`);
+      alert('Could not save instruction playlist and insert block: ' + err.message);
+    }
+  });
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
     baseUrlBox.textContent = SOUND_BASE_URL;
@@ -1794,8 +2174,16 @@ function bindAppControls() {
     metaDescription.dataset.initialized = '1';
   }
   if (metaInstruction && !metaInstruction.dataset.initialized) {
-    metaInstruction.addEventListener('input', () => refreshWorkspaceDirtyState());
+    metaInstruction.addEventListener('input', () => {
+      refreshWorkspaceDirtyState();
+      renderInstructionTtsControl();
+    });
     metaInstruction.dataset.initialized = '1';
+  }
+  const instructionTtsVoiceSelect = document.getElementById('instructionTtsVoiceSelect');
+  if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
+    instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());
+    instructionTtsVoiceSelect.dataset.initialized = '1';
   }
   if (metaPrompt && !metaPrompt.dataset.initialized) {
     metaPrompt.addEventListener('input', () => refreshWorkspaceDirtyState());
@@ -2614,6 +3002,15 @@ async function evalValue(block) {
     case 'text':
       return block.getFieldValue('TEXT');
 
+    case 'lists_create_with': {
+      const out = [];
+      const count = Number(block.itemCount_ || block.inputList?.filter?.((input) => String(input.name || '').startsWith('ADD')).length || 0);
+      for (let i = 0; i < count; i++) {
+        out.push(await evalValue(block.getInputTargetBlock(`ADD${i}`)));
+      }
+      return out;
+    }
+
     case 'math_number':
       return Number(block.getFieldValue('NUM'));
 
@@ -3320,6 +3717,18 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'sound_play_url': {
         const url = String(await evalValue(current.getInputTargetBlock('URL')) ?? '');
+        if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
+          log('Sound play: ' + url);
+          await window.BrailleStudioAPI.playUrl(url);
+        } else {
+          await playSound(url);
+        }
+        break;
+      }
+
+      case 'sound_play_sounds_relative': {
+        const path = String(await evalValue(current.getInputTargetBlock('PATH')) ?? '');
+        const url = resolveSoundsRelativeUrl(path);
         if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
           log('Sound play: ' + url);
           await window.BrailleStudioAPI.playUrl(url);
@@ -4036,6 +4445,7 @@ async function newWorkspace() {
 
 renderStatus();
 renderScriptMetadata(null);
+renderInstructionTtsControl();
 renderFileState();
 setWsBadge(false);
 

@@ -5,8 +5,8 @@ require __DIR__ . '/_bootstrap.php';
 
 function elevenlabs_slugify_filename(string $value): string
 {
-    $value = strtolower(trim($value));
-    $value = preg_replace('/[^a-z0-9._-]+/', '-', $value);
+    $value = trim($value);
+    $value = preg_replace('/[^A-Za-z0-9._-]+/', '-', $value);
     $value = trim((string)$value, '-_.');
     return $value !== '' ? $value : 'audio';
 }
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = elevenlabs_get_json_input();
 $text = elevenlabs_normalize_text($input['text'] ?? '');
 $voiceId = elevenlabs_normalize_text($input['voice_id'] ?? '');
-$modelId = elevenlabs_normalize_text($input['model_id'] ?? 'eleven_multilingual_v2');
+$modelId = elevenlabs_normalize_text($input['model_id'] ?? 'eleven_v3');
 $savePath = elevenlabs_normalize_text($input['save_path'] ?? '');
 $fileName = elevenlabs_normalize_text($input['file_name'] ?? '');
 $saveToFile = !empty($input['save_to_file']);
