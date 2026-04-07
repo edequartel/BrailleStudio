@@ -294,9 +294,11 @@ async function loginElevenLabsAuth() {
   try {
     const token = await openBrailleStudioAuthPopup();
     setElevenLabsAuthToken(token);
+    log(`Token stored after authentication: ${getElevenLabsAuthToken() ? 'present' : 'missing'}`);
     renderElevenLabsAuthStatus('Authenticated.');
     log('BrailleStudio auth popup completed');
     try {
+      log('Refreshing online scripts after authentication');
       await refreshOnlineScripts();
     } catch (refreshErr) {
       log(`Online scripts refresh after authentication failed: ${refreshErr?.message || refreshErr}`);
@@ -318,6 +320,7 @@ function openBrailleStudioAuthPopup() {
   return new Promise((resolve, reject) => {
     const bridgeUrl = new URL(AUTH_BRIDGE_PAGE_URL);
     bridgeUrl.searchParams.set('origin', window.location.origin);
+    log(`Opening auth popup for origin: ${window.location.origin}`);
 
     const popup = window.open(
       bridgeUrl.toString(),
@@ -340,6 +343,7 @@ function openBrailleStudioAuthPopup() {
       if (event.origin !== 'https://www.tastenbraille.com') return;
       if (event.data?.type !== 'braillestudio-auth-token') return;
       const token = String(event.data?.token || '').trim();
+      log(`Auth popup message received from ${event.origin}; token ${token ? 'present' : 'missing'}`);
       if (!token) return;
       settled = true;
       cleanup();
