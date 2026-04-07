@@ -18,6 +18,7 @@ declare(strict_types=1);
         <h1 class="text-3xl font-bold">Lesson steps bouwen</h1>
       </div>
       <div class="flex gap-2">
+        <button id="authBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Authentication</button>
         <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Vorige stap</a>
       </div>
     </div>
@@ -725,6 +726,15 @@ declare(strict_types=1);
         await runLesson();
       } catch (err) {
         setStatus(`Run error: ${err.message}`);
+      }
+    });
+
+    document.getElementById('authBtn')?.addEventListener('click', async () => {
+      try {
+        await shared.openAuthenticationPopup();
+        setStatus('Authentication completed.');
+      } catch (err) {
+        setStatus(`Authentication error: ${err.message}`);
       }
     });
 

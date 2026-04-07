@@ -14,6 +14,7 @@
   const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
+  const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
   const basisDataCache = new Map();
 
   function getAuthToken() {
@@ -35,6 +36,63 @@
     }
     next.headers = headers;
     return next;
+  }
+
+  function setAuthToken(token) {
+    const normalized = String(token || '').trim();
+    if (normalized) {
+      sessionStorage.setItem('braillestudioAuthToken', normalized);
+      localStorage.setItem('braillestudioAuthToken', normalized);
+      sessionStorage.setItem('elevenlabsAuthToken', normalized);
+      localStorage.setItem('elevenlabsAuthToken', normalized);
+    } else {
+      sessionStorage.removeItem('braillestudioAuthToken');
+      localStorage.removeItem('braillestudioAuthToken');
+      sessionStorage.removeItem('elevenlabsAuthToken');
+      localStorage.removeItem('elevenlabsAuthToken');
+    }
+  }
+
+  function openAuthenticationPopup() {
+    return new Promise((resolve, reject) => {
+      const bridgeUrl = new URL(AUTH_BRIDGE_URL);
+      bridgeUrl.searchParams.set('origin', window.location.origin);
+      const popup = window.open(
+        bridgeUrl.toString(),
+        'braillestudioAuthBridge',
+        'width=560,height=720,resizable=yes,scrollbars=yes'
+      );
+      if (!popup) {
+        reject(new Error('Popup blocked'));
+        return;
+      }
+
+      let settled = false;
+      const cleanup = () => {
+        window.removeEventListener('message', onMessage);
+        if (pollTimer) window.clearInterval(pollTimer);
+      };
+
+      const onMessage = (event) => {
+        if (event.origin !== 'https://www.tastenbraille.com') return;
+        if (event.data?.type !== 'braillestudio-auth-token') return;
+        const token = String(event.data?.token || '').trim();
+        if (!token) return;
+        setAuthToken(token);
+        settled = true;
+        cleanup();
+        resolve(token);
+      };
+
+      window.addEventListener('message', onMessage);
+
+      const pollTimer = window.setInterval(() => {
+        if (popup.closed && !settled) {
+          cleanup();
+          reject(new Error('Authentication popup closed'));
+        }
+      }, 250);
+    });
   }
 
   function getApiBases(kind = 'lesson') {
@@ -298,6 +356,8 @@
   window.LessonBuilderShared = {
     DEFAULT_BASIS_DATA_URL,
     getAuthToken,
+    setAuthToken,
+    openAuthenticationPopup,
     loadState,
     saveState,
     updateState,

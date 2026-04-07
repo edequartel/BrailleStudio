@@ -217,6 +217,7 @@ $pagePayload = [
             <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
             <span id="lessonRunIndicatorText">Not running</span>
           </span>
+          <button id="authBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Authentication</button>
           <button id="toggleRunnerBtn" type="button" class="ml-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -739,6 +740,63 @@ $pagePayload = [
       return headers;
     }
 
+    function setBrailleStudioAuthToken(token) {
+      const normalized = String(token || '').trim();
+      if (normalized) {
+        sessionStorage.setItem('braillestudioAuthToken', normalized);
+        localStorage.setItem('braillestudioAuthToken', normalized);
+        sessionStorage.setItem('elevenlabsAuthToken', normalized);
+        localStorage.setItem('elevenlabsAuthToken', normalized);
+      } else {
+        sessionStorage.removeItem('braillestudioAuthToken');
+        localStorage.removeItem('braillestudioAuthToken');
+        sessionStorage.removeItem('elevenlabsAuthToken');
+        localStorage.removeItem('elevenlabsAuthToken');
+      }
+    }
+
+    function openBrailleStudioAuthPopup() {
+      return new Promise((resolve, reject) => {
+        const bridgeUrl = new URL('https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge');
+        bridgeUrl.searchParams.set('origin', window.location.origin);
+        const popup = window.open(
+          bridgeUrl.toString(),
+          'braillestudioAuthBridge',
+          'width=560,height=720,resizable=yes,scrollbars=yes'
+        );
+        if (!popup) {
+          reject(new Error('Popup blocked'));
+          return;
+        }
+
+        let settled = false;
+        const cleanup = () => {
+          window.removeEventListener('message', onMessage);
+          if (pollTimer) window.clearInterval(pollTimer);
+        };
+
+        const onMessage = (event) => {
+          if (event.origin !== 'https://www.tastenbraille.com') return;
+          if (event.data?.type !== 'braillestudio-auth-token') return;
+          const token = String(event.data?.token || '').trim();
+          if (!token) return;
+          setBrailleStudioAuthToken(token);
+          settled = true;
+          cleanup();
+          resolve(token);
+        };
+
+        window.addEventListener('message', onMessage);
+
+        const pollTimer = window.setInterval(() => {
+          if (popup.closed && !settled) {
+            cleanup();
+            reject(new Error('Authentication popup closed'));
+          }
+        }, 250);
+      });
+    }
+
     async function loadScriptData(id) {
       const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(id)}`;
       const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
@@ -1117,6 +1175,14 @@ $pagePayload = [
     document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
     document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
+    document.getElementById('authBtn')?.addEventListener('click', async () => {
+      try {
+        await openBrailleStudioAuthPopup();
+        appendStatus('Authentication completed.');
+      } catch (err) {
+        appendStatus('Authentication failed.', { error: err.message });
+      }
+    });
     if (toggleRunnerBtn) {
       toggleRunnerBtn.addEventListener('click', () => {
         isRunnerVisible = !isRunnerVisible;

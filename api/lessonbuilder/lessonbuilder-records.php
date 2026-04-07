@@ -18,6 +18,7 @@ declare(strict_types=1);
         <h1 class="text-3xl font-bold">Lessons</h1>
       </div>
       <div class="flex gap-2">
+        <button id="authBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Authentication</button>
         <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-method.php">Vorige stap</a>
         <a class="rounded-xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php">Volgende stap</a>
       </div>
@@ -271,6 +272,15 @@ declare(strict_types=1);
         }
         event.preventDefault();
         openSelectedLesson();
+      }
+    });
+
+    document.getElementById('authBtn')?.addEventListener('click', async () => {
+      try {
+        await shared.openAuthenticationPopup();
+        setStatus('Authentication completed.');
+      } catch (err) {
+        setStatus(`Authentication error: ${err.message}`);
       }
     });
 

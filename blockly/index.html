@@ -814,16 +814,12 @@
         <input id="scriptMetaTitle" class="btn" type="text" placeholder="Title" style="width:100%; margin-bottom:8px; cursor:text;">
         <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptMetaInstruction" class="meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
-        <div class="small" style="margin-bottom:6px;">ElevenLabs authentication</div>
-        <div class="auth-grid">
-          <input id="elevenlabsUsernameInput" class="btn" type="text" placeholder="Username" style="min-width:0; cursor:text;">
-          <input id="elevenlabsPasswordInput" class="btn" type="password" placeholder="Password" style="min-width:0; cursor:text;">
-        </div>
+        <div class="small" style="margin-bottom:6px;">Authentication</div>
         <div class="auth-actions">
-          <button id="elevenlabsLoginBtn" class="btn btn-blue" type="button">Login</button>
+          <button id="elevenlabsLoginBtn" class="btn btn-blue" type="button">Authenticate</button>
           <button id="elevenlabsLogoutBtn" class="btn" type="button">Logout</button>
         </div>
-        <div id="elevenlabsAuthStatus" class="small" style="margin-bottom:8px;">Not logged in.</div>
+        <div id="elevenlabsAuthStatus" class="small" style="margin-bottom:8px;">Not authenticated.</div>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="btn" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
@@ -1271,9 +1267,9 @@
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
 </xml>
 
-<script src="./runtime.js"></script>
-<script src="./instructions-catalog.js"></script>
-<script src="./preload-instructions.js"></script>
+<script src="./runtime.js?v=20260407-1"></script>
+<script src="./instructions-catalog.js?v=20260407-1"></script>
+<script src="./preload-instructions.js?v=20260407-1"></script>
 <script>
   (function () {
     const overlay = document.getElementById('loadingOverlay');
@@ -1328,10 +1324,13 @@
 </script>
 <script>
   (async function () {
+    const assetVersion = '20260407-1';
+
     async function loadScript(src) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = src;
+        const separator = src.includes('?') ? '&' : '?';
+        script.src = `${src}${separator}v=${assetVersion}`;
         script.onload = resolve;
         script.onerror = () => reject(new Error(`Failed to load ${src}`));
         document.body.appendChild(script);

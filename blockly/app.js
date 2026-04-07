@@ -17,6 +17,7 @@ const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
+const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
 const WS_URL = 'ws://localhost:5000/ws';
@@ -278,7 +279,7 @@ function renderElevenLabsAuthStatus(message = '') {
 
   const token = getElevenLabsAuthToken();
   status.classList.remove('is-error');
-  status.textContent = message || (token ? 'Authenticated for ElevenLabs.' : 'Not logged in.');
+  status.textContent = message || (token ? 'Authenticated.' : 'Not authenticated.');
 
   if (loginBtn) {
     loginBtn.disabled = false;
@@ -289,45 +290,21 @@ function renderElevenLabsAuthStatus(message = '') {
 }
 
 async function loginElevenLabsAuth() {
-  const usernameInput = document.getElementById('elevenlabsUsernameInput');
-  const passwordInput = document.getElementById('elevenlabsPasswordInput');
-  const loginBtn = document.getElementById('elevenlabsLoginBtn');
-  const username = String(usernameInput?.value || '').trim();
-  const password = String(passwordInput?.value || '');
-
-  if (!username || !password) {
-    renderElevenLabsAuthStatus('Enter username and password first.');
-    document.getElementById('elevenlabsAuthStatus')?.classList.add('is-error');
-    return;
-  }
-
-  if (loginBtn) loginBtn.disabled = true;
-  renderElevenLabsAuthStatus('Logging in...');
-
+  renderElevenLabsAuthStatus('Open authentication popup...');
   try {
-    const res = await fetch(getElevenLabsAuthEndpointUrl('login.php'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username,
-        password,
-        audience: 'braillestudio-api'
-      })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data?.ok || !data?.token) {
-      throw new Error(data?.error || `HTTP ${res.status}`);
+    const token = await openBrailleStudioAuthPopup();
+    setElevenLabsAuthToken(token);
+    renderElevenLabsAuthStatus('Authenticated.');
+    log('BrailleStudio auth popup completed');
+    try {
+      await refreshOnlineScripts();
+    } catch (refreshErr) {
+      log(`Online scripts refresh after authentication failed: ${refreshErr?.message || refreshErr}`);
     }
-    setElevenLabsAuthToken(data.token);
-    if (passwordInput) passwordInput.value = '';
-    renderElevenLabsAuthStatus(`Authenticated as ${String(data?.user?.username || username)}.`);
-    log(`ElevenLabs auth login ok: ${String(data?.user?.username || username)}`);
   } catch (err) {
-    renderElevenLabsAuthStatus(`Login failed: ${err.message}`);
+    renderElevenLabsAuthStatus(`Authentication failed: ${err.message}`);
     document.getElementById('elevenlabsAuthStatus')?.classList.add('is-error');
-    log(`ElevenLabs auth login failed: ${err.message}`);
-  } finally {
-    if (loginBtn) loginBtn.disabled = false;
+    log(`BrailleStudio auth popup failed: ${err.message}`);
   }
 }
 
@@ -335,6 +312,49 @@ function logoutElevenLabsAuth() {
   setElevenLabsAuthToken('');
   renderElevenLabsAuthStatus('Logged out.');
   log('ElevenLabs auth logged out');
+}
+
+function openBrailleStudioAuthPopup() {
+  return new Promise((resolve, reject) => {
+    const bridgeUrl = new URL(AUTH_BRIDGE_PAGE_URL);
+    bridgeUrl.searchParams.set('origin', window.location.origin);
+
+    const popup = window.open(
+      bridgeUrl.toString(),
+      'braillestudioAuthBridge',
+      'width=560,height=720,resizable=yes,scrollbars=yes'
+    );
+
+    if (!popup) {
+      reject(new Error('Popup blocked'));
+      return;
+    }
+
+    let settled = false;
+    const cleanup = () => {
+      window.removeEventListener('message', onMessage);
+      if (pollTimer) window.clearInterval(pollTimer);
+    };
+
+    const onMessage = (event) => {
+      if (event.origin !== 'https://www.tastenbraille.com') return;
+      if (event.data?.type !== 'braillestudio-auth-token') return;
+      const token = String(event.data?.token || '').trim();
+      if (!token) return;
+      settled = true;
+      cleanup();
+      resolve(token);
+    };
+
+    window.addEventListener('message', onMessage);
+
+    const pollTimer = window.setInterval(() => {
+      if (popup.closed && !settled) {
+        cleanup();
+        reject(new Error('Authentication popup closed'));
+      }
+    }, 250);
+  });
 }
 
 function getInstructionTtsState() {
@@ -2320,15 +2340,6 @@ function bindAppControls() {
   if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
     instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());
     instructionTtsVoiceSelect.dataset.initialized = '1';
-  }
-  const elevenlabsPasswordInput = document.getElementById('elevenlabsPasswordInput');
-  if (elevenlabsPasswordInput && !elevenlabsPasswordInput.dataset.initialized) {
-    elevenlabsPasswordInput.addEventListener('keydown', async (event) => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      await loginElevenLabsAuth();
-    });
-    elevenlabsPasswordInput.dataset.initialized = '1';
   }
   renderElevenLabsAuthStatus();
   if (metaPrompt && !metaPrompt.dataset.initialized) {
@@ -4533,11 +4544,93 @@ function loadWorkspaceFromText(text, sourceName = null) {
   }
 }
 
+function collectBlockTypesFromState(state) {
+  const result = new Set();
+
+  function visitBlock(block) {
+    if (!block || typeof block !== 'object') return;
+    const type = String(block.type || '').trim();
+    if (type) {
+      result.add(type);
+    }
+    const nextBlock = block.next?.block;
+    if (nextBlock) {
+      visitBlock(nextBlock);
+    }
+    const inputs = block.inputs;
+    if (inputs && typeof inputs === 'object') {
+      Object.values(inputs).forEach((input) => {
+        if (!input || typeof input !== 'object') return;
+        if (input.block) visitBlock(input.block);
+        if (input.shadow) visitBlock(input.shadow);
+      });
+    }
+  }
+
+  const blocks = state?.blocks?.blocks;
+  if (Array.isArray(blocks)) {
+    blocks.forEach(visitBlock);
+  }
+  return Array.from(result);
+}
+
+function ensureCompatibilityBlockDefinitions(state = null) {
+  if (!window.Blockly?.Blocks) return [];
+
+  const registered = [];
+  const requiredTypes = new Set(collectBlockTypesFromState(state));
+  requiredTypes.add('sound_play_sounds_relative');
+
+  const fallbackDefinitions = {
+    sound_play_sounds_relative: {
+      init() {
+        this.appendValueInput('PATH').appendField('play sounds path');
+        this.setPreviousStatement(true);
+        this.setNextStatement(true);
+        this.setColour('#10B981');
+      }
+    }
+  };
+
+  requiredTypes.forEach((type) => {
+    const fallback = fallbackDefinitions[type];
+    if (!fallback) return;
+    const definition = Blockly.Blocks[type];
+    if (definition && typeof definition.init === 'function') return;
+    Blockly.Blocks[type] = fallback;
+    registered.push(type);
+  });
+
+  if (registered.length > 0) {
+    log(`Compatibility block definitions registered: ${registered.join(', ')}`);
+  }
+  return registered;
+}
+
+function getBlockDefinitionDiagnostics(type) {
+  const definition = window.Blockly?.Blocks?.[type];
+  return {
+    type,
+    exists: definition != null,
+    valueType: typeof definition,
+    hasInit: !!(definition && typeof definition.init === 'function'),
+    keys: definition && typeof definition === 'object' ? Object.keys(definition).slice(0, 12) : []
+  };
+}
+
 function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
   try {
     if (!state || typeof state !== 'object') {
       throw new Error('Invalid Blockly JSON structure');
     }
+    const requiredTypes = collectBlockTypesFromState(state);
+    log('Loading workspace block types: ' + requiredTypes.join(', '));
+    ensureCompatibilityBlockDefinitions(state);
+    log('Block definition diagnostics: ' + JSON.stringify({
+      sound_play_sounds_relative: getBlockDefinitionDiagnostics('sound_play_sounds_relative'),
+      list_for_each_item: getBlockDefinitionDiagnostics('list_for_each_item'),
+      event_when_started: getBlockDefinitionDiagnostics('event_when_started')
+    }));
     registerProcedures(state, runtime);
     suppressDirtyTracking++;
     workspace.clear();
@@ -4561,6 +4654,14 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
     log('Workspace loaded' + (sourceName ? ': ' + sourceName : ''));
   } catch (err) {
     suppressDirtyTracking = 0;
+    try {
+      log('Workspace load diagnostics failed: ' + JSON.stringify({
+        error: err?.message || String(err),
+        sound_play_sounds_relative: getBlockDefinitionDiagnostics('sound_play_sounds_relative'),
+        list_for_each_item: getBlockDefinitionDiagnostics('list_for_each_item'),
+        event_when_started: getBlockDefinitionDiagnostics('event_when_started')
+      }));
+    } catch {}
     log('Load failed: ' + err.message);
     alert('Could not load file: ' + err.message);
   }

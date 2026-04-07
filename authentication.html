@@ -137,7 +137,7 @@
     <div class="header">
       <div class="title">
         <h1>Authentication</h1>
-        <p>Login voor beveiligde BrailleStudio API’s en pagina’s.</p>
+        <p id="pageSubtitle">Login voor beveiligde BrailleStudio API’s en pagina’s.</p>
       </div>
       <a class="btn ghost" href="./index.html">Terug naar home</a>
     </div>
@@ -171,13 +171,16 @@
     const AUTH_BASE = "https://www.tastenbraille.com/braillestudio/authentication-api/";
     const AUTH_TOKEN_KEY = "braillestudioAuthToken";
     const LEGACY_ELEVENLABS_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
+    const params = new URLSearchParams(window.location.search);
+    const bridgeMode = params.get("mode") === "bridge";
+    const requestedOrigin = String(params.get("origin") || "").trim();
 
     function getAuthBaseUrl() {
       const host = String(window.location.hostname || "").toLowerCase();
       if (host === "127.0.0.1" || host === "localhost") {
         return AUTH_BASE;
       }
-      return new URL("./api/authentication-api/", window.location.href).toString();
+      return AUTH_BASE;
     }
 
     function getAuthEndpointUrl(fileName) {
@@ -219,6 +222,22 @@
       if (logoutBtn) logoutBtn.disabled = !token;
     }
 
+    function publishBridgeToken(token, audience, username) {
+      if (!bridgeMode || !window.opener || !token) return;
+      const payload = {
+        type: "braillestudio-auth-token",
+        token,
+        audience: String(audience || "").trim(),
+        username: String(username || "").trim()
+      };
+      const targetOrigin = requestedOrigin || "*";
+      window.opener.postMessage(payload, targetOrigin);
+      renderAuthStatus("Authentication completed. This window closes automatically.");
+      setTimeout(() => {
+        window.close();
+      }, 250);
+    }
+
     async function loginAuth() {
       const usernameInput = document.getElementById("authUsernameInput");
       const passwordInput = document.getElementById("authPasswordInput");
@@ -253,6 +272,7 @@
         setStoredAuthToken(data.token);
         if (passwordInput) passwordInput.value = "";
         renderAuthStatus(`Authenticated as ${String(data?.user?.username || username)} for ${audience}.`);
+        publishBridgeToken(data.token, audience, String(data?.user?.username || username));
       } catch (error) {
         console.error("[authentication] login failed", error);
         renderAuthStatus(`Login failed: ${error.message || error}`, true);
@@ -273,6 +293,13 @@
       event.preventDefault();
       await loginAuth();
     });
+
+    const subtitle = document.getElementById("pageSubtitle");
+    if (bridgeMode && subtitle) {
+      subtitle.textContent = requestedOrigin
+        ? `Bridge login voor ${requestedOrigin}. Na login wordt de token teruggestuurd naar de opener.`
+        : "Bridge login. Na login wordt de token teruggestuurd naar de opener.";
+    }
 
     renderAuthStatus();
   })();
