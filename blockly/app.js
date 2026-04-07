@@ -2616,6 +2616,12 @@ initVariableValues();
 setBootStage('workspace-ready');
 
 setTimeout(() => {
+  const token = getElevenLabsAuthToken();
+  log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
+  if (!token) {
+    log('Online scripts startup skipped: authenticate first.');
+    return;
+  }
   refreshOnlineScripts().catch(err => {
     log('Online scripts startup load failed: ' + err.message);
   });
