@@ -145,6 +145,11 @@
   }
 
   function getDynamicInstructionOptions() {
+    if (!instructionDropdownState.loaded && !instructionDropdownState.loading) {
+      setTimeout(() => {
+        loadInstructionDropdownOptions();
+      }, 0);
+    }
     const options = Array.isArray(instructionDropdownState.options)
       ? [...instructionDropdownState.options]
       : [];
@@ -273,10 +278,6 @@
       ids: initialCatalogItems.map(item => item?.id).filter(Boolean)
     });
     setInstructionDebugState({ stage: 'preloaded', items: initialCatalogItems });
-  } else {
-    setTimeout(() => {
-      loadInstructionDropdownOptions();
-    }, 0);
   }
 
   Blockly.Blocks['event_when_started'] = {
