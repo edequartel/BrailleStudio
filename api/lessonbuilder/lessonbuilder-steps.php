@@ -730,6 +730,9 @@ declare(strict_types=1);
     });
 
     document.getElementById('authBtn')?.addEventListener('click', async () => {
+      isDebugLogVisible = true;
+      renderDebugLogVisibility();
+      setStatus('Authentication starten...');
       try {
         await shared.openAuthenticationPopup();
         setStatus('Authentication completed.');

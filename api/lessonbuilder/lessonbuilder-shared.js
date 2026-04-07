@@ -55,10 +55,19 @@
 
   function openAuthenticationPopup() {
     return new Promise((resolve, reject) => {
-      const bridgeUrl = new URL(AUTH_BRIDGE_URL);
-      bridgeUrl.searchParams.set('origin', window.location.origin);
+      const currentOrigin = String(window.location.origin || '').trim();
+      const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
+      const authUrl = new URL(
+        useSameOriginStorageFlow
+          ? 'https://www.tastenbraille.com/braillestudio/authentication.html'
+          : AUTH_BRIDGE_URL
+      );
+      if (!useSameOriginStorageFlow) {
+        authUrl.searchParams.set('origin', currentOrigin);
+      }
+      const initialToken = getAuthToken();
       const popup = window.open(
-        bridgeUrl.toString(),
+        authUrl.toString(),
         'braillestudioAuthBridge',
         'width=560,height=720,resizable=yes,scrollbars=yes'
       );
@@ -66,6 +75,9 @@
         reject(new Error('Popup blocked'));
         return;
       }
+      try {
+        popup.focus();
+      } catch {}
 
       let settled = false;
       const cleanup = () => {
@@ -87,6 +99,16 @@
       window.addEventListener('message', onMessage);
 
       const pollTimer = window.setInterval(() => {
+        const currentToken = getAuthToken();
+        if (!settled && currentToken && currentToken !== initialToken) {
+          settled = true;
+          cleanup();
+          try {
+            popup.close();
+          } catch {}
+          resolve(currentToken);
+          return;
+        }
         if (popup.closed && !settled) {
           cleanup();
           reject(new Error('Authentication popup closed'));
