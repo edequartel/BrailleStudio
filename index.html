@@ -130,10 +130,11 @@
       display: flex;
       gap: 10px;
       align-items: center;
-      flex-wrap: wrap;
       justify-content: flex-end;
-      flex-direction: column;
-      align-items: flex-start;
+    }
+
+    .actions > * {
+      margin: 0;
     }
 
     .btn {
@@ -330,10 +331,9 @@
           <div class="sub"></div>
         </div>
         <div class="actions">
-          <div>
-            <button class="btn" id="themeBtn" type="button">Theme</button>
-            <a class="btn" href="./pages/settings.html">Settings</a>
-          </div>
+          <button class="btn" id="themeBtn" type="button">Theme</button>
+          <a class="btn" href="./pages/settings.html">Settings</a>
+          <a class="btn" href="./authentication.html">Authentication</a>
         </div>
       </div>
     </div>
@@ -352,7 +352,6 @@
           <li><a href="./api/index.html" aria-label="Phonemes API">Phonemes API</a></li>
           <li><a href="./klanken/index.html" aria-label="Klanken">Klanken</a></li>
           <li><a href="https://www.tastenbraille.com/braillevolg/index.php" aria-label="BrailleVolg">BrailleVolg</a></li>
-          <li><a href="https://mpop-ssoc.vercel.app/api-elevenlabs/elevenlabs-fem-login.html" aria-label="ElevenLabs Login">ElevenLabs Login</a></li>
         </ul>
       </nav>
 
@@ -376,6 +375,9 @@
   <script>
   (async function () {
     "use strict";
+
+    const AUTH_TOKEN_KEY = "braillestudioAuthToken";
+    const LEGACY_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
 
     // ------------------------------------------------------------
     // i18n dictionary (explicit, readable, maintainable)
@@ -429,6 +431,16 @@
     function applyTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
       localStorage.setItem(THEME_KEY, theme);
+    }
+
+    function getStoredAuthToken() {
+      const fromSession = String(sessionStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
+      if (fromSession) return fromSession;
+      const fromLocal = String(localStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
+      if (fromLocal) return fromLocal;
+      const legacySession = String(sessionStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || "").trim();
+      if (legacySession) return legacySession;
+      return String(localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || "").trim();
     }
 
     function getInitialTheme() {

@@ -11,6 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     methods_method_not_allowed(['POST']);
 }
 
+methods_require_authentication();
+
 $input = methods_get_json_input();
 if (!$input) {
     $input = $_POST;

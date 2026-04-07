@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
+
 function methods_data_file(): string
 {
     return __DIR__ . '/methods.json';
@@ -35,11 +37,21 @@ function methods_json_response(array $payload, int $status = 200): never
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
     header('Expires: 0');
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+function methods_require_authentication(): array
+{
+    return authenticate_require_bearer_token_for_audiences([
+        'braillestudio-api',
+        'braillestudio-elevenlabs-api',
+    ]);
 }
 
 function methods_method_not_allowed(array $allowed): never

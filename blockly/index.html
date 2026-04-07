@@ -566,6 +566,19 @@
       align-items: center;
     }
 
+    .auth-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .auth-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
     .meta-input,
     .meta-textarea {
       width: 100%;
@@ -801,6 +814,16 @@
         <input id="scriptMetaTitle" class="btn" type="text" placeholder="Title" style="width:100%; margin-bottom:8px; cursor:text;">
         <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptMetaInstruction" class="meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <div class="small" style="margin-bottom:6px;">ElevenLabs authentication</div>
+        <div class="auth-grid">
+          <input id="elevenlabsUsernameInput" class="btn" type="text" placeholder="Username" style="min-width:0; cursor:text;">
+          <input id="elevenlabsPasswordInput" class="btn" type="password" placeholder="Password" style="min-width:0; cursor:text;">
+        </div>
+        <div class="auth-actions">
+          <button id="elevenlabsLoginBtn" class="btn btn-blue" type="button">Login</button>
+          <button id="elevenlabsLogoutBtn" class="btn" type="button">Logout</button>
+        </div>
+        <div id="elevenlabsAuthStatus" class="small" style="margin-bottom:8px;">Not logged in.</div>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="btn" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>

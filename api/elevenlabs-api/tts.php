@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
+elevenlabs_require_authentication();
 
 function elevenlabs_slugify_filename(string $value): string
 {

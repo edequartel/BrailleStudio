@@ -16,6 +16,9 @@ const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/kla
 const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
+const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
+const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
+const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 let currentFileHandle = null;
@@ -221,6 +224,119 @@ function readScriptMetadataFromInputs() {
   };
 }
 
+function getElevenLabsAuthToken() {
+  const fromSession = String(sessionStorage.getItem(BRAILLESTUDIO_AUTH_TOKEN_KEY) || '').trim()
+    || String(sessionStorage.getItem(ELEVENLABS_AUTH_TOKEN_KEY) || '').trim();
+  if (fromSession) return fromSession;
+  return String(localStorage.getItem(BRAILLESTUDIO_AUTH_TOKEN_KEY) || '').trim()
+    || String(localStorage.getItem(ELEVENLABS_AUTH_TOKEN_KEY) || '').trim();
+}
+
+function setElevenLabsAuthToken(token) {
+  const normalized = String(token || '').trim();
+  if (normalized) {
+    sessionStorage.setItem(BRAILLESTUDIO_AUTH_TOKEN_KEY, normalized);
+    localStorage.setItem(BRAILLESTUDIO_AUTH_TOKEN_KEY, normalized);
+    sessionStorage.setItem(ELEVENLABS_AUTH_TOKEN_KEY, normalized);
+    localStorage.setItem(ELEVENLABS_AUTH_TOKEN_KEY, normalized);
+  } else {
+    sessionStorage.removeItem(BRAILLESTUDIO_AUTH_TOKEN_KEY);
+    localStorage.removeItem(BRAILLESTUDIO_AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(ELEVENLABS_AUTH_TOKEN_KEY);
+    localStorage.removeItem(ELEVENLABS_AUTH_TOKEN_KEY);
+  }
+  renderElevenLabsAuthStatus();
+  renderInstructionTtsControl();
+}
+
+function getElevenLabsAuthHeaders(extra = {}) {
+  const headers = { ...extra };
+  const token = getElevenLabsAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+function getElevenLabsAuthBaseUrl() {
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host === '127.0.0.1' || host === 'localhost') {
+    return ELEVENLABS_AUTH_API_BASE;
+  }
+  return new URL('../authentication-api/', window.location.href).toString();
+}
+
+function getElevenLabsAuthEndpointUrl(fileName) {
+  return new URL(fileName, getElevenLabsAuthBaseUrl()).toString();
+}
+
+function renderElevenLabsAuthStatus(message = '') {
+  const status = document.getElementById('elevenlabsAuthStatus');
+  const loginBtn = document.getElementById('elevenlabsLoginBtn');
+  const logoutBtn = document.getElementById('elevenlabsLogoutBtn');
+  if (!status) return;
+
+  const token = getElevenLabsAuthToken();
+  status.classList.remove('is-error');
+  status.textContent = message || (token ? 'Authenticated for ElevenLabs.' : 'Not logged in.');
+
+  if (loginBtn) {
+    loginBtn.disabled = false;
+  }
+  if (logoutBtn) {
+    logoutBtn.disabled = !token;
+  }
+}
+
+async function loginElevenLabsAuth() {
+  const usernameInput = document.getElementById('elevenlabsUsernameInput');
+  const passwordInput = document.getElementById('elevenlabsPasswordInput');
+  const loginBtn = document.getElementById('elevenlabsLoginBtn');
+  const username = String(usernameInput?.value || '').trim();
+  const password = String(passwordInput?.value || '');
+
+  if (!username || !password) {
+    renderElevenLabsAuthStatus('Enter username and password first.');
+    document.getElementById('elevenlabsAuthStatus')?.classList.add('is-error');
+    return;
+  }
+
+  if (loginBtn) loginBtn.disabled = true;
+  renderElevenLabsAuthStatus('Logging in...');
+
+  try {
+    const res = await fetch(getElevenLabsAuthEndpointUrl('login.php'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        password,
+        audience: 'braillestudio-api'
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.ok || !data?.token) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    setElevenLabsAuthToken(data.token);
+    if (passwordInput) passwordInput.value = '';
+    renderElevenLabsAuthStatus(`Authenticated as ${String(data?.user?.username || username)}.`);
+    log(`ElevenLabs auth login ok: ${String(data?.user?.username || username)}`);
+  } catch (err) {
+    renderElevenLabsAuthStatus(`Login failed: ${err.message}`);
+    document.getElementById('elevenlabsAuthStatus')?.classList.add('is-error');
+    log(`ElevenLabs auth login failed: ${err.message}`);
+  } finally {
+    if (loginBtn) loginBtn.disabled = false;
+  }
+}
+
+function logoutElevenLabsAuth() {
+  setElevenLabsAuthToken('');
+  renderElevenLabsAuthStatus('Logged out.');
+  log('ElevenLabs auth logged out');
+}
+
 function getInstructionTtsState() {
   const instruction = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
   const scriptId = String(currentOnlineScriptId || '').trim();
@@ -230,7 +346,7 @@ function getInstructionTtsState() {
     instruction,
     voiceId,
     canPlay: instruction !== '',
-    canSave: scriptId !== '' && instruction !== ''
+    canSave: scriptId !== '' && instruction !== '' && getElevenLabsAuthToken() !== ''
   };
 }
 
@@ -405,6 +521,11 @@ function renderInstructionTtsControl(message = '') {
     return;
   }
 
+  if (!getElevenLabsAuthToken()) {
+    status.textContent = 'Login first to produce ElevenLabs instruction audio.';
+    return;
+  }
+
   status.textContent = `Generated instruction audio will be saved under ${state.scriptId}-NNN.mp3 in /braillestudio/sounds/nl/instructions/.`;
 }
 
@@ -509,6 +630,11 @@ async function saveInstructionAsMp3() {
     if (status) status.classList.add('is-error');
     return;
   }
+  if (!getElevenLabsAuthToken()) {
+    renderInstructionTtsControl('Login first to produce ElevenLabs instruction audio.');
+    if (status) status.classList.add('is-error');
+    return;
+  }
 
   if (button) button.disabled = true;
   if (status) {
@@ -525,7 +651,7 @@ async function saveInstructionAsMp3() {
     for (const segment of parsed.generatedSegments) {
       const res = await fetch(ELEVENLABS_TTS_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getElevenLabsAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
         voice_id: state.voiceId,
         model_id: 'eleven_v3',
@@ -939,13 +1065,17 @@ function getOnlineApiBases() {
 
 async function onlineApiFetchJson(path, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
+  const requestOptions = {
+    ...(options || {}),
+    headers: getElevenLabsAuthHeaders(options.headers || {})
+  };
   let lastError = null;
 
   for (const base of getOnlineApiBases()) {
     const url = `${base}${path}`;
     try {
       log(`Online API -> ${method} ${url}`);
-      const res = await fetch(url, options);
+      const res = await fetch(url, requestOptions);
       const raw = await res.text();
       let data = null;
       try {
@@ -2109,6 +2239,12 @@ function bindAppControls() {
       alert('Could not save instruction playlist and insert block: ' + err.message);
     }
   });
+  bind('elevenlabsLoginBtn', 'click', async () => {
+    await loginElevenLabsAuth();
+  });
+  bind('elevenlabsLogoutBtn', 'click', () => {
+    logoutElevenLabsAuth();
+  });
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
     baseUrlBox.textContent = SOUND_BASE_URL;
@@ -2185,6 +2321,16 @@ function bindAppControls() {
     instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());
     instructionTtsVoiceSelect.dataset.initialized = '1';
   }
+  const elevenlabsPasswordInput = document.getElementById('elevenlabsPasswordInput');
+  if (elevenlabsPasswordInput && !elevenlabsPasswordInput.dataset.initialized) {
+    elevenlabsPasswordInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      await loginElevenLabsAuth();
+    });
+    elevenlabsPasswordInput.dataset.initialized = '1';
+  }
+  renderElevenLabsAuthStatus();
   if (metaPrompt && !metaPrompt.dataset.initialized) {
     metaPrompt.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaPrompt.dataset.initialized = '1';

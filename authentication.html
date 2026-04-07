@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrailleStudio Authentication</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --fg: #111827;
+      --panel: #ffffff;
+      --panel2: #f9fafb;
+      --muted: #6b7280;
+      --border: rgba(10,20,40,.12);
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+      --sans: Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--fg);
+      background:
+        radial-gradient(900px 620px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
+        radial-gradient(860px 540px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
+        var(--bg);
+    }
+
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 18px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .title h1 {
+      margin: 0 0 4px;
+      font-size: 28px;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .btn,
+    .input {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+    }
+
+    .btn {
+      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
+      color: var(--fg);
+      padding: 10px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: var(--shadow);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      background: #fff;
+      color: var(--fg);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status.is-error {
+      color: #b91c1c;
+    }
+
+    .help {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 700px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title">
+        <h1>Authentication</h1>
+        <p>Login voor beveiligde BrailleStudio API’s en pagina’s.</p>
+      </div>
+      <a class="btn ghost" href="./index.html">Terug naar home</a>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <input id="authUsernameInput" class="input" type="text" placeholder="Username">
+        <input id="authPasswordInput" class="input" type="password" placeholder="Password">
+      </div>
+      <div class="grid">
+        <input id="authAudienceInput" class="input" type="text" placeholder="Audience" value="braillestudio-api">
+      </div>
+      <div class="actions">
+        <button id="authLoginBtn" class="btn" type="button">Login</button>
+        <button id="authLogoutBtn" class="btn ghost" type="button">Logout</button>
+      </div>
+      <div id="authStatus" class="status">Not logged in.</div>
+
+      <div class="help">
+        De token wordt opgeslagen in <code>sessionStorage</code> en <code>localStorage</code> onder <code>braillestudioAuthToken</code>.
+        Voor compatibiliteit wordt dezelfde token ook onder <code>elevenlabsAuthToken</code> gezet.
+        Daarna kunnen andere BrailleStudio pagina’s diezelfde token gebruiken.
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const AUTH_BASE = "https://www.tastenbraille.com/braillestudio/authentication-api/";
+    const AUTH_TOKEN_KEY = "braillestudioAuthToken";
+    const LEGACY_ELEVENLABS_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
+
+    function getAuthBaseUrl() {
+      const host = String(window.location.hostname || "").toLowerCase();
+      if (host === "127.0.0.1" || host === "localhost") {
+        return AUTH_BASE;
+      }
+      return new URL("./api/authentication-api/", window.location.href).toString();
+    }
+
+    function getAuthEndpointUrl(fileName) {
+      return new URL(fileName, getAuthBaseUrl()).toString();
+    }
+
+    function getStoredAuthToken() {
+      const fromSession = String(sessionStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
+      if (fromSession) return fromSession;
+      const fromLocal = String(localStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
+      if (fromLocal) return fromLocal;
+      const legacySession = String(sessionStorage.getItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY) || "").trim();
+      if (legacySession) return legacySession;
+      return String(localStorage.getItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY) || "").trim();
+    }
+
+    function setStoredAuthToken(token) {
+      const normalized = String(token || "").trim();
+      if (normalized) {
+        sessionStorage.setItem(AUTH_TOKEN_KEY, normalized);
+        localStorage.setItem(AUTH_TOKEN_KEY, normalized);
+        sessionStorage.setItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY, normalized);
+        localStorage.setItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY, normalized);
+      } else {
+        sessionStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        sessionStorage.removeItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY);
+        localStorage.removeItem(LEGACY_ELEVENLABS_AUTH_TOKEN_KEY);
+      }
+    }
+
+    function renderAuthStatus(message = "", isError = false) {
+      const status = document.getElementById("authStatus");
+      const logoutBtn = document.getElementById("authLogoutBtn");
+      if (!status) return;
+      const token = getStoredAuthToken();
+      status.textContent = message || (token ? "Authenticated." : "Not logged in.");
+      status.classList.toggle("is-error", !!isError);
+      if (logoutBtn) logoutBtn.disabled = !token;
+    }
+
+    async function loginAuth() {
+      const usernameInput = document.getElementById("authUsernameInput");
+      const passwordInput = document.getElementById("authPasswordInput");
+      const audienceInput = document.getElementById("authAudienceInput");
+      const loginBtn = document.getElementById("authLoginBtn");
+      const username = String(usernameInput?.value || "").trim();
+      const password = String(passwordInput?.value || "");
+      const audience = String(audienceInput?.value || "").trim() || "braillestudio-api";
+
+      if (!username || !password) {
+        renderAuthStatus("Enter username and password first.", true);
+        return;
+      }
+
+      if (loginBtn) loginBtn.disabled = true;
+      renderAuthStatus("Logging in...");
+
+      try {
+        const res = await fetch(getAuthEndpointUrl("login.php"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password,
+            audience
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.token) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
+        setStoredAuthToken(data.token);
+        if (passwordInput) passwordInput.value = "";
+        renderAuthStatus(`Authenticated as ${String(data?.user?.username || username)} for ${audience}.`);
+      } catch (error) {
+        console.error("[authentication] login failed", error);
+        renderAuthStatus(`Login failed: ${error.message || error}`, true);
+      } finally {
+        if (loginBtn) loginBtn.disabled = false;
+      }
+    }
+
+    function logoutAuth() {
+      setStoredAuthToken("");
+      renderAuthStatus("Logged out.");
+    }
+
+    document.getElementById("authLoginBtn")?.addEventListener("click", loginAuth);
+    document.getElementById("authLogoutBtn")?.addEventListener("click", logoutAuth);
+    document.getElementById("authPasswordInput")?.addEventListener("keydown", async (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      await loginAuth();
+    });
+
+    renderAuthStatus();
+  })();
+  </script>
+</body>
+</html>

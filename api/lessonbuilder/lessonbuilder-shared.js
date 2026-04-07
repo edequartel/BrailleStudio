@@ -13,7 +13,29 @@
   ];
   const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
+  const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const basisDataCache = new Map();
+
+  function getAuthToken() {
+    for (const key of AUTH_TOKEN_KEYS) {
+      const fromSession = String(sessionStorage.getItem(key) || '').trim();
+      if (fromSession) return fromSession;
+      const fromLocal = String(localStorage.getItem(key) || '').trim();
+      if (fromLocal) return fromLocal;
+    }
+    return '';
+  }
+
+  function withAuthHeaders(options = {}) {
+    const next = { ...(options || {}) };
+    const headers = { ...(next.headers || {}) };
+    const token = getAuthToken();
+    if (token && !headers.Authorization) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    next.headers = headers;
+    return next;
+  }
 
   function getApiBases(kind = 'lesson') {
     const bases = kind === 'script'
@@ -24,11 +46,12 @@
 
   async function apiFetchJson(path, options = {}, kind = 'lesson') {
     const bases = getApiBases(kind);
+    const requestOptions = withAuthHeaders(options);
     let lastError = null;
     for (const base of bases) {
       const url = `${base}${path}`;
       try {
-        const res = await fetch(url, options);
+        const res = await fetch(url, requestOptions);
         const raw = await res.text();
         let data = null;
         try {
@@ -274,6 +297,7 @@
 
   window.LessonBuilderShared = {
     DEFAULT_BASIS_DATA_URL,
+    getAuthToken,
     loadState,
     saveState,
     updateState,

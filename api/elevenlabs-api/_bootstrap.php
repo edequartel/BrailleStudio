@@ -2,8 +2,10 @@
 declare(strict_types=1);
 
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+
+require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -112,6 +114,14 @@ function elevenlabs_server_config(): array
 
     $config = [];
     return $config;
+}
+
+function elevenlabs_require_authentication(): array
+{
+    return authenticate_require_bearer_token_for_audiences([
+        'braillestudio-api',
+        'braillestudio-elevenlabs-api',
+    ]);
 }
 
 function elevenlabs_configured_voices(): array

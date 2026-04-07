@@ -720,9 +720,28 @@ $pagePayload = [
       throw new Error(`Runner not ready (stage: ${lastState.bootStage || lastState.reason || 'unknown'}${lastState.bootError ? `, error: ${lastState.bootError}` : ''})`);
     }
 
+    function getBrailleStudioAuthToken() {
+      const sessionPrimary = String(sessionStorage.getItem('braillestudioAuthToken') || '').trim();
+      if (sessionPrimary) return sessionPrimary;
+      const localPrimary = String(localStorage.getItem('braillestudioAuthToken') || '').trim();
+      if (localPrimary) return localPrimary;
+      const legacySession = String(sessionStorage.getItem('elevenlabsAuthToken') || '').trim();
+      if (legacySession) return legacySession;
+      return String(localStorage.getItem('elevenlabsAuthToken') || '').trim();
+    }
+
+    function getBrailleStudioAuthHeaders(extra = {}) {
+      const headers = { ...extra };
+      const token = getBrailleStudioAuthToken();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return headers;
+    }
+
     async function loadScriptData(id) {
       const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(id)}`;
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
       if (!res.ok) throw new Error(`Failed to load script ${id} (HTTP ${res.status})`);
       const data = await res.json();
       if (!data || !data.blockly) throw new Error(`Script ${id} has no blockly state`);
@@ -731,7 +750,7 @@ $pagePayload = [
 
     async function loadScriptsList() {
       const url = `${blocklyApiBase}/list.php`;
-      const res = await fetch(url, { cache: 'no-store' });
+      const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
       if (!res.ok) throw new Error(`Failed to load script list (HTTP ${res.status})`);
       const data = await res.json();
       return Array.isArray(data?.items) ? data.items : [];
