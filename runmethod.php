@@ -59,7 +59,7 @@ $lessonDirs = [
     $rootDir . '/api/lessons-data',
     $rootDir . '/lessons-data',
 ];
-$defaultRunnerUrl = '/braillestudio/blockly/index.html';
+$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260407-2';
 $blocklyApiBase = '/braillestudio/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -310,6 +310,7 @@ $pagePayload = [
     const runnerPanel = document.getElementById('runnerPanel');
     const stopRunBtn = document.getElementById('stopRunBtn');
     const runSelectedStepBtn = document.getElementById('runSelectedStepBtn');
+    const authBtn = document.getElementById('authBtn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let selectedStepIndex = 0;
@@ -753,6 +754,16 @@ $pagePayload = [
         sessionStorage.removeItem('elevenlabsAuthToken');
         localStorage.removeItem('elevenlabsAuthToken');
       }
+      renderAuthButton();
+    }
+
+    function renderAuthButton() {
+      if (!authBtn) return;
+      const authenticated = Boolean(getBrailleStudioAuthToken());
+      authBtn.textContent = authenticated ? 'Authenticated' : 'Authentication';
+      authBtn.className = authenticated
+        ? 'rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700'
+        : 'rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700';
     }
 
     function openBrailleStudioAuthPopup() {
@@ -1175,7 +1186,9 @@ $pagePayload = [
     document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
     document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
-    document.getElementById('authBtn')?.addEventListener('click', async () => {
+    renderAuthButton();
+
+    authBtn?.addEventListener('click', async () => {
       try {
         await openBrailleStudioAuthPopup();
         appendStatus('Authentication completed.');

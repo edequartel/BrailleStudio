@@ -8,7 +8,7 @@ declare(strict_types=1);
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Lesson Builder - Steps</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="./lessonbuilder-shared.js"></script>
+  <script src="./lessonbuilder-shared.js?v=20260407-2"></script>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-7xl mx-auto p-6 space-y-5">
@@ -121,9 +121,9 @@ declare(strict_types=1);
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.html';
+        return 'http://127.0.0.1:5500/blockly/index.html?v=20260407-2';
       }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html';
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260407-2';
     }
 
     const RUNNER_URL = resolveRunnerUrl();
@@ -734,6 +734,9 @@ declare(strict_types=1);
       renderDebugLogVisibility();
       setStatus('Authentication starten...');
       try {
+        if (!shared || typeof shared.openAuthenticationPopup !== 'function') {
+          throw new Error('lessonbuilder-shared.js is not up to date or did not load');
+        }
         await shared.openAuthenticationPopup();
         setStatus('Authentication completed.');
       } catch (err) {
