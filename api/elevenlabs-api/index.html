@@ -133,6 +133,13 @@
       min-height: 22px;
     }
 
+    .save-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.6fr 1fr;
+      margin-top: 16px;
+    }
+
     audio {
       width: 100%;
       margin-top: 16px;
@@ -218,7 +225,8 @@
         <div>
           <label for="voiceSelect">Voice</label>
           <select id="voiceSelect">
-            <option value="">Loading voices…</option>
+            <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
+            <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig</option>
           </select>
           <div id="presetButtons" class="preset-row"></div>
         </div>
@@ -233,8 +241,20 @@
         <textarea id="textInput" placeholder="Type text here…"></textarea>
       </div>
 
+      <div class="save-grid">
+        <div>
+          <label for="savePathInput">Save path</label>
+          <input id="savePathInput" value="braillestudio/sounds/nl/instructions">
+        </div>
+        <div>
+          <label for="fileNameInput">File name</label>
+          <input id="fileNameInput" placeholder="voorbeeld.mp3">
+        </div>
+      </div>
+
       <div class="actions">
         <button id="generateBtn" class="primary" type="button">Generate MP3</button>
+        <button id="saveBtn" class="primary" type="button">Generate and Save</button>
         <button id="downloadBtn" class="secondary" type="button" disabled>Download MP3</button>
       </div>
 
@@ -247,7 +267,7 @@
       </div>
 
       <div class="small">
-        Endpoints: <code>./voices.php</code> and <code>./tts.php</code>
+        Endpoint: <code>./tts.php</code>
       </div>
       <div id="apiBaseInfo" class="meta-line"></div>
     </div>
@@ -257,7 +277,10 @@
     const voiceSelect = document.getElementById('voiceSelect');
     const modelInput = document.getElementById('modelInput');
     const textInput = document.getElementById('textInput');
+    const savePathInput = document.getElementById('savePathInput');
+    const fileNameInput = document.getElementById('fileNameInput');
     const generateBtn = document.getElementById('generateBtn');
+    const saveBtn = document.getElementById('saveBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const statusBox = document.getElementById('statusBox');
     const audioPlayer = document.getElementById('audioPlayer');
@@ -267,8 +290,11 @@
     const apiBaseInfo = document.getElementById('apiBaseInfo');
 
     let currentAudioUrl = '';
-    let configuredVoices = [];
-    let defaultVoiceId = '';
+    const configuredVoices = [
+      { key: 'ruth', voice_id: 'yO6w2xlECAQRFP6pX7Hw', name: 'Ruth', language: 'Dutch' },
+      { key: 'ludwig', voice_id: 'tRyB8BgRzpNUv3o2XWD4', name: 'Ludwig', language: 'Dutch' }
+    ];
+    const defaultVoiceId = 'yO6w2xlECAQRFP6pX7Hw';
     const LOCAL_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/elevenlabs-api/';
 
     function setStatus(message) {
@@ -343,27 +369,7 @@
       }
     }
 
-    async function loadVoices() {
-      setStatus('Loading voices…');
-      const voicesUrl = endpointUrl('voices.php');
-      const res = await fetch(voicesUrl, { cache: 'no-store' });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
-      configuredVoices = Array.isArray(data.configured_voices) ? data.configured_voices : [];
-      defaultVoiceId = String(data.default_voice_id || '').trim();
-      voiceSelect.innerHTML = '';
-      for (const voice of data.voices || []) {
-        const option = document.createElement('option');
-        option.value = voice.voice_id || '';
-        option.textContent = voice.name
-          ? `${voice.name}${voice.category ? ` (${voice.category})` : ''}`
-          : (voice.voice_id || 'Unnamed voice');
-        voiceSelect.appendChild(option);
-      }
-
+    function initializeVoices() {
       if (defaultVoiceId) {
         voiceSelect.value = defaultVoiceId;
       }
@@ -371,13 +377,15 @@
         voiceSelect.selectedIndex = 0;
       }
       renderPresetButtons();
-      setStatus(`Loaded ${voiceSelect.options.length} voices.`);
+      setStatus(`Loaded ${voiceSelect.options.length} fixed voices.`);
     }
 
-    async function generateMp3() {
+    async function requestTts({ saveToFile = false } = {}) {
       const voiceId = String(voiceSelect.value || '').trim();
       const modelId = String(modelInput.value || '').trim();
       const text = String(textInput.value || '').trim();
+      const savePath = String(savePathInput.value || '').trim();
+      const fileName = String(fileNameInput.value || '').trim();
 
       if (!voiceId) {
         setStatus('Select a voice first.');
@@ -389,8 +397,9 @@
       }
 
       generateBtn.disabled = true;
+      saveBtn.disabled = true;
       downloadBtn.disabled = true;
-      setStatus('Generating MP3…');
+      setStatus(saveToFile ? 'Generating and saving MP3…' : 'Generating MP3…');
 
       try {
         const ttsUrl = endpointUrl('tts.php');
@@ -400,13 +409,34 @@
           body: JSON.stringify({
             voice_id: voiceId,
             model_id: modelId || 'eleven_multilingual_v2',
-            text
+            text,
+            save_to_file: saveToFile,
+            save_path: savePath,
+            file_name: fileName
           })
         });
 
         if (!res.ok || (res.headers.get('content-type') || '').includes('application/json')) {
-          const errorBody = await res.json().catch(() => ({}));
-          throw new Error(errorBody.error || `HTTP ${res.status}`);
+          const responseType = res.headers.get('content-type') || '';
+          const payload = responseType.includes('application/json')
+            ? await res.json().catch(() => ({}))
+            : {};
+          if (saveToFile && payload.ok) {
+            downloadBtn.disabled = true;
+            setStatus(`Saved MP3 to ${payload.public_path}`);
+            return;
+          }
+          throw new Error(payload.error || `HTTP ${res.status}`);
+        }
+
+        if (saveToFile) {
+          const payload = await res.json().catch(() => ({}));
+          if (!payload.ok) {
+            throw new Error(payload.error || 'Could not save MP3.');
+          }
+          downloadBtn.disabled = true;
+          setStatus(`Saved MP3 to ${payload.public_path}`);
+          return;
         }
 
         const blob = await res.blob();
@@ -417,14 +447,16 @@
         downloadBtn.disabled = false;
         setStatus('MP3 ready.');
       } catch (error) {
-        appendErrorLog('generateMp3', error);
+        appendErrorLog(saveToFile ? 'saveMp3' : 'generateMp3', error);
         setStatus(`Error: ${error.message || String(error)}`);
       } finally {
         generateBtn.disabled = false;
+        saveBtn.disabled = false;
       }
     }
 
-    generateBtn.addEventListener('click', generateMp3);
+    generateBtn.addEventListener('click', () => requestTts());
+    saveBtn.addEventListener('click', () => requestTts({ saveToFile: true }));
     voiceSelect.addEventListener('change', syncPresetState);
     downloadBtn.addEventListener('click', () => {
       if (!currentAudioUrl) return;
@@ -436,13 +468,8 @@
       a.remove();
     });
 
-    loadVoices().catch((error) => {
-      appendErrorLog('loadVoices', `${error.message || String(error)} | page=${window.location.href}`);
-      setStatus(`Error loading voices: ${error.message || String(error)}`);
-      voiceSelect.innerHTML = '<option value="">Could not load voices</option>';
-    });
-
     renderApiBaseInfo();
+    initializeVoices();
 
     window.addEventListener('error', (event) => {
       appendErrorLog('window.error', event.error || event.message || 'Unknown script error');
