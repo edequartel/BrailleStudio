@@ -272,20 +272,15 @@ function getElevenLabsAuthEndpointUrl(fileName) {
 }
 
 function renderElevenLabsAuthStatus(message = '') {
-  const status = document.getElementById('elevenlabsAuthStatus');
   const loginBtn = document.getElementById('elevenlabsLoginBtn');
-  const logoutBtn = document.getElementById('elevenlabsLogoutBtn');
-  if (!status) return;
-
   const token = getElevenLabsAuthToken();
-  status.classList.remove('is-error');
-  status.textContent = message || (token ? 'Authenticated.' : 'Not authenticated.');
 
   if (loginBtn) {
+    loginBtn.textContent = token ? 'Logout' : 'Authentication';
+    loginBtn.classList.remove('btn-blue', 'btn-soft');
+    loginBtn.classList.add(token ? 'btn-soft' : 'btn-blue');
     loginBtn.disabled = false;
-  }
-  if (logoutBtn) {
-    logoutBtn.disabled = !token;
+    loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
   }
 }
 
@@ -305,7 +300,6 @@ async function loginElevenLabsAuth() {
     }
   } catch (err) {
     renderElevenLabsAuthStatus(`Authentication failed: ${err.message}`);
-    document.getElementById('elevenlabsAuthStatus')?.classList.add('is-error');
     log(`BrailleStudio auth popup failed: ${err.message}`);
   }
 }
@@ -2264,10 +2258,11 @@ function bindAppControls() {
     }
   });
   bind('elevenlabsLoginBtn', 'click', async () => {
+    if (getElevenLabsAuthToken()) {
+      logoutElevenLabsAuth();
+      return;
+    }
     await loginElevenLabsAuth();
-  });
-  bind('elevenlabsLogoutBtn', 'click', () => {
-    logoutElevenLabsAuth();
   });
   const baseUrlBox = document.getElementById('soundBaseUrlBox');
   if (baseUrlBox && !baseUrlBox.dataset.initialized) {
