@@ -1106,9 +1106,20 @@
     <block type="klanken_item_get_word"></block>
     <block type="klanken_item_get_sounds"></block>
     <block type="klanken_item_get_category"></block>
-    <block type="lesson_get_step_input"></block>
-    <block type="lesson_get_step_repeat"></block>
     <block type="lesson_complete_step"></block>
+  </category>
+
+  <category name="Steps" colour="#0F766E">
+    <block type="lesson_get_step_input">
+      <field name="FIELD">text</field>
+    </block>
+    <block type="lesson_get_step_input">
+      <field name="FIELD">word</field>
+    </block>
+    <block type="lesson_get_step_input">
+      <field name="FIELD">letters</field>
+    </block>
+    <block type="lesson_get_step_repeat"></block>
   </category>
 
   <category name="Phonemes" colour="#14B8A6">
@@ -1237,6 +1248,7 @@
   <category name="Text" colour="#0891B2">
     <block type="text"></block>
     <block type="text_join"></block>
+    <block type="text_concat"></block>
     <block type="text_from_list">
       <value name="SEPARATOR">
         <shadow type="text">
@@ -1253,9 +1265,9 @@
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
 </xml>
 
-<script src="./runtime.js?v=20260407-1"></script>
-<script src="./instructions-catalog.js?v=20260407-1"></script>
-<script src="./preload-instructions.js?v=20260407-1"></script>
+<script src="./runtime.js?v=20260408-3"></script>
+<script src="./instructions-catalog.js?v=20260408-3"></script>
+<script src="./preload-instructions.js?v=20260408-3"></script>
 <script>
   (function () {
     const overlay = document.getElementById('loadingOverlay');
@@ -1310,7 +1322,7 @@
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260407-1';
+    const assetVersion = '20260408-3';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {

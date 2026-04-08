@@ -37,6 +37,19 @@
     ];
   };
 
+  javascriptGenerator.forBlock['list_make'] = function (block) {
+    const count = Math.max(0, Math.floor(Number(block.getFieldValue('COUNT')) || 0));
+    const items = [];
+    for (let index = 0; index < count; index += 1) {
+      items.push(valueToCodeOr(block, `ITEM${index}`, "''"));
+    }
+    return [`[${items.join(', ')}]`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['list_empty'] = function () {
+    return ['[]', ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['list_filter_text_length'] = function (block) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
     const minCode = valueToCodeOr(block, 'MIN', '1');
@@ -664,6 +677,25 @@
     const b = valueToCodeOr(block, 'B', "''");
     const c = valueToCodeOr(block, 'C', "''");
     return [`BrailleStudioAPI.joinCsv([${a}, ${b}, ${c}])`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['text_concat'] = function (block) {
+    const a = valueToCodeOr(block, 'A', "''");
+    const b = valueToCodeOr(block, 'B', "''");
+    return [
+      `(() => {
+        const __toText = (value) => {
+          if (Array.isArray(value)) return value.map(__toText).join(', ');
+          if (value == null) return '';
+          if (typeof value === 'object') {
+            try { return JSON.stringify(value); } catch (err) { return String(value); }
+          }
+          return String(value);
+        };
+        return __toText(${a}) + __toText(${b});
+      })()`,
+      ORDER_ATOMIC
+    ];
   };
 
   javascriptGenerator.forBlock['text_from_list'] = function (block) {

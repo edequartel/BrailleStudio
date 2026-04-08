@@ -8,7 +8,22 @@ Content-Type: application/json
 {
   "id": "my-lesson",
   "title": "My Lesson",
-  "word": "appel",
+  "description": "Mijn voorbeeldles",
+  "methodId": "my-method",
+  "method": {
+    "id": "my-method",
+    "title": "My Method",
+    "description": "",
+    "imageUrl": "",
+    "basisFile": "aanvankelijklijst.json",
+    "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json"
+  },
+  "basisIndex": 0,
+  "basisWord": "appel",
+  "lessonNumber": 1,
+  "basisRecord": {
+    "word": "appel"
+  },
   "steps": [
     {
       "id": "step-1",

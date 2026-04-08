@@ -74,8 +74,8 @@ declare(strict_types=1);
         const lesson = getLessonForBasis(index);
         const word = shared.getBasisWord(item, index);
         const stepCount = lesson ? getLessonStepCount(lesson) : 0;
-        const lessonTitle = String(lesson?.meta?.title || lesson?.title || '').trim();
-        const lessonDescription = String(lesson?.meta?.description || '').trim();
+        const lessonTitle = String(lesson?.title || '').trim();
+        const lessonDescription = String(lesson?.description || '').trim();
         const button = document.createElement('button');
         button.type = 'button';
         button.dataset.index = String(index);
@@ -129,8 +129,8 @@ declare(strict_types=1);
         return;
       }
       const lesson = getLessonForBasis(basisIndex) || buildDraftLessonForBasis(basisIndex);
-      const lessonTitle = String(lesson?.meta?.title || lesson?.title || '').trim();
-      const lessonDescription = String(lesson?.meta?.description || '').trim();
+      const lessonTitle = String(lesson?.title || '').trim();
+      const lessonDescription = String(lesson?.description || '').trim();
       recordSummary.innerHTML = `
         <div><strong>Word:</strong> ${shared.getBasisWord(item, basisIndex)}</div>
         <div><strong>Sounds:</strong> ${(item.sounds || []).join(', ') || '-'}</div>
@@ -153,8 +153,8 @@ declare(strict_types=1);
         basisRecord: item,
         lessonId: lesson?.id || '',
         lessonTitle: lesson?.title || '',
-        lessonMetaTitle: String(lesson?.meta?.title || lesson?.title || '').trim(),
-        lessonDescription: String(lesson?.meta?.description || '').trim(),
+        lessonMetaTitle: String(lesson?.title || '').trim(),
+        lessonDescription: String(lesson?.description || '').trim(),
         lessonNumber: lesson?.lessonNumber || 1,
         lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex),
         steps: shared.normalizeStepConfigs(lesson?.steps || [])
@@ -177,8 +177,8 @@ declare(strict_types=1);
           shared.updateState({
             lessonId: draftLesson.id,
             lessonTitle: draftLesson.title,
-            lessonMetaTitle: draftLesson.title,
-            lessonDescription: '',
+          lessonMetaTitle: draftLesson.title,
+          lessonDescription: '',
             lessonNumber: 1,
             lessonWord: draftLesson.basisWord,
             basisRecord: draftLesson.basisRecord,
@@ -190,12 +190,12 @@ declare(strict_types=1);
       }
       try {
         const data = await shared.loadLesson(state.lessonId);
-        const resolvedWord = data.basisWord || data.word || state.basisWord || '';
+        const resolvedWord = data.basisWord || state.basisWord || '';
         shared.updateState({
           lessonId: data.id || state.lessonId,
-          lessonTitle: resolvedWord ? `les - ${resolvedWord}` : (data.title || ''),
-          lessonMetaTitle: String(data?.meta?.title || data.title || '').trim(),
-          lessonDescription: String(data?.meta?.description || '').trim(),
+          lessonTitle: data.title || (resolvedWord ? `les - ${resolvedWord}` : ''),
+          lessonMetaTitle: String(data?.title || '').trim(),
+          lessonDescription: String(data?.description || '').trim(),
           lessonNumber: data.lessonNumber || 1,
           lessonWord: resolvedWord,
           steps: shared.normalizeStepConfigs(data.steps || [])
@@ -221,8 +221,8 @@ declare(strict_types=1);
             state = shared.updateState({
               lessonId: lesson.id || '',
               lessonTitle: lesson.title || '',
-              lessonMetaTitle: String(lesson?.meta?.title || lesson.title || '').trim(),
-              lessonDescription: String(lesson?.meta?.description || '').trim(),
+              lessonMetaTitle: String(lesson?.title || '').trim(),
+              lessonDescription: String(lesson?.description || '').trim(),
               lessonNumber: lesson.lessonNumber || 1,
               lessonWord: lesson.basisWord || '',
               steps: shared.normalizeStepConfigs(lesson.steps || [])

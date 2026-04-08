@@ -59,7 +59,7 @@ $lessonDirs = [
     $rootDir . '/api/lessons-data',
     $rootDir . '/lessons-data',
 ];
-$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260407-2';
+$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260408-3';
 $blocklyApiBase = '/braillestudio/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -133,14 +133,11 @@ if ($methodId === '') {
                     $lessons[$lessonId] = [
                         'id' => $lessonId,
                         'title' => trim((string)($lesson['title'] ?? '')),
-                        'meta' => [
-                            'title' => trim((string)(($lesson['meta']['title'] ?? null) ?? ($lesson['title'] ?? ''))),
-                            'description' => trim((string)(($lesson['meta']['description'] ?? null) ?? ($lesson['description'] ?? ''))),
-                        ],
-                        'basisIndex' => array_key_exists('basisIndex', $lesson) ? (int)$lesson['basisIndex'] : (int)($lesson['meta']['basisIndex'] ?? -1),
-                        'basisWord' => trim((string)($lesson['basisWord'] ?? ($lesson['meta']['basisWord'] ?? ''))),
-                        'lessonNumber' => array_key_exists('lessonNumber', $lesson) ? (int)$lesson['lessonNumber'] : (int)($lesson['meta']['lessonNumber'] ?? 1),
-                        'basisRecord' => is_array($lesson['basisRecord'] ?? null) ? $lesson['basisRecord'] : (is_array($lesson['meta']['basisRecord'] ?? null) ? $lesson['meta']['basisRecord'] : []),
+                        'description' => trim((string)($lesson['description'] ?? '')),
+                        'basisIndex' => array_key_exists('basisIndex', $lesson) ? (int)$lesson['basisIndex'] : -1,
+                        'basisWord' => trim((string)($lesson['basisWord'] ?? '')),
+                        'lessonNumber' => array_key_exists('lessonNumber', $lesson) ? (int)$lesson['lessonNumber'] : 1,
+                        'basisRecord' => is_array($lesson['basisRecord'] ?? null) ? $lesson['basisRecord'] : [],
                         'steps' => $steps,
                     ];
                 }
@@ -190,6 +187,11 @@ $pagePayload = [
         >
       <?php endif; ?>
       <div class="absolute inset-0 bg-white/70"></div>
+      <div class="absolute right-4 top-4 z-10">
+        <span id="lessonRunIndicator" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500" aria-label="Not running" title="Not running">
+          <span id="lessonRunIndicatorDot" class="h-4 w-4 rounded-full bg-red-500"></span>
+        </span>
+      </div>
       <div class="relative z-10 flex h-full items-center gap-4 px-5">
         <div class="min-w-0">
           <h1 class="truncate text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
@@ -207,19 +209,15 @@ $pagePayload = [
       </section>
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <span id="lessonRunIndicator" class="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-            <span id="lessonRunIndicatorDot" class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
-            <span id="lessonRunIndicatorText">Not running</span>
-          </span>
-          <button id="authBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Authentication</button>
-          <button id="toggleRunnerBtn" type="button" class="ml-auto rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="runSelectedStepBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run from selected step</button>
-          <button id="runCurrentBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run current lesson</button>
-          <button id="runAllBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all lessons</button>
-          <button id="stopRunBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="runSelectedStepBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run step</button>
+          <button id="runCurrentBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run lesson</button>
+          <button id="runAllBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all</button>
+          <button id="stopRunBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
+          <div class="ml-auto flex items-center gap-2">
+            <button id="authBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Authentication</button>
+            <button id="toggleRunnerBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhide</button>
+          </div>
         </div>
         <div id="runnerPanel" class="hidden space-y-4">
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
@@ -248,7 +246,7 @@ $pagePayload = [
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
         <div class="flex items-center justify-between gap-3">
           <div class="text-lg font-bold">Debug log</div>
-          <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhidden</button>
+          <button id="toggleDebugLogBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhidden</button>
         </div>
         <pre id="statusBox" class="hidden min-h-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
       </section>
@@ -394,14 +392,15 @@ $pagePayload = [
 
     function setLessonRunningState(running, label = '') {
       isLessonRunning = Boolean(running);
-      if (!lessonRunIndicator || !lessonRunIndicatorDot || !lessonRunIndicatorText) return;
+      if (!lessonRunIndicator || !lessonRunIndicatorDot) return;
       lessonRunIndicator.className = isLessonRunning
-        ? 'inline-flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700'
-        : 'inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700';
+        ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-500'
+        : 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500';
       lessonRunIndicatorDot.className = isLessonRunning
-        ? 'h-2.5 w-2.5 rounded-full bg-green-500'
-        : 'h-2.5 w-2.5 rounded-full bg-red-500';
-      lessonRunIndicatorText.textContent = label || (isLessonRunning ? 'Running' : 'Not running');
+        ? 'h-4 w-4 rounded-full bg-green-500'
+        : 'h-4 w-4 rounded-full bg-red-500';
+      lessonRunIndicator.setAttribute('aria-label', label || (isLessonRunning ? 'Running' : 'Not running'));
+      lessonRunIndicator.setAttribute('title', label || (isLessonRunning ? 'Running' : 'Not running'));
     }
 
     function renderDebugLogVisibility() {
@@ -414,6 +413,7 @@ $pagePayload = [
       if (!runnerPanel || !toggleRunnerBtn) return;
       runnerPanel.classList.toggle('hidden', !isRunnerVisible);
       toggleRunnerBtn.textContent = isRunnerVisible ? 'Hide' : 'Unhide';
+      toggleRunnerBtn.className = 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
     }
 
     function appendStatus(message, data = null) {
@@ -515,8 +515,8 @@ $pagePayload = [
         return;
       }
       lessons.forEach((lesson, index) => {
-        const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
-        const lessonDescription = String(lesson?.meta?.description || '').trim();
+        const lessonTitle = String(lesson?.title || lesson.id).trim();
+        const lessonDescription = String(lesson?.description || '').trim();
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `w-full rounded-xl border px-4 py-3 text-left ${index === selectedLessonIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
@@ -543,7 +543,7 @@ $pagePayload = [
         renderLessonReturnValues([]);
         return;
       }
-      const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
+      const lessonTitle = String(lesson?.title || lesson.id).trim();
       const stepCount = Array.isArray(lesson.steps) ? lesson.steps.length : 0;
       if (stepCount === 0) {
         selectedStepIndex = 0;
@@ -757,8 +757,8 @@ $pagePayload = [
       const authenticated = Boolean(getBrailleStudioAuthToken());
       authBtn.textContent = authenticated ? 'Authenticated' : 'Authentication';
       authBtn.className = authenticated
-        ? 'rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700'
-        : 'rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700';
+        ? 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
+        : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
     }
 
     function openBrailleStudioAuthPopup() {

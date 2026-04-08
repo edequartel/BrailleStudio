@@ -1502,6 +1502,16 @@
     }
   };
 
+  Blockly.Blocks['text_concat'] = {
+    init() {
+      this.appendValueInput('A');
+      this.appendDummyInput().appendField('+');
+      this.appendValueInput('B');
+      this.setOutput(true, 'String');
+      this.setColour('#0891B2');
+    }
+  };
+
   Blockly.Blocks['text_from_list'] = {
     init() {
       this.appendValueInput('LIST').appendField('maak tekst van lijst');

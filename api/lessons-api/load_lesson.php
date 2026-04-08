@@ -181,22 +181,17 @@ $out['methodId'] = trim((string)($content['methodId'] ?? ($methodData['id'] ?? '
 $out['method'] = [
     'id' => $out['methodId'],
     'title' => trim((string)($methodData['title'] ?? '')),
+    'description' => trim((string)($methodData['description'] ?? '')),
+    'imageUrl' => trim((string)($methodData['imageUrl'] ?? '')),
+    'basisFile' => trim((string)($methodData['basisFile'] ?? '')),
     'dataSource' => trim((string)($methodData['dataSource'] ?? '')),
 ];
-$out['basisIndex'] = array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : (int)($out['meta']['basisIndex'] ?? -1);
-$out['basisWord'] = trim((string)($content['basisWord'] ?? ($out['meta']['basisWord'] ?? '')));
-$out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : (int)($out['meta']['lessonNumber'] ?? 1);
-$out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($out['meta']['basisRecord'] ?? null) ? $out['meta']['basisRecord'] : []);
+$out['title'] = trim((string)($content['title'] ?? ''));
+$out['description'] = trim((string)($content['description'] ?? ''));
+$out['basisIndex'] = array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1;
+$out['basisWord'] = trim((string)($content['basisWord'] ?? ''));
+$out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1;
+$out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [];
 $out['steps'] = $normalizedSteps;
-
-if (!is_array($out['meta'] ?? null)) {
-    $out['meta'] = [];
-}
-$out['meta']['title'] = trim((string)($out['meta']['title'] ?? ($out['title'] ?? '')));
-$out['meta']['description'] = trim((string)($out['meta']['description'] ?? ($out['description'] ?? '')));
-$out['meta']['basisIndex'] = $out['basisIndex'];
-$out['meta']['basisWord'] = $out['basisWord'];
-$out['meta']['lessonNumber'] = $out['lessonNumber'];
-$out['meta']['basisRecord'] = $out['basisRecord'];
 
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -163,27 +163,23 @@ foreach ($files as $file) {
 
     $items[] = [
         'id' => $content['id'] ?? pathinfo($file, PATHINFO_FILENAME),
-        'title' => $content['title'] ?? '',
+        'title' => trim((string)($content['title'] ?? '')),
+        'description' => trim((string)($content['description'] ?? '')),
         'methodId' => trim((string)($content['methodId'] ?? (($content['method']['id'] ?? '')))),
         'method' => is_array($content['method'] ?? null) ? $content['method'] : [
             'id' => trim((string)($content['methodId'] ?? '')),
             'title' => '',
+            'description' => '',
+            'imageUrl' => '',
+            'basisFile' => '',
             'dataSource' => '',
         ],
-        'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : (int)($content['meta']['basisIndex'] ?? -1),
-        'basisWord' => trim((string)($content['basisWord'] ?? ($content['meta']['basisWord'] ?? ''))),
-        'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : (int)($content['meta']['lessonNumber'] ?? 1),
-        'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($content['meta']['basisRecord'] ?? null) ? $content['meta']['basisRecord'] : []),
-        'word' => $content['word'] ?? '',
+        'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
+        'basisWord' => trim((string)($content['basisWord'] ?? '')),
+        'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
+        'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
         'updatedAt' => $content['updatedAt'] ?? '',
         'steps' => $normalizedSteps,
-        'meta' => array_merge(
-            is_array($content['meta'] ?? null) ? $content['meta'] : [],
-            [
-                'title' => trim((string)(($content['meta']['title'] ?? null) ?? ($content['title'] ?? ''))),
-                'description' => trim((string)(($content['meta']['description'] ?? null) ?? ($content['description'] ?? '')))
-            ]
-        ),
         'filename' => basename($file),
     ];
 }

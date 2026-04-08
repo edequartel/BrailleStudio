@@ -13,7 +13,12 @@ const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
 const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
-const FONEMEN_NL_JSON_URL = '../klanken/fonemen_nl_standaard.json';
+const FONEMEN_NL_JSON_URLS = [
+  'https://www.tastenbraille.com/braillestudio/klanken/fonemen_nl_standaard.json',
+  '/braillestudio/klanken/fonemen_nl_standaard.json',
+  '../klanken/fonemen_nl_standaard.json',
+  './klanken/fonemen_nl_standaard.json'
+];
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
@@ -2853,14 +2858,25 @@ async function getFonemenNlStandaard() {
     return fonemenNlJsonCache;
   }
 
-  const res = await fetch(FONEMEN_NL_JSON_URL, { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  let lastError = null;
+  for (const url of FONEMEN_NL_JSON_URLS) {
+    try {
+      log(`Loading phoneme JSON: ${url}`);
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      fonemenNlJsonCache = data && typeof data === 'object' ? data : { phonemes: [] };
+      log(`Phoneme JSON loaded: ${url}`);
+      return fonemenNlJsonCache;
+    } catch (err) {
+      lastError = err;
+      log(`Phoneme JSON failed: ${url} :: ${err?.message || err}`);
+    }
   }
 
-  const data = await res.json();
-  fonemenNlJsonCache = data && typeof data === 'object' ? data : { phonemes: [] };
-  return fonemenNlJsonCache;
+  throw lastError || new Error('Failed to load phoneme JSON');
 }
 
 function splitWordToNlFonemen(word, fonemenData) {
@@ -3629,6 +3645,20 @@ async function evalValue(block) {
         .join(',');
     }
 
+    case 'text_concat': {
+      const a = await evalValue(block.getInputTargetBlock('A'));
+      const b = await evalValue(block.getInputTargetBlock('B'));
+      const toText = (value) => {
+        if (Array.isArray(value)) return value.map(toText).join(', ');
+        if (value == null) return '';
+        if (typeof value === 'object') {
+          try { return JSON.stringify(value); } catch (err) { return String(value); }
+        }
+        return String(value);
+      };
+      return toText(a) + toText(b);
+    }
+
     case 'text_first_letter': {
       const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
       const chars = Array.from(text);
@@ -3959,11 +3989,20 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       case 'klanken_play_word_phonemes_nl': {
         try {
           const word = await evalValue(current.getInputTargetBlock('WORD'));
+          const normalizedWord = String(word ?? '').trim();
+          if (!normalizedWord) {
+            log('Phonemes play skipped: empty word input');
+            break;
+          }
           const fonemenData = await getFonemenNlStandaard();
-          const fonemen = splitWordToNlFonemen(word, fonemenData);
+          const fonemen = splitWordToNlFonemen(normalizedWord, fonemenData);
+          log(`Phonemes play word (nl): ${normalizedWord}`);
+          log(`Phonemes play list: ${fonemen.join(', ') || '(none)'}`);
           for (const foneem of fonemen) {
             if (getRuntime().stopped || generation !== runGeneration) break;
-            await playSound(resolveFolderSoundUrl('letters', foneem));
+            const audioUrl = resolveFolderSoundUrl('letters', foneem);
+            log(`Phoneme audio URL: ${audioUrl}`);
+            await playSound(audioUrl);
             await waitForAudioStopped();
           }
         } catch (err) {
@@ -3975,13 +4014,22 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       case 'klanken_play_word_phonemes_nl_with_pause': {
         try {
           const word = await evalValue(current.getInputTargetBlock('WORD'));
+          const normalizedWord = String(word ?? '').trim();
+          if (!normalizedWord) {
+            log('Phonemes play with pause skipped: empty word input');
+            break;
+          }
           const pauseSeconds = Math.max(0, toNumber(await evalValue(current.getInputTargetBlock('SECONDS'))));
           const pauseMs = Math.round(pauseSeconds * 1000);
           const fonemenData = await getFonemenNlStandaard();
-          const fonemen = splitWordToNlFonemen(word, fonemenData);
+          const fonemen = splitWordToNlFonemen(normalizedWord, fonemenData);
+          log(`Phonemes play word with pause (nl): ${normalizedWord}`);
+          log(`Phonemes play with pause list: ${fonemen.join(', ') || '(none)'}`);
           for (let i = 0; i < fonemen.length; i++) {
             if (getRuntime().stopped || generation !== runGeneration) break;
-            await playSound(resolveFolderSoundUrl('letters', fonemen[i]));
+            const audioUrl = resolveFolderSoundUrl('letters', fonemen[i]);
+            log(`Phoneme audio URL with pause: ${audioUrl}`);
+            await playSound(audioUrl);
             await waitForAudioStopped();
             if (pauseMs > 0 && i < fonemen.length - 1) {
               await new Promise(resolve => setTimeout(resolve, pauseMs));

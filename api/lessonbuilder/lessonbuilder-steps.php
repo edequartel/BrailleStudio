@@ -84,7 +84,11 @@ declare(strict_types=1);
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2 lg:col-span-2">
         <div class="flex items-center justify-between gap-3">
           <div class="text-lg font-bold">Debug log</div>
-          <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+          <div class="flex items-center gap-2">
+            <button id="copyDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Copy log</button>
+            <button id="clearDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Clear log</button>
+            <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+          </div>
         </div>
         <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
       </section>
@@ -110,21 +114,30 @@ declare(strict_types=1);
     const addStepBtn = document.getElementById('addStepBtn');
     const scriptsSummary = document.getElementById('scriptsSummary');
     const statusBox = document.getElementById('statusBox');
+    const copyDebugLogBtn = document.getElementById('copyDebugLogBtn');
+    const clearDebugLogBtn = document.getElementById('clearDebugLogBtn');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
+    const authBtn = document.getElementById('authBtn');
+    const saveLessonBtn = document.getElementById('saveLessonBtn');
+    const deleteLessonBtn = document.getElementById('deleteLessonBtn');
 
     let state = shared.loadState();
     let scriptsCache = [];
     let stepConfigs = [];
     let basisItems = [];
     let isDebugLogVisible = false;
+    let currentRunningStepIndex = -1;
+    let isStoppingCurrentStep = false;
+    let isLessonRunning = false;
+    let isStoppingLesson = false;
 
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.html?v=20260407-2';
+        return 'http://127.0.0.1:5500/blockly/index.html?v=20260408-3';
       }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260407-2';
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260408-3';
     }
 
     const RUNNER_URL = resolveRunnerUrl();
@@ -162,6 +175,51 @@ declare(strict_types=1);
     function renderDebugLogVisibility() {
       statusBox.classList.toggle('hidden', !isDebugLogVisible);
       toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
+    }
+
+    function renderAuthenticationState() {
+      const authenticated = Boolean(shared?.getAuthToken?.());
+      if (authBtn) {
+        authBtn.textContent = authenticated ? 'Authenticated' : 'Authentication';
+        authBtn.className = authenticated
+          ? 'rounded-xl border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700'
+          : 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+      }
+      if (saveLessonBtn) {
+        saveLessonBtn.disabled = !authenticated;
+        saveLessonBtn.className = authenticated
+          ? 'rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white'
+          : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
+        saveLessonBtn.title = authenticated ? 'Save lesson' : 'Authenticate first to save';
+      }
+      if (deleteLessonBtn) {
+        deleteLessonBtn.disabled = !authenticated;
+        deleteLessonBtn.className = authenticated
+          ? 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white'
+          : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
+        deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
+      }
+    }
+
+    function renderStepRunButtons() {
+      Array.from(stepsTableBody.querySelectorAll('[data-run-step-index]')).forEach((button) => {
+        const index = Number(button.getAttribute('data-run-step-index') || -1);
+        const isCurrent = index === currentRunningStepIndex;
+        const hasActiveRun = currentRunningStepIndex >= 0;
+        button.textContent = isCurrent ? (isStoppingCurrentStep ? 'Stopping...' : 'Stop') : 'Run';
+        button.disabled = isStoppingCurrentStep || isStoppingLesson || (hasActiveRun && !isCurrent);
+        button.className = isCurrent
+          ? 'w-full rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white'
+          : 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+      });
+      const runLessonBtn = document.getElementById('runLessonBtn');
+      if (runLessonBtn) {
+        runLessonBtn.textContent = isLessonRunning ? (isStoppingLesson ? 'Stopping...' : 'Stop') : 'Run';
+        runLessonBtn.disabled = isStoppingCurrentStep || isStoppingLesson || (currentRunningStepIndex >= 0 && !isLessonRunning);
+        runLessonBtn.className = isLessonRunning
+          ? 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white'
+          : 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+      }
     }
 
     function renderLessonSummary() {
@@ -214,8 +272,7 @@ declare(strict_types=1);
     function getStepDisplayMeta(stepConfig) {
       const script = getScriptItemById(stepConfig?.id);
       return {
-        title: String(stepConfig?.title || script?.title || '').trim(),
-        description: String(stepConfig?.description || script?.meta?.description || '').trim()
+        title: String(stepConfig?.title || script?.title || '').trim()
       };
     }
 
@@ -225,7 +282,6 @@ declare(strict_types=1);
       return {
         id: String(stepConfig?.id || '').trim(),
         title: meta.title,
-        description: meta.description,
         inputs: {
           text: String(inputs.text || ''),
           word: String(inputs.word || ''),
@@ -255,7 +311,6 @@ declare(strict_types=1);
         built.push({
           id: String(source.id || '').trim(),
           title: meta.title,
-          description: meta.description,
           inputs: {
             text: String(textValue || ''),
             word: String(wordValue || ''),
@@ -272,8 +327,7 @@ declare(strict_types=1);
         const script = getScriptItemById(cfg.id);
         return {
           ...cfg,
-          title: cfg.title || String(script?.title || '').trim(),
-          description: cfg.description || String(script?.meta?.description || '').trim()
+          title: cfg.title || String(script?.title || '').trim()
         };
       });
     }
@@ -296,7 +350,6 @@ declare(strict_types=1);
         script.innerHTML = `
           <div class="font-semibold text-slate-900">${meta.title || cfg.id}</div>
           <div class="text-xs text-slate-500">${cfg.id}</div>
-          ${meta.description ? `<div class="mt-1 text-xs text-slate-600">${meta.description}</div>` : ''}
         `;
 
         const text = document.createElement('input');
@@ -346,6 +399,7 @@ declare(strict_types=1);
         repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
 
         const run = document.createElement('button');
+        run.dataset.runStepIndex = String(index);
         run.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
         run.textContent = 'Run';
         run.addEventListener('click', async () => {
@@ -394,6 +448,7 @@ declare(strict_types=1);
         row.append(script, text, word, letters, repeat, run, moveUp, moveDown, remove);
         stepsTableBody.appendChild(row);
       });
+      renderStepRunButtons();
     }
 
     function syncStepConfigsFromTable() {
@@ -474,21 +529,28 @@ declare(strict_types=1);
 
     async function waitForCompletion(app, timeoutMs = 30000) {
       const start = Date.now();
+      let lastRuntime = null;
       while (Date.now() - start < timeoutMs) {
         const completion = app.getStepCompletion();
         if (completion) return completion;
         const runtime = app.getRuntimeSnapshot();
-        if (runtime?.stopped && runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) {
+        lastRuntime = runtime;
+        if (runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) {
           return null;
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
+      appendStatus('waitForCompletion: timeout.', {
+        timeoutMs,
+        runtime: lastRuntime
+      });
       throw new Error('Step timed out');
     }
 
     async function runStepConfig(stepConfig, stepIndex) {
       const method = shared.getDraftMethodMeta(state);
       const scriptData = await shared.loadScript(stepConfig.id);
+      showDebugLog();
       appendStatus('Step run gestart.', {
         scriptId: stepConfig.id,
         runnerUrl: RUNNER_URL,
@@ -503,39 +565,150 @@ declare(strict_types=1);
         index: Number(state.basisIndex ?? 0),
         stepInputs: shared.normalizeInputs(stepConfig.inputs || {}),
         stepMeta: buildStepMeta(stepConfig, stepIndex),
+        onLog: (line) => {
+          appendStatus('Blockly log.', line);
+        },
         lockInjectedRecord: true
       });
       const completion = result?.stepCompletion || await waitForCompletion(app);
       return { result, completion, scriptId: stepConfig.id };
     }
 
+    async function stopCurrentStep() {
+      if (currentRunningStepIndex < 0 || isStoppingCurrentStep) {
+        return;
+      }
+      const stoppedStepIndex = currentRunningStepIndex;
+      isStoppingCurrentStep = true;
+      renderStepRunButtons();
+      appendStatus('Stop requested for current step.', {
+        stepIndex: stoppedStepIndex
+      });
+      try {
+        const app = await waitForRunnerReady(5000);
+        if (app && typeof app.stopProgram === 'function') {
+          await app.stopProgram();
+        }
+        if (isLessonRunning) {
+          isStoppingLesson = true;
+        } else {
+          currentRunningStepIndex = -1;
+        }
+        appendStatus('Step stop bevestigd.', {
+          stepIndex: stoppedStepIndex
+        });
+      } catch (err) {
+        appendStatus('Stop step failed.', {
+          error: err.message || String(err)
+        });
+        throw err;
+      } finally {
+        isStoppingCurrentStep = false;
+        renderStepRunButtons();
+      }
+    }
+
     async function runSingleStep(index) {
+      if (currentRunningStepIndex === index) {
+        await stopCurrentStep();
+        return;
+      }
+      if (isLessonRunning) {
+        appendStatus('Lesson draait al. Gebruik lesson Stop of de huidige step Stop.', {
+          currentStepIndex: currentRunningStepIndex,
+          requestedStepIndex: index
+        });
+        return;
+      }
+      if (currentRunningStepIndex >= 0) {
+        appendStatus('Er draait al een step.', {
+          currentStepIndex: currentRunningStepIndex,
+          requestedStepIndex: index
+        });
+        return;
+      }
       syncStepConfigsFromTable();
       const stepConfig = stepConfigs[index];
       if (!stepConfig) throw new Error('Step not found');
-      const outcome = await runStepConfig(stepConfig, index);
-      setStatus(`Step uitgevoerd: ${stepConfig.id}`, outcome);
+      currentRunningStepIndex = index;
+      isStoppingCurrentStep = false;
+      renderStepRunButtons();
+      try {
+        const outcome = await runStepConfig(stepConfig, index);
+        const wasStopped = Boolean(
+          outcome?.completion?.status === 'stopped' ||
+          outcome?.result?.runtime?.stopped
+        );
+        appendStatus(wasStopped ? `Step gestopt: ${stepConfig.id}` : `Step uitgevoerd: ${stepConfig.id}`, outcome);
+      } finally {
+        currentRunningStepIndex = -1;
+        isStoppingCurrentStep = false;
+        renderStepRunButtons();
+      }
     }
 
     async function runLesson() {
+      if (isLessonRunning) {
+        isStoppingLesson = true;
+        renderStepRunButtons();
+        appendStatus('Stop requested for current lesson.');
+        if (currentRunningStepIndex >= 0) {
+          await stopCurrentStep();
+        }
+        isLessonRunning = false;
+        isStoppingLesson = false;
+        currentRunningStepIndex = -1;
+        renderStepRunButtons();
+        appendStatus('Lesson stop bevestigd.');
+        return;
+      }
+      if (currentRunningStepIndex >= 0) {
+        appendStatus('Er draait al een step.', {
+          currentStepIndex: currentRunningStepIndex
+        });
+        return;
+      }
       syncStepConfigsFromTable();
       if (!stepConfigs.length) {
         setStatus('Deze lesson heeft nog geen steps.');
         return;
       }
+      isLessonRunning = true;
+      isStoppingLesson = false;
+      renderStepRunButtons();
       const results = [];
-      for (let index = 0; index < stepConfigs.length; index++) {
-        const outcome = await runStepConfig(stepConfigs[index], index);
-        results.push({
-          scriptId: stepConfigs[index].id,
-          completion: outcome.completion
-        });
-        if (outcome.completion && outcome.completion.status !== 'completed') {
-          setStatus(`Lesson gestopt bij step ${index + 1}`, results);
-          return;
+      try {
+        for (let index = 0; index < stepConfigs.length; index++) {
+          if (isStoppingLesson) {
+            appendStatus(`Lesson gestopt vóór step ${index + 1}`, results);
+            return;
+          }
+          currentRunningStepIndex = index;
+          renderStepRunButtons();
+          const outcome = await runStepConfig(stepConfigs[index], index);
+          results.push({
+            scriptId: stepConfigs[index].id,
+            completion: outcome.completion,
+            stopped: Boolean(outcome?.completion?.status === 'stopped' || outcome?.result?.runtime?.stopped)
+          });
+          currentRunningStepIndex = -1;
+          renderStepRunButtons();
+          if (outcome.completion && outcome.completion.status !== 'completed') {
+            appendStatus(`Lesson gestopt bij step ${index + 1}`, results);
+            return;
+          }
+          if (outcome?.result?.runtime?.stopped || isStoppingLesson) {
+            appendStatus(`Lesson gestopt bij step ${index + 1}`, results);
+            return;
+          }
         }
+        appendStatus('Lesson uitgevoerd.', results);
+      } finally {
+        currentRunningStepIndex = -1;
+        isLessonRunning = false;
+        isStoppingLesson = false;
+        renderStepRunButtons();
       }
-      setStatus('Lesson uitgevoerd.', results);
     }
 
     async function saveCurrentLesson() {
@@ -557,6 +730,7 @@ declare(strict_types=1);
       const payload = {
         id: lessonIdInput.value.trim(),
         title: lessonTitleInput.value.trim(),
+        description: String(lessonDescriptionInput.value.trim() || '').trim(),
         methodId: method.id,
         method: method,
         methodTitle: method.title,
@@ -565,17 +739,7 @@ declare(strict_types=1);
         basisWord: state.basisWord || shared.getBasisWord(basisItem, basisIndex),
         lessonNumber: Number(state.lessonNumber || 1),
         basisRecord: basisItem,
-        word: lessonWordInput.value.trim(),
         steps: serializeStepConfigs(stepConfigs),
-        meta: {
-          title: String(lessonTitleInput.value.trim() || state.lessonMetaTitle || '').trim(),
-          description: String(lessonDescriptionInput.value.trim() || '').trim(),
-          method,
-          basisIndex,
-          basisWord: state.basisWord || shared.getBasisWord(basisItem, basisIndex),
-          lessonNumber: Number(state.lessonNumber || 1),
-          basisRecord: basisItem
-        },
         overwrite: true
       };
       appendStatus('Repeat DOM snapshot.', getRepeatDomSnapshot());
@@ -593,9 +757,9 @@ declare(strict_types=1);
       state = shared.updateState({
         lessonId: payload.id,
         lessonTitle: payload.title,
-        lessonMetaTitle: String(payload.meta.title || payload.title || '').trim(),
-        lessonDescription: String(payload.meta.description || '').trim(),
-        lessonWord: payload.word,
+        lessonMetaTitle: String(payload.title || '').trim(),
+        lessonDescription: String(payload.description || '').trim(),
+        lessonWord: payload.basisWord,
         steps: stepConfigs
       });
       appendStatus('Lesson save response.', result);
@@ -632,10 +796,10 @@ declare(strict_types=1);
             state = shared.updateState({
               lessonId: loadedLesson.id || state.lessonId,
               lessonTitle: loadedLesson.title || state.lessonTitle || '',
-              lessonMetaTitle: String(loadedLesson?.meta?.title || loadedLesson.title || state.lessonMetaTitle || '').trim(),
-              lessonDescription: String(loadedLesson?.meta?.description || state.lessonDescription || '').trim(),
+              lessonMetaTitle: String(loadedLesson?.title || state.lessonMetaTitle || '').trim(),
+              lessonDescription: String(loadedLesson?.description || state.lessonDescription || '').trim(),
               lessonNumber: loadedLesson.lessonNumber || state.lessonNumber || 1,
-              lessonWord: loadedLesson.basisWord || loadedLesson.word || state.lessonWord || state.basisWord || '',
+              lessonWord: loadedLesson.basisWord || state.lessonWord || state.basisWord || '',
               steps: shared.normalizeStepConfigs(loadedLesson.steps || [])
             });
           } catch (err) {
@@ -656,6 +820,7 @@ declare(strict_types=1);
         renderLessonSummary();
         renderStepsTable();
         renderDebugLogVisibility();
+        renderAuthenticationState();
         setStatus('Ready.');
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
@@ -702,7 +867,6 @@ declare(strict_types=1);
       stepConfigs.push({
         id: scriptsSelect.value,
         title: String(selectedScript?.title || '').trim(),
-        description: String(selectedScript?.meta?.description || '').trim(),
         inputs: { text: '', word: '', letters: [], repeat: 1 }
       });
       stepConfigs = serializeStepConfigs(stepConfigs);
@@ -716,6 +880,12 @@ declare(strict_types=1);
     });
 
     document.getElementById('saveLessonBtn').addEventListener('click', async () => {
+      if (!shared?.getAuthToken?.()) {
+        showDebugLog();
+        setStatus('Authenticate first to save this lesson.');
+        renderAuthenticationState();
+        return;
+      }
       try {
         await saveCurrentLesson();
       } catch (err) {
@@ -725,6 +895,12 @@ declare(strict_types=1);
     });
 
     document.getElementById('deleteLessonBtn').addEventListener('click', async () => {
+      if (!shared?.getAuthToken?.()) {
+        showDebugLog();
+        setStatus('Authenticate first to delete this lesson.');
+        renderAuthenticationState();
+        return;
+      }
       if (!lessonIdInput.value.trim()) {
         setStatus('Geen lesson geselecteerd.');
         return;
@@ -753,7 +929,7 @@ declare(strict_types=1);
       }
     });
 
-    document.getElementById('authBtn')?.addEventListener('click', async () => {
+    authBtn?.addEventListener('click', async () => {
       isDebugLogVisible = true;
       renderDebugLogVisibility();
       setStatus('Authentication starten...');
@@ -762,15 +938,36 @@ declare(strict_types=1);
           throw new Error('lessonbuilder-shared.js is not up to date or did not load');
         }
         await shared.openAuthenticationPopup();
+        renderAuthenticationState();
         setStatus('Authentication completed.');
       } catch (err) {
+        renderAuthenticationState();
         setStatus(`Authentication error: ${err.message}`);
+      }
+    });
+
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'braillestudioAuthToken' || event.key === 'elevenlabsAuthToken') {
+        renderAuthenticationState();
       }
     });
 
     toggleDebugLogBtn.addEventListener('click', () => {
       isDebugLogVisible = !isDebugLogVisible;
       renderDebugLogVisibility();
+    });
+
+    clearDebugLogBtn.addEventListener('click', () => {
+      statusBox.textContent = '';
+    });
+
+    copyDebugLogBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(statusBox.textContent || '');
+        appendStatus('Debug log copied to clipboard.');
+      } catch (err) {
+        setStatus(`Copy log error: ${err.message || String(err)}`);
+      }
     });
 
     lessonTitleInput.addEventListener('input', () => {

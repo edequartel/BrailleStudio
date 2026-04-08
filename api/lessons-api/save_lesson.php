@@ -36,21 +36,17 @@ if (!is_array($data)) {
 
 $id = isset($data['id']) ? trim((string)$data['id']) : '';
 $title = isset($data['title']) ? trim((string)$data['title']) : '';
+$description = isset($data['description']) ? trim((string)$data['description']) : trim((string)(($data['meta']['description'] ?? '')));
 $method = isset($data['method']) && is_array($data['method']) ? $data['method'] : [];
 $methodId = isset($data['methodId']) ? trim((string)$data['methodId']) : trim((string)($method['id'] ?? ''));
 $methodTitle = isset($data['methodTitle']) ? trim((string)$data['methodTitle']) : trim((string)($method['title'] ?? ''));
 $methodDataSource = isset($data['methodDataSource']) ? trim((string)$data['methodDataSource']) : trim((string)($method['dataSource'] ?? ''));
-$meta = $data['meta'] ?? [];
-$basisIndex = array_key_exists('basisIndex', $data) ? (int)$data['basisIndex'] : (int)($meta['basisIndex'] ?? -1);
-$basisWord = isset($data['basisWord']) ? trim((string)$data['basisWord']) : trim((string)($meta['basisWord'] ?? ''));
-$lessonNumber = array_key_exists('lessonNumber', $data) ? (int)$data['lessonNumber'] : (int)($meta['lessonNumber'] ?? 1);
-$basisRecord = isset($data['basisRecord']) && is_array($data['basisRecord']) ? $data['basisRecord'] : (is_array($meta['basisRecord'] ?? null) ? $meta['basisRecord'] : []);
-$word = isset($data['word']) ? trim((string)$data['word']) : '';
+$basisIndex = array_key_exists('basisIndex', $data) ? (int)$data['basisIndex'] : -1;
+$basisWord = isset($data['basisWord']) ? trim((string)$data['basisWord']) : '';
+$lessonNumber = array_key_exists('lessonNumber', $data) ? (int)$data['lessonNumber'] : 1;
+$basisRecord = isset($data['basisRecord']) && is_array($data['basisRecord']) ? $data['basisRecord'] : [];
 $steps = $data['steps'] ?? [];
 $overwrite = array_key_exists('overwrite', $data) ? (bool)$data['overwrite'] : true;
-$meta = is_array($meta) ? $meta : [];
-$lessonMetaTitle = isset($meta['title']) ? trim((string)$meta['title']) : $title;
-$lessonMetaDescription = isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($data['description'] ?? ''));
 
 function normalize_lesson_input_key($key)
 {
@@ -235,35 +231,22 @@ if (file_exists($filePath) && !$overwrite) {
 $payload = [
     'id' => $safeId,
     'title' => $title,
+    'description' => $description,
     'methodId' => $methodId,
     'method' => [
         'id' => $methodId,
         'title' => $methodTitle,
+        'description' => trim((string)($method['description'] ?? '')),
+        'imageUrl' => trim((string)($method['imageUrl'] ?? '')),
+        'basisFile' => trim((string)($method['basisFile'] ?? '')),
         'dataSource' => $methodDataSource,
     ],
     'basisIndex' => $basisIndex,
     'basisWord' => $basisWord,
     'lessonNumber' => $lessonNumber,
     'basisRecord' => is_array($basisRecord) ? $basisRecord : [],
-    'word' => $word,
     'updatedAt' => gmdate('c'),
     'steps' => $cleanSteps,
-    'meta' => array_merge(
-        $meta,
-        [
-            'title' => $lessonMetaTitle,
-            'description' => $lessonMetaDescription,
-            'method' => [
-                'id' => $methodId,
-                'title' => $methodTitle,
-                'dataSource' => $methodDataSource,
-            ],
-            'basisIndex' => $basisIndex,
-            'basisWord' => $basisWord,
-            'lessonNumber' => $lessonNumber,
-            'basisRecord' => is_array($basisRecord) ? $basisRecord : []
-        ]
-    ),
 ];
 
 $written = file_put_contents(
