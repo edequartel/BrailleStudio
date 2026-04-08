@@ -9,12 +9,29 @@ Content-Type: application/json
   "id": "my-lesson",
   "title": "My Lesson",
   "word": "appel",
-  "steps": ["step-1", "step-2"],
-  "meta": {
-    "stepConfigs": [
-      { "id": "step-1", "variable": "a" },
-      { "id": "step-2", "variable": "b" }
-    ]
-  },
+  "steps": [
+    {
+      "id": "step-1",
+      "title": "Step 1",
+      "description": "",
+      "inputs": {
+        "text": "a",
+        "word": "",
+        "letters": [],
+        "repeat": 1
+      }
+    },
+    {
+      "id": "step-2",
+      "title": "Step 2",
+      "description": "",
+      "inputs": {
+        "text": "b",
+        "word": "",
+        "letters": [],
+        "repeat": 1
+      }
+    }
+  ],
   "overwrite": true
 }

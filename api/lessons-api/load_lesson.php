@@ -155,23 +155,8 @@ function normalize_loaded_step_inputs($inputs, $fallbackVariable = '')
 }
 
 $steps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
-$stepConfigs = [];
-
-if (is_array($content['stepConfigs'] ?? null)) {
-    $stepConfigs = $content['stepConfigs'];
-} elseif (is_array($content['meta']['stepConfigs'] ?? null)) {
-    $stepConfigs = $content['meta']['stepConfigs'];
-    } else {
-    foreach ($steps as $stepId) {
-        $stepConfigs[] = [
-            'id' => (string)$stepId,
-            'inputs' => []
-        ];
-    }
-}
-
-$normalizedStepConfigs = [];
-foreach ($stepConfigs as $row) {
+$normalizedSteps = [];
+foreach ($steps as $row) {
     if (!is_array($row)) {
         continue;
     }
@@ -180,7 +165,7 @@ foreach ($stepConfigs as $row) {
         continue;
     }
     $rowVariable = trim((string)($row['variable'] ?? ''));
-    $normalizedStepConfigs[] = [
+    $normalizedSteps[] = [
         'id' => $rowId,
         'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
         'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
@@ -202,8 +187,7 @@ $out['basisIndex'] = array_key_exists('basisIndex', $content) ? (int)$content['b
 $out['basisWord'] = trim((string)($content['basisWord'] ?? ($out['meta']['basisWord'] ?? '')));
 $out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : (int)($out['meta']['lessonNumber'] ?? 1);
 $out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($out['meta']['basisRecord'] ?? null) ? $out['meta']['basisRecord'] : []);
-$out['steps'] = $steps;
-$out['stepConfigs'] = $normalizedStepConfigs;
+$out['steps'] = $normalizedSteps;
 
 if (!is_array($out['meta'] ?? null)) {
     $out['meta'] = [];
@@ -214,6 +198,5 @@ $out['meta']['basisIndex'] = $out['basisIndex'];
 $out['meta']['basisWord'] = $out['basisWord'];
 $out['meta']['lessonNumber'] = $out['lessonNumber'];
 $out['meta']['basisRecord'] = $out['basisRecord'];
-$out['meta']['stepConfigs'] = $normalizedStepConfigs;
 
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

@@ -142,15 +142,9 @@ foreach ($files as $file) {
         continue;
     }
 
-    $rawStepConfigs = [];
-    if (is_array($content['stepConfigs'] ?? null)) {
-        $rawStepConfigs = $content['stepConfigs'];
-    } elseif (is_array($content['meta']['stepConfigs'] ?? null)) {
-        $rawStepConfigs = $content['meta']['stepConfigs'];
-    }
-
-    $normalizedStepConfigs = [];
-    foreach ($rawStepConfigs as $row) {
+    $rawSteps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
+    $normalizedSteps = [];
+    foreach ($rawSteps as $row) {
         if (!is_array($row)) {
             continue;
         }
@@ -159,7 +153,7 @@ foreach ($files as $file) {
             continue;
         }
         $rowVariable = trim((string)($row['variable'] ?? ''));
-        $normalizedStepConfigs[] = [
+        $normalizedSteps[] = [
             'id' => $rowId,
             'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
             'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
@@ -182,14 +176,12 @@ foreach ($files as $file) {
         'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : (is_array($content['meta']['basisRecord'] ?? null) ? $content['meta']['basisRecord'] : []),
         'word' => $content['word'] ?? '',
         'updatedAt' => $content['updatedAt'] ?? '',
-        'steps' => $content['steps'] ?? [],
-        'stepConfigs' => $normalizedStepConfigs,
+        'steps' => $normalizedSteps,
         'meta' => array_merge(
             is_array($content['meta'] ?? null) ? $content['meta'] : [],
             [
                 'title' => trim((string)(($content['meta']['title'] ?? null) ?? ($content['title'] ?? ''))),
-                'description' => trim((string)(($content['meta']['description'] ?? null) ?? ($content['description'] ?? ''))),
-                'stepConfigs' => $normalizedStepConfigs
+                'description' => trim((string)(($content['meta']['description'] ?? null) ?? ($content['description'] ?? '')))
             ]
         ),
         'filename' => basename($file),

@@ -101,7 +101,6 @@ declare(strict_types=1);
 
     function getLessonStepCount(item) {
       if (!item) return 0;
-      if (Array.isArray(item.stepConfigs)) return item.stepConfigs.length;
       if (Array.isArray(item.steps)) return item.steps.length;
       return 0;
     }
@@ -117,7 +116,7 @@ declare(strict_types=1);
         basisIndex,
         basisWord: shared.getBasisWord(item, basisIndex),
         basisRecord: item,
-        stepConfigs: [],
+        steps: [],
         isDraft: true
       };
     }
@@ -158,7 +157,7 @@ declare(strict_types=1);
         lessonDescription: String(lesson?.meta?.description || '').trim(),
         lessonNumber: lesson?.lessonNumber || 1,
         lessonWord: lesson?.basisWord || shared.getBasisWord(item, basisIndex),
-        stepConfigs: shared.normalizeStepConfigs(lesson?.stepConfigs || lesson?.meta?.stepConfigs || [])
+        steps: shared.normalizeStepConfigs(lesson?.steps || [])
       });
       renderBasisList();
       updateRecordSummary();
@@ -183,7 +182,7 @@ declare(strict_types=1);
             lessonNumber: 1,
             lessonWord: draftLesson.basisWord,
             basisRecord: draftLesson.basisRecord,
-            stepConfigs: []
+            steps: []
           });
           window.location.href = 'https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php';
           return;
@@ -199,7 +198,7 @@ declare(strict_types=1);
           lessonDescription: String(data?.meta?.description || '').trim(),
           lessonNumber: data.lessonNumber || 1,
           lessonWord: resolvedWord,
-          stepConfigs: shared.normalizeStepConfigs(data.stepConfigs || data?.meta?.stepConfigs || [])
+          steps: shared.normalizeStepConfigs(data.steps || [])
         });
         window.location.href = 'https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php';
       } catch (err) {
@@ -226,7 +225,7 @@ declare(strict_types=1);
               lessonDescription: String(lesson?.meta?.description || '').trim(),
               lessonNumber: lesson.lessonNumber || 1,
               lessonWord: lesson.basisWord || '',
-              stepConfigs: shared.normalizeStepConfigs(lesson.stepConfigs || lesson?.meta?.stepConfigs || [])
+              steps: shared.normalizeStepConfigs(lesson.steps || [])
             });
           }
         } else {

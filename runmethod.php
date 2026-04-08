@@ -107,14 +107,9 @@ if ($methodId === '') {
                         continue;
                     }
 
-                    $rawStepConfigs = [];
-                    if (is_array($lesson['stepConfigs'] ?? null)) {
-                        $rawStepConfigs = $lesson['stepConfigs'];
-                    } elseif (is_array($lesson['meta']['stepConfigs'] ?? null)) {
-                        $rawStepConfigs = $lesson['meta']['stepConfigs'];
-                    }
-                    $stepConfigs = [];
-                    foreach ($rawStepConfigs as $row) {
+                    $rawSteps = is_array($lesson['steps'] ?? null) ? $lesson['steps'] : [];
+                    $steps = [];
+                    foreach ($rawSteps as $row) {
                         if (!is_array($row)) {
                             continue;
                         }
@@ -122,7 +117,7 @@ if ($methodId === '') {
                         if ($stepId === '') {
                             continue;
                         }
-                        $stepConfigs[] = [
+                        $steps[] = [
                             'id' => $stepId,
                             'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
                             'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
@@ -146,7 +141,7 @@ if ($methodId === '') {
                         'basisWord' => trim((string)($lesson['basisWord'] ?? ($lesson['meta']['basisWord'] ?? ''))),
                         'lessonNumber' => array_key_exists('lessonNumber', $lesson) ? (int)$lesson['lessonNumber'] : (int)($lesson['meta']['lessonNumber'] ?? 1),
                         'basisRecord' => is_array($lesson['basisRecord'] ?? null) ? $lesson['basisRecord'] : (is_array($lesson['meta']['basisRecord'] ?? null) ? $lesson['meta']['basisRecord'] : []),
-                        'stepConfigs' => $stepConfigs,
+                        'steps' => $steps,
                     ];
                 }
             }
@@ -487,11 +482,11 @@ $pagePayload = [
 
     function hydrateLessonsWithScriptMetadata() {
       lessons.forEach((lesson) => {
-        if (!Array.isArray(lesson?.stepConfigs)) {
-          lesson.stepConfigs = [];
+        if (!Array.isArray(lesson?.steps)) {
+          lesson.steps = [];
           return;
         }
-        lesson.stepConfigs = lesson.stepConfigs.map((cfg) => {
+        lesson.steps = lesson.steps.map((cfg) => {
           const script = getScriptItemById(cfg?.id);
           return {
             ...cfg,
@@ -506,7 +501,7 @@ $pagePayload = [
     function renderSelectedStepInstruction(lesson = null) {
       if (!selectedStepInstruction) return;
       const activeLesson = lesson || getSelectedLesson();
-      const steps = Array.isArray(activeLesson?.stepConfigs) ? activeLesson.stepConfigs : [];
+      const steps = Array.isArray(activeLesson?.steps) ? activeLesson.steps : [];
       const selectedStep = steps[selectedStepIndex] || null;
       const meta = selectedStep ? getStepDisplayMeta(selectedStep) : null;
       const instruction = String(meta?.instruction || '').trim();
@@ -529,7 +524,7 @@ $pagePayload = [
           <div class="font-bold">${lessonTitle}</div>
           ${lessonDescription ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(lessonDescription)}</div>` : ''}
           <div class="mt-1 text-xs text-slate-500">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
-          <div class="mt-1 text-xs text-slate-500">${Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0} step(s)</div>
+          <div class="mt-1 text-xs text-slate-500">${Array.isArray(lesson.steps) ? lesson.steps.length : 0} step(s)</div>
         `;
         button.addEventListener('click', () => {
           selectedLessonIndex = index;
@@ -549,13 +544,13 @@ $pagePayload = [
         return;
       }
       const lessonTitle = String(lesson?.meta?.title || lesson.title || lesson.id).trim();
-      const stepCount = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs.length : 0;
+      const stepCount = Array.isArray(lesson.steps) ? lesson.steps.length : 0;
       if (stepCount === 0) {
         selectedStepIndex = 0;
       } else if (selectedStepIndex < 0 || selectedStepIndex >= stepCount) {
         selectedStepIndex = 0;
       }
-      const preview = (Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : []).map((step) => {
+      const preview = (Array.isArray(lesson.steps) ? lesson.steps : []).map((step) => {
         const meta = getStepDisplayMeta(step);
         const inputs = step.inputs || {};
         const parts = [];
@@ -934,7 +929,7 @@ $pagePayload = [
     async function runLesson(lesson) {
       if (!lesson) throw new Error('No lesson selected');
       stopRequested = false;
-      const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
+      const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
       selectedStepIndex = 0;
       renderCurrentLesson();
       const displayedValues = [
@@ -946,15 +941,15 @@ $pagePayload = [
       appendStatus('Lesson run gestart.', {
         lessonId: lesson.id,
         lessonTitle: lesson.title,
-        steps: stepConfigs.length,
+        steps: steps.length,
         selectedLessonIndex,
         selectedStepIndex,
-        stepIds: stepConfigs.map((step) => String(step?.id || '')),
+        stepIds: steps.map((step) => String(step?.id || '')),
         runnerUrl,
         runnerState: getRunnerDebugState()
       });
       const results = [];
-      while (selectedStepIndex < stepConfigs.length) {
+      while (selectedStepIndex < steps.length) {
         const stepIndex = selectedStepIndex;
         renderCurrentLesson();
         if (stopRequested) {
@@ -964,7 +959,7 @@ $pagePayload = [
           });
           break;
         }
-        const stepConfig = stepConfigs[stepIndex];
+        const stepConfig = steps[stepIndex];
         appendStatus('Step gestart.', {
           lessonId: lesson.id,
           stepIndex,
@@ -994,10 +989,10 @@ $pagePayload = [
           lessonId: lesson.id,
           previousStepIndex: stepIndex,
           nextStepIndex: selectedStepIndex,
-          hasNextStep: selectedStepIndex < stepConfigs.length,
-          nextStep: selectedStepIndex < stepConfigs.length ? getStepDebugSnapshot(stepConfigs[selectedStepIndex], selectedStepIndex) : null
+          hasNextStep: selectedStepIndex < steps.length,
+          nextStep: selectedStepIndex < steps.length ? getStepDebugSnapshot(steps[selectedStepIndex], selectedStepIndex) : null
         });
-        if (selectedStepIndex < stepConfigs.length) {
+        if (selectedStepIndex < steps.length) {
           renderCurrentLesson();
         }
       }
@@ -1013,15 +1008,15 @@ $pagePayload = [
       try {
         const lesson = getSelectedLesson();
         if (!lesson) throw new Error('No lesson selected');
-        const stepConfigs = Array.isArray(lesson.stepConfigs) ? lesson.stepConfigs : [];
-        if (!stepConfigs[selectedStepIndex]) throw new Error('No step selected');
+        const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
+        if (!steps[selectedStepIndex]) throw new Error('No step selected');
         stopRequested = false;
         setLessonRunningState(true, `Running from step ${selectedStepIndex + 1}`);
         appendStatus('Run vanaf geselecteerde step gestart.', {
           lessonId: lesson.id,
           stepIndex: selectedStepIndex,
-          scriptId: stepConfigs[selectedStepIndex].id,
-          stepIds: stepConfigs.map((step) => String(step?.id || '')),
+          scriptId: steps[selectedStepIndex].id,
+          stepIds: steps.map((step) => String(step?.id || '')),
           runnerUrl,
           runnerState: getRunnerDebugState()
         });
@@ -1032,7 +1027,7 @@ $pagePayload = [
         ];
         renderLessonReturnValues(displayedValues);
         const results = [];
-        while (selectedStepIndex < stepConfigs.length) {
+        while (selectedStepIndex < steps.length) {
           const stepIndex = selectedStepIndex;
           renderCurrentLesson();
           if (stopRequested) {
@@ -1042,7 +1037,7 @@ $pagePayload = [
             });
             break;
           }
-          const stepConfig = stepConfigs[stepIndex];
+          const stepConfig = steps[stepIndex];
           appendStatus('Step gestart.', {
             lessonId: lesson.id,
             stepIndex,
@@ -1072,10 +1067,10 @@ $pagePayload = [
             lessonId: lesson.id,
             previousStepIndex: stepIndex,
             nextStepIndex: selectedStepIndex,
-            hasNextStep: selectedStepIndex < stepConfigs.length,
-            nextStep: selectedStepIndex < stepConfigs.length ? getStepDebugSnapshot(stepConfigs[selectedStepIndex], selectedStepIndex) : null
+            hasNextStep: selectedStepIndex < steps.length,
+            nextStep: selectedStepIndex < steps.length ? getStepDebugSnapshot(steps[selectedStepIndex], selectedStepIndex) : null
           });
-          if (selectedStepIndex < stepConfigs.length) {
+          if (selectedStepIndex < steps.length) {
             renderCurrentLesson();
           }
         }
@@ -1107,7 +1102,7 @@ $pagePayload = [
         appendStatus('Run current lesson button pressed.', {
           selectedLessonIndex,
           lessonId: lesson?.id || '',
-          stepCount: Array.isArray(lesson?.stepConfigs) ? lesson.stepConfigs.length : 0
+          stepCount: Array.isArray(lesson?.steps) ? lesson.steps.length : 0
         });
         const results = await runLesson(lesson);
         appendStatus('Current lesson afgerond.', { lessonId: lesson?.id || '', results });

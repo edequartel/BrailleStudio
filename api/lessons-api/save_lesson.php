@@ -191,24 +191,7 @@ if ($lessonNumber < 1) {
 }
 
 $cleanSteps = [];
-foreach ($steps as $stepId) {
-    $stepId = trim((string)$stepId);
-    $stepId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $stepId);
-    $stepId = trim($stepId, '-_');
-    if ($stepId !== '') {
-        $cleanSteps[] = $stepId;
-    }
-}
-
-$incomingStepConfigs = [];
-if (is_array($data['stepConfigs'] ?? null)) {
-    $incomingStepConfigs = $data['stepConfigs'];
-} elseif (is_array($meta) && is_array($meta['stepConfigs'] ?? null)) {
-    $incomingStepConfigs = $meta['stepConfigs'];
-}
-
-$cleanStepConfigs = [];
-foreach ($incomingStepConfigs as $row) {
+foreach ($steps as $row) {
     if (!is_array($row)) {
         continue;
     }
@@ -220,23 +203,12 @@ foreach ($incomingStepConfigs as $row) {
     }
     $rowVariable = trim((string)($row['variable'] ?? ''));
     $rowInputs = normalize_lesson_step_inputs($row['inputs'] ?? [], $rowVariable);
-    $cleanStepConfigs[] = [
+    $cleanSteps[] = [
         'id' => $rowId,
         'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
         'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
         'inputs' => $rowInputs
     ];
-}
-
-if (count($cleanStepConfigs) === 0 && count($cleanSteps) > 0) {
-    foreach ($cleanSteps as $stepId) {
-        $cleanStepConfigs[] = [
-            'id' => $stepId,
-            'title' => '',
-            'description' => '',
-            'inputs' => normalize_lesson_step_inputs([])
-        ];
-    }
 }
 
 $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $id);
@@ -276,7 +248,6 @@ $payload = [
     'word' => $word,
     'updatedAt' => gmdate('c'),
     'steps' => $cleanSteps,
-    'stepConfigs' => $cleanStepConfigs,
     'meta' => array_merge(
         $meta,
         [
@@ -290,8 +261,7 @@ $payload = [
             'basisIndex' => $basisIndex,
             'basisWord' => $basisWord,
             'lessonNumber' => $lessonNumber,
-            'basisRecord' => is_array($basisRecord) ? $basisRecord : [],
-            'stepConfigs' => $cleanStepConfigs
+            'basisRecord' => is_array($basisRecord) ? $basisRecord : []
         ]
     ),
 ];
