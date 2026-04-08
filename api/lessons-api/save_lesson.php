@@ -65,6 +65,42 @@ function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
         $inputs = [];
     }
 
+    $normalizeStringList = static function ($value): array {
+        $items = [];
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if (is_scalar($item) || $item === null) {
+                    $cleanItem = trim((string)$item);
+                    if ($cleanItem !== '') {
+                        $items[] = $cleanItem;
+                    }
+                }
+            }
+            return $items;
+        }
+        $parts = preg_split('/[\r\n,]+/', (string)$value) ?: [];
+        foreach ($parts as $item) {
+            $cleanItem = trim((string)$item);
+            if ($cleanItem !== '') {
+                $items[] = $cleanItem;
+            }
+        }
+        return $items;
+    };
+
+    $normalizeCategoryMap = static function ($value) use ($normalizeStringList): array {
+        $source = is_array($value) ? $value : [];
+        $normalized = [];
+        foreach ($source as $key => $items) {
+            $safeKey = trim((string)$key);
+            if ($safeKey === '') {
+                continue;
+            }
+            $normalized[$safeKey] = $normalizeStringList($items);
+        }
+        return $normalized;
+    };
+
     $normalized = [];
 
     foreach ($inputs as $key => $value) {
@@ -92,6 +128,16 @@ function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
                 }
             }
             $normalized[$safeKey] = $letters;
+            continue;
+        }
+
+        if (in_array($safeKey, ['sounds', 'newSounds', 'knownSounds'], true)) {
+            $normalized[$safeKey] = $normalizeStringList($value);
+            continue;
+        }
+
+        if (in_array($safeKey, ['categories', 'newSoundCategories', 'knownSoundCategories'], true)) {
+            $normalized[$safeKey] = $normalizeCategoryMap($value);
             continue;
         }
 

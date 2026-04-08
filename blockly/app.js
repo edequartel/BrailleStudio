@@ -2967,20 +2967,39 @@ function getLessonMethod() {
 
 function normalizeLessonStepInputs(inputs) {
   const source = inputs && typeof inputs === 'object' ? inputs : {};
+  const normalizeStringList = (value) => Array.isArray(value)
+    ? value.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : String(value ?? '').split(',').map((item) => item.trim()).filter(Boolean);
+  const normalizeCategoryMap = (value) => {
+    const src = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const out = {};
+    Object.entries(src).forEach(([key, items]) => {
+      const safeKey = String(key || '').trim();
+      if (!safeKey) return;
+      out[safeKey] = normalizeStringList(items);
+    });
+    return out;
+  };
   return {
     text: String(source.text ?? '').trim(),
     word: String(source.word ?? '').trim(),
     letters: Array.isArray(source.letters)
       ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
       : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean),
-    repeat: Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1))
+    repeat: Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1)),
+    sounds: normalizeStringList(source.sounds ?? []),
+    newSounds: normalizeStringList(source.newSounds ?? []),
+    knownSounds: normalizeStringList(source.knownSounds ?? []),
+    categories: normalizeCategoryMap(source.categories ?? {}),
+    newSoundCategories: normalizeCategoryMap(source.newSoundCategories ?? {}),
+    knownSoundCategories: normalizeCategoryMap(source.knownSoundCategories ?? {})
   };
 }
 
 function getLessonStepInputs() {
   return window.lessonStepInputs && typeof window.lessonStepInputs === 'object'
     ? window.lessonStepInputs
-    : { text: '', word: '', letters: [], repeat: 1 };
+    : { text: '', word: '', letters: [], repeat: 1, sounds: [], newSounds: [], knownSounds: [], categories: {}, newSoundCategories: {}, knownSoundCategories: {} };
 }
 
 function resetLessonStepRuntimeState(stepInputs = null) {
@@ -3263,8 +3282,11 @@ async function evalValue(block) {
       const field = String(block.getFieldValue('FIELD') || 'text');
       const inputs = getLessonStepInputs();
       const value = inputs[field];
-      if (field === 'letters') {
+      if (field === 'letters' || field === 'sounds' || field === 'newSounds' || field === 'knownSounds') {
         return Array.isArray(value) ? value : [];
+      }
+      if (field === 'categories' || field === 'newSoundCategories' || field === 'knownSoundCategories') {
+        return value && typeof value === 'object' ? value : {};
       }
       if (field === 'repeat') {
         return Math.max(1, Math.floor(Number(value) || 1));

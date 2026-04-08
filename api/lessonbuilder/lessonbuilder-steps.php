@@ -208,7 +208,9 @@ declare(strict_types=1);
     }
 
     function serializeStepConfig(stepConfig) {
-      const inputs = shared.normalizeInputs(stepConfig?.inputs || {});
+      const basisIndex = Number(state.basisIndex ?? -1);
+      const basisItem = basisItems[basisIndex] || state.basisRecord || null;
+      const inputs = shared.injectBasisRecordIntoInputs(stepConfig?.inputs || {}, basisItem);
       const meta = getStepDisplayMeta(stepConfig);
       return {
         id: String(stepConfig?.id || '').trim(),
@@ -218,7 +220,13 @@ declare(strict_types=1);
           text: String(inputs.text || ''),
           word: String(inputs.word || ''),
           letters: Array.isArray(inputs.letters) ? inputs.letters : [],
-          repeat: Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1))
+          repeat: Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1)),
+          sounds: Array.isArray(inputs.sounds) ? inputs.sounds : [],
+          newSounds: Array.isArray(inputs.newSounds) ? inputs.newSounds : [],
+          knownSounds: Array.isArray(inputs.knownSounds) ? inputs.knownSounds : [],
+          categories: inputs.categories && typeof inputs.categories === 'object' ? inputs.categories : {},
+          newSoundCategories: inputs.newSoundCategories && typeof inputs.newSoundCategories === 'object' ? inputs.newSoundCategories : {},
+          knownSoundCategories: inputs.knownSoundCategories && typeof inputs.knownSoundCategories === 'object' ? inputs.knownSoundCategories : {}
         }
       };
     }
@@ -240,16 +248,18 @@ declare(strict_types=1);
         const wordValue = row.querySelector('[data-field="word"]')?.value ?? '';
         const lettersValue = row.querySelector('[data-field="letters"]')?.value ?? '';
         const repeatRaw = row.querySelector('[data-field="repeat"]')?.value ?? '1';
+        const basisIndex = Number(state.basisIndex ?? -1);
+        const basisItem = basisItems[basisIndex] || state.basisRecord || null;
         built.push({
           id: String(source.id || '').trim(),
           title: meta.title,
           description: meta.description,
-          inputs: {
+          inputs: shared.injectBasisRecordIntoInputs({
             text: String(textValue || ''),
             word: String(wordValue || ''),
             letters: String(lettersValue).split(',').map((item) => item.trim()).filter(Boolean),
             repeat: Math.max(1, Math.floor(Number(repeatRaw) || 1))
-          }
+          }, basisItem)
         });
       });
       return built.filter((item) => item.id);
@@ -489,7 +499,7 @@ declare(strict_types=1);
         lessonData: basisItems,
         lessonMethod: method,
         index: Number(state.basisIndex ?? 0),
-        stepInputs: shared.normalizeInputs(stepConfig.inputs || {}),
+        stepInputs: shared.injectBasisRecordIntoInputs(stepConfig.inputs || {}, buildStepMeta(stepConfig, stepIndex).basisRecord),
         stepMeta: buildStepMeta(stepConfig, stepIndex),
         lockInjectedRecord: true
       });
@@ -683,7 +693,7 @@ declare(strict_types=1);
         id: scriptsSelect.value,
         title: String(selectedScript?.title || '').trim(),
         description: String(selectedScript?.meta?.description || '').trim(),
-        inputs: { text: '', word: '', letters: [], repeat: 1 }
+        inputs: shared.injectBasisRecordIntoInputs({ text: '', word: '', letters: [], repeat: 1 }, basisItems[Number(state.basisIndex ?? -1)] || state.basisRecord || null)
       });
       stepConfigs = serializeStepConfigs(stepConfigs);
       state = shared.updateState({ stepConfigs });

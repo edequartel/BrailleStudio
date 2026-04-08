@@ -1397,7 +1397,13 @@
           ['text', 'text'],
           ['word', 'word'],
           ['letters', 'letters'],
-          ['repeat', 'repeat']
+          ['repeat', 'repeat'],
+          ['sounds', 'sounds'],
+          ['newSounds', 'newSounds'],
+          ['knownSounds', 'knownSounds'],
+          ['categories', 'categories'],
+          ['newSoundCategories', 'newSoundCategories'],
+          ['knownSoundCategories', 'knownSoundCategories']
         ]), 'FIELD');
       this.setOutput(true);
       this.setColour('#14B8A6');

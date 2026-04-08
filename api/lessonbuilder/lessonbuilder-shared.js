@@ -306,6 +306,27 @@
     return String(value ?? '').split(',').map((item) => item.trim()).filter(Boolean);
   }
 
+  function normalizeStringList(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item ?? '').trim()).filter(Boolean);
+    }
+    if (value == null || value === '') {
+      return [];
+    }
+    return String(value).split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  function normalizeCategoryMap(value) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const normalized = {};
+    Object.entries(source).forEach(([key, items]) => {
+      const safeKey = String(key || '').trim();
+      if (!safeKey) return;
+      normalized[safeKey] = normalizeStringList(items);
+    });
+    return normalized;
+  }
+
   function normalizeInputs(inputs = {}, fallbackVariable = '') {
     const source = inputs && typeof inputs === 'object' ? inputs : {};
     const repeatValue = Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1));
@@ -313,12 +334,39 @@
       text: String(source.text ?? '').trim(),
       word: String(source.word ?? '').trim(),
       letters: normalizeLetters(source.letters ?? []),
-      repeat: repeatValue
+      repeat: repeatValue,
+      sounds: normalizeStringList(source.sounds ?? []),
+      newSounds: normalizeStringList(source.newSounds ?? []),
+      knownSounds: normalizeStringList(source.knownSounds ?? []),
+      categories: normalizeCategoryMap(source.categories ?? {}),
+      newSoundCategories: normalizeCategoryMap(source.newSoundCategories ?? {}),
+      knownSoundCategories: normalizeCategoryMap(source.knownSoundCategories ?? {})
     };
     if (!normalized.text && !normalized.word && normalized.letters.length === 0 && repeatValue === 1 && String(fallbackVariable || '').trim()) {
       normalized.text = String(fallbackVariable).trim();
     }
     return normalized;
+  }
+
+  function injectBasisRecordIntoInputs(inputs = {}, basisRecord = null) {
+    const normalized = normalizeInputs(inputs);
+    const basis = basisRecord && typeof basisRecord === 'object' ? basisRecord : {};
+    const basisWord = String(basis.word || '').trim();
+    const basisSounds = normalizeStringList(basis.sounds ?? []);
+    const basisNewSounds = normalizeStringList(basis.newSounds ?? []);
+    const basisKnownSounds = normalizeStringList(basis.knownSounds ?? []);
+
+    return {
+      ...normalized,
+      word: normalized.word || basisWord,
+      letters: normalized.letters.length ? normalized.letters : basisSounds,
+      sounds: basisSounds,
+      newSounds: basisNewSounds,
+      knownSounds: basisKnownSounds,
+      categories: normalizeCategoryMap(basis.categories ?? {}),
+      newSoundCategories: normalizeCategoryMap(basis.newSoundCategories ?? {}),
+      knownSoundCategories: normalizeCategoryMap(basis.knownSoundCategories ?? {})
+    };
   }
 
   function normalizeStepConfigs(configs) {
@@ -399,6 +447,7 @@
     resolveBasisFileUrl,
     resolveMethodDataSource,
     normalizeInputs,
+    injectBasisRecordIntoInputs,
     normalizeStepConfigs,
     getBasisWord,
     buildLessonIdFromBasis,
