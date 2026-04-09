@@ -151,19 +151,6 @@
       font-size: 13px;
     }
 
-    .auth-grid {
-      display: grid;
-      gap: 16px;
-      grid-template-columns: 1fr 1fr;
-      margin-bottom: 16px;
-    }
-
-    @media (max-width: 860px) {
-      .auth-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     .meta-line {
       margin-top: 10px;
       color: var(--muted);
@@ -234,22 +221,6 @@
     </div>
 
     <div class="card">
-      <div class="auth-grid">
-        <div>
-          <label for="usernameInput">Username</label>
-          <input id="usernameInput" autocomplete="username" placeholder="Username">
-        </div>
-        <div>
-          <label for="passwordInput">Password</label>
-          <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password">
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top:0; margin-bottom:16px;">
-        <button id="loginBtn" class="primary" type="button">Login</button>
-        <button id="logoutBtn" class="secondary" type="button">Logout</button>
-      </div>
-
       <div class="grid">
         <div>
           <label for="voiceSelect">Voice</label>
@@ -304,10 +275,6 @@
 
   <script>
     const voiceSelect = document.getElementById('voiceSelect');
-    const usernameInput = document.getElementById('usernameInput');
-    const passwordInput = document.getElementById('passwordInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
     const modelInput = document.getElementById('modelInput');
     const textInput = document.getElementById('textInput');
     const savePathInput = document.getElementById('savePathInput');
@@ -334,7 +301,7 @@
     ];
     const defaultVoiceId = 'yO6w2xlECAQRFP6pX7Hw';
     const LOCAL_API_BASE = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/';
-    const LOCAL_AUTH_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
+    const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
 
     function setStatus(message) {
       statusBox.textContent = String(message || '');
@@ -363,6 +330,23 @@
       }
     }
 
+    function buildHomepageAuthUrl(returnTo) {
+      const url = new URL(AUTH_LOGIN_URL);
+      if (returnTo) {
+        url.searchParams.set('returnTo', returnTo);
+      }
+      return url.toString();
+    }
+
+    function requireHomepageAuthOnProduction() {
+      const origin = String(window.location.origin || '');
+      if (origin !== 'https://www.tastenbraille.com' || authToken) {
+        return false;
+      }
+      window.location.replace(buildHomepageAuthUrl(window.location.href));
+      return true;
+    }
+
     function apiBaseUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
@@ -375,20 +359,8 @@
       return new URL(fileName, apiBaseUrl()).toString();
     }
 
-    function authBaseUrl() {
-      const host = String(window.location.hostname || '').toLowerCase();
-      if (host === '127.0.0.1' || host === 'localhost') {
-        return LOCAL_AUTH_BASE;
-      }
-      return new URL('../authentication-api/', window.location.href).toString();
-    }
-
-    function authEndpointUrl(fileName) {
-      return new URL(fileName, authBaseUrl()).toString();
-    }
-
     function renderApiBaseInfo() {
-      apiBaseInfo.textContent = `API base: ${apiBaseUrl()} | Auth base: ${authBaseUrl()}`;
+      apiBaseInfo.textContent = `API base: ${apiBaseUrl()} | Auth: shared login session`;
     }
 
     function appendErrorLog(source, error) {
@@ -454,42 +426,6 @@
       setStatus(`Loaded ${voiceSelect.options.length} fixed voices.`);
     }
 
-    async function login() {
-      const username = String(usernameInput.value || '').trim();
-      const password = String(passwordInput.value || '');
-      if (!username || !password) {
-        setStatus('Enter username and password first.');
-        return;
-      }
-
-      loginBtn.disabled = true;
-      try {
-        const res = await fetch(authEndpointUrl('login.php'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, audience: 'braillestudio-api' })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data.ok || !data.token) {
-          throw new Error(data.error || `HTTP ${res.status}`);
-        }
-        setAuthToken(data.token);
-        passwordInput.value = '';
-        setStatus(`Logged in as ${data.user?.username || username}. Token expires at ${data.expires_at || '-'}.`);
-      } catch (error) {
-        appendErrorLog('login', error);
-        setStatus(`Login failed: ${error.message || String(error)}`);
-      } finally {
-        loginBtn.disabled = false;
-      }
-    }
-
-    function logout() {
-      setAuthToken('');
-      passwordInput.value = '';
-      setStatus('Logged out.');
-    }
-
     async function requestTts({ saveToFile = false } = {}) {
       const voiceId = String(voiceSelect.value || '').trim();
       const modelId = String(modelInput.value || '').trim();
@@ -506,7 +442,10 @@
         return;
       }
       if (!authToken) {
-        setStatus('Login first.');
+        if (requireHomepageAuthOnProduction()) {
+          return;
+        }
+        setStatus('Authentication token missing.');
         return;
       }
 
@@ -571,11 +510,6 @@
 
     generateBtn.addEventListener('click', () => requestTts());
     saveBtn.addEventListener('click', () => requestTts({ saveToFile: true }));
-    loginBtn.addEventListener('click', login);
-    logoutBtn.addEventListener('click', logout);
-    passwordInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') login();
-    });
     voiceSelect.addEventListener('change', syncPresetState);
     downloadBtn.addEventListener('click', () => {
       if (!currentAudioUrl) return;
@@ -587,10 +521,14 @@
       a.remove();
     });
 
-    renderApiBaseInfo();
-    initializeVoices();
-    if (authToken) {
-      setStatus('Bearer token restored from session.');
+    if (requireHomepageAuthOnProduction()) {
+      setStatus('Redirecting to login…');
+    } else {
+      renderApiBaseInfo();
+      initializeVoices();
+      if (authToken) {
+        setStatus('Bearer token restored from homepage session.');
+      }
     }
 
     window.addEventListener('error', (event) => {

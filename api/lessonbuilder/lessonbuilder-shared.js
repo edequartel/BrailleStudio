@@ -15,6 +15,8 @@
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
+  const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+  const HOMEPAGE_ORIGIN = 'https://www.tastenbraille.com';
   const basisDataCache = new Map();
 
   function getAuthToken() {
@@ -51,6 +53,22 @@
       sessionStorage.removeItem('elevenlabsAuthToken');
       localStorage.removeItem('elevenlabsAuthToken');
     }
+  }
+
+  function buildHomepageAuthUrl(returnTo = window.location.href) {
+    const url = new URL(AUTH_LOGIN_URL);
+    const target = String(returnTo || '').trim();
+    if (target) {
+      url.searchParams.set('returnTo', target);
+    }
+    return url.toString();
+  }
+
+  function requireAuthOnProduction(returnTo = window.location.href) {
+    if (String(window.location.origin || '').trim() !== HOMEPAGE_ORIGIN) return false;
+    if (getAuthToken()) return false;
+    window.location.replace(buildHomepageAuthUrl(returnTo));
+    return true;
   }
 
   function openAuthenticationPopup() {
@@ -379,6 +397,8 @@
     DEFAULT_BASIS_DATA_URL,
     getAuthToken,
     setAuthToken,
+    buildHomepageAuthUrl,
+    requireAuthOnProduction,
     openAuthenticationPopup,
     loadState,
     saveState,

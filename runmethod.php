@@ -187,12 +187,23 @@ $pagePayload = [
         >
       <?php endif; ?>
       <div class="absolute inset-0 bg-white/70"></div>
-      <div class="absolute right-4 top-4 z-10">
+      <div class="absolute right-4 top-4 z-20 flex items-center gap-2">
+        <button id="authBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Log in</button>
         <span id="lessonRunIndicator" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500" aria-label="Not running" title="Not running">
           <span id="lessonRunIndicatorDot" class="h-4 w-4 rounded-full bg-red-500"></span>
         </span>
       </div>
-      <div class="relative z-10 flex h-full items-center gap-4 px-5">
+      <div id="runmethodAuthPanel" class="fixed right-10 top-24 z-30 hidden w-[360px] max-w-[calc(100%-2rem)] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+        <div class="space-y-3">
+          <div class="grid gap-3">
+            <input id="runmethodUsernameInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="text" placeholder="Username">
+            <input id="runmethodPasswordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="password" placeholder="Password">
+            <button id="runmethodLoginBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Login</button>
+          </div>
+          <div id="runmethodAuthStatus" class="hidden text-sm"></div>
+        </div>
+      </div>
+      <div class="relative z-10 flex h-full items-center gap-4 px-5 pr-40">
         <div class="min-w-0">
           <h1 class="truncate text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
         </div>
@@ -219,7 +230,6 @@ $pagePayload = [
           <button id="runAllBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all</button>
           <button id="stopRunBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
           <div class="ml-auto flex items-center gap-2">
-            <button id="authBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Authentication</button>
             <button id="toggleRunnerBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhide</button>
           </div>
         </div>
@@ -307,7 +317,14 @@ $pagePayload = [
     const runnerPanel = document.getElementById('runnerPanel');
     const stopRunBtn = document.getElementById('stopRunBtn');
     const runSelectedStepBtn = document.getElementById('runSelectedStepBtn');
+    const runCurrentBtn = document.getElementById('runCurrentBtn');
+    const runAllBtn = document.getElementById('runAllBtn');
     const authBtn = document.getElementById('authBtn');
+    const runmethodAuthPanel = document.getElementById('runmethodAuthPanel');
+    const runmethodUsernameInput = document.getElementById('runmethodUsernameInput');
+    const runmethodPasswordInput = document.getElementById('runmethodPasswordInput');
+    const runmethodLoginBtn = document.getElementById('runmethodLoginBtn');
+    const runmethodAuthStatus = document.getElementById('runmethodAuthStatus');
     const brailleMonitorCard = document.getElementById('brailleMonitorCard');
     const scriptBrailleMonitorCard = document.getElementById('scriptBrailleMonitorCard');
 
@@ -525,6 +542,10 @@ $pagePayload = [
 
     function renderSelectedStepInstruction(lesson = null) {
       if (!selectedStepInstruction) return;
+      if (!getBrailleStudioAuthToken()) {
+        selectedStepInstruction.textContent = 'Log in to view steps and instruction.';
+        return;
+      }
       const activeLesson = lesson || getSelectedLesson();
       const steps = Array.isArray(activeLesson?.steps) ? activeLesson.steps : [];
       const selectedStep = steps[selectedStepIndex] || null;
@@ -534,6 +555,10 @@ $pagePayload = [
     }
 
     function renderLessonsList() {
+      if (!getBrailleStudioAuthToken()) {
+        lessonsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Log in to view lessons.</div>';
+        return;
+      }
       lessonsList.innerHTML = '';
       if (!lessons.length) {
         lessonsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No lessons found for this method.</div>';
@@ -561,6 +586,12 @@ $pagePayload = [
     }
 
     function renderCurrentLesson() {
+      if (!getBrailleStudioAuthToken()) {
+        stepsPreview.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Log in to view steps.</div>';
+        renderSelectedStepInstruction(null);
+        renderLessonReturnValues([]);
+        return;
+      }
       const lesson = getSelectedLesson();
       if (!lesson) {
         stepsPreview.textContent = 'No steps.';
@@ -791,13 +822,9 @@ $pagePayload = [
     }
 
     function getBrailleStudioAuthToken() {
-      const sessionPrimary = String(sessionStorage.getItem('braillestudioAuthToken') || '').trim();
+      const sessionPrimary = String(sessionStorage.getItem('runmethodAuthToken') || '').trim();
       if (sessionPrimary) return sessionPrimary;
-      const localPrimary = String(localStorage.getItem('braillestudioAuthToken') || '').trim();
-      if (localPrimary) return localPrimary;
-      const legacySession = String(sessionStorage.getItem('elevenlabsAuthToken') || '').trim();
-      if (legacySession) return legacySession;
-      return String(localStorage.getItem('elevenlabsAuthToken') || '').trim();
+      return String(localStorage.getItem('runmethodAuthToken') || '').trim();
     }
 
     function getBrailleStudioAuthHeaders(extra = {}) {
@@ -812,68 +839,91 @@ $pagePayload = [
     function setBrailleStudioAuthToken(token) {
       const normalized = String(token || '').trim();
       if (normalized) {
-        sessionStorage.setItem('braillestudioAuthToken', normalized);
-        localStorage.setItem('braillestudioAuthToken', normalized);
-        sessionStorage.setItem('elevenlabsAuthToken', normalized);
-        localStorage.setItem('elevenlabsAuthToken', normalized);
+        sessionStorage.setItem('runmethodAuthToken', normalized);
+        localStorage.setItem('runmethodAuthToken', normalized);
       } else {
-        sessionStorage.removeItem('braillestudioAuthToken');
-        localStorage.removeItem('braillestudioAuthToken');
-        sessionStorage.removeItem('elevenlabsAuthToken');
-        localStorage.removeItem('elevenlabsAuthToken');
+        sessionStorage.removeItem('runmethodAuthToken');
+        localStorage.removeItem('runmethodAuthToken');
       }
-      renderAuthButton();
+    }
+
+    function renderRunmethodAuthStatus(message = '', isError = false) {
+      if (!runmethodAuthStatus) return;
+      const text = String(message || '').trim();
+      runmethodAuthStatus.textContent = text;
+      runmethodAuthStatus.className = isError ? 'text-sm text-red-700' : 'text-sm text-slate-600';
+      runmethodAuthStatus.classList.toggle('hidden', !text);
     }
 
     function renderAuthButton() {
-      if (!authBtn) return;
       const authenticated = Boolean(getBrailleStudioAuthToken());
-      authBtn.textContent = authenticated ? 'Authenticated' : 'Authentication';
-      authBtn.className = authenticated
-        ? 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
-        : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+      if (authBtn) {
+        authBtn.textContent = authenticated ? 'Log out' : 'Log in';
+        authBtn.className = authenticated
+          ? 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
+          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+        authBtn.title = authenticated ? 'Log out from runmethod' : 'Open runmethod login';
+      }
+      if (runmethodAuthPanel) {
+        runmethodAuthPanel.classList.toggle('hidden', authenticated || !runmethodAuthPanel.dataset.open);
+      }
+      [runSelectedStepBtn, runCurrentBtn, runAllBtn, stopRunBtn].forEach((button) => {
+        if (!button) return;
+        button.disabled = !authenticated;
+        button.classList.toggle('cursor-not-allowed', !authenticated);
+        button.classList.toggle('opacity-50', !authenticated);
+      });
+      if (authenticated) {
+        renderRunmethodAuthStatus('');
+      }
+      renderLessonsList();
+      renderCurrentLesson();
     }
 
-    function openBrailleStudioAuthPopup() {
-      return new Promise((resolve, reject) => {
-        const bridgeUrl = new URL('https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge');
-        bridgeUrl.searchParams.set('origin', window.location.origin);
-        const popup = window.open(
-          bridgeUrl.toString(),
-          'braillestudioAuthBridge',
-          'width=560,height=720,resizable=yes,scrollbars=yes'
-        );
-        if (!popup) {
-          reject(new Error('Popup blocked'));
-          return;
+    function requireAuthForRun() {
+      if (getBrailleStudioAuthToken()) return true;
+      renderAuthButton();
+      appendStatus('Authentication required before running.');
+      return false;
+    }
+
+    async function loginRunmethodAuth() {
+      const username = String(runmethodUsernameInput?.value || '').trim();
+      const password = String(runmethodPasswordInput?.value || '');
+      if (!username || !password) {
+        renderRunmethodAuthStatus('Enter username and password first.', true);
+        return '';
+      }
+      if (runmethodLoginBtn) runmethodLoginBtn.disabled = true;
+      renderRunmethodAuthStatus('Logging in...');
+      try {
+        const res = await fetch('https://www.tastenbraille.com/braillestudio/authentication-api/login.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            password,
+            audience: 'braillestudio-api'
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok || !data?.token) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
         }
-
-        let settled = false;
-        const cleanup = () => {
-          window.removeEventListener('message', onMessage);
-          if (pollTimer) window.clearInterval(pollTimer);
-        };
-
-        const onMessage = (event) => {
-          if (event.origin !== 'https://www.tastenbraille.com') return;
-          if (event.data?.type !== 'braillestudio-auth-token') return;
-          const token = String(event.data?.token || '').trim();
-          if (!token) return;
-          setBrailleStudioAuthToken(token);
-          settled = true;
-          cleanup();
-          resolve(token);
-        };
-
-        window.addEventListener('message', onMessage);
-
-        const pollTimer = window.setInterval(() => {
-          if (popup.closed && !settled) {
-            cleanup();
-            reject(new Error('Authentication popup closed'));
-          }
-        }, 250);
-      });
+        setBrailleStudioAuthToken(data.token);
+        if (runmethodPasswordInput) runmethodPasswordInput.value = '';
+        if (runmethodAuthPanel) {
+          runmethodAuthPanel.dataset.open = '';
+        }
+        renderAuthButton();
+        renderRunmethodAuthStatus(`Authenticated as ${String(data?.user?.username || username)}.`);
+        return data.token;
+      } catch (err) {
+        renderRunmethodAuthStatus(`Login failed: ${err.message || String(err)}`, true);
+        throw err;
+      } finally {
+        if (runmethodLoginBtn) runmethodLoginBtn.disabled = false;
+      }
     }
 
     async function loadScriptData(id) {
@@ -1082,6 +1132,7 @@ $pagePayload = [
     }
 
     async function runSelectedStep() {
+      if (!requireAuthForRun()) return;
       try {
         const lesson = getSelectedLesson();
         if (!lesson) throw new Error('No lesson selected');
@@ -1172,6 +1223,7 @@ $pagePayload = [
     }
 
     async function runCurrentLesson() {
+      if (!requireAuthForRun()) return;
       try {
         const lesson = getSelectedLesson();
         selectedStepIndex = 0;
@@ -1196,6 +1248,7 @@ $pagePayload = [
     }
 
     async function runAllLessons() {
+      if (!requireAuthForRun()) return;
       setLessonRunningState(false, 'Not running');
       stopRequested = false;
       appendStatus('Run all gestart.', { lessons: lessons.length });
@@ -1230,6 +1283,7 @@ $pagePayload = [
     }
 
     async function stopCurrentRun() {
+      if (!requireAuthForRun()) return;
       try {
         const app = await waitForRunnerReady(5000);
         if (app && typeof app.stopProgram === 'function') {
@@ -1255,17 +1309,45 @@ $pagePayload = [
     if (runSelectedStepBtn) {
       runSelectedStepBtn.addEventListener('click', runSelectedStep);
     }
-    document.getElementById('runCurrentBtn').addEventListener('click', runCurrentLesson);
-    document.getElementById('runAllBtn').addEventListener('click', runAllLessons);
+    runCurrentBtn.addEventListener('click', runCurrentLesson);
+    runAllBtn.addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
     renderAuthButton();
-
     authBtn?.addEventListener('click', async () => {
+      if (getBrailleStudioAuthToken()) {
+        setBrailleStudioAuthToken('');
+        if (runmethodAuthPanel) {
+          runmethodAuthPanel.dataset.open = '1';
+        }
+        renderAuthButton();
+        renderRunmethodAuthStatus('Logged out.');
+        if (runmethodUsernameInput) {
+          runmethodUsernameInput.focus();
+        }
+        appendStatus('Runmethod authentication logged out.');
+        return;
+      }
+      if (runmethodAuthPanel) {
+        runmethodAuthPanel.dataset.open = runmethodAuthPanel.dataset.open ? '' : '1';
+      }
+      renderAuthButton();
+    });
+    runmethodLoginBtn?.addEventListener('click', async () => {
       try {
-        await openBrailleStudioAuthPopup();
-        appendStatus('Authentication completed.');
+        await loginRunmethodAuth();
+        appendStatus('Runmethod authentication completed.');
       } catch (err) {
-        appendStatus('Authentication failed.', { error: err.message });
+        appendStatus('Runmethod authentication failed.', { error: err.message || String(err) });
+      }
+    });
+    runmethodPasswordInput?.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      try {
+        await loginRunmethodAuth();
+        appendStatus('Runmethod authentication completed.');
+      } catch (err) {
+        appendStatus('Runmethod authentication failed.', { error: err.message || String(err) });
       }
     });
     if (toggleRunnerBtn) {
@@ -1274,6 +1356,11 @@ $pagePayload = [
         renderRunnerVisibility();
       });
     }
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'runmethodAuthToken') {
+        renderAuthButton();
+      }
+    });
 
     renderMonitorSourceVisibility(false);
 

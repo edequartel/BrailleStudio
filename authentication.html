@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BrailleStudio Authentication</title>
+  <title>BrailleStudio Login</title>
   <style>
     :root {
       --bg: #f3f4f6;
@@ -136,8 +136,8 @@
   <div class="wrap">
     <div class="header">
       <div class="title">
-        <h1>Authentication</h1>
-        <p id="pageSubtitle">Login voor beveiligde BrailleStudio API’s en pagina’s.</p>
+        <h1>BrailleStudio Login</h1>
+        <p id="pageSubtitle">Log in om beveiligde onderdelen van BrailleStudio te gebruiken.</p>
       </div>
       <a class="btn ghost" href="./index.html">Terug naar home</a>
     </div>
@@ -147,19 +147,14 @@
         <input id="authUsernameInput" class="input" type="text" placeholder="Username">
         <input id="authPasswordInput" class="input" type="password" placeholder="Password">
       </div>
-      <div class="grid">
-        <input id="authAudienceInput" class="input" type="text" placeholder="Audience" value="braillestudio-api">
-      </div>
       <div class="actions">
-        <button id="authLoginBtn" class="btn" type="button">Login</button>
-        <button id="authLogoutBtn" class="btn ghost" type="button">Logout</button>
+        <button id="authLoginBtn" class="btn" type="button">Log in</button>
+        <button id="authLogoutBtn" class="btn ghost" type="button">Log out</button>
       </div>
       <div id="authStatus" class="status">Not logged in.</div>
 
       <div class="help">
-        De token wordt opgeslagen in <code>sessionStorage</code> en <code>localStorage</code> onder <code>braillestudioAuthToken</code>.
-        Voor compatibiliteit wordt dezelfde token ook onder <code>elevenlabsAuthToken</code> gezet.
-        Daarna kunnen andere BrailleStudio pagina’s diezelfde token gebruiken.
+        Na het inloggen ga je automatisch terug naar de pagina die je wilde openen.
       </div>
     </div>
   </div>
@@ -171,9 +166,24 @@
     const AUTH_BASE = "https://www.tastenbraille.com/braillestudio/authentication-api/";
     const AUTH_TOKEN_KEY = "braillestudioAuthToken";
     const LEGACY_ELEVENLABS_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
+    const AUTH_AUDIENCE = "braillestudio-api";
+    const HOMEPAGE_ORIGIN = "https://www.tastenbraille.com";
     const params = new URLSearchParams(window.location.search);
     const bridgeMode = params.get("mode") === "bridge";
     const requestedOrigin = String(params.get("origin") || "").trim();
+    const returnTo = normalizeReturnTo(params.get("returnTo"));
+
+    function normalizeReturnTo(raw) {
+      const value = String(raw || "").trim();
+      if (!value) return "";
+      try {
+        const url = new URL(value, window.location.href);
+        if (url.origin !== HOMEPAGE_ORIGIN) return "";
+        return url.toString();
+      } catch {
+        return "";
+      }
+    }
 
     function getAuthBaseUrl() {
       const host = String(window.location.hostname || "").toLowerCase();
@@ -241,11 +251,10 @@
     async function loginAuth() {
       const usernameInput = document.getElementById("authUsernameInput");
       const passwordInput = document.getElementById("authPasswordInput");
-      const audienceInput = document.getElementById("authAudienceInput");
       const loginBtn = document.getElementById("authLoginBtn");
       const username = String(usernameInput?.value || "").trim();
       const password = String(passwordInput?.value || "");
-      const audience = String(audienceInput?.value || "").trim() || "braillestudio-api";
+      const audience = AUTH_AUDIENCE;
 
       if (!username || !password) {
         renderAuthStatus("Enter username and password first.", true);
@@ -271,8 +280,14 @@
         }
         setStoredAuthToken(data.token);
         if (passwordInput) passwordInput.value = "";
-        renderAuthStatus(`Authenticated as ${String(data?.user?.username || username)} for ${audience}.`);
+        renderAuthStatus(`Authenticated as ${String(data?.user?.username || username)}.`);
         publishBridgeToken(data.token, audience, String(data?.user?.username || username));
+        if (!bridgeMode && returnTo) {
+          renderAuthStatus(`Authenticated as ${String(data?.user?.username || username)}. Redirecting...`);
+          window.setTimeout(() => {
+            window.location.assign(returnTo);
+          }, 250);
+        }
       } catch (error) {
         console.error("[authentication] login failed", error);
         renderAuthStatus(`Login failed: ${error.message || error}`, true);
@@ -297,8 +312,8 @@
     const subtitle = document.getElementById("pageSubtitle");
     if (bridgeMode && subtitle) {
       subtitle.textContent = requestedOrigin
-        ? `Bridge login voor ${requestedOrigin}. Na login wordt de token teruggestuurd naar de opener.`
-        : "Bridge login. Na login wordt de token teruggestuurd naar de opener.";
+        ? `Log in voor ${requestedOrigin}. Daarna ga je automatisch terug.`
+        : "Log in en ga daarna automatisch terug.";
     }
 
     renderAuthStatus();

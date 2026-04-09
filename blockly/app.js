@@ -24,6 +24,7 @@ const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/bloc
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
+const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
 const WS_URL = 'ws://localhost:5000/ws';
@@ -321,6 +322,22 @@ function renderElevenLabsAuthStatus(message = '') {
     loginBtn.disabled = false;
     loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
   }
+}
+
+function buildHomepageAuthUrl(returnTo = window.location.href) {
+  const url = new URL(AUTH_LOGIN_PAGE_URL);
+  const target = String(returnTo || '').trim();
+  if (target) {
+    url.searchParams.set('returnTo', target);
+  }
+  return url.toString();
+}
+
+function requireHomepageAuthOnProduction() {
+  if (String(window.location.origin || '').trim() !== 'https://www.tastenbraille.com') return false;
+  if (getElevenLabsAuthToken()) return false;
+  window.location.replace(buildHomepageAuthUrl(window.location.href));
+  return true;
 }
 
 async function loginElevenLabsAuth() {
@@ -2677,6 +2694,9 @@ initVariableValues();
 setBootStage('workspace-ready');
 
 setTimeout(() => {
+  if (requireHomepageAuthOnProduction()) {
+    return;
+  }
   const token = getElevenLabsAuthToken();
   log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
   if (!token) {

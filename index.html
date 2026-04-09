@@ -333,7 +333,7 @@
         <div class="actions">
           <button class="btn" id="themeBtn" type="button">Theme</button>
           <a class="btn" href="./pages/settings.html">Settings</a>
-          <a class="btn" href="./authentication.html">Authentication</a>
+          <a id="authLink" class="btn" href="./authentication.html">Log in</a>
         </div>
       </div>
     </div>
@@ -352,6 +352,11 @@
           <li><a href="https://www.tastenbraille.com/braillestudio/klanken/index.html" aria-label="Klanken">Klanken</a></li>
           <li><a href="https://www.tastenbraille.com/braillevolg/index.php" aria-label="BrailleVolg">BrailleVolg</a></li>
           <li><a href="https://www.tastenbraille.com/braillestudio/editor/index.html" aria-label="Editor">Editor</a></li>
+        </ul>
+        <ul>
+          <li><a href="https://www.tastenbraille.com/braillestudio/tools/braillebridge-com.html" aria-label="BrailleBridge COM">BrailleBridge COM</a></li>
+          <li><a href="https://www.tastenbraille.com/braillestudio/tools/tables.html" aria-label="Tables">Tables</a></li>
+          <li><a href="https://www.tastenbraille.com/braillestudio/elevenlabs-api/index.html" aria-label="ElevenLabs">ElevenLabs</a></li>
         </ul>
       </nav>
 
@@ -378,6 +383,7 @@
 
     const AUTH_TOKEN_KEY = "braillestudioAuthToken";
     const LEGACY_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
+    const HOMEPAGE_ORIGIN = "https://www.tastenbraille.com";
 
     // ------------------------------------------------------------
     // i18n dictionary (explicit, readable, maintainable)
@@ -443,6 +449,25 @@
       return String(localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || "").trim();
     }
 
+    function clearStoredAuthToken() {
+      sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      sessionStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+      localStorage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+    }
+
+    function normalizeReturnTo(raw) {
+      const value = String(raw || "").trim();
+      if (!value) return "";
+      try {
+        const url = new URL(value, window.location.href);
+        if (url.origin !== HOMEPAGE_ORIGIN) return "";
+        return url.toString();
+      } catch {
+        return "";
+      }
+    }
+
     function getInitialTheme() {
       const saved = localStorage.getItem(THEME_KEY);
       if (saved === "light" || saved === "dark") return saved;
@@ -463,6 +488,40 @@
 
     const lang = getLangFromSettings();
     const T = I18N[lang] || I18N.nl;
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = normalizeReturnTo(params.get("returnTo"));
+    const authLink = document.getElementById("authLink");
+
+    function renderAuthLink() {
+      if (!authLink) return;
+      const authUrl = new URL("./authentication.html", window.location.href);
+      if (returnTo) {
+        authUrl.searchParams.set("returnTo", returnTo);
+      }
+      const authenticated = Boolean(getStoredAuthToken());
+      authLink.textContent = authenticated ? "Log out" : "Log in";
+      authLink.setAttribute("aria-label", authenticated ? "Log out" : "Log in");
+      authLink.href = authenticated ? "#" : authUrl.toString();
+    }
+
+    renderAuthLink();
+
+    authLink?.addEventListener("click", (event) => {
+      if (!getStoredAuthToken()) return;
+      event.preventDefault();
+      clearStoredAuthToken();
+      renderAuthLink();
+    });
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== AUTH_TOKEN_KEY && event.key !== LEGACY_AUTH_TOKEN_KEY) return;
+      renderAuthLink();
+    });
+
+    if (returnTo && getStoredAuthToken()) {
+      window.location.replace(returnTo);
+      return;
+    }
 
     // Set <html lang="..">
     document.documentElement.setAttribute("lang", lang);

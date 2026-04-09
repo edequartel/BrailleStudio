@@ -8,6 +8,34 @@ declare(strict_types=1);
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Lesson Builder Flow</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    (function () {
+      const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
+      const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+      const PRODUCTION_ORIGIN = 'https://www.tastenbraille.com';
+
+      function getAuthToken() {
+        for (const key of AUTH_TOKEN_KEYS) {
+          const sessionValue = String(sessionStorage.getItem(key) || '').trim();
+          if (sessionValue) return sessionValue;
+          const localValue = String(localStorage.getItem(key) || '').trim();
+          if (localValue) return localValue;
+        }
+        return '';
+      }
+
+      if (String(window.location.origin || '') !== PRODUCTION_ORIGIN) {
+        return;
+      }
+      if (getAuthToken()) {
+        return;
+      }
+
+      const url = new URL(AUTH_LOGIN_URL);
+      url.searchParams.set('returnTo', window.location.href);
+      window.location.replace(url.toString());
+    })();
+  </script>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-5xl mx-auto p-6 space-y-6">
