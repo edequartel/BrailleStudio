@@ -208,6 +208,10 @@ $pagePayload = [
         <div id="brailleMonitorComponent" class="overflow-hidden"></div>
       </section>
 
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div id="scriptBrailleMonitorComponent" class="overflow-hidden"></div>
+      </section>
+
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="flex flex-wrap items-center gap-2">
           <button id="runSelectedStepBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run step</button>
@@ -313,13 +317,23 @@ $pagePayload = [
     let stopRequested = false;
     let scriptsCache = [];
     let brailleMonitorUi = null;
+    let scriptBrailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
+    let lastScriptBrailleSnapshot = '';
 
     function showBrailleMonitorPlaceholder() {
       if (!brailleMonitorUi || typeof brailleMonitorUi.setText !== 'function') return;
       brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
       lastBrailleSnapshot = JSON.stringify({
+        placeholder: BRAILLE_MONITOR_PLACEHOLDER
+      });
+    }
+
+    function showScriptBrailleMonitorPlaceholder() {
+      if (!scriptBrailleMonitorUi || typeof scriptBrailleMonitorUi.setText !== 'function') return;
+      scriptBrailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+      lastScriptBrailleSnapshot = JSON.stringify({
         placeholder: BRAILLE_MONITOR_PLACEHOLDER
       });
     }
@@ -635,14 +649,37 @@ $pagePayload = [
       return brailleMonitorUi;
     }
 
+    async function ensureScriptBrailleMonitorReady() {
+      if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
+      if (!window.BrailleMonitor) {
+        await loadScriptCandidates([
+          '/braillestudio/components/braille-monitor/braillemonitor.js',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+        ]);
+      }
+      if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
+        throw new Error('BrailleMonitor component is not available');
+      }
+      scriptBrailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'scriptBrailleMonitorComponent',
+        showInfo: false
+      });
+      showScriptBrailleMonitorPlaceholder();
+      return scriptBrailleMonitorUi;
+    }
+
     async function syncBrailleMonitorFromRunner() {
       try {
         const monitor = await ensureBrailleMonitorReady();
+        const scriptMonitor = await ensureScriptBrailleMonitorReady();
         const runner = getRunnerWindow();
         const app = runner?.BrailleBlocklyApp;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') {
           if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
             showBrailleMonitorPlaceholder();
+          }
+          if (lastScriptBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
+            showScriptBrailleMonitorPlaceholder();
           }
           return;
         }
@@ -669,9 +706,30 @@ $pagePayload = [
           textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
           caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
         });
+
+        if (scriptMonitor) {
+          const scriptSignature = JSON.stringify({
+            sourceText,
+            textCaret: runtime?.textCaret ?? null
+          });
+          if (scriptSignature !== lastScriptBrailleSnapshot) {
+            lastScriptBrailleSnapshot = scriptSignature;
+            if (!sourceText) {
+              showScriptBrailleMonitorPlaceholder();
+            } else {
+              scriptMonitor.setText(sourceText);
+              if (typeof scriptMonitor.setCaretPosition === 'function') {
+                scriptMonitor.setCaretPosition(Number.isInteger(runtime?.textCaret) ? runtime.textCaret : null);
+              }
+            }
+          }
+        }
       } catch (err) {
         if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
           brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+        }
+        if (scriptBrailleMonitorUi && typeof scriptBrailleMonitorUi.setText === 'function') {
+          scriptBrailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
         }
       }
     }

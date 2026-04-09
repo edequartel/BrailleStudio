@@ -9,6 +9,7 @@ setBootStage('app-script-start');
 
 let externalLogHandler = null;
 let brailleMonitorUi = null;
+let scriptBrailleMonitorUi = null;
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
@@ -203,6 +204,33 @@ function renderBrailleLine(msg) {
     textCaretPosition,
     caretVisible
   });
+}
+
+function renderScriptBrailleLine() {
+  const rt = getRuntime();
+
+  if (!scriptBrailleMonitorUi && window.BrailleMonitor && typeof window.BrailleMonitor.init === 'function') {
+    const host = document.getElementById('scriptBrailleMonitorComponent');
+    if (host) {
+      scriptBrailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'scriptBrailleMonitorComponent',
+        showInfo: false
+      });
+    }
+  }
+
+  if (!scriptBrailleMonitorUi) return;
+
+  const sourceText = String(rt?.text ?? '');
+  if (!sourceText) {
+    scriptBrailleMonitorUi.clear();
+    return;
+  }
+
+  scriptBrailleMonitorUi.setText(sourceText);
+  if (typeof scriptBrailleMonitorUi.setCaretPosition === 'function') {
+    scriptBrailleMonitorUi.setCaretPosition(Number.isInteger(rt?.textCaret) ? rt.textCaret : null);
+  }
 }
 
 function renderScriptMetadata(meta = null) {
@@ -767,9 +795,13 @@ function applySidebarWidth(nextWidth) {
 function renderBrailleMonitorToggleControl() {
   const btn = document.getElementById('monitorToggleBtn');
   const row = document.getElementById('brailleMonitorRow');
+  const scriptRow = document.getElementById('scriptBrailleMonitorRow');
   if (!btn || !row) return;
   const isVisible = !!brailleMonitorVisible;
   row.classList.toggle('is-hidden', !isVisible);
+  if (scriptRow) {
+    scriptRow.classList.toggle('is-hidden', !isVisible);
+  }
   btn.classList.toggle('is-active', isVisible);
   btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
   btn.setAttribute('aria-label', isVisible ? 'Hide monitor' : 'Show monitor');
@@ -1057,6 +1089,8 @@ stopped          : ${rt.stopped}
 
 variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
+
+  renderScriptBrailleLine();
 }
 
 function applyGridSnap(enabled) {
@@ -3599,6 +3633,17 @@ async function evalValue(block) {
       if (max <= 0) return 0;
       return Math.floor(Math.random() * max);
     }
+
+    case 'math_random_int': {
+      const from = Math.floor(toNumber(await evalValue(block.getInputTargetBlock('FROM'))));
+      const to = Math.floor(toNumber(await evalValue(block.getInputTargetBlock('TO'))));
+      const min = Math.min(from, to);
+      const max = Math.max(from, to);
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    case 'math_random_float':
+      return Math.random();
 
     case 'logic_compare': {
       const a = await evalValue(block.getInputTargetBlock('A'));
