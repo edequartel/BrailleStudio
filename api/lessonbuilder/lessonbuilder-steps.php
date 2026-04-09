@@ -9,6 +9,25 @@ declare(strict_types=1);
   <title>Lesson Builder - Steps</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="./lessonbuilder-shared.js?v=20260407-2"></script>
+  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.css">
+  <style>
+    .lesson-monitor-fit {
+      overflow: hidden;
+    }
+
+    .lesson-monitor-fit .braille-monitor-component {
+      zoom: 0.78;
+      transform-origin: top left;
+    }
+
+    @supports not (zoom: 1) {
+      .lesson-monitor-fit .braille-monitor-component {
+        transform: scale(0.78);
+        width: calc(100% / 0.78);
+      }
+    }
+  </style>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-7xl mx-auto p-6 space-y-5">
@@ -26,6 +45,12 @@ declare(strict_types=1);
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.95fr)]">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
+        <div id="brailleMonitorCard" class="lesson-monitor-fit rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div id="brailleMonitorComponent" class="overflow-hidden"></div>
+        </div>
+        <div id="scriptBrailleMonitorCard" class="lesson-monitor-fit rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div id="scriptBrailleMonitorComponent" class="overflow-hidden"></div>
+        </div>
         <div id="lessonSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
         <div class="grid gap-3 md:grid-cols-2">
           <input id="lessonIdInput" type="hidden">
@@ -121,6 +146,8 @@ declare(strict_types=1);
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
     const deleteLessonBtn = document.getElementById('deleteLessonBtn');
+    const brailleMonitorCard = document.getElementById('brailleMonitorCard');
+    const scriptBrailleMonitorCard = document.getElementById('scriptBrailleMonitorCard');
 
     let state = shared.loadState();
     let scriptsCache = [];
@@ -131,6 +158,13 @@ declare(strict_types=1);
     let isStoppingCurrentStep = false;
     let isLessonRunning = false;
     let isStoppingLesson = false;
+    let activeStopPromise = null;
+    let brailleMonitorUi = null;
+    let scriptBrailleMonitorUi = null;
+    let brailleMonitorSyncTimer = null;
+    let lastBrailleSnapshot = '';
+    let lastScriptBrailleSnapshot = '';
+    const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
@@ -199,6 +233,46 @@ declare(strict_types=1);
           : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
         deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
       }
+    }
+
+    function showBrailleMonitorPlaceholder() {
+      if (!brailleMonitorUi || typeof brailleMonitorUi.setText !== 'function') return;
+      brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+      lastBrailleSnapshot = JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER });
+    }
+
+    function showScriptBrailleMonitorPlaceholder() {
+      if (!scriptBrailleMonitorUi || typeof scriptBrailleMonitorUi.setText !== 'function') return;
+      scriptBrailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+      lastScriptBrailleSnapshot = JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER });
+    }
+
+    function renderMonitorSourceVisibility(isWsConnected = false) {
+      if (brailleMonitorCard) {
+        brailleMonitorCard.classList.toggle('hidden', !isWsConnected);
+      }
+      if (scriptBrailleMonitorCard) {
+        scriptBrailleMonitorCard.classList.toggle('hidden', !!isWsConnected);
+      }
+    }
+
+    async function loadScriptCandidates(candidates) {
+      let lastError = null;
+      for (const src of candidates) {
+        try {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${src}`));
+            document.head.appendChild(script);
+          });
+          return;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error('No braille monitor script could be loaded');
     }
 
     function renderStepRunButtons() {
@@ -510,6 +584,123 @@ declare(strict_types=1);
       throw new Error(`Blockly runner did not become ready in time (stage: ${lastState.bootStage || lastState.reason || 'unknown'}${lastState.bootError ? `, error: ${lastState.bootError}` : ''})`);
     }
 
+    async function ensureBrailleMonitorReady() {
+      if (brailleMonitorUi) return brailleMonitorUi;
+      if (!window.BrailleMonitor) {
+        await loadScriptCandidates([
+          '/braillestudio/components/braille-monitor/braillemonitor.js',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+        ]);
+      }
+      if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
+        throw new Error('BrailleMonitor component is not available');
+      }
+      brailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'brailleMonitorComponent',
+        showInfo: false
+      });
+      showBrailleMonitorPlaceholder();
+      return brailleMonitorUi;
+    }
+
+    async function ensureScriptBrailleMonitorReady() {
+      if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
+      if (!window.BrailleMonitor) {
+        await loadScriptCandidates([
+          '/braillestudio/components/braille-monitor/braillemonitor.js',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+        ]);
+      }
+      if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
+        throw new Error('BrailleMonitor component is not available');
+      }
+      scriptBrailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'scriptBrailleMonitorComponent',
+        showInfo: false
+      });
+      showScriptBrailleMonitorPlaceholder();
+      return scriptBrailleMonitorUi;
+    }
+
+    async function syncBrailleMonitorFromRunner() {
+      try {
+        const monitor = await ensureBrailleMonitorReady();
+        const scriptMonitor = await ensureScriptBrailleMonitorReady();
+        const runner = getRunnerWindow();
+        const app = runner?.BrailleBlocklyApp;
+        if (!app || typeof app.getRuntimeSnapshot !== 'function') {
+          renderMonitorSourceVisibility(false);
+          if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
+            showBrailleMonitorPlaceholder();
+          }
+          if (lastScriptBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
+            showScriptBrailleMonitorPlaceholder();
+          }
+          return;
+        }
+
+        const runtime = app.getRuntimeSnapshot();
+        const isWsConnected = Boolean(runtime?.wsConnected);
+        renderMonitorSourceVisibility(isWsConnected);
+
+        const brailleUnicode = String(runtime?.brailleUnicode || '');
+        const sourceText = String(runtime?.text || '');
+        const signature = JSON.stringify({
+          brailleUnicode,
+          sourceText,
+          cellCaret: runtime?.cellCaret ?? null,
+          textCaret: runtime?.textCaret ?? null,
+          caretVisible: runtime?.caretVisible ?? true
+        });
+
+        if (signature !== lastBrailleSnapshot) {
+          lastBrailleSnapshot = signature;
+          if (!brailleUnicode && !sourceText) {
+            showBrailleMonitorPlaceholder();
+          } else {
+            monitor.setBrailleUnicode(brailleUnicode, sourceText, {
+              caretPosition: Number.isInteger(runtime?.cellCaret) ? runtime.cellCaret : undefined,
+              textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
+              caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
+            });
+          }
+        }
+
+        const scriptSignature = JSON.stringify({
+          sourceText,
+          textCaret: runtime?.textCaret ?? null
+        });
+
+        if (scriptSignature !== lastScriptBrailleSnapshot) {
+          lastScriptBrailleSnapshot = scriptSignature;
+          if (!sourceText) {
+            showScriptBrailleMonitorPlaceholder();
+          } else {
+            scriptMonitor.setText(sourceText);
+            if (typeof scriptMonitor.setCaretPosition === 'function') {
+              scriptMonitor.setCaretPosition(Number.isInteger(runtime?.textCaret) ? runtime.textCaret : null);
+            }
+          }
+        }
+      } catch (err) {
+        renderMonitorSourceVisibility(false);
+        if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
+          brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+        }
+        if (scriptBrailleMonitorUi && typeof scriptBrailleMonitorUi.setText === 'function') {
+          scriptBrailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+        }
+      }
+    }
+
+    function startBrailleMonitorSync() {
+      if (brailleMonitorSyncTimer) return;
+      brailleMonitorSyncTimer = window.setInterval(() => {
+        syncBrailleMonitorFromRunner();
+      }, 250);
+      syncBrailleMonitorFromRunner();
+    }
+
     function buildStepMeta(stepConfig, stepIndex) {
       const method = shared.getDraftMethodMeta(state);
       const basisRecord = basisItems[Number(state.basisIndex ?? -1)] || state.basisRecord || null;
@@ -578,37 +769,47 @@ declare(strict_types=1);
       if (currentRunningStepIndex < 0 || isStoppingCurrentStep) {
         return;
       }
+      if (activeStopPromise) {
+        await activeStopPromise;
+        return;
+      }
       const stoppedStepIndex = currentRunningStepIndex;
+      const shouldStopLesson = isLessonRunning;
       isStoppingCurrentStep = true;
-      renderStepRunButtons();
       appendStatus('Stop requested for current step.', {
         stepIndex: stoppedStepIndex
       });
-      try {
+      currentRunningStepIndex = -1;
+      if (shouldStopLesson) {
+        isLessonRunning = false;
+        isStoppingLesson = false;
+      }
+      renderStepRunButtons();
+      activeStopPromise = (async () => {
         const app = await waitForRunnerReady(5000);
         if (app && typeof app.stopProgram === 'function') {
           await app.stopProgram();
         }
-        if (isLessonRunning) {
-          isStoppingLesson = true;
-        } else {
-          currentRunningStepIndex = -1;
-        }
         appendStatus('Step stop bevestigd.', {
           stepIndex: stoppedStepIndex
         });
-      } catch (err) {
+      })().catch((err) => {
         appendStatus('Stop step failed.', {
           error: err.message || String(err)
         });
         throw err;
-      } finally {
+      }).finally(() => {
         isStoppingCurrentStep = false;
+        activeStopPromise = null;
         renderStepRunButtons();
-      }
+      });
+      await activeStopPromise;
     }
 
     async function runSingleStep(index) {
+      if (activeStopPromise) {
+        await activeStopPromise;
+      }
       if (currentRunningStepIndex === index) {
         await stopCurrentStep();
         return;
@@ -648,17 +849,14 @@ declare(strict_types=1);
     }
 
     async function runLesson() {
+      if (activeStopPromise) {
+        await activeStopPromise;
+      }
       if (isLessonRunning) {
-        isStoppingLesson = true;
-        renderStepRunButtons();
         appendStatus('Stop requested for current lesson.');
         if (currentRunningStepIndex >= 0) {
           await stopCurrentStep();
         }
-        isLessonRunning = false;
-        isStoppingLesson = false;
-        currentRunningStepIndex = -1;
-        renderStepRunButtons();
         appendStatus('Lesson stop bevestigd.');
         return;
       }
@@ -821,6 +1019,8 @@ declare(strict_types=1);
         renderStepsTable();
         renderDebugLogVisibility();
         renderAuthenticationState();
+        renderMonitorSourceVisibility(false);
+        startBrailleMonitorSync();
         setStatus('Ready.');
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
@@ -832,6 +1032,7 @@ declare(strict_types=1);
         runnerUrl: RUNNER_URL,
         runnerState: getRunnerDebugState()
       });
+      startBrailleMonitorSync();
     });
 
     document.getElementById('refreshScriptsBtn').addEventListener('click', async () => {
