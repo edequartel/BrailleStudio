@@ -726,7 +726,11 @@ declare(strict_types=1);
         if (completion) return completion;
         const runtime = app.getRuntimeSnapshot();
         lastRuntime = runtime;
-        if (runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) {
+        if (
+          runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration &&
+          runtime?.programEndedGeneration >= 0 &&
+          runtime?.isActive === false
+        ) {
           return null;
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -765,7 +769,8 @@ declare(strict_types=1);
       return { result, completion, scriptId: stepConfig.id };
     }
 
-    async function stopCurrentStep() {
+    async function stopCurrentStep(options = {}) {
+      const alsoStopLesson = Boolean(options?.alsoStopLesson);
       if (currentRunningStepIndex < 0 || isStoppingCurrentStep) {
         return;
       }
@@ -774,16 +779,15 @@ declare(strict_types=1);
         return;
       }
       const stoppedStepIndex = currentRunningStepIndex;
-      const shouldStopLesson = isLessonRunning;
+      const shouldStopLesson = isLessonRunning || alsoStopLesson;
       isStoppingCurrentStep = true;
-      appendStatus('Stop requested for current step.', {
-        stepIndex: stoppedStepIndex
-      });
-      currentRunningStepIndex = -1;
       if (shouldStopLesson) {
-        isLessonRunning = false;
-        isStoppingLesson = false;
+        isStoppingLesson = true;
       }
+      appendStatus('Stop requested for current step.', {
+        stepIndex: stoppedStepIndex,
+        stopLesson: shouldStopLesson
+      });
       renderStepRunButtons();
       activeStopPromise = (async () => {
         const app = await waitForRunnerReady(5000);
@@ -799,7 +803,12 @@ declare(strict_types=1);
         });
         throw err;
       }).finally(() => {
+        currentRunningStepIndex = -1;
         isStoppingCurrentStep = false;
+        if (shouldStopLesson) {
+          isLessonRunning = false;
+          isStoppingLesson = false;
+        }
         activeStopPromise = null;
         renderStepRunButtons();
       });
@@ -854,8 +863,14 @@ declare(strict_types=1);
       }
       if (isLessonRunning) {
         appendStatus('Stop requested for current lesson.');
+        isStoppingLesson = true;
+        renderStepRunButtons();
         if (currentRunningStepIndex >= 0) {
-          await stopCurrentStep();
+          await stopCurrentStep({ alsoStopLesson: true });
+        } else {
+          isLessonRunning = false;
+          isStoppingLesson = false;
+          renderStepRunButtons();
         }
         appendStatus('Lesson stop bevestigd.');
         return;

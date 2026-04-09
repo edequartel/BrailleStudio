@@ -698,6 +698,10 @@
     ];
   };
 
+  javascriptGenerator.forBlock['logic_random_boolean'] = function () {
+    return ['(Math.random() < 0.5)', ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['text_from_list'] = function (block) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
     const separatorCode = valueToCodeOr(block, 'SEPARATOR', "' '");

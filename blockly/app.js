@@ -1052,12 +1052,25 @@ function attachRuntimeKeyboardListener() {
 
 attachRuntimeKeyboardListener();
 
+function isRuntimeActive(runtimeState = getRuntime()) {
+  const rt = runtimeState && typeof runtimeState === 'object' ? runtimeState : getRuntime();
+  const hasPendingProgramEnd =
+    rt.programEndedGeneration < 0 ||
+    rt.programEndedCompletedGeneration !== rt.programEndedGeneration;
+  return Boolean(
+    pendingStart ||
+    (!rt.stopped && hasPendingProgramEnd) ||
+    timerHandles.size > 0 ||
+    activeAudio
+  );
+}
+
 function renderStatus() {
   const rt = getRuntime();
   const varLines = workspace
     ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
     : [];
-  const isRunning = !rt.stopped;
+  const isRunning = isRuntimeActive(rt);
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
 
@@ -1091,6 +1104,10 @@ last timer tick  : ${rt.lastTimerTick}
 last ws notice   : ${rt.lastWsNotice}
 active table     : ${rt.activeTable}
 line id          : ${rt.lineId}
+is active        : ${isRunning}
+active timers    : ${timerHandles.size}
+active audio     : ${Boolean(activeAudio)}
+pending start    : ${pendingStart}
 stopped          : ${rt.stopped}
 
 variables:
@@ -3651,6 +3668,9 @@ async function evalValue(block) {
     case 'math_random_float':
       return Math.random();
 
+    case 'logic_random_boolean':
+      return Math.random() < 0.5;
+
     case 'logic_compare': {
       const a = await evalValue(block.getInputTargetBlock('A'));
       const b = await evalValue(block.getInputTargetBlock('B'));
@@ -5006,7 +5026,15 @@ window.BrailleBlocklyApp = {
     return Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1;
   },
   getRuntimeSnapshot() {
-    return { ...getRuntime(), wsConnected };
+    const snapshot = { ...getRuntime() };
+    return {
+      ...snapshot,
+      isActive: isRuntimeActive(snapshot),
+      activeTimers: timerHandles.size,
+      hasActiveAudio: Boolean(activeAudio),
+      hasPendingStart: Boolean(pendingStart),
+      wsConnected
+    };
   },
   clearLog() {
     clearLogBox();

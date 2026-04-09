@@ -926,7 +926,11 @@ $pagePayload = [
           }
 	        const runtime = app.getRuntimeSnapshot();
           lastRuntime = runtime;
-	        if (runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration && runtime?.programEndedGeneration >= 0) {
+	        if (
+            runtime?.programEndedCompletedGeneration === runtime?.programEndedGeneration &&
+            runtime?.programEndedGeneration >= 0 &&
+            runtime?.isActive === false
+          ) {
             appendStatus('waitForCompletion: program ended without explicit completion.', {
               runtime
             });

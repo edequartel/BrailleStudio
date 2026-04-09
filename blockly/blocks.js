@@ -763,6 +763,22 @@
     };
   });
 
+  [
+    'controls_if',
+    'logic_compare',
+    'logic_operation',
+    'logic_negate',
+    'logic_boolean'
+  ].forEach((type) => {
+    const block = Blockly.Blocks[type];
+    if (!block || typeof block.init !== 'function') return;
+    const originalInit = block.init;
+    block.init = function patchedLogicInit(...args) {
+      originalInit.apply(this, args);
+      this.setColour('#16A34A');
+    };
+  });
+
   ['controls_repeat_ext'].forEach((type) => {
     const block = Blockly.Blocks[type];
     if (!block || typeof block.init !== 'function') return;
@@ -1509,6 +1525,14 @@
       this.appendValueInput('B');
       this.setOutput(true, 'String');
       this.setColour('#0891B2');
+    }
+  };
+
+  Blockly.Blocks['logic_random_boolean'] = {
+    init() {
+      this.appendDummyInput().appendField('random true / false');
+      this.setOutput(true, 'Boolean');
+      this.setColour('#16A34A');
     }
   };
 
