@@ -189,6 +189,9 @@ $pagePayload = [
       <div class="absolute inset-0 bg-white/70"></div>
       <div class="absolute right-4 top-4 z-20 flex items-center gap-2">
         <button id="authBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Log in</button>
+        <span id="bridgeIndicator" class="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-red-200 bg-red-50" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
+          <span id="bridgeIndicatorDot" class="h-2.5 w-2.5 rounded-sm bg-red-500"></span>
+        </span>
         <span id="lessonRunIndicator" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500" aria-label="Not running" title="Not running">
           <span id="lessonRunIndicatorDot" class="h-4 w-4 rounded-full bg-red-500"></span>
         </span>
@@ -308,6 +311,8 @@ $pagePayload = [
     const statusBox = document.getElementById('statusBox');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
     const brailleMonitorStatus = document.getElementById('brailleMonitorStatus');
+    const bridgeIndicator = document.getElementById('bridgeIndicator');
+    const bridgeIndicatorDot = document.getElementById('bridgeIndicatorDot');
     const lessonRunIndicator = document.getElementById('lessonRunIndicator');
     const lessonRunIndicatorDot = document.getElementById('lessonRunIndicatorDot');
     const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
@@ -364,6 +369,18 @@ $pagePayload = [
       if (scriptBrailleMonitorCard) {
         scriptBrailleMonitorCard.classList.toggle('hidden', !!isWsConnected);
       }
+    }
+
+    function renderBridgeIndicator(isConnected = false) {
+      if (!bridgeIndicator || !bridgeIndicatorDot) return;
+      bridgeIndicator.className = isConnected
+        ? 'inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-emerald-200 bg-emerald-50'
+        : 'inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-red-200 bg-red-50';
+      bridgeIndicatorDot.className = isConnected
+        ? 'h-2.5 w-2.5 rounded-sm bg-emerald-500'
+        : 'h-2.5 w-2.5 rounded-sm bg-red-500';
+      bridgeIndicator.setAttribute('aria-label', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
+      bridgeIndicator.setAttribute('title', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
     }
 
     function escapeHtml(value) {
@@ -718,6 +735,7 @@ $pagePayload = [
         const app = runner?.BrailleBlocklyApp;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') {
           renderMonitorSourceVisibility(false);
+          renderBridgeIndicator(false);
           if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
             showBrailleMonitorPlaceholder();
           }
@@ -729,6 +747,7 @@ $pagePayload = [
         const runtime = app.getRuntimeSnapshot();
         const isWsConnected = Boolean(runtime?.wsConnected);
         renderMonitorSourceVisibility(isWsConnected);
+        renderBridgeIndicator(isWsConnected);
         const brailleUnicode = String(runtime?.brailleUnicode || '');
         const sourceText = String(runtime?.text || '');
         const signature = JSON.stringify({
@@ -771,6 +790,7 @@ $pagePayload = [
         }
       } catch (err) {
         renderMonitorSourceVisibility(false);
+        renderBridgeIndicator(false);
         if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
           brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
         }

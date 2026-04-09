@@ -25,15 +25,19 @@ const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elev
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
 const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+const BRAILLEBRIDGE_PROTOCOL_URL = 'braillebridge://';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
+const BRAILLEBRIDGE_STARTUP_TIMEOUT_MS = 4000;
 let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
 let reconnectTimer = null;
 let autoConnectEnabled = true;
+let bridgeLaunchTimer = null;
+let bridgeLaunchState = 'idle';
 let gridSnapEnabled = true;
 let brailleMonitorVisible = true;
 let sidebarWidth = 780;
@@ -161,9 +165,66 @@ function renderWsControl() {
   btn.setAttribute('aria-label', 'Connect WebSocket');
 }
 
+function renderBrailleBridgeIndicator() {
+  const indicator = document.getElementById('bridgeLaunchIndicator');
+  if (!indicator) return;
+  const state = wsConnected ? 'connected' : bridgeLaunchState;
+  indicator.classList.remove('is-connected', 'is-starting');
+  if (state === 'connected') {
+    indicator.classList.add('is-connected');
+    indicator.setAttribute('aria-label', 'BrailleBridge connected');
+    indicator.setAttribute('title', 'BrailleBridge connected');
+    return;
+  }
+  if (state === 'starting') {
+    indicator.classList.add('is-starting');
+    indicator.setAttribute('aria-label', 'BrailleBridge starting');
+    indicator.setAttribute('title', 'BrailleBridge starting');
+    return;
+  }
+  indicator.setAttribute('aria-label', 'BrailleBridge unavailable');
+  indicator.setAttribute('title', 'BrailleBridge unavailable');
+}
+
+function scheduleBrailleBridgeFailureCheck() {
+  if (bridgeLaunchTimer) {
+    clearTimeout(bridgeLaunchTimer);
+  }
+  bridgeLaunchTimer = setTimeout(() => {
+    bridgeLaunchTimer = null;
+    if (!wsConnected) {
+      bridgeLaunchState = 'failed';
+      renderBrailleBridgeIndicator();
+    }
+  }, BRAILLEBRIDGE_STARTUP_TIMEOUT_MS);
+}
+
+function requestBrailleBridgeLaunch(reason = 'startup') {
+  bridgeLaunchState = 'starting';
+  renderBrailleBridgeIndicator();
+  scheduleBrailleBridgeFailureCheck();
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.src = BRAILLEBRIDGE_PROTOCOL_URL;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      iframe.remove();
+    }, 1500);
+    log(`BrailleBridge launch requested (${reason})`);
+  } catch (err) {
+    bridgeLaunchState = 'failed';
+    renderBrailleBridgeIndicator();
+    log('BrailleBridge launch failed: ' + (err?.message || String(err)));
+  }
+}
+
 function setWsBadge(isConnected) {
   wsConnected = !!isConnected;
+  bridgeLaunchState = wsConnected ? 'connected' : (bridgeLaunchState === 'starting' ? 'starting' : 'failed');
   renderWsControl();
+  renderBrailleBridgeIndicator();
   renderBrailleMonitorToggleControl();
   renderScriptBrailleLine();
 }
@@ -1907,9 +1968,8 @@ function disconnectWs() {
     }
   }
   ws = null;
-  wsConnected = false;
+  setWsBadge(false);
   runtime.lastWsNotice = 'Disconnected';
-  renderWsControl();
   renderStatus();
   log('WS disconnected (manual)');
 }
@@ -1924,6 +1984,9 @@ function connectWs(reason = 'manual') {
     autoConnectEnabled = true;
   }
   clearReconnectTimer();
+  if (!isWsOpen()) {
+    requestBrailleBridgeLaunch(reason);
+  }
 
   let socket = null;
   try {
@@ -1939,10 +2002,9 @@ function connectWs(reason = 'manual') {
 
   socket.onopen = () => {
     if (ws !== socket) return;
-    wsConnected = true;
+    setWsBadge(true);
     getRuntime().lastWsNotice = '';
     clearReconnectTimer();
-    renderWsControl();
     renderStatus();
     log('WS connected to ' + WS_URL);
     sendWs({ type: 'getBrailleLine' });
@@ -1954,9 +2016,8 @@ function connectWs(reason = 'manual') {
 
   socket.onclose = (ev) => {
     if (ws === socket) ws = null;
-    wsConnected = false;
+    setWsBadge(false);
     runtime.lastWsNotice = 'Disconnected';
-    renderWsControl();
     renderStatus();
     log('WS disconnected code=' + ev.code + ' reason=' + (ev.reason || '-'));
     scheduleReconnect();
@@ -2469,6 +2530,7 @@ function bindAppControls() {
 
 bindWsControls();
 bindAppControls();
+renderBrailleBridgeIndicator();
 connectWs('manual');
 window.addEventListener('beforeunload', (event) => {
   if (!workspaceDirty) return;

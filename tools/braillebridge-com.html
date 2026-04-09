@@ -359,7 +359,7 @@
           </div>
           <div class="pill">
             <span>WS</span>
-            <span class="dot ok"></span>
+            <span class="dot" id="brailleMonitorWsDot"></span>
             <span>brailleLine</span>
           </div>
         </div>
@@ -416,10 +416,12 @@
               <div class="pill">
                 <span>WS</span>
                 <span class="dot" id="wsDot"></span>
+                <span id="wsStatusText">unknown</span>
               </div>
               <div class="pill">
                 <span>Editor mode</span>
                 <span class="dot" id="editorModeDot"></span>
+                <span id="editorModeText">unknown</span>
               </div>
               <div class="pill">
                 <span>Insert mode</span>
@@ -725,6 +727,7 @@
       const httpDot = el("httpDot");
       const httpStatusText = el("httpStatusText");
       const wsDot = el("wsDot");
+      const brailleMonitorWsDot = el("brailleMonitorWsDot");
       const wsStatusText = el("wsStatusText");
       const wsConnectBtn = el("wsConnectBtn");
       const wsDisconnectBtn = el("wsDisconnectBtn");
@@ -872,6 +875,7 @@
       }
       function setWsStatus(ok, text) {
         wsDot.classList.toggle("ok", !!ok);
+        if (brailleMonitorWsDot) brailleMonitorWsDot.classList.toggle("ok", !!ok);
         if (wsStatusText) wsStatusText.textContent = text;
       }
       function setEditorModeStatus(enabled) {
