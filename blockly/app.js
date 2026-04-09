@@ -163,6 +163,8 @@ function renderWsControl() {
 function setWsBadge(isConnected) {
   wsConnected = !!isConnected;
   renderWsControl();
+  renderBrailleMonitorToggleControl();
+  renderScriptBrailleLine();
 }
 
 function renderBrailleLine(msg) {
@@ -208,6 +210,10 @@ function renderBrailleLine(msg) {
 
 function renderScriptBrailleLine() {
   const rt = getRuntime();
+  const scriptRow = document.getElementById('scriptBrailleMonitorRow');
+  if (scriptRow) {
+    scriptRow.classList.toggle('is-hidden', !brailleMonitorVisible || wsConnected);
+  }
 
   if (!scriptBrailleMonitorUi && window.BrailleMonitor && typeof window.BrailleMonitor.init === 'function') {
     const host = document.getElementById('scriptBrailleMonitorComponent');
@@ -798,9 +804,9 @@ function renderBrailleMonitorToggleControl() {
   const scriptRow = document.getElementById('scriptBrailleMonitorRow');
   if (!btn || !row) return;
   const isVisible = !!brailleMonitorVisible;
-  row.classList.toggle('is-hidden', !isVisible);
+  row.classList.toggle('is-hidden', !isVisible || !wsConnected);
   if (scriptRow) {
-    scriptRow.classList.toggle('is-hidden', !isVisible);
+    scriptRow.classList.toggle('is-hidden', !isVisible || wsConnected);
   }
   btn.classList.toggle('is-active', isVisible);
   btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
@@ -5000,7 +5006,7 @@ window.BrailleBlocklyApp = {
     return Number.isFinite(window.currentRecordIndex) ? window.currentRecordIndex : -1;
   },
   getRuntimeSnapshot() {
-    return { ...getRuntime() };
+    return { ...getRuntime(), wsConnected };
   },
   clearLog() {
     clearLogBox();

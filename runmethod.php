@@ -204,11 +204,11 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
-      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section id="brailleMonitorCard" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div id="brailleMonitorComponent" class="overflow-hidden"></div>
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section id="scriptBrailleMonitorCard" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div id="scriptBrailleMonitorComponent" class="overflow-hidden"></div>
       </section>
 
@@ -308,6 +308,8 @@ $pagePayload = [
     const stopRunBtn = document.getElementById('stopRunBtn');
     const runSelectedStepBtn = document.getElementById('runSelectedStepBtn');
     const authBtn = document.getElementById('authBtn');
+    const brailleMonitorCard = document.getElementById('brailleMonitorCard');
+    const scriptBrailleMonitorCard = document.getElementById('scriptBrailleMonitorCard');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let selectedStepIndex = 0;
@@ -336,6 +338,15 @@ $pagePayload = [
       lastScriptBrailleSnapshot = JSON.stringify({
         placeholder: BRAILLE_MONITOR_PLACEHOLDER
       });
+    }
+
+    function renderMonitorSourceVisibility(isWsConnected = false) {
+      if (brailleMonitorCard) {
+        brailleMonitorCard.classList.toggle('hidden', !isWsConnected);
+      }
+      if (scriptBrailleMonitorCard) {
+        scriptBrailleMonitorCard.classList.toggle('hidden', !!isWsConnected);
+      }
     }
 
     function escapeHtml(value) {
@@ -675,6 +686,7 @@ $pagePayload = [
         const runner = getRunnerWindow();
         const app = runner?.BrailleBlocklyApp;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') {
+          renderMonitorSourceVisibility(false);
           if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
             showBrailleMonitorPlaceholder();
           }
@@ -684,6 +696,8 @@ $pagePayload = [
           return;
         }
         const runtime = app.getRuntimeSnapshot();
+        const isWsConnected = Boolean(runtime?.wsConnected);
+        renderMonitorSourceVisibility(isWsConnected);
         const brailleUnicode = String(runtime?.brailleUnicode || '');
         const sourceText = String(runtime?.text || '');
         const signature = JSON.stringify({
@@ -725,6 +739,7 @@ $pagePayload = [
           }
         }
       } catch (err) {
+        renderMonitorSourceVisibility(false);
         if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
           brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
         }
@@ -1255,6 +1270,8 @@ $pagePayload = [
         renderRunnerVisibility();
       });
     }
+
+    renderMonitorSourceVisibility(false);
 
     if (toggleDebugLogBtn) {
       toggleDebugLogBtn.addEventListener('click', () => {
