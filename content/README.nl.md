@@ -1,5 +1,3 @@
-# Korte Handleiding
-
 BrailleStudio is de online omgeving die samenwerkt met de Windows-app BrailleBridge.  
 Met BrailleStudio kun je letters, woorden, verhalen en oefeningen uitvoeren op je brailleleesregel.
 

@@ -30,10 +30,13 @@ declare(strict_types=1);
           <p class="text-sm text-slate-600">Kies een bestaande methode of maak een nieuwe. Selecteer daarna het basisbestand waar de basisrecords uit komen.</p>
         </div>
 
-        <div class="grid gap-3 md:grid-cols-2">
+        <div class="grid gap-6 md:grid-cols-[minmax(0,420px)_auto]">
           <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodsSelect">Method list</label>
             <select id="methodsSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
+          </div>
+          <div class="flex items-end justify-end">
+            <a id="openRunmethodLink" class="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Link</a>
           </div>
           <input id="methodIdInput" type="hidden">
         </div>
@@ -89,6 +92,7 @@ declare(strict_types=1);
     const methodDescriptionInput = document.getElementById('methodDescriptionInput');
     const methodImageUrlInput = document.getElementById('methodImageUrlInput');
     const methodImagePreview = document.getElementById('methodImagePreview');
+    const openRunmethodLink = document.getElementById('openRunmethodLink');
     const statusBox = document.getElementById('statusBox');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
@@ -161,6 +165,20 @@ declare(strict_types=1);
       `;
     }
 
+    function renderRunmethodLink() {
+      if (!openRunmethodLink) return;
+      const methodId = String(methodIdInput.value || methodsSelect.value || '').trim();
+      if (!methodId) {
+        openRunmethodLink.href = '#';
+        openRunmethodLink.setAttribute('aria-disabled', 'true');
+        openRunmethodLink.className = 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none';
+        return;
+      }
+      openRunmethodLink.href = `https://www.tastenbraille.com/braillestudio/runmethod.php?id=${encodeURIComponent(methodId)}`;
+      openRunmethodLink.setAttribute('aria-disabled', 'false');
+      openRunmethodLink.className = 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+    }
+
     function resetMethodForm() {
       methodsSelect.value = '';
       methodIdInput.value = '';
@@ -168,6 +186,7 @@ declare(strict_types=1);
       methodDescriptionInput.value = '';
       methodImageUrlInput.value = '';
       renderMethodImagePreview();
+      renderRunmethodLink();
       renderBasisFileOptions(basisFileOptions[0]?.name || 'aanvankelijklijst.json');
       methodDataSourceInput.value = methodBasisFileSelect.value
         ? shared.resolveBasisFileUrl(methodBasisFileSelect.value)
@@ -263,6 +282,7 @@ declare(strict_types=1);
       renderBasisFileOptions(String(item.basisFile || '').trim());
       methodDataSourceInput.value = shared.resolveMethodDataSource(item.dataSource || '', item.id || '', item.basisFile || '');
       methodsSelect.value = item.id || '';
+      renderRunmethodLink();
       shared.updateState({
         methodId: item.id || '',
         methodTitle: item.title || '',
@@ -294,6 +314,7 @@ declare(strict_types=1);
         if (state.methodId) {
           await loadMethodIntoForm(state.methodId);
         } else {
+          renderRunmethodLink();
           await loadBasisPreview();
           setStatus('Ready.');
         }
@@ -333,6 +354,7 @@ declare(strict_types=1);
 
     [methodIdInput, methodTitleInput, methodDescriptionInput, methodImageUrlInput].forEach((input) => {
       input.addEventListener('input', () => {
+        renderRunmethodLink();
         shared.updateState({
           methodId: methodIdInput.value.trim(),
           methodTitle: methodTitleInput.value.trim(),
@@ -395,6 +417,7 @@ declare(strict_types=1);
         });
         renderMethodOptions(methodsCache);
         methodsSelect.value = payload.id;
+        renderRunmethodLink();
         shared.updateState({
           methodId: payload.id,
           methodTitle: payload.title,
@@ -438,6 +461,7 @@ declare(strict_types=1);
         methodDescriptionInput.value = '';
         methodImageUrlInput.value = '';
         renderMethodImagePreview();
+        renderRunmethodLink();
         shared.updateState({ methodId: '', methodTitle: '', methodDescription: '', methodImageUrl: '' });
         setStatus(`Method deleted: ${id}`, result);
       } catch (err) {
@@ -457,6 +481,7 @@ declare(strict_types=1);
         });
         methodsCache = await shared.listMethods();
         renderMethodOptions(methodsCache);
+        renderRunmethodLink();
         setStatus(`Loaded ${methodsCache.length} method(s).`, {
           endpoint: METHODS_LIST_ENDPOINT,
           methodsCount: methodsCache.length
