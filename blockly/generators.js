@@ -404,6 +404,10 @@
     );
   };
 
+  javascriptGenerator.forBlock['lesson_complete_lesson'] = function () {
+    return `await window.BrailleBlocklyApp.signalLessonCompletion({ status: 'completed' });\n`;
+  };
+
   javascriptGenerator.forBlock['klanken_word_get_sounds'] = function (block) {
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     return [`((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? [])`, ORDER_ATOMIC];

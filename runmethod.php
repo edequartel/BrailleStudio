@@ -432,6 +432,29 @@ $pagePayload = [
       return rows;
     }
 
+    function workspaceStateContainsBlockType(state, targetType) {
+      const wanted = String(targetType || '').trim();
+      if (!wanted || !state || typeof state !== 'object') return false;
+      const stack = [state];
+      while (stack.length) {
+        const current = stack.pop();
+        if (!current || typeof current !== 'object') continue;
+        if (String(current.type || '').trim() === wanted) {
+          return true;
+        }
+        if (Array.isArray(current)) {
+          for (const item of current) stack.push(item);
+          continue;
+        }
+        for (const value of Object.values(current)) {
+          if (value && typeof value === 'object') {
+            stack.push(value);
+          }
+        }
+      }
+      return false;
+    }
+
     function renderLessonReturnValues(entries = []) {
       if (!Array.isArray(entries) || !entries.length) {
         lessonReturnValues.textContent = 'No values yet.';
@@ -963,9 +986,10 @@ $pagePayload = [
       return Array.isArray(data?.items) ? data.items : [];
     }
 
-	    async function waitForCompletion(app, timeoutMs = 30000) {
+	    async function waitForCompletion(app, timeoutMs = 30000, options = {}) {
 	      const start = Date.now();
         let lastRuntime = null;
+        const requireExplicitCompletion = Boolean(options?.requireExplicitCompletion);
 	      while (Date.now() - start < timeoutMs) {
         if (stopRequested) {
           return {
@@ -1001,6 +1025,10 @@ $pagePayload = [
             runtime?.programEndedGeneration >= 0 &&
             runtime?.isActive === false
           ) {
+            if (requireExplicitCompletion) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              continue;
+            }
             appendStatus('waitForCompletion: program ended without explicit completion.', {
               runtime
             });
@@ -1019,6 +1047,16 @@ $pagePayload = [
       if (!lesson) throw new Error('No lesson selected');
       if (!stepConfig) throw new Error('No step selected');
       const runnerApp = app || await waitForRunnerReady();
+      if (typeof runnerApp.ensureBrailleBridgeConnection === 'function') {
+        const bridgeConnected = await runnerApp.ensureBrailleBridgeConnection(4000);
+        appendStatus('runLessonStep: braille bridge check.', {
+          lessonId: lesson.id,
+          stepIndex,
+          scriptId: stepConfig.id,
+          bridgeConnected,
+          runtimeAfterBridgeCheck: getRunnerRuntimeSnapshot(runnerApp)
+        });
+      }
       const basisIndex = Number(lesson.basisIndex ?? -1);
       appendStatus('runLessonStep: loading script.', {
         lessonId: lesson.id,
@@ -1028,12 +1066,15 @@ $pagePayload = [
         runtimeBefore: getRunnerRuntimeSnapshot(runnerApp)
       });
       const scriptData = await loadScriptData(stepConfig.id);
+      const requireExplicitCompletion = workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_step')
+        || workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_lesson');
       appendStatus('runLessonStep: script loaded.', {
         lessonId: lesson.id,
         stepIndex,
         scriptId: stepConfig.id,
         scriptTitle: scriptData.title || '',
-        hasBlockly: Boolean(scriptData.blockly)
+        hasBlockly: Boolean(scriptData.blockly),
+        requireExplicitCompletion
       });
       const result = await runnerApp.runWorkspaceStateHeadless({
         state: scriptData.blockly,
@@ -1056,12 +1097,13 @@ $pagePayload = [
         },
         lockInjectedRecord: true
       });
-      const completion = result?.stepCompletion || await waitForCompletion(runnerApp);
+      const completion = result?.stepCompletion || await waitForCompletion(runnerApp, 30000, { requireExplicitCompletion });
       appendStatus('runLessonStep: runner returned.', {
         lessonId: lesson.id,
         stepIndex,
         scriptId: stepConfig.id,
         resultStepCompletion: result?.stepCompletion || null,
+        resultLessonCompletion: result?.lessonCompletion || null,
         completion,
         runtimeAfter: getRunnerRuntimeSnapshot(runnerApp),
         resultSummary: {
@@ -1112,10 +1154,11 @@ $pagePayload = [
           stepIndex,
           scriptId: stepConfig.id
         });
-        const { completion } = await runLessonStep(lesson, stepConfig, stepIndex);
+        const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
         results.push({
           scriptId: stepConfig.id,
-          completion
+          completion,
+          lessonCompletion: result?.lessonCompletion || null
         });
         displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
         flattenCompletionValues(completion).forEach((entry) => {
@@ -1129,8 +1172,17 @@ $pagePayload = [
           lessonId: lesson.id,
           scriptId: stepConfig.id,
           completion,
+          lessonCompletion: result?.lessonCompletion || null,
           previousStepIndex: stepIndex
         });
+        if (result?.lessonCompletion) {
+          appendStatus('Lesson run: lesson completion detected.', {
+            lessonId: lesson.id,
+            stepIndex,
+            lessonCompletion: result.lessonCompletion
+          });
+          break;
+        }
         selectedStepIndex = stepIndex + 1;
         appendStatus('Lesson run: moving to next step.', {
           lessonId: lesson.id,
@@ -1191,10 +1243,11 @@ $pagePayload = [
             stepIndex,
             scriptId: stepConfig.id
           });
-          const { completion } = await runLessonStep(lesson, stepConfig, stepIndex);
+          const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
           results.push({
             scriptId: stepConfig.id,
-            completion
+            completion,
+            lessonCompletion: result?.lessonCompletion || null
           });
           displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
           flattenCompletionValues(completion).forEach((entry) => {
@@ -1208,8 +1261,17 @@ $pagePayload = [
             lessonId: lesson.id,
             stepIndex,
             scriptId: stepConfig.id,
-            completion
+            completion,
+            lessonCompletion: result?.lessonCompletion || null
           });
+          if (result?.lessonCompletion) {
+            appendStatus('Run vanaf geselecteerde step: lesson completion detected.', {
+              lessonId: lesson.id,
+              stepIndex,
+              lessonCompletion: result.lessonCompletion
+            });
+            break;
+          }
           selectedStepIndex = stepIndex + 1;
           appendStatus('Run vanaf geselecteerde step: moving to next step.', {
             lessonId: lesson.id,

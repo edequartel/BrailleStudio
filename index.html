@@ -482,6 +482,37 @@
       return String(localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || "").trim();
     }
 
+    function parseJwtPayload(token) {
+      const value = String(token || "").trim();
+      if (!value) return null;
+      const parts = value.split(".");
+      if (parts.length !== 3) return null;
+      try {
+        const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+        return JSON.parse(atob(padded));
+      } catch {
+        return null;
+      }
+    }
+
+    function isStoredAuthTokenValid() {
+      const token = getStoredAuthToken();
+      if (!token) return false;
+      const payload = parseJwtPayload(token);
+      const exp = Number(payload?.exp || 0);
+      if (!exp) return true;
+      return exp > Math.floor(Date.now() / 1000);
+    }
+
+    function getValidStoredAuthToken() {
+      if (isStoredAuthTokenValid()) {
+        return getStoredAuthToken();
+      }
+      clearStoredAuthToken();
+      return "";
+    }
+
     function clearStoredAuthToken() {
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_TOKEN_KEY);
@@ -531,7 +562,7 @@
       if (returnTo) {
         authUrl.searchParams.set("returnTo", returnTo);
       }
-      const authenticated = Boolean(getStoredAuthToken());
+      const authenticated = Boolean(getValidStoredAuthToken());
       authLink.textContent = authenticated ? "Log out" : "Log in";
       authLink.setAttribute("aria-label", authenticated ? "Log out" : "Log in");
       authLink.href = authenticated ? "#" : authUrl.toString();
@@ -540,7 +571,7 @@
     renderAuthLink();
 
     authLink?.addEventListener("click", (event) => {
-      if (!getStoredAuthToken()) return;
+      if (!getValidStoredAuthToken()) return;
       event.preventDefault();
       clearStoredAuthToken();
       renderAuthLink();
@@ -551,7 +582,7 @@
       renderAuthLink();
     });
 
-    if (returnTo && getStoredAuthToken()) {
+    if (returnTo && getValidStoredAuthToken()) {
       window.location.replace(returnTo);
       return;
     }

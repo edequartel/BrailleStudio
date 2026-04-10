@@ -68,6 +68,7 @@ function createInitialRuntimeState() {
     lineId: 0,
     lockInjectedLessonRecord: false,
     stepCompletion: null,
+    lessonCompletion: null,
     programEndedGeneration: -1,
     programEndedCompletedGeneration: -1,
     procedures: new Map()
@@ -212,7 +213,9 @@ function requestBrailleBridgeLaunch(reason = 'startup') {
     setTimeout(() => {
       iframe.remove();
     }, 1500);
-    log(`BrailleBridge launch requested (${reason})`);
+    if (reason !== 'auto-reconnect') {
+      log(`BrailleBridge launch requested (${reason})`);
+    }
   } catch (err) {
     bridgeLaunchState = 'failed';
     renderBrailleBridgeIndicator();
@@ -334,6 +337,32 @@ function getElevenLabsAuthToken() {
     || String(localStorage.getItem(ELEVENLABS_AUTH_TOKEN_KEY) || '').trim();
 }
 
+function parseJwtPayload(token) {
+  const value = String(token || '').trim();
+  if (!value) return null;
+  const parts = value.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function getValidElevenLabsAuthToken() {
+  const token = getElevenLabsAuthToken();
+  if (!token) return '';
+  const payload = parseJwtPayload(token);
+  const exp = Number(payload?.exp || 0);
+  if (!exp || exp > Math.floor(Date.now() / 1000)) {
+    return token;
+  }
+  setElevenLabsAuthToken('');
+  return '';
+}
+
 function setElevenLabsAuthToken(token) {
   const normalized = String(token || '').trim();
   if (normalized) {
@@ -353,7 +382,7 @@ function setElevenLabsAuthToken(token) {
 
 function getElevenLabsAuthHeaders(extra = {}) {
   const headers = { ...extra };
-  const token = getElevenLabsAuthToken();
+  const token = getValidElevenLabsAuthToken();
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
@@ -374,7 +403,7 @@ function getElevenLabsAuthEndpointUrl(fileName) {
 
 function renderElevenLabsAuthStatus(message = '') {
   const loginBtn = document.getElementById('elevenlabsLoginBtn');
-  const token = getElevenLabsAuthToken();
+  const token = getValidElevenLabsAuthToken();
 
   if (loginBtn) {
     loginBtn.textContent = token ? 'Logout' : 'Authentication';
@@ -382,6 +411,17 @@ function renderElevenLabsAuthStatus(message = '') {
     loginBtn.classList.add(token ? 'btn-soft' : 'btn-blue');
     loginBtn.disabled = false;
     loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
+  }
+}
+
+async function refreshOnlineScriptsIfAuthenticated(reason = 'state-change') {
+  const token = getValidElevenLabsAuthToken();
+  if (!token) return;
+  try {
+    log(`Refreshing online scripts (${reason})`);
+    await refreshOnlineScripts();
+  } catch (err) {
+    log(`Online scripts refresh failed (${reason}): ${err.message}`);
   }
 }
 
@@ -429,12 +469,21 @@ function logoutElevenLabsAuth() {
 
 function openBrailleStudioAuthPopup() {
   return new Promise((resolve, reject) => {
-    const bridgeUrl = new URL(AUTH_BRIDGE_PAGE_URL);
-    bridgeUrl.searchParams.set('origin', window.location.origin);
-    log(`Opening auth popup for origin: ${window.location.origin}`);
+    const currentOrigin = String(window.location.origin || '').trim();
+    const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
+    const authUrl = new URL(
+      useSameOriginStorageFlow
+        ? AUTH_LOGIN_PAGE_URL
+        : AUTH_BRIDGE_PAGE_URL
+    );
+    if (!useSameOriginStorageFlow) {
+      authUrl.searchParams.set('origin', currentOrigin);
+    }
+    const initialToken = getElevenLabsAuthToken();
+    log(`Opening auth popup for origin: ${currentOrigin}`);
 
     const popup = window.open(
-      bridgeUrl.toString(),
+      authUrl.toString(),
       'braillestudioAuthBridge',
       'width=560,height=720,resizable=yes,scrollbars=yes'
     );
@@ -464,6 +513,16 @@ function openBrailleStudioAuthPopup() {
     window.addEventListener('message', onMessage);
 
     const pollTimer = window.setInterval(() => {
+      const currentToken = getElevenLabsAuthToken();
+      if (!settled && currentToken && currentToken !== initialToken) {
+        settled = true;
+        cleanup();
+        try {
+          popup.close();
+        } catch {}
+        resolve(currentToken);
+        return;
+      }
       if (popup.closed && !settled) {
         cleanup();
         reject(new Error('Authentication popup closed'));
@@ -1830,6 +1889,28 @@ function waitForAudioStopped() {
   });
 }
 
+function isInputBlockedByAudio() {
+  return Boolean(activeAudio);
+}
+
+function isAudioBypassEvent(event) {
+  const key = String(event?.key ?? '').trim().toUpperCase();
+  const keyCode = Math.floor(Number(event?.keyCode) || 0);
+  return key === 'F3' || keyCode === 114;
+}
+
+function shouldBlockEventDuringAudio(event) {
+  if (!isInputBlockedByAudio()) return false;
+  if (isAudioBypassEvent(event)) return false;
+  return (
+    event?.type === 'thumbKey' ||
+    event?.type === 'cursorRouting' ||
+    event?.type === 'chord' ||
+    event?.type === 'editorKey' ||
+    event?.type === 'virtualKeyCode'
+  );
+}
+
 function stopSound(reason = 'stopped') {
   if (!activeAudio) {
     if (reason === 'stopped') resolveAudioStoppedWaiters();
@@ -2049,6 +2130,25 @@ function connectWs(reason = 'manual') {
   };
 }
 
+async function ensureBrailleBridgeConnection(timeoutMs = 5000) {
+  if (isWsOpen()) {
+    setWsBadge(true);
+    return true;
+  }
+  requestBrailleBridgeLaunch('ensure-connection');
+  connectWs('manual');
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (isWsOpen()) {
+      setWsBadge(true);
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  setWsBadge(false);
+  return false;
+}
+
 function sendWs(obj) {
   const json = JSON.stringify(obj);
   if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -2102,6 +2202,9 @@ async function handleIncomingWs(msg) {
     runtime.lastThumbKey = normalizeThumb(name);
     renderStatus();
     if (press) {
+      if (isInputBlockedByAudio()) {
+        return;
+      }
       await dispatchEvent({ type: 'thumbKey', key: runtime.lastThumbKey }, runGeneration);
     }
     return;
@@ -2765,10 +2868,16 @@ setTimeout(() => {
     log('Online scripts startup skipped: authenticate first.');
     return;
   }
-  refreshOnlineScripts().catch(err => {
-    log('Online scripts startup load failed: ' + err.message);
-  });
+  refreshOnlineScriptsIfAuthenticated('startup');
 }, 0);
+
+window.addEventListener('pageshow', () => {
+  void refreshOnlineScriptsIfAuthenticated('pageshow');
+});
+
+window.addEventListener('focus', () => {
+  void refreshOnlineScriptsIfAuthenticated('focus');
+});
 
 function getVariableIdFromBlock(block) {
   const field = block.getField('VAR');
@@ -3141,6 +3250,7 @@ function getLessonStepInputs() {
 function resetLessonStepRuntimeState(stepInputs = null) {
   window.lessonStepInputs = normalizeLessonStepInputs(stepInputs);
   getRuntime().stepCompletion = null;
+  getRuntime().lessonCompletion = null;
 }
 
 function normalizeOptionalNumber(value) {
@@ -3218,6 +3328,30 @@ async function signalLessonStepCompletion(payload = {}) {
   log('Lesson step completion signaled: ' + normalized.status);
   renderStatus();
   return getRuntime().stepCompletion;
+}
+
+async function signalLessonCompletion(payload = {}) {
+  const normalized = {
+    status: normalizeOptionalString(payload?.status) || 'completed',
+    lessonId: normalizeOptionalString(window.currentLessonStep?.lessonId),
+    lessonTitle: normalizeOptionalString(window.currentLessonStep?.lessonTitle),
+    methodId: normalizeOptionalString(window.currentLessonStep?.methodId),
+    basisWord: normalizeOptionalString(window.currentLessonStep?.basisWord),
+    completedAt: new Date().toISOString()
+  };
+  getRuntime().lessonCompletion = normalized;
+  if (!getRuntime().stepCompletion) {
+    await signalLessonStepCompletion({
+      status: 'completed',
+      feedback: 'Lesson completed'
+    });
+  } else {
+    getRuntime().stopped = true;
+    stopAllTimers();
+    renderStatus();
+  }
+  log('Lesson completion signaled: ' + normalized.status);
+  return getRuntime().lessonCompletion;
 }
 
 function getActiveLessonRecord() {
@@ -4315,9 +4449,11 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         break;
       }
 
-      case 'variables_change': {
+      case 'variables_change':
+      case 'math_change': {
         const id = getVariableIdFromBlock(current);
-        const delta = toNumber(await evalValue(current.getInputTargetBlock('VALUE')));
+        const inputName = current.type === 'math_change' ? 'DELTA' : 'VALUE';
+        const delta = toNumber(await evalValue(current.getInputTargetBlock(inputName)));
         if (id) {
           variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
           renderStatus();
@@ -4346,6 +4482,13 @@ async function executeChain(startBlock, generation, allowStopped = false) {
           expectedAnswer: await evalValue(current.getInputTargetBlock('EXPECTED_ANSWER')),
           feedback: await evalValue(current.getInputTargetBlock('FEEDBACK')),
           metadata: await evalValue(current.getInputTargetBlock('METADATA'))
+        });
+        break;
+      }
+
+      case 'lesson_complete_lesson': {
+        await signalLessonCompletion({
+          status: 'completed'
         });
         break;
       }
@@ -4549,6 +4692,7 @@ async function dispatchEvent(event, generation = runGeneration) {
   const rt = getRuntime();
   if (generation !== runGeneration || rt.stopped) return;
   if (!workspace) return;
+  if (shouldBlockEventDuringAudio(event)) return;
 
   if (event.type === 'thumbKey') {
     rt.lastThumbKey = event.key ?? '';
@@ -4974,6 +5118,7 @@ window.BrailleBlocklyApp = {
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
         lessonMethod: structuredClone(getLessonMethod()),
         stepCompletion: getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null,
+        lessonCompletion: getRuntime().lessonCompletion ? structuredClone(getRuntime().lessonCompletion) : null,
         runtime: { ...getRuntime() }
       };
     } finally {
@@ -5039,6 +5184,7 @@ window.BrailleBlocklyApp = {
         currentRecord: window.currentRecord && typeof window.currentRecord === 'object' ? window.currentRecord : null,
         lessonMethod: structuredClone(getLessonMethod()),
         stepCompletion: getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null,
+        lessonCompletion: getRuntime().lessonCompletion ? structuredClone(getRuntime().lessonCompletion) : null,
         runtime: { ...getRuntime() }
       };
     } finally {
@@ -5068,6 +5214,9 @@ window.BrailleBlocklyApp = {
   async stopProgram() {
     await onStopClicked();
   },
+  async ensureBrailleBridgeConnection(timeoutMs = 5000) {
+    return await ensureBrailleBridgeConnection(timeoutMs);
+  },
   async injectLessonData(data, index = 0) {
     window.aanvankelijkData = Array.isArray(data) ? structuredClone(data) : [];
     return await setActiveLessonRecordByIndex(index);
@@ -5095,8 +5244,14 @@ window.BrailleBlocklyApp = {
   async signalLessonStepCompletion(payload = {}) {
     return await signalLessonStepCompletion(payload);
   },
+  async signalLessonCompletion(payload = {}) {
+    return await signalLessonCompletion(payload);
+  },
   getStepCompletion() {
     return getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null;
+  },
+  getLessonCompletion() {
+    return getRuntime().lessonCompletion ? structuredClone(getRuntime().lessonCompletion) : null;
   },
   async setActiveLessonRecordIndex(index) {
     return await setActiveLessonRecordByIndex(index);

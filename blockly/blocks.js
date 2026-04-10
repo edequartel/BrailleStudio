@@ -1451,6 +1451,15 @@
     }
   };
 
+  Blockly.Blocks['lesson_complete_lesson'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('lesson completed');
+      this.setPreviousStatement(true);
+      this.setColour('#14B8A6');
+    }
+  };
+
   Blockly.Blocks['klanken_get_speech_audio_by_onlyletters'] = {
     init() {
       this.appendValueInput('ONLYLETTERS')

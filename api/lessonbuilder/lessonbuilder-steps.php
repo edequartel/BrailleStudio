@@ -718,9 +718,33 @@ declare(strict_types=1);
       };
     }
 
-    async function waitForCompletion(app, timeoutMs = 30000) {
+    function workspaceStateContainsBlockType(state, targetType) {
+      const wanted = String(targetType || '').trim();
+      if (!wanted || !state || typeof state !== 'object') return false;
+      const stack = [state];
+      while (stack.length) {
+        const current = stack.pop();
+        if (!current || typeof current !== 'object') continue;
+        if (String(current.type || '').trim() === wanted) {
+          return true;
+        }
+        if (Array.isArray(current)) {
+          for (const item of current) stack.push(item);
+          continue;
+        }
+        for (const value of Object.values(current)) {
+          if (value && typeof value === 'object') {
+            stack.push(value);
+          }
+        }
+      }
+      return false;
+    }
+
+    async function waitForCompletion(app, timeoutMs = 30000, options = {}) {
       const start = Date.now();
       let lastRuntime = null;
+      const requireExplicitCompletion = Boolean(options?.requireExplicitCompletion);
       while (Date.now() - start < timeoutMs) {
         const completion = app.getStepCompletion();
         if (completion) return completion;
@@ -731,6 +755,10 @@ declare(strict_types=1);
           runtime?.programEndedGeneration >= 0 &&
           runtime?.isActive === false
         ) {
+          if (requireExplicitCompletion) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            continue;
+          }
           return null;
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -752,6 +780,8 @@ declare(strict_types=1);
         runnerState: getRunnerDebugState()
       });
       const app = await waitForRunnerReady();
+      const requireExplicitCompletion = workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_step')
+        || workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_lesson');
       const result = await app.runWorkspaceStateHeadless({
         state: scriptData.blockly,
         sourceName: scriptData.title || stepConfig.id,
@@ -765,7 +795,7 @@ declare(strict_types=1);
         },
         lockInjectedRecord: true
       });
-      const completion = result?.stepCompletion || await waitForCompletion(app);
+      const completion = result?.stepCompletion || await waitForCompletion(app, 30000, { requireExplicitCompletion });
       return { result, completion, scriptId: stepConfig.id };
     }
 
@@ -902,10 +932,18 @@ declare(strict_types=1);
           results.push({
             scriptId: stepConfigs[index].id,
             completion: outcome.completion,
+            lessonCompletion: outcome?.result?.lessonCompletion || null,
             stopped: Boolean(outcome?.completion?.status === 'stopped' || outcome?.result?.runtime?.stopped)
           });
           currentRunningStepIndex = -1;
           renderStepRunButtons();
+          if (outcome?.result?.lessonCompletion) {
+            appendStatus(`Lesson completed bij step ${index + 1}`, {
+              lessonCompletion: outcome.result.lessonCompletion,
+              results
+            });
+            return;
+          }
           if (outcome.completion && outcome.completion.status !== 'completed') {
             appendStatus(`Lesson gestopt bij step ${index + 1}`, results);
             return;
