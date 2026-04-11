@@ -14,8 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-blockly_api_require_authentication();
-
 $saveDir = dirname(__DIR__) . '/blockly-data';
 
 $id = isset($_GET['id']) ? trim((string)$_GET['id']) : '';

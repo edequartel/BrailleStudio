@@ -188,23 +188,12 @@ $pagePayload = [
       <?php endif; ?>
       <div class="absolute inset-0 bg-white/70"></div>
       <div class="absolute right-4 top-4 z-20 flex items-center gap-2">
-        <button id="authBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Log in</button>
         <span id="bridgeIndicator" class="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-red-200 bg-red-50" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
           <span id="bridgeIndicatorDot" class="h-2.5 w-2.5 rounded-sm bg-red-500"></span>
         </span>
         <span id="lessonRunIndicator" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500" aria-label="Not running" title="Not running">
           <span id="lessonRunIndicatorDot" class="h-4 w-4 rounded-full bg-red-500"></span>
         </span>
-      </div>
-      <div id="runmethodAuthPanel" class="fixed right-10 top-24 z-30 hidden w-[360px] max-w-[calc(100%-2rem)] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
-        <div class="space-y-3">
-          <div class="grid gap-3">
-            <input id="runmethodUsernameInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="text" placeholder="Username">
-            <input id="runmethodPasswordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" type="password" placeholder="Password">
-            <button id="runmethodLoginBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Login</button>
-          </div>
-          <div id="runmethodAuthStatus" class="hidden text-sm"></div>
-        </div>
       </div>
       <div class="relative z-10 flex h-full items-center gap-4 px-5 pr-40">
         <div class="min-w-0">
@@ -582,10 +571,6 @@ $pagePayload = [
 
     function renderSelectedStepInstruction(lesson = null) {
       if (!selectedStepInstruction) return;
-      if (!getBrailleStudioAuthToken()) {
-        selectedStepInstruction.textContent = 'Log in to view steps and instruction.';
-        return;
-      }
       const activeLesson = lesson || getSelectedLesson();
       const steps = Array.isArray(activeLesson?.steps) ? activeLesson.steps : [];
       const selectedStep = steps[selectedStepIndex] || null;
@@ -595,10 +580,6 @@ $pagePayload = [
     }
 
     function renderLessonsList() {
-      if (!getBrailleStudioAuthToken()) {
-        lessonsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Log in to view lessons.</div>';
-        return;
-      }
       lessonsList.innerHTML = '';
       if (!lessons.length) {
         lessonsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No lessons found for this method.</div>';
@@ -626,12 +607,6 @@ $pagePayload = [
     }
 
     function renderCurrentLesson() {
-      if (!getBrailleStudioAuthToken()) {
-        stepsPreview.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Log in to view steps.</div>';
-        renderSelectedStepInstruction(null);
-        renderLessonReturnValues([]);
-        return;
-      }
       const lesson = getSelectedLesson();
       if (!lesson) {
         stepsPreview.textContent = 'No steps.';
@@ -899,35 +874,13 @@ $pagePayload = [
     }
 
     function renderAuthButton() {
-      const authenticated = Boolean(getBrailleStudioAuthToken());
-      if (authBtn) {
-        authBtn.textContent = authenticated ? 'Log out' : 'Log in';
-        authBtn.className = authenticated
-          ? 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
-          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
-        authBtn.title = authenticated ? 'Log out from runmethod' : 'Open runmethod login';
-      }
-      if (runmethodAuthPanel) {
-        runmethodAuthPanel.classList.toggle('hidden', authenticated || !runmethodAuthPanel.dataset.open);
-      }
-      [runSelectedStepBtn, runCurrentBtn, runAllBtn, stopRunBtn].forEach((button) => {
-        if (!button) return;
-        button.disabled = !authenticated;
-        button.classList.toggle('cursor-not-allowed', !authenticated);
-        button.classList.toggle('opacity-50', !authenticated);
-      });
-      if (authenticated) {
-        renderRunmethodAuthStatus('');
-      }
+      renderRunmethodAuthStatus('');
       renderLessonsList();
       renderCurrentLesson();
     }
 
     function requireAuthForRun() {
-      if (getBrailleStudioAuthToken()) return true;
-      renderAuthButton();
-      appendStatus('Authentication required before running.');
-      return false;
+      return true;
     }
 
     async function loginRunmethodAuth() {

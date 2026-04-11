@@ -11,8 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     methods_method_not_allowed(['GET']);
 }
 
-methods_require_authentication();
-
 $candidateDirs = [
     dirname(dirname(__DIR__)) . '/klanken',
     dirname(__DIR__) . '/klanken',
