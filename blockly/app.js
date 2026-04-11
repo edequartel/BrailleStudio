@@ -1896,7 +1896,7 @@ function isInputBlockedByAudio() {
 function isAudioBypassEvent(event) {
   const key = String(event?.key ?? '').trim().toUpperCase();
   const keyCode = Math.floor(Number(event?.keyCode) || 0);
-  return key === 'F3' || keyCode === 114;
+  return key === 'F3' || keyCode === 114 || key === 'ESCAPE' || keyCode === 27;
 }
 
 function shouldBlockEventDuringAudio(event) {
@@ -5213,6 +5213,15 @@ window.BrailleBlocklyApp = {
   },
   async stopProgram() {
     await onStopClicked();
+  },
+  async stopAudio() {
+    const hadActiveAudio = Boolean(activeAudio);
+    stopSound('external-stop-audio');
+    renderStatus();
+    if (hadActiveAudio) {
+      log('Audio stopped');
+    }
+    return hadActiveAudio;
   },
   async ensureBrailleBridgeConnection(timeoutMs = 5000) {
     return await ensureBrailleBridgeConnection(timeoutMs);

@@ -1380,6 +1380,42 @@ $pagePayload = [
       appendStatus('Current step stopped. Runner continues with the next step after program ended.');
     }
 
+    function shouldIgnoreGlobalShortcut(event) {
+      const target = event?.target;
+      if (!target || typeof target !== 'object') return false;
+      const tagName = String(target.tagName || '').toUpperCase();
+      return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target.isContentEditable;
+    }
+
+    function isStopAudioShortcut(event) {
+      const key = String(event?.key || '').trim().toUpperCase();
+      const keyCode = Math.floor(Number(event?.keyCode) || 0);
+      return key === 'ESCAPE' || key === 'F3' || keyCode === 27 || keyCode === 114;
+    }
+
+    async function stopRunnerAudioFromShortcut(event) {
+      if (event?.repeat || shouldIgnoreGlobalShortcut(event) || !isStopAudioShortcut(event)) {
+        return false;
+      }
+      try {
+        const app = await waitForRunnerReady(5000);
+        if (!app || typeof app.stopAudio !== 'function') {
+          return false;
+        }
+        const stopped = await app.stopAudio();
+        if (!stopped) {
+          return false;
+        }
+        appendStatus(`Audio gestopt via ${String(event?.key || 'shortcut')}.`);
+        return true;
+      } catch (err) {
+        appendStatus('Audio stop shortcut failed.', {
+          error: err.message || String(err)
+        });
+        return false;
+      }
+    }
+
     lessonRunnerFrame.addEventListener('load', () => {
       appendStatus('Blockly runner iframe geladen.', {
         runnerUrl,
@@ -1394,6 +1430,12 @@ $pagePayload = [
     runCurrentBtn.addEventListener('click', runCurrentLesson);
     runAllBtn.addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
+    document.addEventListener('keydown', async (event) => {
+      const handled = await stopRunnerAudioFromShortcut(event);
+      if (!handled) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
     renderAuthButton();
     authBtn?.addEventListener('click', async () => {
       if (getBrailleStudioAuthToken()) {

@@ -16,6 +16,16 @@ declare(strict_types=1);
       overflow: hidden;
     }
 
+    .steps-grid {
+      grid-template-columns: minmax(240px, 2.3fr) minmax(220px, 1.9fr) minmax(160px, 1.2fr) minmax(220px, 1.5fr) 92px 72px 72px 72px 88px;
+      min-width: 1240px;
+    }
+
+    .steps-textarea {
+      min-height: 72px;
+      resize: vertical;
+    }
+
     .lesson-monitor-fit .braille-monitor-component {
       zoom: 0.78;
       transform-origin: top left;
@@ -41,7 +51,7 @@ declare(strict_types=1);
       </div>
     </div>
 
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.95fr)]">
+    <div class="grid gap-5">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
         <div id="brailleMonitorCard" class="lesson-monitor-fit rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -73,10 +83,18 @@ declare(strict_types=1);
           <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run</button>
         </div>
 
+        <section>
+          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+            <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"></select>
+            <button id="refreshScriptsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh</button>
+            <button id="addStepBtn" class="h-10 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white md:w-auto">Add</button>
+          </div>
+        </section>
+
         <div>
           <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
-          <div class="rounded-xl border border-slate-200 overflow-hidden">
-            <div class="grid w-full grid-cols-[minmax(0,2.5fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_72px_64px_64px_64px_80px] gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+          <div class="rounded-xl border border-slate-200 overflow-x-auto overflow-y-hidden">
+            <div class="steps-grid grid w-full gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
               <div class="min-w-0 pr-2 text-left">Step</div>
               <div class="min-w-0 text-left">Text</div>
               <div class="min-w-0 text-left">Word</div>
@@ -92,20 +110,7 @@ declare(strict_types=1);
         </div>
       </section>
 
-      <section class="min-h-[360px] rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="text-lg font-bold">Bibliotheek</div>
-        <div id="scriptsSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Nog geen scripts geladen.</div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1" for="scriptsSelect">Script list</label>
-          <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button id="refreshScriptsBtn" class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh</button>
-          <button id="addStepBtn" class="w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Add</button>
-        </div>
-      </section>
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2 lg:col-span-2">
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
         <div class="flex items-center justify-between gap-3">
           <div class="text-lg font-bold">Debug log</div>
           <div class="flex items-center gap-2">
@@ -417,7 +422,7 @@ declare(strict_types=1);
         const meta = getStepDisplayMeta(cfg);
         const row = document.createElement('div');
         row.dataset.stepIndex = String(index);
-        row.className = 'grid w-full grid-cols-[minmax(0,2.5fr)_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_72px_64px_64px_64px_80px] gap-2 items-start px-3 py-2';
+        row.className = 'steps-grid grid w-full gap-2 items-start px-3 py-2';
 
         const script = document.createElement('div');
         script.className = 'min-w-0 pr-2 pt-1 text-sm text-slate-800 break-words leading-5';
@@ -426,9 +431,11 @@ declare(strict_types=1);
           <div class="text-xs text-slate-500">${cfg.id}</div>
         `;
 
-        const text = document.createElement('input');
+        const text = document.createElement('textarea');
         text.dataset.field = 'text';
-        text.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        text.rows = 3;
+        text.placeholder = 'Text';
+        text.className = 'steps-textarea block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         text.value = inputs.text;
         text.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), text: e.target.value };
@@ -437,16 +444,18 @@ declare(strict_types=1);
 
         const word = document.createElement('input');
         word.dataset.field = 'word';
-        word.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        word.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
         word.value = inputs.word;
         word.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), word: e.target.value };
           updateStateStepConfigs();
         });
 
-        const letters = document.createElement('input');
+        const letters = document.createElement('textarea');
         letters.dataset.field = 'letters';
-        letters.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        letters.rows = 3;
+        letters.placeholder = 'a, b, c';
+        letters.className = 'steps-textarea block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
@@ -458,7 +467,7 @@ declare(strict_types=1);
         repeat.type = 'number';
         repeat.min = '1';
         repeat.step = '1';
-        repeat.className = 'block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        repeat.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
         repeat.value = String(inputs.repeat || 1);
         const applyRepeatValue = (target) => {
           const nextRepeat = Math.max(1, Math.floor(Number(target.value) || 1));
@@ -1027,7 +1036,9 @@ declare(strict_types=1);
         basisItems = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
         scriptsCache = await shared.listScripts();
         renderScriptsSelect(scriptsCache);
-        scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
+        if (scriptsSummary) {
+          scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
+        }
 
         const basisIndex = Number(state.basisIndex ?? -1);
         const basisItem = basisIndex >= 0 ? basisItems[basisIndex] : null;
@@ -1092,7 +1103,9 @@ declare(strict_types=1);
       try {
         scriptsCache = await shared.listScripts();
         renderScriptsSelect(scriptsCache);
-        scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
+        if (scriptsSummary) {
+          scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
+        }
         hydrateStepConfigsWithScriptMetadata();
         state = shared.updateState({ steps: stepConfigs });
         renderStepsTable();
