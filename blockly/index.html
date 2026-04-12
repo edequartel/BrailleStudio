@@ -267,6 +267,12 @@
       filter: brightness(0.98);
     }
 
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.68;
+      filter: none;
+    }
+
     .btn-green {
       background: var(--green);
       color: white;
@@ -403,6 +409,115 @@
 
     .btn-red.is-active {
       box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.22);
+    }
+
+    .btn.is-completed {
+      border-color: #86efac;
+      background: #dcfce7;
+      color: #166534;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+    }
+
+    .btn.is-stopped {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+    }
+
+    .btn.is-stopping {
+      border-color: #fcd34d;
+      background: #fffbeb;
+      color: #92400e;
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
+    }
+
+    .run-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      color: #334155;
+    }
+
+    .run-status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 90px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #475569;
+    }
+
+    .run-status-text {
+      font-size: 13px;
+      line-height: 1.4;
+      color: #334155;
+    }
+
+    .run-status.is-running {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+    }
+
+    .run-status.is-running .run-status-badge {
+      border-color: #93c5fd;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .run-status.is-stopping {
+      border-color: #fde68a;
+      background: #fffbeb;
+    }
+
+    .run-status.is-stopping .run-status-badge {
+      border-color: #fcd34d;
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .run-status.is-completed {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+
+    .run-status.is-completed .run-status-badge {
+      border-color: #86efac;
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .run-status.is-stopped {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+
+    .run-status.is-stopped .run-status-badge {
+      border-color: #cbd5e1;
+      background: white;
+      color: #475569;
+    }
+
+    .run-status.is-failed {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .run-status.is-failed .run-status-badge {
+      border-color: #fca5a5;
+      background: #fee2e2;
+      color: #b91c1c;
     }
 
     #runBtn,
@@ -805,6 +920,13 @@
       <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
       <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
       <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+    </div>
+
+    <div class="topbar-row">
+      <div id="runStatusBanner" class="run-status" role="status" aria-live="polite" aria-atomic="true">
+        <span id="runStatusBadge" class="run-status-badge">Idle</span>
+        <span id="runStatusText" class="run-status-text">Script is not running.</span>
+      </div>
     </div>
 
     <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor">

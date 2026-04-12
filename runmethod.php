@@ -225,6 +225,9 @@ $pagePayload = [
             <button id="toggleRunnerBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhide</button>
           </div>
         </div>
+        <div id="runStatusBanner" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          Idle. Select a lesson or step to start.
+        </div>
         <div id="runnerPanel" class="hidden space-y-4">
           <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
             <div class="font-semibold text-slate-900">Lesson return values</div>
@@ -306,6 +309,7 @@ $pagePayload = [
     const lessonRunIndicatorDot = document.getElementById('lessonRunIndicatorDot');
     const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
     const lessonReturnValues = document.getElementById('lessonReturnValues');
+    const runStatusBanner = document.getElementById('runStatusBanner');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const toggleRunnerBtn = document.getElementById('toggleRunnerBtn');
     const runnerPanel = document.getElementById('runnerPanel');
@@ -334,6 +338,218 @@ $pagePayload = [
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
     let lastScriptBrailleSnapshot = '';
+    let runSequence = 0;
+    let currentRun = null;
+    let lastRunBanner = {
+      tone: 'idle',
+      text: 'Idle. Select a lesson or step to start.'
+    };
+    const lessonStatuses = new Map();
+    const stepStatuses = new Map();
+
+    function getLessonStatusKey(lessonId) {
+      return String(lessonId || '').trim();
+    }
+
+    function getStepStatusKey(lessonId, stepIndex) {
+      return `${getLessonStatusKey(lessonId)}::${Number(stepIndex)}`;
+    }
+
+    function setLessonStatus(lessonId, status, message = '') {
+      const key = getLessonStatusKey(lessonId);
+      if (!key) return;
+      lessonStatuses.set(key, {
+        status: String(status || 'idle').trim() || 'idle',
+        message: String(message || '').trim()
+      });
+    }
+
+    function getLessonStatus(lessonId) {
+      return lessonStatuses.get(getLessonStatusKey(lessonId)) || { status: 'idle', message: '' };
+    }
+
+    function setStepStatus(lessonId, stepIndex, status, message = '') {
+      stepStatuses.set(getStepStatusKey(lessonId, stepIndex), {
+        status: String(status || 'idle').trim() || 'idle',
+        message: String(message || '').trim()
+      });
+    }
+
+    function getStepStatus(lessonId, stepIndex) {
+      return stepStatuses.get(getStepStatusKey(lessonId, stepIndex)) || { status: 'idle', message: '' };
+    }
+
+    function clearStepStatuses(lessonId) {
+      const prefix = `${getLessonStatusKey(lessonId)}::`;
+      Array.from(stepStatuses.keys()).forEach((key) => {
+        if (key.startsWith(prefix)) {
+          stepStatuses.delete(key);
+        }
+      });
+    }
+
+    function getStatusBadgeMarkup(status, message = '') {
+      const normalized = String(status || 'idle').trim().toLowerCase();
+      if (!normalized || normalized === 'idle') return '';
+      const variants = {
+        running: 'border-blue-200 bg-blue-50 text-blue-700',
+        stopping: 'border-amber-200 bg-amber-50 text-amber-700',
+        completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        stopped: 'border-slate-300 bg-slate-100 text-slate-700',
+        failed: 'border-red-200 bg-red-50 text-red-700'
+      };
+      const labels = {
+        running: 'Running',
+        stopping: 'Stopping',
+        completed: 'Completed',
+        stopped: 'Stopped',
+        failed: 'Failed'
+      };
+      const title = message ? ` title="${escapeHtml(message)}"` : '';
+      return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${variants[normalized] || variants.stopped}"${title}>${labels[normalized] || escapeHtml(normalized)}</span>`;
+    }
+
+    function getRunModeLabel(mode) {
+      const normalized = String(mode || '').trim().toLowerCase();
+      if (normalized === 'step') return 'step';
+      if (normalized === 'lesson') return 'lesson';
+      if (normalized === 'all') return 'all lessons';
+      return 'run';
+    }
+
+    function getCurrentRunStepIndex() {
+      if (!currentRun || !Number.isInteger(currentRun.stepIndex)) return null;
+      return currentRun.stepIndex;
+    }
+
+    function renderRunControls() {
+      const active = currentRun && (currentRun.status === 'running' || currentRun.status === 'stopping') ? currentRun : null;
+      const isStopping = Boolean(active && active.status === 'stopping');
+      if (runSelectedStepBtn) {
+        runSelectedStepBtn.disabled = Boolean(active);
+        runSelectedStepBtn.textContent = active?.mode === 'step'
+          ? (isStopping ? 'Stopping step...' : 'Running step...')
+          : 'Run step';
+        runSelectedStepBtn.className = active?.mode === 'step'
+          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold ${isStopping ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-blue-300 bg-blue-50 text-blue-700'} disabled:cursor-not-allowed disabled:opacity-70`
+          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70';
+      }
+      if (runCurrentBtn) {
+        runCurrentBtn.disabled = Boolean(active);
+        runCurrentBtn.textContent = active?.mode === 'lesson'
+          ? (isStopping ? 'Stopping lesson...' : 'Running lesson...')
+          : 'Run lesson';
+        runCurrentBtn.className = active?.mode === 'lesson'
+          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${isStopping ? 'bg-amber-600 text-white' : 'bg-blue-700 text-white'} disabled:cursor-not-allowed disabled:opacity-70`
+          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70';
+      }
+      if (runAllBtn) {
+        runAllBtn.disabled = Boolean(active);
+        runAllBtn.textContent = active?.mode === 'all'
+          ? (isStopping ? 'Stopping all...' : 'Running all...')
+          : 'Run all';
+        runAllBtn.className = active?.mode === 'all'
+          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold ${isStopping ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-blue-300 bg-blue-50 text-blue-700'} disabled:cursor-not-allowed disabled:opacity-70`
+          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70';
+      }
+      if (stopRunBtn) {
+        stopRunBtn.disabled = !active;
+        stopRunBtn.textContent = isStopping ? 'Stopping...' : 'Stop';
+        stopRunBtn.className = `inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isStopping ? 'bg-amber-600' : 'bg-red-600'}`;
+      }
+
+      if (runStatusBanner) {
+        if (!active) {
+          const tones = {
+            idle: 'rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700',
+            running: 'rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800',
+            stopping: 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800',
+            completed: 'rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800',
+            stopped: 'rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-700',
+            failed: 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800'
+          };
+          runStatusBanner.className = tones[lastRunBanner.tone] || tones.idle;
+          runStatusBanner.textContent = lastRunBanner.text || 'Idle. Select a lesson or step to start.';
+        } else if (isStopping) {
+          runStatusBanner.className = 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800';
+          runStatusBanner.textContent = `Stopping ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}`;
+        } else {
+          runStatusBanner.className = 'rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800';
+          const stepText = Number.isInteger(active.stepIndex) ? `, step ${active.stepIndex + 1}` : '';
+          runStatusBanner.textContent = `Running ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}${stepText}`;
+        }
+      }
+    }
+
+    function startRunSession(mode, lesson = null, stepIndex = null) {
+      if (currentRun && (currentRun.status === 'running' || currentRun.status === 'stopping')) {
+        throw new Error(`Another ${getRunModeLabel(currentRun.mode)} is already active`);
+      }
+      runSequence += 1;
+      currentRun = {
+        id: runSequence,
+        mode: String(mode || 'lesson').trim().toLowerCase(),
+        status: 'running',
+        lessonId: String(lesson?.id || '').trim(),
+        lessonTitle: String(lesson?.title || lesson?.id || '').trim(),
+        stepIndex: Number.isInteger(stepIndex) ? stepIndex : null
+      };
+      lastRunBanner = {
+        tone: 'running',
+        text: `Running ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}${Number.isInteger(currentRun.stepIndex) ? `, step ${currentRun.stepIndex + 1}` : ''}`
+      };
+      renderRunControls();
+      return currentRun;
+    }
+
+    function updateCurrentRunLesson(lesson = null) {
+      if (!currentRun) return;
+      currentRun.lessonId = String(lesson?.id || '').trim();
+      currentRun.lessonTitle = String(lesson?.title || lesson?.id || '').trim();
+      renderRunControls();
+    }
+
+    function updateCurrentRunStep(stepIndex = null) {
+      if (!currentRun) return;
+      currentRun.stepIndex = Number.isInteger(stepIndex) ? stepIndex : null;
+      renderRunControls();
+    }
+
+    function requestStopCurrentRun() {
+      if (!currentRun) return false;
+      currentRun.status = 'stopping';
+      lastRunBanner = {
+        tone: 'stopping',
+        text: `Stopping ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}`
+      };
+      renderRunControls();
+      return true;
+    }
+
+    function finishRunSession(finalStatus = 'completed', label = '') {
+      const normalized = String(finalStatus || 'completed').trim().toLowerCase();
+      const isError = normalized === 'failed';
+      const isStopped = normalized === 'stopped';
+      lastRunBanner = {
+        tone: isError ? 'failed' : (isStopped ? 'stopped' : 'completed'),
+        text: label || (isError ? 'Run failed.' : (isStopped ? 'Run stopped.' : 'Run completed.'))
+      };
+      currentRun = null;
+      renderRunControls();
+    }
+
+    function finalizeStoppedStepRun(runSnapshot = null) {
+      const run = runSnapshot && typeof runSnapshot === 'object' ? runSnapshot : currentRun;
+      if (!run || String(run.mode || '') !== 'step') return;
+      if (run.lessonId && Number.isInteger(run.stepIndex)) {
+        setStepStatus(run.lessonId, run.stepIndex, 'stopped', 'Step stopped by user');
+        setLessonStatus(run.lessonId, 'stopped', 'Step stopped by user');
+      }
+      renderLessonsList();
+      renderCurrentLesson();
+      setLessonRunningState(false, 'Stopped');
+      finishRunSession('stopped', `Step stopped: ${run.lessonTitle || run.lessonId || 'step run'}`);
+    }
 
     function showBrailleMonitorPlaceholder() {
       if (!brailleMonitorUi || typeof brailleMonitorUi.setText !== 'function') return;
@@ -464,14 +680,20 @@ $pagePayload = [
     function setLessonRunningState(running, label = '') {
       isLessonRunning = Boolean(running);
       if (!lessonRunIndicator || !lessonRunIndicatorDot) return;
-      lessonRunIndicator.className = isLessonRunning
-        ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-500'
-        : 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500';
-      lessonRunIndicatorDot.className = isLessonRunning
-        ? 'h-4 w-4 rounded-full bg-green-500'
-        : 'h-4 w-4 rounded-full bg-red-500';
+      const isStopping = Boolean(currentRun && currentRun.status === 'stopping');
+      lessonRunIndicator.className = isStopping
+        ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500'
+        : (isLessonRunning
+          ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-500'
+          : 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500');
+      lessonRunIndicatorDot.className = isStopping
+        ? 'h-4 w-4 rounded-full bg-amber-500'
+        : (isLessonRunning
+          ? 'h-4 w-4 rounded-full bg-green-500'
+          : 'h-4 w-4 rounded-full bg-red-500');
       lessonRunIndicator.setAttribute('aria-label', label || (isLessonRunning ? 'Running' : 'Not running'));
       lessonRunIndicator.setAttribute('title', label || (isLessonRunning ? 'Running' : 'Not running'));
+      renderRunControls();
     }
 
     function renderDebugLogVisibility() {
@@ -592,7 +814,10 @@ $pagePayload = [
         button.type = 'button';
         button.className = `w-full rounded-xl border px-4 py-3 text-left ${index === selectedLessonIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
         button.innerHTML = `
-          <div class="font-bold">${lessonTitle}</div>
+          <div class="flex items-start justify-between gap-3">
+            <div class="font-bold">${lessonTitle}</div>
+            ${getStatusBadgeMarkup(getLessonStatus(lesson.id).status, getLessonStatus(lesson.id).message)}
+          </div>
           ${lessonDescription ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(lessonDescription)}</div>` : ''}
           <div class="mt-1 text-xs text-slate-500">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
           <div class="mt-1 text-xs text-slate-500">${Array.isArray(lesson.steps) ? lesson.steps.length : 0} step(s)</div>
@@ -639,7 +864,10 @@ $pagePayload = [
       stepsPreview.innerHTML = preview.length
         ? `${preview.map((item, index) => `
             <button type="button" data-step-index="${index}" class="w-full rounded-xl border px-4 py-3 text-left ${index === selectedStepIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}">
-              <div class="font-bold text-slate-900">${index + 1}. ${escapeHtml(item.title || item.id)}</div>
+              <div class="flex items-start justify-between gap-3">
+                <div class="font-bold text-slate-900">${index + 1}. ${escapeHtml(item.title || item.id)}</div>
+                ${getStatusBadgeMarkup(getStepStatus(lesson.id, index).status, getStepStatus(lesson.id, index).message)}
+              </div>
               <div class="mt-1 text-xs text-slate-500">${escapeHtml(item.id)}</div>
               ${item.description ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(item.description)}</div>` : ''}
               <div class="mt-1 text-xs text-slate-500">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
@@ -1068,17 +1296,27 @@ $pagePayload = [
       return { result, completion, scriptData };
     }
 
-    async function runLesson(lesson) {
+    async function runLesson(lesson, options = {}) {
       if (!lesson) throw new Error('No lesson selected');
+      const manageSession = options?.manageSession !== false;
+      if (manageSession) {
+        startRunSession('lesson', lesson, 0);
+      } else {
+        updateCurrentRunLesson(lesson);
+        updateCurrentRunStep(0);
+      }
       stopRequested = false;
       const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
       selectedStepIndex = 0;
+      clearStepStatuses(lesson.id);
+      setLessonStatus(lesson.id, 'running', `Lesson running: ${lesson.title || lesson.id}`);
+      renderLessonsList();
       renderCurrentLesson();
       const displayedValues = [
         { key: 'lessonId', value: lesson.id || '' },
         { key: 'status', value: 'running' }
       ];
-      setLessonRunningState(true, `Running ${lesson.title || lesson.id}`);
+      setLessonRunningState(true, manageSession ? `Running ${lesson.title || lesson.id}` : `Running all: ${lesson.title || lesson.id}`);
       renderLessonReturnValues(displayedValues);
       appendStatus('Lesson run gestart.', {
         lessonId: lesson.id,
@@ -1093,8 +1331,10 @@ $pagePayload = [
       const results = [];
       while (selectedStepIndex < steps.length) {
         const stepIndex = selectedStepIndex;
+        updateCurrentRunStep(stepIndex);
         renderCurrentLesson();
         if (stopRequested) {
+          setLessonStatus(lesson.id, 'stopped', 'Lesson stopped by user');
           appendStatus('Lesson handmatig gestopt.', {
             lessonId: lesson.id,
             stepIndex
@@ -1102,12 +1342,20 @@ $pagePayload = [
           break;
         }
         const stepConfig = steps[stepIndex];
+        setStepStatus(lesson.id, stepIndex, 'running', `Running ${stepConfig.id}`);
+        renderCurrentLesson();
         appendStatus('Step gestart.', {
           lessonId: lesson.id,
           stepIndex,
           scriptId: stepConfig.id
         });
         const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
+        const completionStatus = String(completion?.status || '').trim().toLowerCase();
+        const stepFinishedStatus = stopRequested
+          ? 'stopped'
+          : (completionStatus === 'failed' ? 'failed' : (completionStatus === 'stopped' ? 'stopped' : 'completed'));
+        setStepStatus(lesson.id, stepIndex, stepFinishedStatus, completion?.response?.feedback || completion?.status || '');
+        renderCurrentLesson();
         results.push({
           scriptId: stepConfig.id,
           completion,
@@ -1129,6 +1377,8 @@ $pagePayload = [
           previousStepIndex: stepIndex
         });
         if (result?.lessonCompletion) {
+          setLessonStatus(lesson.id, 'completed', 'Lesson completed');
+          renderLessonsList();
           appendStatus('Lesson run: lesson completion detected.', {
             lessonId: lesson.id,
             stepIndex,
@@ -1149,9 +1399,28 @@ $pagePayload = [
         }
       }
       const finalStatus = results[results.length - 1]?.completion?.status || 'completed';
+      const normalizedFinalStatus = stopRequested
+        ? 'stopped'
+        : (String(finalStatus).trim().toLowerCase() === 'failed' ? 'failed' : 'completed');
+      setLessonStatus(
+        lesson.id,
+        normalizedFinalStatus,
+        normalizedFinalStatus === 'completed' ? 'Lesson completed' : (normalizedFinalStatus === 'failed' ? 'Lesson failed' : 'Lesson stopped')
+      );
+      renderLessonsList();
       displayedValues.push({ key: 'finalStatus', value: finalStatus });
       renderLessonReturnValues(displayedValues);
-      setLessonRunningState(false, `Stopped (${finalStatus})`);
+      if (manageSession) {
+        setLessonRunningState(false, normalizedFinalStatus === 'completed' ? 'Completed' : `Stopped (${finalStatus})`);
+        finishRunSession(
+          normalizedFinalStatus,
+          normalizedFinalStatus === 'completed'
+            ? `Lesson completed: ${lesson.title || lesson.id}`
+            : (normalizedFinalStatus === 'failed'
+              ? `Lesson failed: ${lesson.title || lesson.id}`
+              : `Lesson stopped: ${lesson.title || lesson.id}`)
+        );
+      }
       stopRequested = false;
       return results;
     }
@@ -1163,7 +1432,12 @@ $pagePayload = [
         if (!lesson) throw new Error('No lesson selected');
         const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
         if (!steps[selectedStepIndex]) throw new Error('No step selected');
+        startRunSession('step', lesson, selectedStepIndex);
         stopRequested = false;
+        setLessonStatus(lesson.id, 'running', `Manual step run in ${lesson.title || lesson.id}`);
+        setStepStatus(lesson.id, selectedStepIndex, 'running', `Running ${steps[selectedStepIndex].id}`);
+        renderLessonsList();
+        renderCurrentLesson();
         setLessonRunningState(true, `Running from step ${selectedStepIndex + 1}`);
         appendStatus('Run vanaf geselecteerde step gestart.', {
           lessonId: lesson.id,
@@ -1179,88 +1453,87 @@ $pagePayload = [
           { key: 'status', value: 'running' }
         ];
         renderLessonReturnValues(displayedValues);
-        const results = [];
-        while (selectedStepIndex < steps.length) {
-          const stepIndex = selectedStepIndex;
-          renderCurrentLesson();
-          if (stopRequested) {
-            appendStatus('Run vanaf geselecteerde step handmatig gestopt.', {
-              lessonId: lesson.id,
-              stepIndex
-            });
-            break;
-          }
-          const stepConfig = steps[stepIndex];
-          appendStatus('Step gestart.', {
-            lessonId: lesson.id,
-            stepIndex,
-            scriptId: stepConfig.id
+        const stepIndex = selectedStepIndex;
+        updateCurrentRunStep(stepIndex);
+        const stepConfig = steps[stepIndex];
+        appendStatus('Step gestart.', {
+          lessonId: lesson.id,
+          stepIndex,
+          scriptId: stepConfig.id
+        });
+        const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
+        const finalStatus = stopRequested
+          ? 'stopped'
+          : (String(completion?.status || 'completed').trim().toLowerCase() || 'completed');
+        setStepStatus(
+          lesson.id,
+          stepIndex,
+          finalStatus === 'failed' ? 'failed' : (finalStatus === 'stopped' ? 'stopped' : 'completed'),
+          completion?.response?.feedback || completion?.status || ''
+        );
+        if (result?.lessonCompletion) {
+          setLessonStatus(lesson.id, 'completed', 'Lesson completed');
+        } else if (finalStatus === 'failed') {
+          setLessonStatus(lesson.id, 'failed', 'Step failed');
+        } else if (finalStatus === 'stopped') {
+          setLessonStatus(lesson.id, 'stopped', 'Step stopped');
+        } else {
+          setLessonStatus(lesson.id, 'completed', 'Step completed');
+        }
+        renderLessonsList();
+        renderCurrentLesson();
+        displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
+        flattenCompletionValues(completion).forEach((entry) => {
+          displayedValues.push({
+            key: `step.${stepIndex + 1}.${entry.key}`,
+            value: entry.value
           });
-          const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
-          results.push({
-            scriptId: stepConfig.id,
-            completion,
-            lessonCompletion: result?.lessonCompletion || null
-          });
-          displayedValues.push({ key: `step.${stepIndex + 1}.scriptId`, value: stepConfig.id });
-          flattenCompletionValues(completion).forEach((entry) => {
-            displayedValues.push({
-              key: `step.${stepIndex + 1}.${entry.key}`,
-              value: entry.value
-            });
-          });
-          renderLessonReturnValues(displayedValues);
-          appendStatus('Step uitgevoerd.', {
-            lessonId: lesson.id,
-            stepIndex,
-            scriptId: stepConfig.id,
-            completion,
-            lessonCompletion: result?.lessonCompletion || null
-          });
-          if (result?.lessonCompletion) {
-            appendStatus('Run vanaf geselecteerde step: lesson completion detected.', {
-              lessonId: lesson.id,
-              stepIndex,
-              lessonCompletion: result.lessonCompletion
-            });
-            break;
-          }
-          selectedStepIndex = stepIndex + 1;
-          appendStatus('Run vanaf geselecteerde step: moving to next step.', {
-            lessonId: lesson.id,
-            previousStepIndex: stepIndex,
-            nextStepIndex: selectedStepIndex,
-            hasNextStep: selectedStepIndex < steps.length,
-            nextStep: selectedStepIndex < steps.length ? getStepDebugSnapshot(steps[selectedStepIndex], selectedStepIndex) : null
-          });
-          if (selectedStepIndex < steps.length) {
+        });
+        displayedValues.push({ key: 'finalStatus', value: finalStatus });
+        renderLessonReturnValues(displayedValues);
+        setLessonRunningState(false, finalStatus === 'completed' ? 'Step completed' : `Stopped (${finalStatus})`);
+        finishRunSession(
+          finalStatus === 'failed' ? 'failed' : (finalStatus === 'stopped' ? 'stopped' : 'completed'),
+          finalStatus === 'completed'
+            ? `Step completed: ${stepConfig.title || stepConfig.id}`
+            : (finalStatus === 'failed'
+              ? `Step failed: ${stepConfig.title || stepConfig.id}`
+              : `Step stopped: ${stepConfig.title || stepConfig.id}`)
+        );
+        appendStatus('Run vanaf geselecteerde step afgerond.', {
+          lessonId: lesson.id,
+          stepIndex,
+          scriptId: stepConfig.id,
+          completion,
+          lessonCompletion: result?.lessonCompletion || null
+        });
+        stopRequested = false;
+      } catch (err) {
+        setLessonRunningState(false, 'Stopped (error)');
+        if (currentRun?.lessonId) {
+          const failedLesson = getSelectedLesson();
+          if (failedLesson?.id === currentRun.lessonId && Number.isInteger(currentRun.stepIndex)) {
+            setStepStatus(failedLesson.id, currentRun.stepIndex, 'failed', err.message || String(err));
+            setLessonStatus(failedLesson.id, 'failed', err.message || String(err));
+            renderLessonsList();
             renderCurrentLesson();
           }
         }
-        const finalStatus = results[results.length - 1]?.completion?.status || 'completed';
-        displayedValues.push({ key: 'finalStatus', value: finalStatus });
-        renderLessonReturnValues(displayedValues);
-        setLessonRunningState(false, `Stopped (${finalStatus})`);
-        appendStatus('Run vanaf geselecteerde step afgerond.', {
-          lessonId: lesson.id,
-          startStepIndex: selectedStepIndex,
-          results
-        });
-      } catch (err) {
-        setLessonRunningState(false, 'Stopped (error)');
         renderLessonReturnValues([
           { key: 'error', value: err.message || String(err) }
         ]);
+        finishRunSession('failed', `Step run failed: ${err.message || String(err)}`);
         appendStatus('Run vanaf geselecteerde step mislukt.', {
           error: err.message || String(err)
         });
+        stopRequested = false;
       }
     }
 
     async function runCurrentLesson() {
       if (!requireAuthForRun()) return;
+      const lesson = getSelectedLesson();
       try {
-        const lesson = getSelectedLesson();
         selectedStepIndex = 0;
         renderCurrentLesson();
         appendStatus('Run current lesson button pressed.', {
@@ -1272,25 +1545,34 @@ $pagePayload = [
         appendStatus('Current lesson afgerond.', { lessonId: lesson?.id || '', results });
       } catch (err) {
         setLessonRunningState(false, 'Stopped (error)');
+        if (lesson?.id) {
+          setLessonStatus(lesson.id, 'failed', err.message || String(err));
+          renderLessonsList();
+          renderCurrentLesson();
+        }
         renderLessonReturnValues([
           { key: 'error', value: err.message || String(err) }
         ]);
+        finishRunSession('failed', `Lesson run failed: ${err.message || String(err)}`);
         appendStatus('Run current lesson mislukt.', {
           error: err.message || String(err),
           runnerState: getRunnerDebugState()
         });
+        stopRequested = false;
       }
     }
 
     async function runAllLessons() {
       if (!requireAuthForRun()) return;
-      setLessonRunningState(false, 'Not running');
+      startRunSession('all', null, null);
+      setLessonRunningState(true, 'Running all lessons');
       stopRequested = false;
       appendStatus('Run all gestart.', { lessons: lessons.length });
       for (let index = 0; index < lessons.length; index += 1) {
         if (stopRequested) {
           setLessonRunningState(false, 'Stopped (manual)');
           appendStatus('Run all handmatig gestopt.');
+          finishRunSession('stopped', 'Run all stopped.');
           stopRequested = false;
           return;
         }
@@ -1299,7 +1581,7 @@ $pagePayload = [
         renderCurrentLesson();
         try {
           const lesson = lessons[index];
-          const results = await runLesson(lesson);
+          const results = await runLesson(lesson, { manageSession: false });
         } catch (err) {
           setLessonRunningState(false, 'Stopped (error)');
           renderLessonReturnValues([
@@ -1309,16 +1591,35 @@ $pagePayload = [
             lessonId: lessons[index]?.id || '',
             error: err.message || String(err)
           });
+          finishRunSession('failed', `Run all failed: ${err.message || String(err)}`);
+          stopRequested = false;
           return;
         }
       }
       setLessonRunningState(false, 'Not running');
+      finishRunSession('completed', 'Run all completed.');
       stopRequested = false;
       appendStatus('Run all afgerond.');
     }
 
     async function stopCurrentRun() {
       if (!requireAuthForRun()) return;
+      if (!currentRun) {
+        appendStatus('Stop ignored: no active run.');
+        return;
+      }
+      const runSnapshot = { ...currentRun };
+      stopRequested = true;
+      requestStopCurrentRun();
+      setLessonRunningState(true, 'Stopping');
+      if (currentRun.lessonId && Number.isInteger(getCurrentRunStepIndex())) {
+        setStepStatus(currentRun.lessonId, getCurrentRunStepIndex(), 'stopping', 'Stop requested');
+        renderCurrentLesson();
+      }
+      if (currentRun.lessonId) {
+        setLessonStatus(currentRun.lessonId, 'stopping', 'Stop requested');
+        renderLessonsList();
+      }
       try {
         const app = await waitForRunnerReady(5000);
         if (app && typeof app.stopProgram === 'function') {
@@ -1328,9 +1629,18 @@ $pagePayload = [
         appendStatus('Stop requested, but runner was not ready.', {
           error: err.message || String(err)
         });
+        finalizeStoppedStepRun(runSnapshot);
+        if (runSnapshot.mode !== 'step') {
+          finishRunSession('stopped', 'Run stop requested.');
+        }
         return;
       }
-      appendStatus('Current step stopped. Runner continues with the next step after program ended.');
+      if (runSnapshot.mode === 'step') {
+        appendStatus('Step stop acknowledged by runner.');
+        finalizeStoppedStepRun(runSnapshot);
+        return;
+      }
+      appendStatus('Stop requested. Active lesson or step will stop as soon as the runner finishes the current cycle.');
     }
 
     function shouldIgnoreGlobalShortcut(event) {
@@ -1464,6 +1774,7 @@ $pagePayload = [
       setLessonRunningState(false, 'Not running');
       renderDebugLogVisibility();
       renderRunnerVisibility();
+      renderRunControls();
       startBrailleMonitorSync();
       appendStatus('Runner ready.', {
         methodId: method.id || '',

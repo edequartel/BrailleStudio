@@ -45,6 +45,10 @@ var pendingStart = false;
 var pendingStartGeneration = 0;
 var runGeneration = 0;
 var workspace = null;
+let uiExecutionState = {
+  phase: 'idle',
+  detail: 'Script is not running.'
+};
 function createInitialRuntimeState() {
   return {
     stopped: true,
@@ -1199,6 +1203,22 @@ function isRuntimeActive(runtimeState = getRuntime()) {
   );
 }
 
+function setExecutionUiState(phase = 'idle', detail = '') {
+  const normalized = String(phase || 'idle').trim().toLowerCase() || 'idle';
+  const fallbackDetails = {
+    idle: 'Script is not running.',
+    running: 'Script is running.',
+    stopping: 'Stop requested. Waiting for the current cycle to finish.',
+    completed: 'Script finished.',
+    stopped: 'Script stopped.',
+    failed: 'Script failed.'
+  };
+  uiExecutionState = {
+    phase: normalized,
+    detail: String(detail || fallbackDetails[normalized] || fallbackDetails.idle)
+  };
+}
+
 function renderStatus() {
   const rt = getRuntime();
   const varLines = workspace
@@ -1207,15 +1227,68 @@ function renderStatus() {
   const isRunning = isRuntimeActive(rt);
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const runStatusBanner = document.getElementById('runStatusBanner');
+  const runStatusBadge = document.getElementById('runStatusBadge');
+  const runStatusText = document.getElementById('runStatusText');
+  const runLabel = runBtn?.querySelector('.label');
+  const stopLabel = stopBtn?.querySelector('.label');
+
+  const phase = isRunning
+    ? (uiExecutionState.phase === 'stopping' ? 'stopping' : 'running')
+    : (uiExecutionState.phase || 'idle');
 
   if (runBtn) {
-    runBtn.classList.toggle('is-active', isRunning || pendingStart);
+    runBtn.classList.toggle('is-active', phase === 'running');
+    runBtn.classList.toggle('is-completed', phase === 'completed');
+    runBtn.classList.toggle('is-stopped', phase === 'stopped');
+    runBtn.classList.toggle('is-stopping', phase === 'stopping');
+    runBtn.disabled = isRunning || pendingStart;
     runBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
+    runBtn.setAttribute('aria-label', phase === 'completed' ? 'Run again' : (phase === 'running' ? 'Running' : (phase === 'stopping' ? 'Stopping' : 'Start')));
+    if (runLabel) {
+      runLabel.textContent =
+        phase === 'running' ? 'Running...' :
+        phase === 'stopping' ? 'Stopping...' :
+        phase === 'completed' ? 'Run Again' :
+        phase === 'stopped' ? 'Start Again' :
+        'Start';
+    }
   }
 
   if (stopBtn) {
-    stopBtn.classList.toggle('is-active', !isRunning && !pendingStart);
-    stopBtn.setAttribute('aria-pressed', !isRunning && !pendingStart ? 'true' : 'false');
+    stopBtn.classList.toggle('is-active', phase === 'running');
+    stopBtn.classList.toggle('is-completed', phase === 'completed');
+    stopBtn.classList.toggle('is-stopped', phase === 'stopped');
+    stopBtn.classList.toggle('is-stopping', phase === 'stopping');
+    stopBtn.disabled = phase === 'stopping' || (!isRunning && !pendingStart);
+    stopBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
+    stopBtn.setAttribute('aria-label', phase === 'completed' ? 'Finished' : (phase === 'stopped' ? 'Stopped' : (phase === 'stopping' ? 'Stopping' : 'Stop')));
+    if (stopLabel) {
+      stopLabel.textContent =
+        phase === 'running' ? 'Stop' :
+        phase === 'stopping' ? 'Stopping...' :
+        phase === 'completed' ? 'Finished' :
+        phase === 'stopped' ? 'Stopped' :
+        'Stop';
+    }
+  }
+
+  if (runStatusBanner && runStatusBadge && runStatusText) {
+    runStatusBanner.classList.remove('is-running', 'is-stopping', 'is-completed', 'is-stopped', 'is-failed');
+    if (phase === 'running') runStatusBanner.classList.add('is-running');
+    else if (phase === 'stopping') runStatusBanner.classList.add('is-stopping');
+    else if (phase === 'completed') runStatusBanner.classList.add('is-completed');
+    else if (phase === 'failed') runStatusBanner.classList.add('is-failed');
+    else runStatusBanner.classList.add('is-stopped');
+
+    runStatusBadge.textContent =
+      phase === 'running' ? 'Running' :
+      phase === 'stopping' ? 'Stopping' :
+      phase === 'completed' ? 'Finished' :
+      phase === 'failed' ? 'Failed' :
+      phase === 'stopped' ? 'Stopped' :
+      'Idle';
+    runStatusText.textContent = uiExecutionState.detail || 'Script is not running.';
   }
 
   document.getElementById('statusBox').textContent =
@@ -2318,11 +2391,15 @@ async function onRunClicked() {
   stopAllTimers();
   getRuntime().stopped = false;
   getRuntime().programEndedGeneration = -1;
+  getRuntime().programEndedCompletedGeneration = -1;
   runGeneration++;
   const generation = runGeneration;
+  setExecutionUiState('running', 'Script is running.');
   renderStatus();
 
   if (!workspace) {
+    setExecutionUiState('failed', 'Start blocked: Blockly workspace is not ready.');
+    renderStatus();
     log('Start blocked: Blockly workspace is not ready');
     return;
   }
@@ -2338,6 +2415,8 @@ async function onRunClicked() {
 async function onStopClicked() {
   const generation = runGeneration;
   const rt = getRuntime();
+  setExecutionUiState('stopping', 'Stop requested. Waiting for the current cycle to finish.');
+  renderStatus();
   if (!rt.stopped) {
     rt.stopped = true;
     await dispatchProgramEnded(generation, 'stopped');
@@ -2347,6 +2426,7 @@ async function onStopClicked() {
   pendingStart = false;
   stopAllTimers();
   stopSound();
+  setExecutionUiState('stopped', 'Script stopped by user.');
   renderStatus();
   log('Runtime stopped');
 }
@@ -4678,6 +4758,13 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
     }
   }
   rt.programEndedCompletedGeneration = generation;
+  setExecutionUiState(
+    reason === 'stopped' ? 'stopped' : 'completed',
+    reason === 'stopped'
+      ? 'Script stopped.'
+      : 'Script finished. You can press Run Again to start it once more.'
+  );
+  renderStatus();
 }
 
 async function dispatchEvent(event, generation = runGeneration) {
