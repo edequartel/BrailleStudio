@@ -14,8 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-lessons_api_require_authentication();
-
 $saveDir = dirname(__DIR__) . '/lessons-data';
 
 $id = isset($_GET['id']) ? trim((string)$_GET['id']) : '';

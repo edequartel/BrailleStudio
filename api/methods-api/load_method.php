@@ -11,8 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     methods_method_not_allowed(['GET']);
 }
 
-methods_require_authentication();
-
 $id = methods_normalize_id($_GET['id'] ?? '');
 if ($id === '') {
     methods_json_response([

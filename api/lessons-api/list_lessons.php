@@ -14,8 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-lessons_api_require_authentication();
-
 $saveDir = dirname(__DIR__) . '/lessons-data';
 $filterMethodId = trim((string)($_GET['methodId'] ?? ''));
 $filterBasisIndex = array_key_exists('basisIndex', $_GET) ? (int)$_GET['basisIndex'] : null;

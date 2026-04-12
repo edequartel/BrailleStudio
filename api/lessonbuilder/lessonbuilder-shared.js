@@ -65,10 +65,7 @@
   }
 
   function requireAuthOnProduction(returnTo = window.location.href) {
-    if (String(window.location.origin || '').trim() !== HOMEPAGE_ORIGIN) return false;
-    if (getAuthToken()) return false;
-    window.location.replace(buildHomepageAuthUrl(returnTo));
-    return true;
+    return false;
   }
 
   function openAuthenticationPopup() {

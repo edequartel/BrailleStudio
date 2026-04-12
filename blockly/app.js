@@ -435,10 +435,7 @@ function buildHomepageAuthUrl(returnTo = window.location.href) {
 }
 
 function requireHomepageAuthOnProduction() {
-  if (String(window.location.origin || '').trim() !== 'https://www.tastenbraille.com') return false;
-  if (getElevenLabsAuthToken()) return false;
-  window.location.replace(buildHomepageAuthUrl(window.location.href));
-  return true;
+  return false;
 }
 
 async function loginElevenLabsAuth() {
@@ -2859,24 +2856,19 @@ initVariableValues();
 setBootStage('workspace-ready');
 
 setTimeout(() => {
-  if (requireHomepageAuthOnProduction()) {
-    return;
-  }
   const token = getElevenLabsAuthToken();
   log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
-  if (!token) {
-    log('Online scripts startup skipped: authenticate first.');
-    return;
-  }
-  refreshOnlineScriptsIfAuthenticated('startup');
+  refreshOnlineScripts().catch((err) => {
+    log(`Online scripts startup failed: ${err?.message || err}`);
+  });
 }, 0);
 
 window.addEventListener('pageshow', () => {
-  void refreshOnlineScriptsIfAuthenticated('pageshow');
+  void refreshOnlineScripts().catch(() => {});
 });
 
 window.addEventListener('focus', () => {
-  void refreshOnlineScriptsIfAuthenticated('focus');
+  void refreshOnlineScripts().catch(() => {});
 });
 
 function getVariableIdFromBlock(block) {
