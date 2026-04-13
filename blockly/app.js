@@ -1172,14 +1172,20 @@ function getKeyboardVirtualKeyCode(event) {
   return Math.floor(Number(raw) || 0);
 }
 
+function acceptsRuntimeInput(generation = runGeneration, runtimeState = getRuntime()) {
+  const rt = runtimeState && typeof runtimeState === 'object' ? runtimeState : getRuntime();
+  return generation === runGeneration && !rt.stopped;
+}
+
 function attachRuntimeKeyboardListener() {
   if (runtimeKeyboardListenerAttached) return;
   runtimeKeyboardListenerAttached = true;
   window.addEventListener('keydown', (event) => {
     if (shouldIgnoreRuntimeKeyboardEvent(event)) return;
+    const rt = getRuntime();
+    if (!acceptsRuntimeInput(runGeneration, rt)) return;
     const key = String(event?.key || '');
     const keyCode = getKeyboardVirtualKeyCode(event);
-    const rt = getRuntime();
     rt.lastEditorKey = key;
     rt.lastVirtualKeyCode = keyCode;
     renderStatus();
@@ -2266,6 +2272,9 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'thumbKey') {
+    if (!acceptsRuntimeInput(runGeneration)) {
+      return;
+    }
     const payload = wsPayload(msg);
     const name = payload.Name ?? payload.name ?? '';
     const press = !!(payload.Press ?? payload.press);
@@ -2281,6 +2290,9 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'editorKey') {
+    if (!acceptsRuntimeInput(runGeneration)) {
+      return;
+    }
     const payload = wsPayload(msg);
     const key = payload.Key ?? payload.key ?? '';
     const press = !!(payload.Press ?? payload.press);
@@ -2293,6 +2305,9 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'cursor') {
+    if (!acceptsRuntimeInput(runGeneration)) {
+      return;
+    }
     const cursor = wsCursor(msg);
     runtime.lastCursorCell = cursor.CellIndex ?? cursor.cellIndex ?? runtime.lastCursorCell;
     runtime.textCaret = cursor.TextIndex ?? cursor.textIndex ?? runtime.textCaret;
@@ -2311,6 +2326,9 @@ async function handleIncomingWs(msg) {
   }
 
   if (type === 'chord') {
+    if (!acceptsRuntimeInput(runGeneration)) {
+      return;
+    }
     runtime.lastChord = extractChord(msg);
     renderStatus();
     await dispatchEvent({ type: 'chord', dots: runtime.lastChord }, runGeneration);
@@ -2540,23 +2558,15 @@ function bindAppControls() {
     e.target.value = '';
   });
   bind('simThumbLeftBtn', 'click', async () => {
-    getRuntime().stopped = false;
-    runGeneration++;
     await dispatchEvent({ type: 'thumbKey', key: 'left' }, runGeneration);
   });
   bind('simThumbRightBtn', 'click', async () => {
-    getRuntime().stopped = false;
-    runGeneration++;
     await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
   });
   bind('simCursor5Btn', 'click', async () => {
-    getRuntime().stopped = false;
-    runGeneration++;
     await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: getRuntime().textCaret }, runGeneration);
   });
   bind('simChord1Btn', 'click', async () => {
-    getRuntime().stopped = false;
-    runGeneration++;
     await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
   });
   bind('playSoundBtn', 'click', async () => {
@@ -4758,6 +4768,7 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
     }
   }
   rt.programEndedCompletedGeneration = generation;
+  rt.stopped = true;
   setExecutionUiState(
     reason === 'stopped' ? 'stopped' : 'completed',
     reason === 'stopped'
