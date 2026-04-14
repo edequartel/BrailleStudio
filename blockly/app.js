@@ -32,6 +32,7 @@ const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authent
 const BRAILLEBRIDGE_PROTOCOL_URL = 'braillebridge://';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
+const BLOCK_CLIPBOARD_STORAGE_KEY = 'brailleBlocklyBlockClipboard';
 const WS_URL = 'ws://localhost:5000/ws';
 const AUTO_RECONNECT_MS = 2000;
 const BRAILLEBRIDGE_STARTUP_TIMEOUT_MS = 4000;
@@ -1258,7 +1259,6 @@ function renderStatus() {
   const stopBtn = document.getElementById('stopBtn');
   const runStatusBanner = document.getElementById('runStatusBanner');
   const runStatusBadge = document.getElementById('runStatusBadge');
-  const runStatusText = document.getElementById('runStatusText');
   const runLabel = runBtn?.querySelector('.label');
   const stopLabel = stopBtn?.querySelector('.label');
 
@@ -1302,7 +1302,7 @@ function renderStatus() {
     }
   }
 
-  if (runStatusBanner && runStatusBadge && runStatusText) {
+  if (runStatusBanner && runStatusBadge) {
     runStatusBanner.classList.remove('is-running', 'is-stopping', 'is-completed', 'is-stopped', 'is-failed');
     if (phase === 'running') runStatusBanner.classList.add('is-running');
     else if (phase === 'stopping') runStatusBanner.classList.add('is-stopping');
@@ -1310,14 +1310,7 @@ function renderStatus() {
     else if (phase === 'failed') runStatusBanner.classList.add('is-failed');
     else runStatusBanner.classList.add('is-stopped');
 
-    runStatusBadge.textContent =
-      phase === 'running' ? 'Running' :
-      phase === 'stopping' ? 'Stopping' :
-      phase === 'completed' ? 'Finished' :
-      phase === 'failed' ? 'Failed' :
-      phase === 'stopped' ? 'Stopped' :
-      'Idle';
-    runStatusText.textContent = uiExecutionState.detail || 'Script is not running.';
+    runStatusBadge.textContent = phase === 'running' ? 'Running' : 'Idle';
   }
 
   document.getElementById('statusBox').textContent =
@@ -1587,6 +1580,65 @@ function serializeSelectedCompoundBlock() {
     xml: Blockly.Xml.domToText(blockDom),
     blockType: String(selectedBlock.type || '')
   };
+}
+
+function serializeBlockForClipboard(block) {
+  if (!block) throw new Error('No block selected');
+  const blockDom = Blockly.Xml.blockToDom(block, true);
+  if (!blockDom) throw new Error('Could not serialize block');
+  blockDom.removeAttribute('x');
+  blockDom.removeAttribute('y');
+  return {
+    kind: 'braille-blockly-block',
+    xml: Blockly.Xml.domToText(blockDom),
+    blockType: String(block.type || '')
+  };
+}
+
+async function writeBlockClipboardPayload(payload) {
+  const text = JSON.stringify(payload);
+  localStorage.setItem(BLOCK_CLIPBOARD_STORAGE_KEY, text);
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    await navigator.clipboard.writeText(text);
+  }
+}
+
+function parseBlockClipboardPayload(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.kind === 'braille-blockly-block' && typeof parsed.xml === 'string') {
+      return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+async function readBlockClipboardPayload() {
+  let payload = null;
+  if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+    try {
+      payload = parseBlockClipboardPayload(await navigator.clipboard.readText());
+    } catch {}
+  }
+  if (payload) return payload;
+  return parseBlockClipboardPayload(localStorage.getItem(BLOCK_CLIPBOARD_STORAGE_KEY) || '');
+}
+
+async function copyBlocklyBlockToClipboard(block) {
+  const payload = serializeBlockForClipboard(block);
+  await writeBlockClipboardPayload(payload);
+  log(`Block copied to clipboard: ${payload.blockType || 'block'}`);
+}
+
+async function pasteBlocklyBlockFromClipboard() {
+  const payload = await readBlockClipboardPayload();
+  if (!payload?.xml) {
+    throw new Error('Clipboard does not contain a Blockly block');
+  }
+  insertCompoundBlockXml(payload.xml);
+  log(`Block pasted from clipboard: ${String(payload.blockType || 'block')}`);
 }
 
 function getCompoundInsertionPosition() {
@@ -2574,6 +2626,16 @@ function normalizeChordValue(value) {
     .join('');
 }
 
+function hasPersistentEventBlocks() {
+  if (!workspace) return false;
+  return workspace.getTopBlocks(true).some((block) => {
+    const type = String(block?.type || '').trim();
+    return type.startsWith('event_when_') &&
+      type !== 'event_when_started' &&
+      type !== 'event_when_program_ended';
+  });
+}
+
 async function runStartedProgram(generation) {
   const rt = getRuntime();
   if (!workspace) {
@@ -2589,7 +2651,14 @@ async function runStartedProgram(generation) {
   resetRunScopedVariables();
   await dispatchEvent({ type: 'started' }, generation);
   if (generation === runGeneration) {
-    await dispatchProgramEnded(generation, rt.stopped ? 'stopped' : 'completed');
+    if (rt.stopped) {
+      await dispatchProgramEnded(generation, 'stopped');
+    } else if (!hasPersistentEventBlocks()) {
+      await dispatchProgramEnded(generation, 'completed');
+    } else {
+      renderStatus();
+      log('Program remains active: waiting for events');
+    }
   }
   sendWs({ type: 'getBrailleLine' });
 }
@@ -3096,28 +3165,73 @@ function registerCompoundLibraryToolboxCategory() {
   });
 }
 
-function registerSaveToMyBlocksContextMenu() {
-  if (!Blockly?.BlockSvg?.prototype) return;
-  if (Blockly.BlockSvg.prototype.__myBlocksSavePatched) return;
-  const original = Blockly.BlockSvg.prototype.customContextMenu;
-  Blockly.BlockSvg.prototype.customContextMenu = function patchedCustomContextMenu(options) {
-    if (typeof original === 'function') {
-      original.call(this, options);
-    }
-    if (!Array.isArray(options) || this.isInFlyout) return;
-    options.push({
-      text: 'Save to My Blocks',
-      enabled: true,
-      callback: () => {
-        lastSelectedBlocklyBlockId = this.id;
-        void saveSelectedCompoundLibraryItem({ overwrite: true }).catch((err) => {
-          log('Save to My Blocks failed: ' + err.message);
-          alert('Could not save compound block: ' + err.message);
-        });
-      }
-    });
-  };
-  Blockly.BlockSvg.prototype.__myBlocksSavePatched = true;
+function unregisterContextMenuItem(id) {
+  const registry = Blockly?.ContextMenuRegistry?.registry;
+  if (!registry || typeof registry.getItem !== 'function' || typeof registry.unregister !== 'function') {
+    return;
+  }
+  if (registry.getItem(id)) {
+    registry.unregister(id);
+  }
+}
+
+function registerCustomContextMenuItems() {
+  const registry = Blockly?.ContextMenuRegistry?.registry;
+  const ScopeType = Blockly?.ContextMenuRegistry?.ScopeType;
+  if (!registry || !ScopeType || typeof registry.register !== 'function') return;
+
+  unregisterContextMenuItem('braille_copy_block_to_clipboard');
+  unregisterContextMenuItem('braille_save_to_my_blocks');
+  unregisterContextMenuItem('braille_paste_block_from_clipboard');
+
+  registry.register({
+    id: 'braille_copy_block_to_clipboard',
+    scopeType: ScopeType.BLOCK,
+    displayText: () => 'Copy Block to Clipboard',
+    preconditionFn: (scope) => {
+      const block = scope?.block;
+      return block && !block.isInFlyout ? 'enabled' : 'hidden';
+    },
+    callback: (scope) => {
+      void copyBlocklyBlockToClipboard(scope.block).catch((err) => {
+        log('Copy block failed: ' + err.message);
+        alert('Could not copy block: ' + err.message);
+      });
+    },
+    weight: 205,
+  });
+
+  registry.register({
+    id: 'braille_save_to_my_blocks',
+    scopeType: ScopeType.BLOCK,
+    displayText: () => 'Save to My Blocks',
+    preconditionFn: (scope) => {
+      const block = scope?.block;
+      return block && !block.isInFlyout ? 'enabled' : 'hidden';
+    },
+    callback: (scope) => {
+      lastSelectedBlocklyBlockId = String(scope?.block?.id || '');
+      void saveSelectedCompoundLibraryItem({ overwrite: true }).catch((err) => {
+        log('Save to My Blocks failed: ' + err.message);
+        alert('Could not save compound block: ' + err.message);
+      });
+    },
+    weight: 206,
+  });
+
+  registry.register({
+    id: 'braille_paste_block_from_clipboard',
+    scopeType: ScopeType.WORKSPACE,
+    displayText: () => 'Paste Block from Clipboard',
+    preconditionFn: () => 'enabled',
+    callback: () => {
+      void pasteBlocklyBlockFromClipboard().catch((err) => {
+        log('Paste block failed: ' + err.message);
+        alert('Could not paste block: ' + err.message);
+      });
+    },
+    weight: 205,
+  });
 }
 
 function registerMyBlocksFlyoutContextMenu() {
@@ -3168,7 +3282,7 @@ async function preloadLessonToolboxPlaceholders() {
 preloadLessonToolboxPlaceholders();
 ensureProcedureToolboxCategory();
 verifyProcedureBlocksAvailable();
-registerSaveToMyBlocksContextMenu();
+registerCustomContextMenuItems();
 
 setBootStage('before-workspace-inject');
 workspace = Blockly.inject('blocklyDiv', {
@@ -3401,7 +3515,7 @@ function toList(v) {
 }
 
 function toListIndex(v, listLength) {
-  const i = Math.floor(toNumber(v)) - 1; // 1-based index for teacher-friendly blocks
+  const i = Math.floor(toNumber(v)); // 0-based index: 0 points to the first list item
   if (!Number.isFinite(i)) return -1;
   if (i < 0 || i >= listLength) return -1;
   return i;
@@ -5149,6 +5263,10 @@ async function dispatchEvent(event, generation = runGeneration) {
       if (first) await executeChain(first, generation);
     }
   }
+
+  if (generation === runGeneration && getRuntime().stopped) {
+    await dispatchProgramEnded(generation, 'completed');
+  }
 }
 
 /* ---------------- File actions ---------------- */
@@ -5624,7 +5742,11 @@ window.BrailleBlocklyApp = {
     refreshProcedureRegistry(workspace);
     await dispatchEvent({ type: 'started' }, generation);
     if (generation === runGeneration) {
-      await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
+      if (getRuntime().stopped) {
+        await dispatchProgramEnded(generation, 'stopped');
+      } else if (!hasPersistentEventBlocks()) {
+        await dispatchProgramEnded(generation, 'completed');
+      }
     }
     return generation;
   },

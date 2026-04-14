@@ -1,4 +1,4 @@
-STORY
+STORY x
 de computer leest een verhaal voor. <audio.mp3>
 
 WOORD

@@ -1030,7 +1030,7 @@
 
   Blockly.Blocks['list_get_item'] = {
     init() {
-      this.appendValueInput('INDEX').appendField('haal item');
+      this.appendValueInput('INDEX').appendField('haal item op index (0 = eerste)');
       this.appendValueInput('LIST').appendField('uit lijst');
       this.setOutput(true);
       this.setColour('#F97316');
@@ -1039,7 +1039,7 @@
 
   Blockly.Blocks['list_set_item'] = {
     init() {
-      this.appendValueInput('INDEX').appendField('zet item');
+      this.appendValueInput('INDEX').appendField('zet item op index (0 = eerste)');
       this.appendValueInput('LIST').appendField('in lijst');
       this.appendValueInput('VALUE').appendField('naar');
       this.setPreviousStatement(true);
@@ -1109,7 +1109,7 @@
 
   Blockly.Blocks['list_remove_item'] = {
     init() {
-      this.appendValueInput('INDEX').appendField('verwijder item');
+      this.appendValueInput('INDEX').appendField('verwijder item op index (0 = eerste)');
       this.appendValueInput('LIST').appendField('uit lijst');
       this.setPreviousStatement(true);
       this.setNextStatement(true);
