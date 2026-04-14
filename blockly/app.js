@@ -21,6 +21,7 @@ const FONEMEN_NL_JSON_URLS = [
   './klanken/fonemen_nl_standaard.json'
 ];
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+const COMPOUND_LIBRARY_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/blockly-library';
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
@@ -429,6 +430,17 @@ async function refreshOnlineScriptsIfAuthenticated(reason = 'state-change') {
   }
 }
 
+async function refreshCompoundLibraryIfAuthenticated(reason = 'state-change') {
+  const token = getValidElevenLabsAuthToken();
+  if (!token) return;
+  try {
+    log(`Refreshing compound library (${reason})`);
+    await refreshCompoundLibrary();
+  } catch (err) {
+    log(`Compound library refresh failed (${reason}): ${err.message}`);
+  }
+}
+
 function buildHomepageAuthUrl(returnTo = window.location.href) {
   const url = new URL(AUTH_LOGIN_PAGE_URL);
   const target = String(returnTo || '').trim();
@@ -455,6 +467,12 @@ async function loginElevenLabsAuth() {
       await refreshOnlineScripts();
     } catch (refreshErr) {
       log(`Online scripts refresh after authentication failed: ${refreshErr?.message || refreshErr}`);
+    }
+    try {
+      log('Refreshing compound library after authentication');
+      await refreshCompoundLibrary();
+    } catch (refreshErr) {
+      log(`Compound library refresh after authentication failed: ${refreshErr?.message || refreshErr}`);
     }
   } catch (err) {
     renderElevenLabsAuthStatus(`Authentication failed: ${err.message}`);
@@ -1155,6 +1173,8 @@ let lastSavedOnlineScriptTitle = '';
 let lastSavedOnlineScriptStatus = 'draft';
 let suppressDirtyTracking = 0;
 let currentOnlineScriptId = '';
+let currentCompoundLibraryId = '';
+let currentCompoundLibraryItems = [];
 let runtimeKeyboardListenerAttached = false;
 
 function shouldIgnoreRuntimeKeyboardEvent(event) {
@@ -1356,7 +1376,11 @@ function getOnlineApiBases() {
   return [...new Set([ONLINE_SCRIPT_API_BASE])];
 }
 
-async function onlineApiFetchJson(path, options = {}) {
+function getCompoundLibraryApiBases() {
+  return [...new Set([COMPOUND_LIBRARY_API_BASE])];
+}
+
+async function apiFetchJsonFromBases(bases, path, options = {}, logLabel = 'API') {
   const method = String(options.method || 'GET').toUpperCase();
   const requestOptions = {
     ...(options || {}),
@@ -1364,10 +1388,10 @@ async function onlineApiFetchJson(path, options = {}) {
   };
   let lastError = null;
 
-  for (const base of getOnlineApiBases()) {
+  for (const base of bases) {
     const url = `${base}${path}`;
     try {
-      log(`Online API -> ${method} ${url}`);
+      log(`${logLabel} -> ${method} ${url}`);
       const res = await fetch(url, requestOptions);
       const raw = await res.text();
       let data = null;
@@ -1380,15 +1404,23 @@ async function onlineApiFetchJson(path, options = {}) {
         const msg = data && data.error ? data.error : `HTTP ${res.status}`;
         throw new Error(`${msg} (${method} ${url})`);
       }
-      log(`Online API <- ${res.status} ${method} ${url}`);
+      log(`${logLabel} <- ${res.status} ${method} ${url}`);
       return data;
     } catch (err) {
-      log(`Online API failed: ${method} ${url} :: ${err.message}`);
+      log(`${logLabel} failed: ${method} ${url} :: ${err.message}`);
       lastError = err;
     }
   }
 
-  throw lastError || new Error(`Online API failed for ${method} ${path}`);
+  throw lastError || new Error(`${logLabel} failed for ${method} ${path}`);
+}
+
+async function onlineApiFetchJson(path, options = {}) {
+  return apiFetchJsonFromBases(getOnlineApiBases(), path, options, 'Online API');
+}
+
+async function compoundLibraryApiFetchJson(path, options = {}) {
+  return apiFetchJsonFromBases(getCompoundLibraryApiBases(), path, options, 'Compound Library API');
 }
 
 function readOnlineScriptInputs() {
@@ -1497,6 +1529,211 @@ async function refreshOnlineScripts() {
   renderOnlineScriptsSelect(items);
   log(`Online scripts refreshed (${items.length})`);
   return items;
+}
+
+function readCompoundLibraryInputs() {
+  const idInput = document.getElementById('compoundLibraryIdInput');
+  const titleInput = document.getElementById('compoundLibraryTitleInput');
+  return {
+    id: String(idInput?.value || '').trim(),
+    title: String(titleInput?.value || '').trim()
+  };
+}
+
+function resolveCompoundLibraryId() {
+  const select = document.getElementById('compoundLibrarySelect');
+  const inputId = String(document.getElementById('compoundLibraryIdInput')?.value || '').trim();
+  const currentId = String(currentCompoundLibraryId || '').trim();
+  const selectedId = String(select?.value || '').trim();
+  return inputId || currentId || selectedId || '';
+}
+
+function setCompoundLibraryInputs({ id = '', title = '' } = {}) {
+  const idInput = document.getElementById('compoundLibraryIdInput');
+  const titleInput = document.getElementById('compoundLibraryTitleInput');
+  if (idInput) idInput.value = String(id || '');
+  if (titleInput) titleInput.value = String(title || '');
+}
+
+function setCurrentCompoundLibraryItem({ id = '', title = '' } = {}) {
+  currentCompoundLibraryId = String(id || '').trim();
+  setCompoundLibraryInputs({
+    id: currentCompoundLibraryId,
+    title: String(title || '').trim()
+  });
+}
+
+function renderCompoundLibrarySelect(items) {
+  const select = document.getElementById('compoundLibrarySelect');
+  if (!select) return;
+  const normalized = Array.isArray(items) ? items : [];
+  currentCompoundLibraryItems = normalized;
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '-- Select compound block --';
+  select.appendChild(placeholder);
+
+  for (const item of normalized) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const title = String(item?.title || '').trim();
+    const option = document.createElement('option');
+    option.value = id;
+    option.dataset.title = title;
+    option.textContent = title ? `${id} - ${title}` : id;
+    select.appendChild(option);
+  }
+
+  if (currentCompoundLibraryId) {
+    select.value = currentCompoundLibraryId;
+  }
+  refreshCompoundLibraryToolboxCategory();
+}
+
+async function listCompoundLibraryItems() {
+  log('Compound library: listing');
+  const data = await compoundLibraryApiFetchJson(`/list.php?_=${Date.now()}`);
+  const count = Array.isArray(data?.items) ? data.items.length : 0;
+  log(`Compound library: list received (${count})`);
+  return Array.isArray(data?.items) ? data.items : [];
+}
+
+async function refreshCompoundLibrary() {
+  const items = await listCompoundLibraryItems();
+  renderCompoundLibrarySelect(items);
+  log(`Compound library refreshed (${items.length})`);
+  return items;
+}
+
+function getSelectedBlocklyBlock() {
+  const selected = typeof Blockly.getSelected === 'function' ? Blockly.getSelected() : Blockly.selected;
+  if (selected && typeof selected.getRootBlock === 'function') {
+    return selected;
+  }
+  return null;
+}
+
+function serializeSelectedCompoundBlock() {
+  if (!workspace) throw new Error('Blockly workspace is not ready');
+  const selectedBlock = getSelectedBlocklyBlock();
+  if (!selectedBlock) throw new Error('Select a block first');
+  const blockDom = Blockly.Xml.blockToDom(selectedBlock, true);
+  if (!blockDom) throw new Error('Could not serialize selected block');
+  blockDom.removeAttribute('x');
+  blockDom.removeAttribute('y');
+  return {
+    xml: Blockly.Xml.domToText(blockDom),
+    blockType: String(selectedBlock.type || '')
+  };
+}
+
+function getCompoundInsertionPosition() {
+  const metrics = typeof workspace?.getMetrics === 'function' ? workspace.getMetrics() : null;
+  return {
+    x: Math.round(Number(metrics?.viewLeft ?? 0) + 40),
+    y: Math.round(Number(metrics?.viewTop ?? 0) + 40)
+  };
+}
+
+function insertCompoundBlockXml(xmlText) {
+  if (!workspace) throw new Error('Blockly workspace is not ready');
+  const source = String(xmlText || '').trim();
+  if (!source) throw new Error('Compound block XML is empty');
+  const xmlDom = Blockly.utils.xml.textToDom(source);
+  const blockDom = xmlDom && String(xmlDom.nodeName || '').toLowerCase() === 'block'
+    ? xmlDom
+    : xmlDom?.querySelector?.('block');
+  if (!blockDom) throw new Error('Invalid compound block XML');
+  const { x, y } = getCompoundInsertionPosition();
+  blockDom.setAttribute('x', String(x));
+  blockDom.setAttribute('y', String(y));
+  patchVariableFieldIds(blockDom);
+  let inserted = null;
+  if (typeof Blockly.Xml.domToBlock === 'function') {
+    inserted = Blockly.Xml.domToBlock(blockDom, workspace);
+  } else {
+    const wrapper = Blockly.utils.xml.createElement('xml');
+    wrapper.appendChild(blockDom);
+    const beforeIds = new Set(workspace.getAllBlocks(false).map((block) => block.id));
+    Blockly.Xml.domToWorkspace(wrapper, workspace);
+    inserted = workspace.getAllBlocks(false).find((block) => !beforeIds.has(block.id)) || null;
+  }
+  if (!inserted) throw new Error('Could not insert compound block');
+  if (typeof inserted?.select === 'function') inserted.select();
+  return inserted;
+}
+
+async function saveSelectedCompoundLibraryItem({ overwrite = true } = {}) {
+  const inputs = readCompoundLibraryInputs();
+  let id = String(inputs.id || '').trim();
+  const title = String(inputs.title || '').trim();
+  if (!id) {
+    id = resolveCompoundLibraryId();
+  }
+  if (!id) {
+    const entered = prompt('Compound block id is required. Enter compound id:', '');
+    if (!entered) throw new Error('Compound block id is required');
+    id = String(entered).trim();
+  }
+  if (!id) throw new Error('Compound block id is required');
+
+  const snippet = serializeSelectedCompoundBlock();
+  const payload = {
+    id,
+    title: title || id,
+    overwrite: !!overwrite,
+    snippet,
+    meta: {
+      title: title || id,
+      rootType: snippet.blockType || '',
+      kind: 'compound-block'
+    }
+  };
+  const data = await compoundLibraryApiFetchJson('/save.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  setCurrentCompoundLibraryItem({ id: data?.id || id, title: payload.title });
+  await refreshCompoundLibrary();
+  log(`Compound block saved: ${data?.id || id}`);
+  return data;
+}
+
+async function loadCompoundLibraryItem(id) {
+  const normalizedId = String(id || '').trim();
+  if (!normalizedId) throw new Error('Compound block id is required');
+  return compoundLibraryApiFetchJson(`/load.php?id=${encodeURIComponent(normalizedId)}`);
+}
+
+async function insertCompoundLibraryItem(id) {
+  const data = await loadCompoundLibraryItem(id);
+  const snippetXml = String(data?.snippet?.xml || '').trim();
+  if (!snippetXml) throw new Error('Stored compound block is empty');
+  insertCompoundBlockXml(snippetXml);
+  setCurrentCompoundLibraryItem({
+    id: data?.id || id,
+    title: String(data?.title || data?.meta?.title || id).trim()
+  });
+  log(`Compound block inserted: ${data?.id || id}`);
+  return data;
+}
+
+async function deleteCompoundLibraryItem(id) {
+  const normalizedId = String(id || '').trim();
+  if (!normalizedId) throw new Error('Compound block id is required');
+  const data = await compoundLibraryApiFetchJson('/delete.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: normalizedId })
+  });
+  if (currentCompoundLibraryId === normalizedId) {
+    setCurrentCompoundLibraryItem({ id: '', title: '' });
+  }
+  await refreshCompoundLibrary();
+  log(`Compound block deleted: ${normalizedId}`);
+  return data;
 }
 
 async function saveWorkspaceOnline({ overwrite = true } = {}) {
@@ -2546,6 +2783,53 @@ function bindAppControls() {
       alert('Could not delete online script: ' + err.message);
     }
   });
+  bind('compoundLibraryRefreshBtn', 'click', async () => {
+    try {
+      await refreshCompoundLibrary();
+    } catch (err) {
+      log('Compound library refresh failed: ' + err.message);
+      alert('Could not refresh compound library: ' + err.message);
+    }
+  });
+  bind('compoundLibrarySaveBtn', 'click', async () => {
+    try {
+      await saveSelectedCompoundLibraryItem({ overwrite: true });
+    } catch (err) {
+      log('Compound library save failed: ' + err.message);
+      alert('Could not save compound block: ' + err.message);
+    }
+  });
+  bind('compoundLibraryInsertBtn', 'click', async () => {
+    const idInput = document.getElementById('compoundLibraryIdInput');
+    const select = document.getElementById('compoundLibrarySelect');
+    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentCompoundLibraryId;
+    if (!id) {
+      alert('Select or enter a compound block id first.');
+      return;
+    }
+    try {
+      await insertCompoundLibraryItem(id);
+    } catch (err) {
+      log('Compound library insert failed: ' + err.message);
+      alert('Could not insert compound block: ' + err.message);
+    }
+  });
+  bind('compoundLibraryDeleteBtn', 'click', async () => {
+    const idInput = document.getElementById('compoundLibraryIdInput');
+    const select = document.getElementById('compoundLibrarySelect');
+    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentCompoundLibraryId;
+    if (!id) {
+      alert('Select or enter a compound block id first.');
+      return;
+    }
+    if (!confirm(`Delete compound block "${id}"?`)) return;
+    try {
+      await deleteCompoundLibraryItem(id);
+    } catch (err) {
+      log('Compound library delete failed: ' + err.message);
+      alert('Could not delete compound block: ' + err.message);
+    }
+  });
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -2716,6 +3000,19 @@ function bindAppControls() {
     });
     onlineSelect.dataset.initialized = '1';
   }
+
+  const compoundLibrarySelect = document.getElementById('compoundLibrarySelect');
+  if (compoundLibrarySelect && !compoundLibrarySelect.dataset.initialized) {
+    compoundLibrarySelect.addEventListener('change', () => {
+      const selectedId = String(compoundLibrarySelect.value || '').trim();
+      const selectedOption = compoundLibrarySelect.selectedOptions && compoundLibrarySelect.selectedOptions[0]
+        ? compoundLibrarySelect.selectedOptions[0]
+        : null;
+      const selectedTitle = String(selectedOption?.dataset?.title || '').trim();
+      setCurrentCompoundLibraryItem({ id: selectedId, title: selectedTitle });
+    });
+    compoundLibrarySelect.dataset.initialized = '1';
+  }
 }
 
 bindWsControls();
@@ -2833,6 +3130,57 @@ function refreshProcedureRegistry(source = workspace) {
   registerProcedures(source, runtime);
 }
 
+function refreshCompoundLibraryToolboxCategory() {
+  const toolbox = typeof workspace?.getToolbox === 'function' ? workspace.getToolbox() : null;
+  if (toolbox && typeof toolbox.refreshSelection === 'function') {
+    toolbox.refreshSelection();
+  }
+}
+
+function createToolboxElement(tagName, attributes = {}) {
+  const element = Blockly.utils.xml.createElement(tagName);
+  Object.entries(attributes).forEach(([key, value]) => {
+    if (value == null) return;
+    element.setAttribute(key, String(value));
+  });
+  return element;
+}
+
+function registerCompoundLibraryToolboxCategory() {
+  if (!workspace || typeof workspace.registerToolboxCategoryCallback !== 'function') return;
+  workspace.registerToolboxCategoryCallback('MY_BLOCKS_LIBRARY', () => {
+    const xmlItems = [];
+    if (!Array.isArray(currentCompoundLibraryItems) || currentCompoundLibraryItems.length === 0) {
+      xmlItems.push(createToolboxElement('label', { text: 'No saved compound blocks yet' }));
+      xmlItems.push(createToolboxElement('label', { text: 'Select a block and use Save Selection' }));
+      return xmlItems;
+    }
+
+    currentCompoundLibraryItems.forEach((item) => {
+      const id = String(item?.id || '').trim();
+      if (!id) return;
+      const title = String(item?.title || '').trim();
+      const callbackKey = `compound_library_insert_${id}`;
+      if (typeof workspace.registerButtonCallback === 'function') {
+        workspace.registerButtonCallback(callbackKey, () => {
+          void insertCompoundLibraryItem(id).catch((err) => {
+            log(`Compound toolbox insert failed: ${err.message}`);
+            alert('Could not insert compound block: ' + err.message);
+          });
+        });
+      }
+      xmlItems.push(createToolboxElement('button', {
+        text: title ? `${title}` : id,
+        callbackKey
+      }));
+      xmlItems.push(createToolboxElement('label', {
+        text: title ? id : ''
+      }));
+    });
+    return xmlItems;
+  });
+}
+
 async function preloadLessonToolboxPlaceholders() {
   try {
     const res = await fetch(DEFAULT_LESSON_DATA_URL, { cache: 'no-store' });
@@ -2879,6 +3227,7 @@ workspace = Blockly.inject('blocklyDiv', {
     snap: true
   }
 });
+registerCompoundLibraryToolboxCategory();
 setBootStage('workspace-injected');
 
 applyGridSnap(localStorage.getItem(BLOCKLY_GRID_SNAP_KEY) !== 'false');
@@ -2946,19 +3295,21 @@ initVariableValues();
 setBootStage('workspace-ready');
 
 setTimeout(() => {
-  const token = getElevenLabsAuthToken();
+  const token = getValidElevenLabsAuthToken();
   log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
-  refreshOnlineScripts().catch((err) => {
-    log(`Online scripts startup failed: ${err?.message || err}`);
-  });
+  if (!token) return;
+  void refreshOnlineScriptsIfAuthenticated('startup');
+  void refreshCompoundLibraryIfAuthenticated('startup');
 }, 0);
 
 window.addEventListener('pageshow', () => {
-  void refreshOnlineScripts().catch(() => {});
+  void refreshOnlineScriptsIfAuthenticated('pageshow');
+  void refreshCompoundLibraryIfAuthenticated('pageshow');
 });
 
 window.addEventListener('focus', () => {
-  void refreshOnlineScripts().catch(() => {});
+  void refreshOnlineScriptsIfAuthenticated('focus');
+  void refreshCompoundLibraryIfAuthenticated('focus');
 });
 
 function getVariableIdFromBlock(block) {
