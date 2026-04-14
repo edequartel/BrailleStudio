@@ -1175,6 +1175,7 @@ let suppressDirtyTracking = 0;
 let currentOnlineScriptId = '';
 let currentCompoundLibraryId = '';
 let currentCompoundLibraryItems = [];
+let lastSelectedBlocklyBlockId = '';
 let runtimeKeyboardListenerAttached = false;
 
 function shouldIgnoreRuntimeKeyboardEvent(event) {
@@ -1531,36 +1532,19 @@ async function refreshOnlineScripts() {
   return items;
 }
 
-function readCompoundLibraryInputs() {
-  const idInput = document.getElementById('compoundLibraryIdInput');
-  const titleInput = document.getElementById('compoundLibraryTitleInput');
-  return {
-    id: String(idInput?.value || '').trim(),
-    title: String(titleInput?.value || '').trim()
-  };
-}
-
 function resolveCompoundLibraryId() {
   const select = document.getElementById('compoundLibrarySelect');
-  const inputId = String(document.getElementById('compoundLibraryIdInput')?.value || '').trim();
   const currentId = String(currentCompoundLibraryId || '').trim();
   const selectedId = String(select?.value || '').trim();
-  return inputId || currentId || selectedId || '';
-}
-
-function setCompoundLibraryInputs({ id = '', title = '' } = {}) {
-  const idInput = document.getElementById('compoundLibraryIdInput');
-  const titleInput = document.getElementById('compoundLibraryTitleInput');
-  if (idInput) idInput.value = String(id || '');
-  if (titleInput) titleInput.value = String(title || '');
+  return currentId || selectedId || '';
 }
 
 function setCurrentCompoundLibraryItem({ id = '', title = '' } = {}) {
   currentCompoundLibraryId = String(id || '').trim();
-  setCompoundLibraryInputs({
-    id: currentCompoundLibraryId,
-    title: String(title || '').trim()
-  });
+  const select = document.getElementById('compoundLibrarySelect');
+  if (select && currentCompoundLibraryId) {
+    select.value = currentCompoundLibraryId;
+  }
 }
 
 function renderCompoundLibrarySelect(items) {
@@ -1611,13 +1595,21 @@ function getSelectedBlocklyBlock() {
   if (selected && typeof selected.getRootBlock === 'function') {
     return selected;
   }
+  if (lastSelectedBlocklyBlockId && workspace) {
+    const byId = workspace.getBlockById(lastSelectedBlocklyBlockId);
+    if (byId) return byId;
+  }
+  const topBlocks = Array.isArray(workspace?.getTopBlocks?.(false)) ? workspace.getTopBlocks(false) : [];
+  if (topBlocks.length === 1) {
+    return topBlocks[0];
+  }
   return null;
 }
 
 function serializeSelectedCompoundBlock() {
   if (!workspace) throw new Error('Blockly workspace is not ready');
   const selectedBlock = getSelectedBlocklyBlock();
-  if (!selectedBlock) throw new Error('Select a block first');
+  if (!selectedBlock) throw new Error('Click a block first so it can be saved to My Blocks');
   const blockDom = Blockly.Xml.blockToDom(selectedBlock, true);
   if (!blockDom) throw new Error('Could not serialize selected block');
   blockDom.removeAttribute('x');
@@ -1664,28 +1656,42 @@ function insertCompoundBlockXml(xmlText) {
   return inserted;
 }
 
-async function saveSelectedCompoundLibraryItem({ overwrite = true } = {}) {
-  const inputs = readCompoundLibraryInputs();
-  let id = String(inputs.id || '').trim();
-  const title = String(inputs.title || '').trim();
-  if (!id) {
-    id = resolveCompoundLibraryId();
-  }
-  if (!id) {
-    const entered = prompt('Compound block id is required. Enter compound id:', '');
-    if (!entered) throw new Error('Compound block id is required');
-    id = String(entered).trim();
-  }
-  if (!id) throw new Error('Compound block id is required');
+function makeCompoundLibraryId(title, blockType) {
+  const base = String(title || blockType || 'my-block')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'my-block';
+  const suffix = Date.now().toString(36);
+  return `${base}-${suffix}`;
+}
 
+function defaultCompoundLibraryTitle(block) {
+  const raw = String(block?.type || 'My Block');
+  return raw
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+async function saveSelectedCompoundLibraryItem({ overwrite = true } = {}) {
+  const selectedBlock = getSelectedBlocklyBlock();
+  if (!selectedBlock) {
+    throw new Error('Click a block first so it can be saved to My Blocks');
+  }
+  const suggestedTitle = defaultCompoundLibraryTitle(selectedBlock);
+  const enteredTitle = prompt('Name for this My Block:', suggestedTitle);
+  if (enteredTitle == null) return false;
+  const title = String(enteredTitle).trim() || suggestedTitle;
+  const id = makeCompoundLibraryId(title, selectedBlock.type);
   const snippet = serializeSelectedCompoundBlock();
   const payload = {
     id,
-    title: title || id,
+    title,
     overwrite: !!overwrite,
     snippet,
     meta: {
-      title: title || id,
+      title,
       rootType: snippet.blockType || '',
       kind: 'compound-block'
     }
@@ -1695,7 +1701,7 @@ async function saveSelectedCompoundLibraryItem({ overwrite = true } = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  setCurrentCompoundLibraryItem({ id: data?.id || id, title: payload.title });
+  setCurrentCompoundLibraryItem({ id: data?.id || id, title });
   await refreshCompoundLibrary();
   log(`Compound block saved: ${data?.id || id}`);
   return data;
@@ -2799,27 +2805,11 @@ function bindAppControls() {
       alert('Could not save compound block: ' + err.message);
     }
   });
-  bind('compoundLibraryInsertBtn', 'click', async () => {
-    const idInput = document.getElementById('compoundLibraryIdInput');
-    const select = document.getElementById('compoundLibrarySelect');
-    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentCompoundLibraryId;
-    if (!id) {
-      alert('Select or enter a compound block id first.');
-      return;
-    }
-    try {
-      await insertCompoundLibraryItem(id);
-    } catch (err) {
-      log('Compound library insert failed: ' + err.message);
-      alert('Could not insert compound block: ' + err.message);
-    }
-  });
   bind('compoundLibraryDeleteBtn', 'click', async () => {
-    const idInput = document.getElementById('compoundLibraryIdInput');
     const select = document.getElementById('compoundLibrarySelect');
-    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentCompoundLibraryId;
+    const id = String(select?.value || '').trim() || currentCompoundLibraryId;
     if (!id) {
-      alert('Select or enter a compound block id first.');
+      alert('Select a compound block first.');
       return;
     }
     if (!confirm(`Delete compound block "${id}"?`)) return;
@@ -3288,6 +3278,17 @@ workspace.addChangeListener(() => {
   refreshProcedureRegistry(workspace);
   initVariableValues();
   refreshWorkspaceDirtyState();
+});
+
+workspace.addChangeListener((event) => {
+  if (!event || event.isUiEvent !== true) return;
+  if (event.type !== Blockly.Events.SELECTED) return;
+  const newElementId = String(event.newElementId || '').trim();
+  if (!newElementId) return;
+  const block = workspace.getBlockById(newElementId);
+  if (block) {
+    lastSelectedBlocklyBlockId = block.id;
+  }
 });
 
 ensureDefaultVariable();
