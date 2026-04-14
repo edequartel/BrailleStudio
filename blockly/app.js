@@ -21,7 +21,10 @@ const FONEMEN_NL_JSON_URLS = [
   './klanken/fonemen_nl_standaard.json'
 ];
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
-const COMPOUND_LIBRARY_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/blockly-library';
+const COMPOUND_LIBRARY_API_BASES = [
+  'https://www.tastenbraille.com/braillestudio/api/blockly-library',
+  'https://www.tastenbraille.com/braillestudio/blockly-library'
+];
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
@@ -1173,7 +1176,6 @@ let lastSavedOnlineScriptTitle = '';
 let lastSavedOnlineScriptStatus = 'draft';
 let suppressDirtyTracking = 0;
 let currentOnlineScriptId = '';
-let currentCompoundLibraryId = '';
 let currentCompoundLibraryItems = [];
 let lastSelectedBlocklyBlockId = '';
 let runtimeKeyboardListenerAttached = false;
@@ -1378,7 +1380,11 @@ function getOnlineApiBases() {
 }
 
 function getCompoundLibraryApiBases() {
-  return [...new Set([COMPOUND_LIBRARY_API_BASE])];
+  const dynamicCandidates = [
+    new URL('../api/blockly-library', window.location.href).toString().replace(/\/$/, ''),
+    new URL('../blockly-library', window.location.href).toString().replace(/\/$/, '')
+  ];
+  return [...new Set([...dynamicCandidates, ...COMPOUND_LIBRARY_API_BASES])];
 }
 
 async function apiFetchJsonFromBases(bases, path, options = {}, logLabel = 'API') {
@@ -1532,46 +1538,9 @@ async function refreshOnlineScripts() {
   return items;
 }
 
-function resolveCompoundLibraryId() {
-  const select = document.getElementById('compoundLibrarySelect');
-  const currentId = String(currentCompoundLibraryId || '').trim();
-  const selectedId = String(select?.value || '').trim();
-  return currentId || selectedId || '';
-}
-
-function setCurrentCompoundLibraryItem({ id = '', title = '' } = {}) {
-  currentCompoundLibraryId = String(id || '').trim();
-  const select = document.getElementById('compoundLibrarySelect');
-  if (select && currentCompoundLibraryId) {
-    select.value = currentCompoundLibraryId;
-  }
-}
-
 function renderCompoundLibrarySelect(items) {
-  const select = document.getElementById('compoundLibrarySelect');
-  if (!select) return;
   const normalized = Array.isArray(items) ? items : [];
   currentCompoundLibraryItems = normalized;
-  select.innerHTML = '';
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = '-- Select compound block --';
-  select.appendChild(placeholder);
-
-  for (const item of normalized) {
-    const id = String(item?.id || '').trim();
-    if (!id) continue;
-    const title = String(item?.title || '').trim();
-    const option = document.createElement('option');
-    option.value = id;
-    option.dataset.title = title;
-    option.textContent = title ? `${id} - ${title}` : id;
-    select.appendChild(option);
-  }
-
-  if (currentCompoundLibraryId) {
-    select.value = currentCompoundLibraryId;
-  }
   refreshCompoundLibraryToolboxCategory();
 }
 
@@ -1701,7 +1670,6 @@ async function saveSelectedCompoundLibraryItem({ overwrite = true } = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
-  setCurrentCompoundLibraryItem({ id: data?.id || id, title });
   await refreshCompoundLibrary();
   log(`Compound block saved: ${data?.id || id}`);
   return data;
@@ -1718,10 +1686,6 @@ async function insertCompoundLibraryItem(id) {
   const snippetXml = String(data?.snippet?.xml || '').trim();
   if (!snippetXml) throw new Error('Stored compound block is empty');
   insertCompoundBlockXml(snippetXml);
-  setCurrentCompoundLibraryItem({
-    id: data?.id || id,
-    title: String(data?.title || data?.meta?.title || id).trim()
-  });
   log(`Compound block inserted: ${data?.id || id}`);
   return data;
 }
@@ -1734,9 +1698,6 @@ async function deleteCompoundLibraryItem(id) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id: normalizedId })
   });
-  if (currentCompoundLibraryId === normalizedId) {
-    setCurrentCompoundLibraryItem({ id: '', title: '' });
-  }
   await refreshCompoundLibrary();
   log(`Compound block deleted: ${normalizedId}`);
   return data;
@@ -2789,37 +2750,6 @@ function bindAppControls() {
       alert('Could not delete online script: ' + err.message);
     }
   });
-  bind('compoundLibraryRefreshBtn', 'click', async () => {
-    try {
-      await refreshCompoundLibrary();
-    } catch (err) {
-      log('Compound library refresh failed: ' + err.message);
-      alert('Could not refresh compound library: ' + err.message);
-    }
-  });
-  bind('compoundLibrarySaveBtn', 'click', async () => {
-    try {
-      await saveSelectedCompoundLibraryItem({ overwrite: true });
-    } catch (err) {
-      log('Compound library save failed: ' + err.message);
-      alert('Could not save compound block: ' + err.message);
-    }
-  });
-  bind('compoundLibraryDeleteBtn', 'click', async () => {
-    const select = document.getElementById('compoundLibrarySelect');
-    const id = String(select?.value || '').trim() || currentCompoundLibraryId;
-    if (!id) {
-      alert('Select a compound block first.');
-      return;
-    }
-    if (!confirm(`Delete compound block "${id}"?`)) return;
-    try {
-      await deleteCompoundLibraryItem(id);
-    } catch (err) {
-      log('Compound library delete failed: ' + err.message);
-      alert('Could not delete compound block: ' + err.message);
-    }
-  });
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -2991,18 +2921,6 @@ function bindAppControls() {
     onlineSelect.dataset.initialized = '1';
   }
 
-  const compoundLibrarySelect = document.getElementById('compoundLibrarySelect');
-  if (compoundLibrarySelect && !compoundLibrarySelect.dataset.initialized) {
-    compoundLibrarySelect.addEventListener('change', () => {
-      const selectedId = String(compoundLibrarySelect.value || '').trim();
-      const selectedOption = compoundLibrarySelect.selectedOptions && compoundLibrarySelect.selectedOptions[0]
-        ? compoundLibrarySelect.selectedOptions[0]
-        : null;
-      const selectedTitle = String(selectedOption?.dataset?.title || '').trim();
-      setCurrentCompoundLibraryItem({ id: selectedId, title: selectedTitle });
-    });
-    compoundLibrarySelect.dataset.initialized = '1';
-  }
 }
 
 bindWsControls();
@@ -3127,6 +3045,16 @@ function refreshCompoundLibraryToolboxCategory() {
   }
 }
 
+function findCompoundLibraryItemByDisplayText(text) {
+  const value = String(text || '').trim();
+  if (!value) return null;
+  return currentCompoundLibraryItems.find((item) => {
+    const title = String(item?.title || '').trim();
+    const id = String(item?.id || '').trim();
+    return value === title || value === id;
+  }) || null;
+}
+
 function createToolboxElement(tagName, attributes = {}) {
   const element = Blockly.utils.xml.createElement(tagName);
   Object.entries(attributes).forEach(([key, value]) => {
@@ -3163,12 +3091,57 @@ function registerCompoundLibraryToolboxCategory() {
         text: title ? `${title}` : id,
         callbackKey
       }));
-      xmlItems.push(createToolboxElement('label', {
-        text: title ? id : ''
-      }));
     });
     return xmlItems;
   });
+}
+
+function registerSaveToMyBlocksContextMenu() {
+  if (!Blockly?.BlockSvg?.prototype) return;
+  if (Blockly.BlockSvg.prototype.__myBlocksSavePatched) return;
+  const original = Blockly.BlockSvg.prototype.customContextMenu;
+  Blockly.BlockSvg.prototype.customContextMenu = function patchedCustomContextMenu(options) {
+    if (typeof original === 'function') {
+      original.call(this, options);
+    }
+    if (!Array.isArray(options) || this.isInFlyout) return;
+    options.push({
+      text: 'Save to My Blocks',
+      enabled: true,
+      callback: () => {
+        lastSelectedBlocklyBlockId = this.id;
+        void saveSelectedCompoundLibraryItem({ overwrite: true }).catch((err) => {
+          log('Save to My Blocks failed: ' + err.message);
+          alert('Could not save compound block: ' + err.message);
+        });
+      }
+    });
+  };
+  Blockly.BlockSvg.prototype.__myBlocksSavePatched = true;
+}
+
+function registerMyBlocksFlyoutContextMenu() {
+  const workspaceWrap = document.getElementById('workspaceWrap');
+  if (!workspaceWrap || workspaceWrap.dataset.myBlocksContextMenuInitialized === '1') return;
+  workspaceWrap.addEventListener('contextmenu', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const flyoutButton = target.closest('.blocklyFlyoutButton');
+    if (!flyoutButton) return;
+    const flyout = target.closest('.blocklyFlyout');
+    if (!flyout) return;
+    const textNode = flyoutButton.querySelector('text');
+    const label = String(textNode?.textContent || '').trim();
+    const item = findCompoundLibraryItemByDisplayText(label);
+    if (!item) return;
+    event.preventDefault();
+    if (!confirm(`Delete My Block "${String(item.title || item.id)}"?`)) return;
+    void deleteCompoundLibraryItem(String(item.id || '')).catch((err) => {
+      log('Delete My Block failed: ' + err.message);
+      alert('Could not delete compound block: ' + err.message);
+    });
+  });
+  workspaceWrap.dataset.myBlocksContextMenuInitialized = '1';
 }
 
 async function preloadLessonToolboxPlaceholders() {
@@ -3195,6 +3168,7 @@ async function preloadLessonToolboxPlaceholders() {
 preloadLessonToolboxPlaceholders();
 ensureProcedureToolboxCategory();
 verifyProcedureBlocksAvailable();
+registerSaveToMyBlocksContextMenu();
 
 setBootStage('before-workspace-inject');
 workspace = Blockly.inject('blocklyDiv', {
@@ -3218,6 +3192,7 @@ workspace = Blockly.inject('blocklyDiv', {
   }
 });
 registerCompoundLibraryToolboxCategory();
+registerMyBlocksFlyoutContextMenu();
 setBootStage('workspace-injected');
 
 applyGridSnap(localStorage.getItem(BLOCKLY_GRID_SNAP_KEY) !== 'false');
