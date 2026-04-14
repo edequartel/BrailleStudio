@@ -197,13 +197,37 @@
       display: none;
     }
 
+    .topbar-row--scripts {
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .topbar-script-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .topbar-script-group--fields {
+      flex: 1 1 540px;
+    }
+
+    .topbar-script-group--actions {
+      flex: 0 1 auto;
+      justify-content: flex-end;
+    }
+
     .braille-monitor-host {
       width: 100%;
-      min-height: 84px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: #fff;
-      padding: 8px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .braille-monitor-host .braille-monitor-component,
+    .braille-monitor-host .mono-box.braille-monitor-cells {
+      border-radius: 5px;
     }
 
     #title {
@@ -351,14 +375,24 @@
       flex: 0 0 auto;
     }
 
+    .bridge-indicator.is-disconnected {
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
+
+    .bridge-indicator.is-disconnected .bridge-indicator-dot {
+      background: #dc2626;
+    }
+
     .bridge-indicator.is-starting {
-      background: #fffbeb;
-      color: #92400e;
-      border-color: #fde68a;
+      background: #fef2f2;
+      color: #991b1b;
+      border-color: #fecaca;
     }
 
     .bridge-indicator.is-starting .bridge-indicator-dot {
-      background: #f59e0b;
+      background: #dc2626;
     }
 
     .bridge-indicator.is-connected {
@@ -886,21 +920,18 @@
 <div id="app">
   <div id="topbar">
     <div class="topbar-row">
+      <div id="title">Braille Activity Builder</div>
+
+      <input id="fileInput" type="file" accept=".blockly">
+
+      <div class="spacer"></div>
+
       <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
         <span class="ws-indicator" aria-hidden="true"></span>
       </button>
       <span id="bridgeLaunchIndicator" class="bridge-indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
         <span class="bridge-indicator-dot" aria-hidden="true"></span>
       </span>
-      
-      <div id="title">Braille Activity Builder</div>
-
-      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
-      <button id="monitorToggleBtn" class="btn btn-soft is-active" type="button" aria-pressed="false">Hide Monitor</button>
-      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="true" aria-label="Hide status panel">Status</button>
-      <input id="fileInput" type="file" accept=".blockly">
-
-      <div class="spacer"></div>
     </div>
 
     <div class="topbar-row topbar-row--sim">
@@ -916,13 +947,14 @@
         </svg>
         <span class="label">Stop</span>
       </button>
-      <div id="runStatusBanner" class="run-status" role="status" aria-live="polite" aria-atomic="true">
-        <span id="runStatusBadge" class="run-status-badge">Idle</span>
-      </div>
       <button id="simThumbLeftBtn" class="btn btn-soft">Thumb Left</button>
       <button id="simThumbRightBtn" class="btn btn-soft">Thumb Right</button>
       <button id="simCursor5Btn" class="btn btn-soft">Cursor 5</button>
       <button id="simChord1Btn" class="btn btn-soft">Chord 1</button>
+      <div class="spacer"></div>
+      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
+      <button id="monitorToggleBtn" class="btn btn-soft is-active" type="button" aria-pressed="false">Hide Monitor</button>
+      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="true" aria-label="Hide status panel">Status</button>
     </div>
 
     <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor">
@@ -933,37 +965,31 @@
       <div id="scriptBrailleMonitorComponent" class="braille-monitor-host"></div>
     </div>
 
-    <div class="topbar-row">
-      <input id="onlineScriptIdInput" class="btn" type="text" placeholder="script-id" style="min-width:180px; cursor:text;">
-      <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title" style="min-width:220px; cursor:text;">
-      <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
-        <option value="">-- Select online script --</option>
-      </select>
-      <button id="onlineRefreshBtn" class="btn" type="button">Refresh</button>
-    </div>
-
-    <div class="topbar-row">
-      <div id="fileStateBadge" class="file-state with-icon">
-        <span class="icon-14" aria-hidden="true">
-          <svg viewBox="0 0 24 24" focusable="false">
-            <path fill="currentColor" d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zM7 5h8v4H7V5zm12 14H5V5h1v6h10V5h.17L19 7.83V19z"></path>
-          </svg>
-        </span>
-        <span id="fileStateText">Saved</span>
+    <div class="topbar-row topbar-row--scripts">
+      <div class="topbar-script-group topbar-script-group--fields">
+        <input id="onlineScriptIdInput" class="btn" type="text" placeholder="script-id" style="min-width:180px; cursor:text;">
+        <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title" style="min-width:220px; cursor:text;">
+        <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
+          <option value="">-- Select online script --</option>
+        </select>
+        <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
+          <option value="draft">⚪ draft</option>
+          <option value="started">🟡 started</option>
+          <option value="in review">🔵 in review</option>
+          <option value="approved">🟢 approved</option>
+        </select>
+        <button id="onlineRefreshBtn" class="btn" type="button">Refresh</button>
       </div>
-      <button id="newBtn" class="btn" type="button">New</button>
-      <button id="copyJsonBtn" class="btn" type="button">Export</button>
-      <button id="importJsonBtn" class="btn" type="button">Import</button>
-      <button id="onlineSaveBtn" class="btn" type="button">Save</button>
-      <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
-      <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>
-      <button id="clearBtn" class="btn" type="button">Clear</button>
-      <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
-        <option value="draft">⚪ draft</option>
-        <option value="started">🟡 started</option>
-        <option value="in review">🔵 in review</option>
-        <option value="approved">🟢 approved</option>
-      </select>
+
+      <div class="topbar-script-group topbar-script-group--actions">
+        <button id="newBtn" class="btn" type="button">New</button>
+        <button id="copyJsonBtn" class="btn" type="button">Export</button>
+        <button id="importJsonBtn" class="btn" type="button">Import</button>
+        <button id="onlineSaveBtn" class="btn" type="button">Save</button>
+        <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
+        <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>
+        <button id="clearBtn" class="btn" type="button">Clear</button>
+      </div>
     </div>
   </div>
 
@@ -1417,6 +1443,13 @@
     <block type="text"></block>
     <block type="text_join"></block>
     <block type="text_concat"></block>
+    <block type="text_contains">
+      <value name="FIND">
+        <shadow type="text">
+          <field name="TEXT">l</field>
+        </shadow>
+      </value>
+    </block>
     <block type="text_from_list">
       <value name="SEPARATOR">
         <shadow type="text">

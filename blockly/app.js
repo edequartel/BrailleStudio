@@ -179,7 +179,7 @@ function renderBrailleBridgeIndicator() {
   const indicator = document.getElementById('bridgeLaunchIndicator');
   if (!indicator) return;
   const state = wsConnected ? 'connected' : bridgeLaunchState;
-  indicator.classList.remove('is-connected', 'is-starting');
+  indicator.classList.remove('is-connected', 'is-starting', 'is-disconnected');
   if (state === 'connected') {
     indicator.classList.add('is-connected');
     indicator.setAttribute('aria-label', 'BrailleBridge connected');
@@ -192,6 +192,7 @@ function renderBrailleBridgeIndicator() {
     indicator.setAttribute('title', 'BrailleBridge starting');
     return;
   }
+  indicator.classList.add('is-disconnected');
   indicator.setAttribute('aria-label', 'BrailleBridge unavailable');
   indicator.setAttribute('title', 'BrailleBridge unavailable');
 }
@@ -1031,13 +1032,14 @@ function renderFileState() {
   const badge = document.getElementById('fileStateBadge');
   const text = document.getElementById('fileStateText');
   const saveBtn = document.getElementById('onlineSaveBtn');
-  if (!badge) return;
-  const setText = (value) => {
-    if (text) text.textContent = value;
-    else badge.textContent = value;
-  };
-  setText('');
-  badge.classList.toggle('is-dirty', workspaceDirty);
+  if (badge) {
+    const setText = (value) => {
+      if (text) text.textContent = value;
+      else badge.textContent = value;
+    };
+    setText('');
+    badge.classList.toggle('is-dirty', workspaceDirty);
+  }
   if (saveBtn) {
     saveBtn.classList.toggle('is-dirty', workspaceDirty);
   }
@@ -1222,6 +1224,9 @@ attachRuntimeKeyboardListener();
 
 function isRuntimeActive(runtimeState = getRuntime()) {
   const rt = runtimeState && typeof runtimeState === 'object' ? runtimeState : getRuntime();
+  if (rt.stopped) {
+    return Boolean(pendingStart);
+  }
   const hasPendingProgramEnd =
     rt.programEndedGeneration < 0 ||
     rt.programEndedCompletedGeneration !== rt.programEndedGeneration;
@@ -1249,6 +1254,14 @@ function setExecutionUiState(phase = 'idle', detail = '') {
   };
 }
 
+function executionPhaseFromCompletionStatus(status, fallback = 'completed') {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'failed' || normalized === 'error') return 'failed';
+  if (normalized === 'stopped' || normalized === 'cancelled' || normalized === 'canceled') return 'stopped';
+  if (normalized === 'completed' || normalized === 'success' || normalized === 'passed') return 'completed';
+  return fallback;
+}
+
 function renderStatus() {
   const rt = getRuntime();
   const varLines = workspace
@@ -1257,8 +1270,6 @@ function renderStatus() {
   const isRunning = isRuntimeActive(rt);
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
-  const runStatusBanner = document.getElementById('runStatusBanner');
-  const runStatusBadge = document.getElementById('runStatusBadge');
   const runLabel = runBtn?.querySelector('.label');
   const stopLabel = stopBtn?.querySelector('.label');
 
@@ -1279,7 +1290,7 @@ function renderStatus() {
         phase === 'running' ? 'Running...' :
         phase === 'stopping' ? 'Stopping...' :
         phase === 'completed' ? 'Run Again' :
-        phase === 'stopped' ? 'Start Again' :
+        phase === 'stopped' ? 'Again' :
         'Start';
     }
   }
@@ -1300,17 +1311,6 @@ function renderStatus() {
         phase === 'stopped' ? 'Stopped' :
         'Stop';
     }
-  }
-
-  if (runStatusBanner && runStatusBadge) {
-    runStatusBanner.classList.remove('is-running', 'is-stopping', 'is-completed', 'is-stopped', 'is-failed');
-    if (phase === 'running') runStatusBanner.classList.add('is-running');
-    else if (phase === 'stopping') runStatusBanner.classList.add('is-stopping');
-    else if (phase === 'completed') runStatusBanner.classList.add('is-completed');
-    else if (phase === 'failed') runStatusBanner.classList.add('is-failed');
-    else runStatusBanner.classList.add('is-stopped');
-
-    runStatusBadge.textContent = phase === 'running' ? 'Running' : 'Idle';
   }
 
   document.getElementById('statusBox').textContent =
@@ -3848,6 +3848,12 @@ async function signalLessonStepCompletion(payload = {}) {
   getRuntime().stepCompletion = normalized;
   getRuntime().stopped = true;
   stopAllTimers();
+  setExecutionUiState(
+    executionPhaseFromCompletionStatus(normalized.status, 'completed'),
+    normalized.status === 'completed'
+      ? 'Lesson step finished.'
+      : `Lesson step ended: ${normalized.status}.`
+  );
   log('Lesson step completion signaled: ' + normalized.status);
   renderStatus();
   return getRuntime().stepCompletion;
@@ -3871,6 +3877,12 @@ async function signalLessonCompletion(payload = {}) {
   } else {
     getRuntime().stopped = true;
     stopAllTimers();
+    setExecutionUiState(
+      executionPhaseFromCompletionStatus(normalized.status, 'completed'),
+      normalized.status === 'completed'
+        ? 'Lesson finished.'
+        : `Lesson ended: ${normalized.status}.`
+    );
     renderStatus();
   }
   log('Lesson completion signaled: ' + normalized.status);
@@ -4138,6 +4150,16 @@ async function evalValue(block) {
       const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       if (list.length === 0) return '';
       return list[Math.floor(Math.random() * list.length)];
+    }
+
+    case 'list_shuffle': {
+      const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
+      const shuffled = [...list];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
     }
 
     case 'list_next_item': {
@@ -4479,6 +4501,12 @@ async function evalValue(block) {
       const list = toList(await evalValue(block.getInputTargetBlock('LIST')));
       const separator = String(await evalValue(block.getInputTargetBlock('SEPARATOR')) ?? ' ');
       return list.map(item => String(item ?? '')).join(separator);
+    }
+
+    case 'text_contains': {
+      const text = String(await evalValue(block.getInputTargetBlock('TEXT')) ?? '');
+      const find = String(await evalValue(block.getInputTargetBlock('FIND')) ?? '');
+      return find !== '' && text.includes(find);
     }
 
     case 'text_last_letter': {

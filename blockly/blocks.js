@@ -1554,6 +1554,15 @@
     }
   };
 
+  Blockly.Blocks['text_contains'] = {
+    init() {
+      this.appendValueInput('TEXT').appendField('tekst');
+      this.appendValueInput('FIND').appendField('bevat');
+      this.setOutput(true, 'Boolean');
+      this.setColour('#0891B2');
+    }
+  };
+
   Blockly.Blocks['text_first_letter'] = {
     init() {
       this.appendValueInput('TEXT').appendField('first letter of');

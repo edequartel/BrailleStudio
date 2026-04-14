@@ -1,11 +1,11 @@
 STORY x
 de computer leest een verhaal voor. <audio.mp3>
 
-WOORD
+WOORD x
 lees het woord <bal>. 
 druk op de volgende toets voor het volgende woord.
 
-LETTER
+LETTER x
 op de leesregel zie je een letter. 
 dit is de <b>. 
 omdat het een <b> is druk je op de rechterduimtoets. 
@@ -19,7 +19,7 @@ de <b> type je met toets 1 en 2.
 type de letter en druk op de rechterduimtoets.
 type tot je de stuiterende bal hoor.
 
-AUDITIEF HERKENNEN
+AUDITIEF HERKENNEN x
 de computer lees een woord voor.
 hoor je een <l> in het woord.
 druk op de rechterduimtoets.

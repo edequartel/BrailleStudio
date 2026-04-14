@@ -715,6 +715,12 @@
     ];
   };
 
+  javascriptGenerator.forBlock['text_contains'] = function (block) {
+    const textCode = valueToCodeOr(block, 'TEXT', "''");
+    const findCode = valueToCodeOr(block, 'FIND', "''");
+    return [`(() => { const __find = String(${findCode} ?? ''); return __find !== '' && String(${textCode} ?? '').includes(__find); })()`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['text_first_letter'] = function (block) {
     const textCode = valueToCodeOr(block, 'TEXT', "''");
     return [`(() => { const chars = Array.from(String(${textCode} ?? '')); return chars[0] ?? ''; })()`, ORDER_ATOMIC];
