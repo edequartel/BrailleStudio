@@ -982,6 +982,42 @@ function applyBrailleMonitorVisibility(visible) {
   renderBrailleMonitorToggleControl();
 }
 
+function arrangeWorkspaceBlocks() {
+  if (!workspace) return;
+  const topBlocks = Array.isArray(workspace.getTopBlocks?.(true)) ? workspace.getTopBlocks(true) : [];
+  if (!topBlocks.length) return;
+
+  const marginX = 48;
+  const marginY = 40;
+  const columnGap = 72;
+  const rowGap = 36;
+  const metrics = typeof workspace.getMetrics === 'function' ? workspace.getMetrics() : null;
+  const viewWidth = Number(metrics?.viewWidth || metrics?.contentWidth || 1400);
+  const availableWidth = Math.max(720, viewWidth - marginX * 2);
+  const columnWidth = Math.max(280, Math.floor((availableWidth - columnGap) / 2));
+  const leftX = marginX;
+  const rightX = marginX + columnWidth + columnGap;
+  let leftY = marginY;
+  let rightY = marginY;
+
+  for (const [index, block] of topBlocks.entries()) {
+    const placeRight = index % 2 === 1;
+    const columnX = placeRight ? rightX : leftX;
+    const targetY = placeRight ? rightY : leftY;
+    const xy = typeof block.getRelativeToSurfaceXY === 'function' ? block.getRelativeToSurfaceXY() : { x: columnX, y: targetY };
+    if (typeof block.moveBy === 'function') {
+      block.moveBy(columnX - xy.x, targetY - xy.y);
+    }
+    const blockMetrics = block.getHeightWidth?.() || { height: 0 };
+    if (placeRight) rightY += Number(blockMetrics.height || 0) + rowGap;
+    else leftY += Number(blockMetrics.height || 0) + rowGap;
+  }
+
+  if (typeof Blockly !== 'undefined' && typeof Blockly.svgResize === 'function') {
+    Blockly.svgResize(workspace);
+  }
+}
+
 function toggleSidebarPanel() {
   const main = document.getElementById('main');
   if (!main) return;
@@ -2818,6 +2854,9 @@ function bindAppControls() {
       log('Online delete failed: ' + err.message);
       alert('Could not delete online script: ' + err.message);
     }
+  });
+  bind('arrangeBtn', 'click', () => {
+    arrangeWorkspaceBlocks();
   });
   bind('fileInput', 'change', (e) => {
     const file = e.target.files[0];
