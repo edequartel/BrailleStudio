@@ -2723,12 +2723,15 @@ function normalizeChordValue(value) {
 
 function hasPersistentEventBlocks() {
   if (!workspace) return false;
-  return workspace.getTopBlocks(true).some((block) => {
+  const allTypes = workspace.getAllBlocks(false).map((block) => String(block?.type || '').trim());
+  const hasPersistent = workspace.getAllBlocks(false).some((block) => {
     const type = String(block?.type || '').trim();
     return type.startsWith('event_when_') &&
       type !== 'event_when_started' &&
       type !== 'event_when_program_ended';
   });
+  log(`Persistent event blocks check: ${JSON.stringify({ allTypes, hasPersistent })}`);
+  return hasPersistent;
 }
 
 async function runStartedProgram(generation) {
@@ -5772,7 +5775,11 @@ window.BrailleBlocklyApp = {
     try {
       await dispatchEvent({ type: 'started' }, generation);
       if (generation === runGeneration) {
-        await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
+        if (getRuntime().stopped) {
+          await dispatchProgramEnded(generation, 'stopped');
+        } else if (!hasPersistentEventBlocks()) {
+          await dispatchProgramEnded(generation, 'completed');
+        }
       }
       return {
         generation,
@@ -5838,7 +5845,11 @@ window.BrailleBlocklyApp = {
     try {
       await dispatchEvent({ type: 'started' }, generation);
       if (generation === runGeneration) {
-        await dispatchProgramEnded(generation, getRuntime().stopped ? 'stopped' : 'completed');
+        if (getRuntime().stopped) {
+          await dispatchProgramEnded(generation, 'stopped');
+        } else if (!hasPersistentEventBlocks()) {
+          await dispatchProgramEnded(generation, 'completed');
+        }
       }
       return {
         generation,

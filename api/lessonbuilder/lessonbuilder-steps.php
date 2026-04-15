@@ -16,6 +16,17 @@ declare(strict_types=1);
       overflow: hidden;
     }
 
+    .lesson-monitor-host {
+      overflow: hidden;
+      border-radius: 5px;
+    }
+
+    .lesson-monitor-host .braille-monitor-component,
+    .lesson-monitor-host .braille-monitor-cells,
+    .lesson-monitor-host .braille-monitor-cell-container {
+      border-radius: 5px;
+    }
+
     .steps-grid {
       grid-template-columns: minmax(240px, 2.3fr) minmax(220px, 1.9fr) minmax(160px, 1.2fr) minmax(220px, 1.5fr) 92px 72px 72px 72px 88px;
       min-width: 1240px;
@@ -54,11 +65,17 @@ declare(strict_types=1);
     <div class="grid gap-5">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
-        <div id="brailleMonitorCard" class="lesson-monitor-fit rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div id="brailleMonitorComponent" class="overflow-hidden"></div>
+        <div id="brailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
+          <div id="brailleMonitorComponent"></div>
         </div>
-        <div id="scriptBrailleMonitorCard" class="lesson-monitor-fit rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div id="scriptBrailleMonitorComponent" class="overflow-hidden"></div>
+        <div id="scriptBrailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
+          <div id="scriptBrailleMonitorComponent"></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="simThumbLeftBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Left</button>
+          <button id="simThumbRightBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Right</button>
+          <button id="simCursor5Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Cursor 5</button>
+          <button id="simChord1Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Chord 1</button>
         </div>
         <div id="lessonSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
         <div class="grid gap-3 md:grid-cols-2">
@@ -150,8 +167,12 @@ declare(strict_types=1);
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
     const deleteLessonBtn = document.getElementById('deleteLessonBtn');
-    const brailleMonitorCard = document.getElementById('brailleMonitorCard');
-    const scriptBrailleMonitorCard = document.getElementById('scriptBrailleMonitorCard');
+    const brailleMonitorRow = document.getElementById('brailleMonitorRow');
+    const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
+    const simThumbLeftBtn = document.getElementById('simThumbLeftBtn');
+    const simThumbRightBtn = document.getElementById('simThumbRightBtn');
+    const simCursor5Btn = document.getElementById('simCursor5Btn');
+    const simChord1Btn = document.getElementById('simChord1Btn');
 
     let state = shared.loadState();
     let scriptsCache = [];
@@ -174,9 +195,9 @@ declare(strict_types=1);
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.html?v=20260408-3';
+        return 'http://127.0.0.1:5500/blockly/index.html?v=20260415-1';
       }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260408-3';
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260415-1';
     }
 
     const RUNNER_URL = resolveRunnerUrl();
@@ -253,12 +274,56 @@ declare(strict_types=1);
     }
 
     function renderMonitorSourceVisibility(isWsConnected = false) {
-      if (brailleMonitorCard) {
-        brailleMonitorCard.classList.toggle('hidden', !isWsConnected);
+      if (brailleMonitorRow) {
+        brailleMonitorRow.classList.toggle('hidden', !isWsConnected);
       }
-      if (scriptBrailleMonitorCard) {
-        scriptBrailleMonitorCard.classList.toggle('hidden', !!isWsConnected);
+      if (scriptBrailleMonitorRow) {
+        scriptBrailleMonitorRow.classList.toggle('hidden', !!isWsConnected);
       }
+    }
+
+    async function dispatchRunnerInput(event) {
+      const runner = getRunnerWindow();
+      appendStatus('Dispatch runner input requested.', {
+        event,
+        before: getRunnerInputDebugSnapshot()
+      });
+      const app = await waitForRunnerReady(5000);
+      if (app && typeof app.dispatchRuntimeEvent === 'function') {
+        appendStatus('Dispatch runner input via app.dispatchRuntimeEvent.', {
+          event,
+          snapshot: getRunnerInputDebugSnapshot(app)
+        });
+        await app.dispatchRuntimeEvent(event);
+        appendStatus('Dispatch runner input completed via app.dispatchRuntimeEvent.', {
+          event,
+          after: getRunnerInputDebugSnapshot(app)
+        });
+        return;
+      }
+      const legacyDispatch = runner && typeof runner.dispatchEvent === 'function'
+        ? runner.dispatchEvent.bind(runner)
+        : null;
+      const generation = Number.isFinite(runner?.runGeneration) ? runner.runGeneration : null;
+      if (legacyDispatch && generation != null) {
+        appendStatus('Dispatch runner input via legacy runner.dispatchEvent.', {
+          event,
+          generation,
+          snapshot: getRunnerInputDebugSnapshot(app)
+        });
+        await legacyDispatch(event, generation);
+        appendStatus('Dispatch runner input completed via legacy runner.dispatchEvent.', {
+          event,
+          generation,
+          after: getRunnerInputDebugSnapshot(app)
+        });
+        return;
+      }
+      appendStatus('Dispatch runner input unsupported.', {
+        event,
+        snapshot: getRunnerInputDebugSnapshot(app)
+      });
+      throw new Error('Blockly runner does not support runtime input dispatch');
     }
 
     async function loadScriptCandidates(candidates) {
@@ -575,6 +640,42 @@ declare(strict_types=1);
           ready: false,
           reason: 'runner-state-error',
           error: err.message || String(err)
+        };
+      }
+    }
+
+    function getRunnerInputDebugSnapshot(app = null) {
+      try {
+        const runner = getRunnerWindow();
+        const resolvedApp = app || runner?.BrailleBlocklyApp || null;
+        const runtime = typeof resolvedApp?.getRuntimeSnapshot === 'function'
+          ? resolvedApp.getRuntimeSnapshot()
+          : null;
+        return {
+          runnerState: getRunnerDebugState(),
+          hasDispatchRuntimeEvent: typeof resolvedApp?.dispatchRuntimeEvent === 'function',
+          hasLegacyDispatchEvent: typeof runner?.dispatchEvent === 'function',
+          runGeneration: Number.isFinite(runner?.runGeneration) ? runner.runGeneration : null,
+          runtime: runtime && typeof runtime === 'object'
+            ? {
+                stopped: Boolean(runtime.stopped),
+                isActive: Boolean(runtime.isActive),
+                text: String(runtime.text || ''),
+                textCaret: Number.isInteger(runtime.textCaret) ? runtime.textCaret : runtime.textCaret ?? null,
+                cellCaret: Number.isInteger(runtime.cellCaret) ? runtime.cellCaret : runtime.cellCaret ?? null,
+                wsConnected: Boolean(runtime.wsConnected),
+                hasPendingStart: Boolean(runtime.hasPendingStart),
+                hasActiveAudio: Boolean(runtime.hasActiveAudio),
+                lastThumbKey: String(runtime.lastThumbKey || ''),
+                lastCursorCell: Number.isFinite(runtime.lastCursorCell) ? runtime.lastCursorCell : null,
+                lastChord: String(runtime.lastChord || '')
+              }
+            : null
+        };
+      } catch (err) {
+        return {
+          runnerState: getRunnerDebugState(),
+          snapshotError: err.message || String(err)
         };
       }
     }
@@ -1084,6 +1185,54 @@ declare(strict_types=1);
         renderDebugLogVisibility();
         renderAuthenticationState();
         renderMonitorSourceVisibility(false);
+        simThumbLeftBtn?.addEventListener('click', async () => {
+          try {
+            appendStatus('Thumb Left clicked.', {
+              snapshot: getRunnerInputDebugSnapshot()
+            });
+            await dispatchRunnerInput({ type: 'thumbKey', key: 'left' });
+          } catch (err) {
+            appendStatus('Thumb Left failed.', { error: err.message || String(err) });
+          }
+        });
+        simThumbRightBtn?.addEventListener('click', async () => {
+          try {
+            appendStatus('Thumb Right clicked.', {
+              snapshot: getRunnerInputDebugSnapshot()
+            });
+            await dispatchRunnerInput({ type: 'thumbKey', key: 'right' });
+          } catch (err) {
+            appendStatus('Thumb Right failed.', { error: err.message || String(err) });
+          }
+        });
+        simCursor5Btn?.addEventListener('click', async () => {
+          try {
+            const app = await waitForRunnerReady(5000);
+            const runtime = typeof app?.getRuntimeSnapshot === 'function' ? app.getRuntimeSnapshot() : null;
+            appendStatus('Cursor 5 clicked.', {
+              snapshot: getRunnerInputDebugSnapshot(app),
+              requestedCell: 5,
+              requestedTextIndex: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : 0
+            });
+            await dispatchRunnerInput({
+              type: 'cursorRouting',
+              cell: 5,
+              textIndex: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : 0
+            });
+          } catch (err) {
+            appendStatus('Cursor 5 failed.', { error: err.message || String(err) });
+          }
+        });
+        simChord1Btn?.addEventListener('click', async () => {
+          try {
+            appendStatus('Chord 1 clicked.', {
+              snapshot: getRunnerInputDebugSnapshot()
+            });
+            await dispatchRunnerInput({ type: 'chord', dots: '1' });
+          } catch (err) {
+            appendStatus('Chord 1 failed.', { error: err.message || String(err) });
+          }
+        });
         startBrailleMonitorSync();
         setStatus('Ready.');
       } catch (err) {
