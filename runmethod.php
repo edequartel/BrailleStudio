@@ -59,7 +59,7 @@ $lessonDirs = [
     $rootDir . '/api/lessons-data',
     $rootDir . '/lessons-data',
 ];
-$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260408-3';
+$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260415-1';
 $blocklyApiBase = '/braillestudio/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -175,6 +175,18 @@ $pagePayload = [
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
   <link rel="stylesheet" href="https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.css">
+  <style>
+    .lesson-monitor-host {
+      overflow: hidden;
+      border-radius: 5px;
+    }
+
+    .lesson-monitor-host .braille-monitor-component,
+    .lesson-monitor-host .braille-monitor-cells,
+    .lesson-monitor-host .braille-monitor-cell-container {
+      border-radius: 5px;
+    }
+  </style>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="mx-auto max-w-7xl p-6 space-y-5">
@@ -207,12 +219,19 @@ $pagePayload = [
         <?= h($errorMessage) ?>
       </section>
     <?php else: ?>
-      <section id="brailleMonitorCard" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div id="brailleMonitorComponent" class="overflow-hidden"></div>
-      </section>
-
-      <section id="scriptBrailleMonitorCard" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div id="scriptBrailleMonitorComponent" class="overflow-hidden"></div>
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <div id="brailleMonitorRow" class="lesson-monitor-host">
+          <div id="brailleMonitorComponent"></div>
+        </div>
+        <div id="scriptBrailleMonitorRow" class="lesson-monitor-host">
+          <div id="scriptBrailleMonitorComponent"></div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="simThumbLeftBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Left</button>
+          <button id="simThumbRightBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Right</button>
+          <button id="simCursor5Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Cursor 5</button>
+          <button id="simChord1Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Chord 1</button>
+        </div>
       </section>
 
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
@@ -323,8 +342,12 @@ $pagePayload = [
     const runmethodPasswordInput = document.getElementById('runmethodPasswordInput');
     const runmethodLoginBtn = document.getElementById('runmethodLoginBtn');
     const runmethodAuthStatus = document.getElementById('runmethodAuthStatus');
-    const brailleMonitorCard = document.getElementById('brailleMonitorCard');
-    const scriptBrailleMonitorCard = document.getElementById('scriptBrailleMonitorCard');
+    const brailleMonitorRow = document.getElementById('brailleMonitorRow');
+    const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
+    const simThumbLeftBtn = document.getElementById('simThumbLeftBtn');
+    const simThumbRightBtn = document.getElementById('simThumbRightBtn');
+    const simCursor5Btn = document.getElementById('simCursor5Btn');
+    const simChord1Btn = document.getElementById('simChord1Btn');
 
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let selectedStepIndex = 0;
@@ -568,12 +591,30 @@ $pagePayload = [
     }
 
     function renderMonitorSourceVisibility(isWsConnected = false) {
-      if (brailleMonitorCard) {
-        brailleMonitorCard.classList.toggle('hidden', !isWsConnected);
+      if (brailleMonitorRow) {
+        brailleMonitorRow.classList.toggle('hidden', !isWsConnected);
       }
-      if (scriptBrailleMonitorCard) {
-        scriptBrailleMonitorCard.classList.toggle('hidden', !!isWsConnected);
+      if (scriptBrailleMonitorRow) {
+        scriptBrailleMonitorRow.classList.toggle('hidden', !!isWsConnected);
       }
+    }
+
+    async function dispatchRunnerInput(event) {
+      const runner = getRunnerWindow();
+      const app = await waitForRunnerReady(5000);
+      if (app && typeof app.dispatchRuntimeEvent === 'function') {
+        await app.dispatchRuntimeEvent(event);
+        return;
+      }
+      const legacyDispatch = runner && typeof runner.dispatchEvent === 'function'
+        ? runner.dispatchEvent.bind(runner)
+        : null;
+      const generation = Number.isFinite(runner?.runGeneration) ? runner.runGeneration : null;
+      if (legacyDispatch && generation != null) {
+        await legacyDispatch(event, generation);
+        return;
+      }
+      throw new Error('Blockly runner does not support runtime input dispatch');
     }
 
     function renderBridgeIndicator(isConnected = false) {
@@ -1693,6 +1734,40 @@ $pagePayload = [
     runCurrentBtn.addEventListener('click', runCurrentLesson);
     runAllBtn.addEventListener('click', runAllLessons);
     stopRunBtn.addEventListener('click', stopCurrentRun);
+    simThumbLeftBtn?.addEventListener('click', async () => {
+      try {
+        await dispatchRunnerInput({ type: 'thumbKey', key: 'left' });
+      } catch (err) {
+        appendStatus('Thumb Left failed.', { error: err.message || String(err) });
+      }
+    });
+    simThumbRightBtn?.addEventListener('click', async () => {
+      try {
+        await dispatchRunnerInput({ type: 'thumbKey', key: 'right' });
+      } catch (err) {
+        appendStatus('Thumb Right failed.', { error: err.message || String(err) });
+      }
+    });
+    simCursor5Btn?.addEventListener('click', async () => {
+      try {
+        const app = await waitForRunnerReady(5000);
+        const runtime = typeof app?.getRuntimeSnapshot === 'function' ? app.getRuntimeSnapshot() : null;
+        await dispatchRunnerInput({
+          type: 'cursorRouting',
+          cell: 5,
+          textIndex: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : 0
+        });
+      } catch (err) {
+        appendStatus('Cursor 5 failed.', { error: err.message || String(err) });
+      }
+    });
+    simChord1Btn?.addEventListener('click', async () => {
+      try {
+        await dispatchRunnerInput({ type: 'chord', dots: '1' });
+      } catch (err) {
+        appendStatus('Chord 1 failed.', { error: err.message || String(err) });
+      }
+    });
     document.addEventListener('keydown', async (event) => {
       const handled = await stopRunnerAudioFromShortcut(event);
       if (!handled) return;
