@@ -40,8 +40,13 @@ declare(strict_types=1);
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-5xl mx-auto p-6 space-y-6">
     <div class="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_58%,#60a5fa_100%)] p-6 text-white shadow-sm">
-      <h1 class="text-3xl font-bold tracking-tight">BrailleStudio Lesson Builder</h1>
-      <p class="mt-2 text-sm text-blue-100">Werk in drie aparte stappen. Elke pagina heeft een eigen debuglog zodat je sneller ziet waar iets misgaat.</p>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">BrailleStudio Lesson Builder</h1>
+          <p class="mt-2 text-sm text-blue-100">Werk in drie aparte stappen. Elke pagina heeft een eigen debuglog zodat je sneller ziet waar iets misgaat.</p>
+        </div>
+        <button id="authBtn" class="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/25 backdrop-blur hover:bg-white/20">Authentication</button>
+      </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-3">
@@ -71,5 +76,51 @@ declare(strict_types=1);
       </ol>
     </div>
   </div>
+  <script>
+    (function () {
+      const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
+      const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+      const authBtn = document.getElementById('authBtn');
+
+      function getAuthToken() {
+        for (const key of AUTH_TOKEN_KEYS) {
+          const sessionValue = String(sessionStorage.getItem(key) || '').trim();
+          if (sessionValue) return sessionValue;
+          const localValue = String(localStorage.getItem(key) || '').trim();
+          if (localValue) return localValue;
+        }
+        return '';
+      }
+
+      function clearAuthTokens() {
+        for (const key of AUTH_TOKEN_KEYS) {
+          sessionStorage.removeItem(key);
+          localStorage.removeItem(key);
+        }
+      }
+
+      function renderAuthButton() {
+        if (!authBtn) return;
+        const authenticated = Boolean(getAuthToken());
+        authBtn.textContent = authenticated ? 'Logout' : 'Authentication';
+        authBtn.title = authenticated ? 'Authenticated.' : 'Not authenticated.';
+      }
+
+      authBtn?.addEventListener('click', () => {
+        if (getAuthToken()) {
+          clearAuthTokens();
+          renderAuthButton();
+          return;
+        }
+        const url = new URL(AUTH_LOGIN_URL);
+        url.searchParams.set('returnTo', window.location.href);
+        window.location.assign(url.toString());
+      });
+
+      renderAuthButton();
+      window.addEventListener('storage', renderAuthButton);
+      window.addEventListener('focus', renderAuthButton);
+    })();
+  </script>
 </body>
 </html>
