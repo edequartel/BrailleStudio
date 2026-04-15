@@ -926,6 +926,7 @@
 
       <div class="spacer"></div>
 
+      <button id="elevenlabsLoginBtn" class="btn btn-blue" type="button" aria-label="Authentication">Authentication</button>
       <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
         <span class="ws-indicator" aria-hidden="true"></span>
       </button>
@@ -967,8 +968,8 @@
 
     <div class="topbar-row topbar-row--scripts">
       <div class="topbar-script-group topbar-script-group--fields">
-        <input id="onlineScriptIdInput" class="btn" type="text" placeholder="script-id" style="min-width:180px; cursor:text;">
-        <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title" style="min-width:220px; cursor:text;">
+        <input id="onlineScriptIdInput" type="hidden">
+        <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title (required)" required style="min-width:220px; cursor:text;">
         <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
           <option value="">-- Select online script --</option>
         </select>

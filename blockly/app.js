@@ -1470,6 +1470,61 @@ function readOnlineScriptInputs() {
   };
 }
 
+function slugifyOnlineScriptTitle(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function requireOnlineScriptTitle() {
+  const titleInput = document.getElementById('onlineScriptTitleInput');
+  const title = String(titleInput?.value || '').trim();
+  if (title) return title;
+  if (titleInput) {
+    titleInput.focus();
+    titleInput.reportValidity?.();
+  }
+  throw new Error('Script title is required before saving');
+}
+
+async function buildUniqueOnlineScriptId(title, options = {}) {
+  const {
+    excludeId = '',
+    forceUnique = false
+  } = options || {};
+  const normalizedTitle = String(title || '').trim();
+  const baseSlug = slugifyOnlineScriptTitle(normalizedTitle);
+  if (!baseSlug) {
+    throw new Error('Script title could not be converted into an id');
+  }
+  if (!forceUnique) {
+    return baseSlug;
+  }
+
+  const excluded = String(excludeId || '').trim();
+  let existingItems = [];
+  try {
+    existingItems = await listOnlineScripts();
+  } catch {}
+  const existingIds = new Set(
+    existingItems
+      .map((item) => String(item?.id || '').trim())
+      .filter((id) => id && id !== excluded)
+  );
+  if (!existingIds.has(baseSlug)) {
+    return baseSlug;
+  }
+  let counter = 2;
+  while (existingIds.has(`${baseSlug}-${counter}`)) {
+    counter += 1;
+  }
+  return `${baseSlug}-${counter}`;
+}
+
 function resolveOnlineScriptId() {
   const select = document.getElementById('onlineScriptsSelect');
   const inputId = String(document.getElementById('onlineScriptIdInput')?.value || '').trim();
@@ -1541,8 +1596,8 @@ function renderOnlineScriptsSelect(items) {
     option.dataset.title = title;
     option.dataset.status = status;
     option.textContent = title
-      ? `${statusDot(status)}\u00A0\u00A0${id} - ${title}`
-      : `${statusDot(status)}\u00A0\u00A0${id}`;
+      ? `${statusDot(status)}\u00A0\u00A0${title}`
+      : `${statusDot(status)}\u00A0\u00A0(untitled)`;
     select.appendChild(option);
   }
 
@@ -1795,32 +1850,29 @@ async function saveWorkspaceOnline({ overwrite = true } = {}) {
   if (!workspace) throw new Error('Blockly workspace is not ready');
 
   const inputs = readOnlineScriptInputs();
-  let id = String(inputs.id || '').trim();
-  const title = String(inputs.title || '').trim();
+  const title = requireOnlineScriptTitle();
   const status = String(inputs.status || 'draft').trim() || 'draft';
+  const currentId = String(currentOnlineScriptId || '').trim();
+  let id = String(inputs.id || '').trim();
 
   if (!id) {
     id = resolveOnlineScriptId();
   }
   if (!id) {
-    const entered = prompt('Script id is required. Enter script id:', '');
-    if (!entered) {
-      throw new Error('Online script id is required');
-    }
-    id = String(entered).trim();
-  }
-  if (!id) {
-    throw new Error('Online script id is required');
+    id = await buildUniqueOnlineScriptId(title, {
+      excludeId: currentId,
+      forceUnique: !overwrite || !currentId
+    });
   }
 
   const metadata = readScriptMetadataFromInputs();
   const payload = {
     id,
-    title: title || metadata.title || id,
+    title,
     overwrite: !!overwrite,
     blockly: Blockly.serialization.workspaces.save(workspace),
     meta: {
-      title: metadata.title || '',
+      title: metadata.title || title,
       description: metadata.description || '',
       instruction: metadata.instruction || '',
       prompt: metadata.prompt || '',
@@ -1847,17 +1899,22 @@ async function saveWorkspaceOnline({ overwrite = true } = {}) {
 
 async function saveWorkspaceOnlineAs() {
   const current = readOnlineScriptInputs();
-  const suggestedId = current.id || currentOnlineScriptId || '';
-  const suggestedTitle = current.title || readScriptMetadataFromInputs().title || suggestedId;
-
-  const newId = prompt('Online script id:', suggestedId);
-  if (!newId) return false;
-  const normalizedId = String(newId).trim();
-  if (!normalizedId) return false;
-
-  const newTitle = prompt('Online script title:', suggestedTitle || normalizedId) || normalizedId;
-  log(`Online Save As requested: id=${normalizedId}`);
-  setOnlineScriptInputs({ id: normalizedId, title: String(newTitle).trim() || normalizedId });
+  const suggestedTitle = current.title || readScriptMetadataFromInputs().title || '';
+  const enteredTitle = prompt('Online script title:', suggestedTitle);
+  if (enteredTitle == null) return false;
+  const normalizedTitle = String(enteredTitle).trim();
+  if (!normalizedTitle) {
+    const titleInput = document.getElementById('onlineScriptTitleInput');
+    if (titleInput) {
+      titleInput.value = '';
+      titleInput.focus();
+      titleInput.reportValidity?.();
+    }
+    throw new Error('Script title is required before saving');
+  }
+  const generatedId = await buildUniqueOnlineScriptId(normalizedTitle, { forceUnique: true });
+  log(`Online Save As requested: id=${generatedId}`);
+  setOnlineScriptInputs({ id: generatedId, title: normalizedTitle, status: current.status });
   await saveWorkspaceOnline({ overwrite: false });
   return true;
 }
@@ -1999,11 +2056,13 @@ async function deleteWorkspaceOnline(id) {
       renderScriptMetadata(null);
       renderBrailleLine(null);
       suppressDirtyTracking--;
-      markWorkspaceSaved(getWorkspaceSignature());
       setSelectedFileName('braille-activity.blockly');
       log('Workspace cleared after online delete');
     }
     setOnlineCurrentScript({ id: '', title: '', status: 'draft' });
+    if (workspace) {
+      markWorkspaceSaved(getWorkspaceSignature());
+    }
   }
   await refreshOnlineScripts();
   log(`Online script deleted: ${targetId}`);
@@ -2824,11 +2883,10 @@ function bindAppControls() {
     }
   });
   bind('onlineLoadBtn', 'click', async () => {
-    const idInput = document.getElementById('onlineScriptIdInput');
     const select = document.getElementById('onlineScriptsSelect');
-    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim();
+    const id = String(select?.value || '').trim() || currentOnlineScriptId;
     if (!id) {
-      alert('Select or enter an online script id first.');
+      alert('Select an online script first.');
       return;
     }
     if (!(await confirmActionWithUnsavedChanges('loading an online script'))) return;
@@ -2840,14 +2898,17 @@ function bindAppControls() {
     }
   });
   bind('onlineDeleteBtn', 'click', async () => {
-    const idInput = document.getElementById('onlineScriptIdInput');
     const select = document.getElementById('onlineScriptsSelect');
-    const id = String(idInput?.value || '').trim() || String(select?.value || '').trim() || currentOnlineScriptId;
+    const id = String(select?.value || '').trim() || currentOnlineScriptId;
     if (!id) {
-      alert('Select or enter an online script id first.');
+      alert('Select an online script first.');
       return;
     }
-    if (!confirm(`Delete online script "${id}"?`)) return;
+    const selectedOption = select?.selectedOptions && select.selectedOptions[0]
+      ? select.selectedOptions[0]
+      : null;
+    const selectedTitle = String(selectedOption?.dataset?.title || document.getElementById('onlineScriptTitleInput')?.value || '').trim();
+    if (!confirm(`Delete online script "${selectedTitle || 'Untitled'}"?`)) return;
     try {
       await deleteWorkspaceOnline(id);
     } catch (err) {
@@ -5887,6 +5948,9 @@ window.BrailleBlocklyApp = {
       hasPendingStart: Boolean(pendingStart),
       wsConnected
     };
+  },
+  async dispatchRuntimeEvent(event) {
+    return await dispatchEvent(event, runGeneration);
   },
   clearLog() {
     clearLogBox();
