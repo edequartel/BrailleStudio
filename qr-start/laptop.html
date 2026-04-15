@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Start lesson by QR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --panel: #ffffff;
+      --border: #d9e0ea;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .header {
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      color: var(--text);
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .btn-green {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .btn-soft {
+      background: #eef4ff;
+      color: #1d4ed8;
+      border-color: #c7d7ff;
+    }
+
+    .qr-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #qrCanvas {
+      width: 280px;
+      height: 280px;
+      max-width: 100%;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .mono {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: Consolas, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #94a3b8;
+      flex: 0 0 auto;
+    }
+
+    .status.waiting .dot { background: var(--amber); }
+    .status.started .dot { background: var(--green); }
+    .status.error .dot { background: var(--red); }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .event-log {
+      min-height: 220px;
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .event-log .mono {
+      min-height: 220px;
+    }
+
+    .pair {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      font-size: 14px;
+      margin-bottom: 8px;
+      align-items: start;
+    }
+
+    .pair strong {
+      color: #334155;
+    }
+
+    iframe {
+      width: 100%;
+      min-height: 700px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: white;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      iframe {
+        min-height: 560px;
+      }
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <h1>QR lesson starter</h1>
+      <p>
+        Open this page on the laptop. It creates a session, shows a QR code, and waits for the phone to start the lesson.
+      </p>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h2>Session setup</h2>
+
+          <div class="field">
+            <label for="lessonInput">Lesson id</label>
+            <input id="lessonInput" type="text" value="letters1" placeholder="example: letters1">
+          </div>
+
+          <div class="field">
+            <label for="autoloadSelect">Autoload lesson before start</label>
+            <select id="autoloadSelect">
+              <option value="yes" selected>yes</option>
+              <option value="no">no</option>
+            </select>
+          </div>
+
+          <div class="btn-row">
+            <button id="createBtn" class="btn-blue" type="button">Create session</button>
+            <button id="resetBtn" class="btn-soft" type="button">Reset session</button>
+            <button id="startLocalBtn" class="btn-green" type="button">Start locally</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 18px;">
+          <h2>QR code</h2>
+          <div class="qr-wrap">
+            <canvas id="qrCanvas" width="280" height="280"></canvas>
+            <div id="sessionStatus" class="status waiting">
+              <span class="dot" aria-hidden="true"></span>
+              <span id="sessionStatusText">No session yet</span>
+            </div>
+            <div class="small">Scan this with the phone.</div>
+            <div id="qrUrlBox" class="mono"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 18px;">
+          <h2>Session info</h2>
+          <div class="pair"><strong>Session</strong><span id="sessionText">-</span></div>
+          <div class="pair"><strong>Lesson</strong><span id="lessonText">-</span></div>
+          <div class="pair"><strong>Started</strong><span id="startedText">no</span></div>
+          <div class="pair"><strong>Started at</strong><span id="startedAtText">-</span></div>
+        </div>
+
+        <div class="card event-log" style="margin-top: 18px;">
+          <h2>Log</h2>
+          <div id="logBox" class="mono"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Blockly page</h2>
+          <div class="small" style="margin-bottom: 12px;">
+            This iframe loads your Blockly page at
+            <strong>https://www.tastenbraille.com/braillestudio/blockly/</strong>
+          </div>
+          <iframe id="builderFrame" title="Blockly page"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = './';
+    const POLL_MS = 2000;
+    const BUILDER_URL = 'https://www.tastenbraille.com/braillestudio/blockly/';
+
+    let currentSession = '';
+    let currentLesson = '';
+    let currentQrUrl = '';
+    let pollTimer = null;
+    let sessionStartedHandled = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    function log(message) {
+      const box = $('logBox');
+      const line = `[${new Date().toLocaleTimeString()}] ${String(message)}`;
+      box.textContent = `${line}\n${box.textContent}`;
+    }
+
+    function setStatus(kind, text) {
+      const node = $('sessionStatus');
+      const textNode = $('sessionStatusText');
+      node.classList.remove('waiting', 'started', 'error');
+      node.classList.add(kind);
+      textNode.textContent = text;
+    }
+
+    function updateSessionInfo(data) {
+      $('sessionText').textContent = data.session || '-';
+      $('lessonText').textContent = data.lesson || '-';
+      $('startedText').textContent = data.started ? 'yes' : 'no';
+      $('startedAtText').textContent = data.startedAt || '-';
+    }
+
+    async function drawQr(url) {
+      const canvas = $('qrCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!url) return;
+      await QRCode.toCanvas(canvas, url, {
+        width: 256,
+        margin: 1
+      });
+    }
+
+    function buildBuilderUrl(baseUrl, lessonId) {
+      const url = new URL(baseUrl);
+      if (lessonId) {
+        url.searchParams.set('lesson', lessonId);
+      }
+      return url.toString();
+    }
+
+    function loadBuilderFrame(lessonId) {
+      const finalUrl = buildBuilderUrl(BUILDER_URL, lessonId);
+      $('builderFrame').src = finalUrl;
+      log(`Builder frame loaded: ${finalUrl}`);
+    }
+
+    async function createSession() {
+      const lessonId = $('lessonInput').value.trim() || 'default';
+      currentLesson = lessonId;
+      sessionStartedHandled = false;
+
+      const res = await fetch(`${API_BASE}session_create.php?lesson=${encodeURIComponent(lessonId)}&_=${Date.now()}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || 'Could not create session');
+      }
+
+      currentSession = data.session;
+      currentQrUrl = data.qrUrl || '';
+      $('qrUrlBox').textContent = currentQrUrl || '';
+      updateSessionInfo({
+        session: data.session,
+        lesson: data.lesson,
+        started: false,
+        startedAt: null
+      });
+
+      await drawQr(currentQrUrl);
+      setStatus('waiting', 'Waiting for phone');
+      log(`Session created: ${data.session}`);
+      log(`QR URL: ${currentQrUrl}`);
+
+      if ($('autoloadSelect').value === 'yes') {
+        loadBuilderFrame(lessonId);
+      }
+
+      startPolling();
+    }
+
+    async function resetSession() {
+      if (!currentSession) {
+        log('No session to reset');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}session_reset.php?session=${encodeURIComponent(currentSession)}&_=${Date.now()}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || 'Could not reset session');
+      }
+
+      sessionStartedHandled = false;
+      updateSessionInfo({
+        session: currentSession,
+        lesson: currentLesson,
+        started: false,
+        startedAt: null
+      });
+      setStatus('waiting', 'Waiting for phone');
+      log(`Session reset: ${currentSession}`);
+    }
+
+    async function getSessionStatus() {
+      if (!currentSession) return null;
+
+      const res = await fetch(`${API_BASE}session_status.php?session=${encodeURIComponent(currentSession)}&_=${Date.now()}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        throw new Error(data.error || 'Could not read session status');
+      }
+
+      return data;
+    }
+
+    function startPolling() {
+      stopPolling();
+
+      pollTimer = setInterval(async () => {
+        try {
+          const data = await getSessionStatus();
+          if (!data) return;
+
+          updateSessionInfo(data);
+
+          if (data.started) {
+            setStatus('started', 'Started from phone');
+
+            if (!sessionStartedHandled) {
+              sessionStartedHandled = true;
+              log(`Phone started session ${data.session}`);
+              await startLessonInBuilder(data.lesson);
+            }
+          } else {
+            setStatus('waiting', 'Waiting for phone');
+          }
+        } catch (err) {
+          setStatus('error', 'Session error');
+          log(`Polling error: ${err.message}`);
+        }
+      }, POLL_MS);
+    }
+
+    function stopPolling() {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    }
+
+    async function waitForFrameReady(frameWindow, timeoutMs = 15000) {
+      const started = Date.now();
+
+      while (Date.now() - started < timeoutMs) {
+        try {
+          const doc = frameWindow.document;
+          const runBtn = doc.getElementById('runBtn');
+          if (doc && runBtn) {
+            return true;
+          }
+        } catch (err) {}
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+
+      return false;
+    }
+
+    async function loadLessonInBuilder(frameWindow, lessonId) {
+      if (!lessonId) return false;
+
+      try {
+        if (typeof frameWindow.loadWorkspaceOnline === 'function') {
+          await frameWindow.loadWorkspaceOnline(lessonId);
+          log(`Lesson loaded with loadWorkspaceOnline("${lessonId}")`);
+          return true;
+        }
+      } catch (err) {
+        log(`loadWorkspaceOnline failed: ${err.message}`);
+      }
+
+      try {
+        const doc = frameWindow.document;
+        const select = doc.getElementById('onlineScriptsSelect');
+        const refreshBtn = doc.getElementById('onlineRefreshBtn');
+
+        if (refreshBtn) {
+          refreshBtn.click();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        if (select) {
+          select.value = lessonId;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+          log(`Tried selecting lesson ${lessonId} in onlineScriptsSelect`);
+          return true;
+        }
+      } catch (err) {
+        log(`Fallback lesson selection failed: ${err.message}`);
+      }
+
+      return false;
+    }
+
+    async function clickRunInBuilder(frameWindow) {
+      const doc = frameWindow.document;
+      const runBtn = doc.getElementById('runBtn');
+
+      if (!runBtn) {
+        throw new Error('runBtn not found in Blockly page');
+      }
+
+      runBtn.click();
+      log('Clicked runBtn inside Blockly page');
+    }
+
+    async function startLessonInBuilder(lessonId) {
+      const frame = $('builderFrame');
+      const frameWindow = frame.contentWindow;
+
+      if (!frameWindow) {
+        throw new Error('Builder frame is not available');
+      }
+
+      const ready = await waitForFrameReady(frameWindow);
+      if (!ready) {
+        throw new Error('Blockly page did not become ready');
+      }
+
+      if ($('autoloadSelect').value === 'yes') {
+        await loadLessonInBuilder(frameWindow, lessonId);
+      }
+
+      await clickRunInBuilder(frameWindow);
+    }
+
+    async function startLocally() {
+      const lessonId = $('lessonInput').value.trim() || currentLesson || 'default';
+
+      if (!currentSession) {
+        log('No session exists yet, creating one first');
+        await createSession();
+      }
+
+      await startLessonInBuilder(lessonId);
+      setStatus('started', 'Started locally');
+    }
+
+    $('createBtn').addEventListener('click', async () => {
+      try {
+        await createSession();
+      } catch (err) {
+        setStatus('error', 'Create failed');
+        log(`Create failed: ${err.message}`);
+      }
+    });
+
+    $('resetBtn').addEventListener('click', async () => {
+      try {
+        await resetSession();
+      } catch (err) {
+        setStatus('error', 'Reset failed');
+        log(`Reset failed: ${err.message}`);
+      }
+    });
+
+    $('startLocalBtn').addEventListener('click', async () => {
+      try {
+        await startLocally();
+      } catch (err) {
+        setStatus('error', 'Local start failed');
+        log(`Local start failed: ${err.message}`);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopPolling();
+    });
+
+    loadBuilderFrame($('lessonInput').value.trim() || 'letters1');
+    log('Laptop page ready');
+    log(`Using builder URL: ${BUILDER_URL}`);
+  </script>
+</body>
+</html>

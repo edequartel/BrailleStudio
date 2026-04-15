@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Start lesson</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 24px;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    button {
+      font-size: 18px;
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      background: #2563eb;
+      color: white;
+      width: 100%;
+    }
+    .box {
+      border: 1px solid #ddd;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Start lesson</h1>
+  <div class="box">
+    <div><strong>Session:</strong> <span id="sessionText"></span></div>
+    <div><strong>Lesson:</strong> <span id="lessonText"></span></div>
+  </div>
+  <button id="startBtn">Start lesson on laptop</button>
+  <p id="status"></p>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const session = params.get('session') || '';
+    const lesson = params.get('lesson') || '';
+
+    document.getElementById('sessionText').textContent = session;
+    document.getElementById('lessonText').textContent = lesson;
+
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      const res = await fetch('./session_start.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session })
+      });
+      const data = await res.json();
+      document.getElementById('status').textContent =
+        data.ok ? 'Lesson started on laptop.' : ('Error: ' + (data.error || 'unknown'));
+    });
+  </script>
+</body>
+</html>

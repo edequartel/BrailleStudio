@@ -62,7 +62,8 @@ druk de linkerduimtoets als ze niet hetzelfde zijn.
 
 Nieuw
 
-lees de letter op de leesregel en zeg deze hardop druk dan op de rechterduimtoets voor de volgende. 
+spreek uit x
+lees de letter/woord vooraan op de leesregel en zeg deze hardop druk dan op de rechterduimtoets voor de volgende. 
 
 Links en rechts
 links en rechts staan op de leesregel letters en woorden welke is hetzelfde
@@ -71,4 +72,4 @@ Maak woord
 Op de leesregels staan letters. Maal het woord bal. Kies de cursor voor de lettwebje hoort dan de letter. De letters die je intypt komen achter elkaar te staan. Doornde spatiebalk in te typen verdwijnen de letters.0 
 
 prompt
-zorg er voor dat starten en stoppen van ateps of lesson mutual exclusive is dat het duidelijk is in ux wat er gaande is. ook wanneer een script step is afgelopen dat fit te dien is aan de status van de knoppen.
+make sure input like responding to keys in blockly only works when script is running and acrive not ehen it is stopped
