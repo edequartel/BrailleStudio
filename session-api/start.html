@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scan QR-code</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --border: #d6deea;
+      --text: #16202f;
+      --muted: #64748b;
+      --blue: #1d4ed8;
+      --green: #15803d;
+      --red: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .card + .card {
+      margin-top: 18px;
+    }
+
+    h1, h2 {
+      margin: 0 0 12px;
+    }
+
+    p {
+      margin: 0 0 10px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .field + .field {
+      margin-top: 14px;
+    }
+
+    .pair {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button, a.button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      background: white;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .mono {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .mono-log {
+      min-height: 160px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .video-wrap {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #0f172a;
+      aspect-ratio: 4 / 3;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .is-hidden {
+      display: none;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .error {
+      color: var(--red);
+    }
+
+    .success {
+      color: var(--green);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="card">
+      <h1>Scan QR-code</h1>
+      <div class="field">
+        <label for="stepLinkCodeInput">Step-link id / code</label>
+        <input id="stepLinkCodeInput" type="text" placeholder="abc123">
+      </div>
+      <div class="field">
+        <label>Camera scan</label>
+        <div class="video-wrap">
+          <video id="scannerVideo" playsinline muted class="is-hidden"></video>
+          <canvas id="scannerCanvas" class="is-hidden"></canvas>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="resolveBtn" class="btn-blue" type="button">Start step-link</button>
+        <button id="startScanBtn" type="button">Start camera</button>
+        <button id="stopScanBtn" type="button">Stop camera</button>
+        <a class="button-link" href="./laptop.html">Open laptop page</a>
+      </div>
+      <div id="statusText" class="status">Ready.</div>
+    </section>
+
+    <section class="card">
+      <h2>Resolved Response</h2>
+      <pre id="payloadBox" class="mono">No resolved payload yet.</pre>
+    </section>
+
+    <section class="card">
+      <h2>Logging</h2>
+      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+        <button id="toggleLogBtn" type="button">Unhide log</button>
+        <button id="clearLogBtn" type="button">Clear log</button>
+      </div>
+      <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+  <script>
+    const STORAGE_SESSION_KEY = 'braillestudio_session_api_active_session';
+    const STORAGE_RESOLVED_KEY = 'braillestudio_session_api_last_resolved';
+
+    const params = new URLSearchParams(location.search);
+    const urlCode = String(params.get('code') || '').trim();
+    const urlSessionId = String(params.get('sessionId') || '').trim();
+    const $ = (id) => document.getElementById(id);
+    let activeScannerStream = null;
+    let scanTimer = null;
+    let scanHandled = false;
+
+    function safeJsonParse(raw, fallback = null) {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        return fallback;
+      }
+    }
+
+    function logLine(message, data) {
+      const box = $('logBox');
+      if (!box) return;
+      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
+      let line = `[${timestamp}] ${String(message || '').trim()}`;
+      if (typeof data !== 'undefined') {
+        try {
+          line += `\n${JSON.stringify(data, null, 2)}`;
+        } catch {
+          line += `\n${String(data)}`;
+        }
+      }
+      box.textContent = box.textContent.trim()
+        ? `${box.textContent}\n${line}`
+        : line;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function getActiveSession() {
+      return safeJsonParse(localStorage.getItem(STORAGE_SESSION_KEY) || '', null);
+    }
+
+    function getInitialSessionId() {
+      if (urlSessionId) {
+        return urlSessionId;
+      }
+      const session = getActiveSession();
+      return String(session?.sessionId || '').trim();
+    }
+
+    function setLogVisibility(visible) {
+      const box = $('logBox');
+      const button = $('toggleLogBtn');
+      if (!box || !button) return;
+      box.classList.toggle('is-hidden', !visible);
+      button.textContent = visible ? 'Hide log' : 'Unhide log';
+    }
+
+    function getSessionIdOrThrow() {
+      const sessionId = getInitialSessionId();
+      if (!sessionId) {
+        throw new Error('No session id found in this QR link.');
+      }
+      return sessionId;
+    }
+
+    function normalizeStepLinkCode(rawValue) {
+      const value = String(rawValue || '').trim();
+      if (!value) return '';
+      try {
+        const url = new URL(value);
+        const fromQuery = String(url.searchParams.get('code') || '').trim();
+        if (fromQuery) return fromQuery;
+        const parts = url.pathname.split('/').filter(Boolean);
+        return String(parts[parts.length - 1] || '').trim();
+      } catch {
+        return value;
+      }
+    }
+
+    async function postJson(url, payload) {
+      logLine('POST request started.', { url, payload });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+      const data = await res.json().catch(() => ({}));
+      logLine('POST response received.', {
+        url,
+        status: res.status,
+        ok: Boolean(res.ok),
+        data
+      });
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    function setStatus(message, className = '') {
+      const node = $('statusText');
+      node.className = `status ${className}`.trim();
+      node.textContent = message;
+    }
+
+    async function startStepLink() {
+      const sessionId = getSessionIdOrThrow();
+      const stepLinkCode = normalizeStepLinkCode($('stepLinkCodeInput').value);
+      if (!stepLinkCode) {
+        throw new Error('Enter a step-link id / code first.');
+      }
+      $('stepLinkCodeInput').value = stepLinkCode;
+
+      setStatus('Starting step-link...');
+      const response = await postJson('./resolve.php', {
+        sessionId,
+        code: stepLinkCode
+      });
+
+      if (response.accepted === false && response.ignored === true) {
+        $('payloadBox').textContent = JSON.stringify(response, null, 2);
+        setStatus('Laptop is bezig. Deze step-link is genegeerd.', 'success');
+        logLine('Step-link ignored because laptop session is active.', response);
+        return;
+      }
+
+      localStorage.setItem(STORAGE_RESOLVED_KEY, JSON.stringify(response));
+      $('payloadBox').textContent = JSON.stringify(response, null, 2);
+      setStatus(`Started step-link ${response.code}.`, 'success');
+      logLine('Step-link started successfully.', response);
+    }
+
+    async function handleScannedValue(rawValue) {
+      const code = normalizeStepLinkCode(rawValue);
+      if (!code || scanHandled) {
+        return;
+      }
+      scanHandled = true;
+      $('stepLinkCodeInput').value = code;
+      logLine('Camera scan detected step-link code.', { rawValue, code });
+      stopScanner();
+      try {
+        await startStepLink();
+      } catch (err) {
+        scanHandled = false;
+        logLine('Automatic start after scan failed.', { message: err.message || String(err) });
+        setStatus(err.message || String(err), 'error');
+      }
+    }
+
+    function detectQrWithJsQr(video) {
+      const canvas = $('scannerCanvas');
+      if (!canvas || !video?.videoWidth || !video?.videoHeight || typeof window.jsQR !== 'function') {
+        return '';
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) {
+        return '';
+      }
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const result = window.jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+      return String(result?.data || '').trim();
+    }
+
+    async function scanFrame() {
+      const video = $('scannerVideo');
+      if (!video || video.readyState < 2) {
+        return;
+      }
+      let value = '';
+      if (typeof BarcodeDetector !== 'undefined') {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const barcodes = await detector.detect(video);
+        if (Array.isArray(barcodes) && barcodes.length) {
+          value = String(barcodes[0]?.rawValue || '').trim();
+        }
+      }
+      if (!value) {
+        value = detectQrWithJsQr(video);
+      }
+      if (value) {
+        await handleScannedValue(value);
+      }
+    }
+
+    async function startScanner() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera scanning is not supported on this device/browser.');
+      }
+      if (typeof BarcodeDetector === 'undefined' && typeof window.jsQR !== 'function') {
+        throw new Error('QR scanning library is not available. Enter the code manually.');
+      }
+      stopScanner();
+      scanHandled = false;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' }
+        },
+        audio: false
+      });
+      activeScannerStream = stream;
+      const video = $('scannerVideo');
+      video.srcObject = stream;
+      video.classList.remove('is-hidden');
+      await video.play();
+      setStatus('Camera active. Point at a step-link QR code.');
+      logLine('Camera scanner started.', {
+        barcodeDetector: typeof BarcodeDetector !== 'undefined',
+        jsQrFallback: typeof window.jsQR === 'function'
+      });
+      scanTimer = window.setInterval(() => {
+        scanFrame().catch((err) => {
+          logLine('Camera scan frame failed.', { message: err.message || String(err) });
+        });
+      }, 500);
+    }
+
+    function stopScanner() {
+      if (scanTimer) {
+        window.clearInterval(scanTimer);
+        scanTimer = null;
+      }
+      if (activeScannerStream) {
+        activeScannerStream.getTracks().forEach((track) => track.stop());
+        activeScannerStream = null;
+      }
+      const video = $('scannerVideo');
+      if (video) {
+        video.pause();
+        video.srcObject = null;
+        video.classList.add('is-hidden');
+      }
+    }
+
+    function bootstrap() {
+      setLogVisibility(false);
+      $('stepLinkCodeInput').value = urlCode;
+      logLine('Start page bootstrapped.', {
+        urlCode,
+        urlSessionId,
+        initialSessionId: getInitialSessionId()
+      });
+
+      $('resolveBtn').addEventListener('click', async () => {
+        try {
+          await startStepLink();
+        } catch (err) {
+          logLine('Start step-link failed.', { message: err.message || String(err) });
+          setStatus(err.message || String(err), 'error');
+        }
+      });
+      $('startScanBtn').addEventListener('click', async () => {
+        try {
+          await startScanner();
+        } catch (err) {
+          logLine('Camera scanner failed to start.', { message: err.message || String(err) });
+          setStatus(err.message || String(err), 'error');
+        }
+      });
+      $('stopScanBtn').addEventListener('click', () => {
+        stopScanner();
+        setStatus('Camera stopped.');
+        logLine('Camera scanner stopped.');
+      });
+      $('toggleLogBtn').addEventListener('click', () => {
+        const shouldShow = $('logBox')?.classList.contains('is-hidden');
+        setLogVisibility(Boolean(shouldShow));
+      });
+      $('clearLogBtn').addEventListener('click', () => {
+        $('logBox').textContent = 'Log cleared.';
+      });
+      window.addEventListener('beforeunload', stopScanner);
+
+      startScanner().catch((err) => {
+        logLine('Automatic camera start failed.', { message: err.message || String(err) });
+        setStatus('Camera did not start automatically. Use Start camera.', 'error');
+      });
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

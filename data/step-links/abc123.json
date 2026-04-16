@@ -1,0 +1,30 @@
+{
+    "code": "abc123",
+    "active": true,
+    "stepId": "lesson-1-step-3",
+    "scriptId": "listen-and-type-001",
+    "createdAt": "2026-04-16T08:00:00Z",
+    "updatedAt": "2026-04-16T08:00:00Z",
+    "meta": {
+        "title": "luister naar het woord",
+        "instruction": "luister naar het woord en typ het",
+        "book": "method-1",
+        "page": "12",
+        "order": 3
+    },
+    "stepInputs": {
+        "text": "bal",
+        "repeat": 2,
+        "letters": [
+            "b",
+            "a",
+            "l"
+        ],
+        "word": "bal",
+        "sounds": [
+            "b",
+            "a",
+            "l"
+        ]
+    }
+}

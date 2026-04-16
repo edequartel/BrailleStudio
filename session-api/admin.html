@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Step Link Admin</title>
+  <style>
+    :root {
+      --bg: #eef3f8;
+      --panel: #ffffff;
+      --border: #d7dee8;
+      --text: #16202f;
+      --muted: #627086;
+      --blue: #1d4ed8;
+      --green: #15803d;
+      --red: #b91c1c;
+      --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .page {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.5;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(360px, 520px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .grid-three {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+    select {
+      min-height: 46px;
+      height: 46px;
+    }
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+    .field + .field {
+      margin-top: 14px;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button, .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .btn-blue {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+    .btn-green {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+    .btn-red {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: var(--red);
+    }
+    .status {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .auth-panel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .auth-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .auth-pill.is-ok {
+      border-color: #bbf7d0;
+      background: #ecfdf5;
+      color: #15803d;
+    }
+    .auth-status {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .success { color: var(--green); }
+    .error { color: var(--red); }
+    .mono {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .mono-log {
+      min-height: 180px;
+      max-height: 420px;
+      overflow: auto;
+    }
+    .is-hidden {
+      display: none;
+    }
+    .links-list {
+      display: grid;
+      gap: 12px;
+    }
+    .link-item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fbfdff;
+    }
+    .link-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+    }
+    .badge.active {
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+      color: #15803d;
+    }
+    .pair {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      font-size: 13px;
+      margin-bottom: 6px;
+      align-items: start;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .checkbox-row input {
+      width: auto;
+    }
+    @media (max-width: 1080px) {
+      .layout,
+      .grid-two,
+      .grid-three {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <h1>Step Link Admin</h1>
+        <p>
+          Create short QR step links by choosing an existing Blockly online script and adding lesson-step style input data like text, word, letters and repeat.
+        </p>
+        <div class="status" id="pageVersion" style="margin-top:10px;">Version pending...</div>
+      </div>
+      <div class="auth-panel">
+        <div id="authStatePill" class="auth-pill">Not authenticated</div>
+        <button id="authBtn" class="btn-blue" type="button">Authentication</button>
+        <a class="button-link" href="./laptop.html">Open session resolver</a>
+      </div>
+    </div>
+    <div id="authStatus" class="auth-status">Authenticate first to manage step links.</div>
+
+    <div class="layout">
+      <div class="stack">
+        <section class="card">
+          <h2>1. Script Selection</h2>
+          <div class="field">
+            <label for="scriptSelect">Online script</label>
+            <select id="scriptSelect">
+              <option value="">-- load scripts first --</option>
+            </select>
+          </div>
+          <div class="grid-two">
+            <div>
+              <label for="scriptIdInput">Script id</label>
+              <input id="scriptIdInput" type="text" placeholder="listen-and-type-001">
+            </div>
+            <div>
+              <label for="stepIdInput">Step id</label>
+              <input id="stepIdInput" type="text" placeholder="lesson-1-step-3">
+            </div>
+          </div>
+          <div class="field">
+            <label for="codeInput">Short code</label>
+            <input id="codeInput" type="text" placeholder="leave empty to auto-generate">
+          </div>
+          <div class="btn-row">
+            <button id="loadScriptsBtn" class="btn-blue" type="button">Load scripts</button>
+            <button id="fillSelectedBtn" type="button">Copy selected script id</button>
+          </div>
+          <div id="scriptsStatus" class="status" style="margin-top:12px;">Scripts not loaded yet.</div>
+        </section>
+
+        <section class="card">
+          <h2>2. Meta</h2>
+          <div class="grid-two">
+            <div>
+              <label for="titleInput">Title</label>
+              <input id="titleInput" type="text" placeholder="luister naar het woord">
+            </div>
+            <div>
+              <label for="orderInput">Order</label>
+              <input id="orderInput" type="number" min="1" step="1" placeholder="3">
+            </div>
+          </div>
+          <div class="grid-two field">
+            <div>
+              <label for="bookInput">Book</label>
+              <input id="bookInput" type="text" placeholder="method-1">
+            </div>
+            <div>
+              <label for="pageInput">Page</label>
+              <input id="pageInput" type="text" placeholder="12">
+            </div>
+          </div>
+          <div class="field">
+            <label for="descriptionInput">Description</label>
+            <textarea id="descriptionInput" placeholder="omschrijving van het script of de step"></textarea>
+          </div>
+          <div class="field">
+            <label for="instructionInput">Instruction</label>
+            <textarea id="instructionInput" placeholder="luister naar het woord en typ het"></textarea>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>3. Step Inputs</h2>
+          <div class="grid-two">
+            <div>
+              <label for="textInput">Text</label>
+              <textarea id="textInput" placeholder="bal"></textarea>
+            </div>
+            <div>
+              <label for="wordInput">Word</label>
+              <input id="wordInput" type="text" placeholder="bal">
+              <div class="field">
+                <label for="repeatInput">Repeat</label>
+                <input id="repeatInput" type="number" min="1" step="1" value="1">
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="lettersInput">Letters</label>
+            <textarea id="lettersInput" placeholder="b, a, l"></textarea>
+          </div>
+          <div class="field">
+            <label for="soundsInput">Sounds</label>
+            <textarea id="soundsInput" placeholder="b, a, l"></textarea>
+          </div>
+          <div class="checkbox-row">
+            <input id="activeInput" type="checkbox" checked>
+            <label for="activeInput" style="margin:0;">Active</label>
+            <input id="overwriteInput" type="checkbox" style="margin-left:16px;">
+            <label for="overwriteInput" style="margin:0;">Overwrite if code exists</label>
+          </div>
+          <div class="btn-row">
+            <button id="createLinkBtn" class="btn-green" type="button">Create step link</button>
+            <button id="resetFormBtn" class="btn-red" type="button">Reset form</button>
+          </div>
+          <div id="createStatus" class="status" style="margin-top:12px;">Ready to create a step link.</div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="card">
+          <h2>Preview Payload</h2>
+          <pre id="previewBox" class="mono">{}</pre>
+        </section>
+
+        <section class="card">
+          <h2>Existing Step Links</h2>
+          <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+            <button id="refreshLinksBtn" class="btn-blue" type="button">Refresh links</button>
+          </div>
+          <div id="linksStatus" class="status" style="margin-bottom:12px;">No links loaded yet.</div>
+          <div id="linksList" class="links-list"></div>
+        </section>
+
+        <section class="card">
+          <h2>Logging</h2>
+          <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+            <button id="toggleLogBtn" type="button">Unhide log</button>
+            <button id="copyLogBtn" type="button">Copy log</button>
+            <button id="clearLogBtn" type="button">Clear log</button>
+          </div>
+          <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_VERSION = '2026-04-16 09:10';
+    const APP_BASE_PATH = '/braillestudio';
+    const SCRIPT_LIST_URL = `${APP_BASE_PATH}/blockly-api/list.php`;
+    const CREATE_LINK_URL = `${APP_BASE_PATH}/session-api/create-link.php`;
+    const LIST_LINKS_URL = `${APP_BASE_PATH}/session-api/list-links.php`;
+    const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
+    const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
+    const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+    const $ = (id) => document.getElementById(id);
+    let scriptsCache = [];
+
+    function logLine(message, data) {
+      const box = $('logBox');
+      if (!box) return;
+      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
+      let line = `[${timestamp}] ${String(message || '').trim()}`;
+      if (typeof data !== 'undefined') {
+        try {
+          line += `\n${JSON.stringify(data, null, 2)}`;
+        } catch {
+          line += `\n${String(data)}`;
+        }
+      }
+      box.textContent = box.textContent.trim()
+        ? `${box.textContent}\n${line}`
+        : line;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function copyLogToClipboard() {
+      const text = String($('logBox')?.textContent || '').trim();
+      if (!text) {
+        throw new Error('Log is empty');
+      }
+      await navigator.clipboard.writeText(text);
+      logLine('Log copied to clipboard.');
+    }
+
+    function setLogVisibility(visible) {
+      const box = $('logBox');
+      const button = $('toggleLogBtn');
+      if (!box || !button) return;
+      box.classList.toggle('is-hidden', !visible);
+      button.textContent = visible ? 'Hide log' : 'Unhide log';
+    }
+
+    function getAuthToken() {
+      for (const key of AUTH_TOKEN_KEYS) {
+        const fromSession = String(sessionStorage.getItem(key) || '').trim();
+        if (fromSession) return fromSession;
+        const fromLocal = String(localStorage.getItem(key) || '').trim();
+        if (fromLocal) return fromLocal;
+      }
+      return '';
+    }
+
+    function setAuthToken(token) {
+      const normalized = String(token || '').trim();
+      if (normalized) {
+        sessionStorage.setItem('braillestudioAuthToken', normalized);
+        localStorage.setItem('braillestudioAuthToken', normalized);
+        sessionStorage.setItem('elevenlabsAuthToken', normalized);
+        localStorage.setItem('elevenlabsAuthToken', normalized);
+      } else {
+        sessionStorage.removeItem('braillestudioAuthToken');
+        localStorage.removeItem('braillestudioAuthToken');
+        sessionStorage.removeItem('elevenlabsAuthToken');
+        localStorage.removeItem('elevenlabsAuthToken');
+      }
+      logLine(normalized ? 'Authentication token stored.' : 'Authentication token cleared.');
+    }
+
+    function buildHomepageAuthUrl(returnTo = window.location.href) {
+      const url = new URL(AUTH_LOGIN_URL);
+      const target = String(returnTo || '').trim();
+      if (target) {
+        url.searchParams.set('returnTo', target);
+      }
+      return url.toString();
+    }
+
+    function openAuthenticationPopup() {
+      return new Promise((resolve, reject) => {
+        const currentOrigin = String(window.location.origin || '').trim();
+        const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
+        const authUrl = new URL(
+          useSameOriginStorageFlow
+            ? 'https://www.tastenbraille.com/braillestudio/authentication.html'
+            : AUTH_BRIDGE_URL
+        );
+        if (!useSameOriginStorageFlow) {
+          authUrl.searchParams.set('origin', currentOrigin);
+        }
+        const initialToken = getAuthToken();
+        const popup = window.open(
+          authUrl.toString(),
+          'braillestudioAuthBridge',
+          'width=560,height=720,resizable=yes,scrollbars=yes'
+        );
+        if (!popup) {
+          logLine('Authentication popup blocked.');
+          reject(new Error('Popup blocked'));
+          return;
+        }
+        try {
+          popup.focus();
+        } catch {}
+
+        let settled = false;
+        const cleanup = () => {
+          window.removeEventListener('message', onMessage);
+          if (pollTimer) window.clearInterval(pollTimer);
+        };
+
+        const onMessage = (event) => {
+          if (event.origin !== 'https://www.tastenbraille.com') return;
+          if (event.data?.type !== 'braillestudio-auth-token') return;
+          const token = String(event.data?.token || '').trim();
+          if (!token) return;
+          setAuthToken(token);
+          logLine('Authentication token received from popup message.');
+          settled = true;
+          cleanup();
+          resolve(token);
+        };
+
+        window.addEventListener('message', onMessage);
+
+        const pollTimer = window.setInterval(() => {
+          const currentToken = getAuthToken();
+          if (!settled && currentToken && currentToken !== initialToken) {
+            logLine('Authentication token detected through storage polling.');
+            settled = true;
+            cleanup();
+            try {
+              popup.close();
+            } catch {}
+            resolve(currentToken);
+            return;
+          }
+          if (popup.closed && !settled) {
+            cleanup();
+            logLine('Authentication popup closed before token was received.');
+            reject(new Error('Authentication popup closed'));
+          }
+        }, 250);
+      });
+    }
+
+    function isAuthenticated() {
+      return Boolean(getAuthToken());
+    }
+
+    function requireAuthentication() {
+      if (!isAuthenticated()) {
+        throw new Error('Authenticate first');
+      }
+    }
+
+    function renderAuthenticationState() {
+      const authenticated = isAuthenticated();
+      $('authStatePill').textContent = authenticated ? 'Authenticated' : 'Not authenticated';
+      $('authStatePill').classList.toggle('is-ok', authenticated);
+      $('authBtn').textContent = authenticated ? 'Authenticated' : 'Authentication';
+      $('loadScriptsBtn').disabled = !authenticated;
+      $('createLinkBtn').disabled = !authenticated;
+      $('refreshLinksBtn').disabled = !authenticated;
+      $('scriptsStatus').textContent = authenticated
+        ? 'Authenticated. You can load scripts and create links.'
+        : 'Authenticate first to manage step links.';
+      $('authStatus').textContent = authenticated
+        ? 'Authentication active.'
+        : 'Authenticate first to manage step links.';
+      logLine(`Authentication state: ${authenticated ? 'active' : 'inactive'}.`);
+    }
+
+    function parseCommaList(value) {
+      return String(value || '')
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function safeJson(value) {
+      return JSON.stringify(value, null, 2);
+    }
+
+    function slugifyStepPart(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+    }
+
+    function buildAutoStepId(scriptId) {
+      const base = slugifyStepPart(scriptId);
+      return base ? `${base}-step-1` : '';
+    }
+
+    function buildPayload() {
+      const orderRaw = String($('orderInput').value || '').trim();
+      const orderValue = orderRaw === '' ? null : Number(orderRaw);
+      const payload = {
+        code: String($('codeInput').value || '').trim() || undefined,
+        scriptId: String($('scriptIdInput').value || '').trim(),
+        stepId: String($('stepIdInput').value || '').trim(),
+        active: Boolean($('activeInput').checked),
+        overwrite: Boolean($('overwriteInput').checked),
+        meta: {
+          title: String($('titleInput').value || '').trim(),
+          description: String($('descriptionInput').value || '').trim(),
+          instruction: String($('instructionInput').value || '').trim(),
+          book: String($('bookInput').value || '').trim(),
+          page: String($('pageInput').value || '').trim(),
+          order: Number.isFinite(orderValue) ? orderValue : null
+        },
+        stepInputs: {
+          text: String($('textInput').value || '').trim(),
+          word: String($('wordInput').value || '').trim(),
+          letters: parseCommaList($('lettersInput').value),
+          repeat: Math.max(1, Math.floor(Number($('repeatInput').value || 1) || 1)),
+          sounds: parseCommaList($('soundsInput').value)
+        }
+      };
+
+      if (!payload.code) {
+        delete payload.code;
+      }
+      if (payload.meta.order == null) {
+        delete payload.meta.order;
+      }
+      return payload;
+    }
+
+    function renderPreview() {
+      $('previewBox').textContent = safeJson(buildPayload());
+    }
+
+    function renderScriptsSelect(items) {
+      const select = $('scriptSelect');
+      select.innerHTML = '<option value="">-- choose a script --</option>';
+      items.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = String(item.id || '');
+        const metaTitle = String(item?.meta?.title || '').trim();
+        const metaDescription = String(item?.meta?.description || '').trim();
+        const title = String(item.title || metaTitle || item.id || '').trim();
+        option.textContent = `${title} (${item.id})`;
+        option.dataset.scriptId = String(item.id || '');
+        option.dataset.scriptTitle = title;
+        option.dataset.scriptDescription = metaDescription;
+        option.dataset.scriptInstruction = String(item?.meta?.instruction || '').trim();
+        select.appendChild(option);
+      });
+    }
+
+    function applySelectedScriptToForm({ overwrite = false } = {}) {
+      const select = $('scriptSelect');
+      const option = select.options[select.selectedIndex];
+      const scriptId = String(option?.dataset?.scriptId || '').trim();
+      const scriptTitle = String(option?.dataset?.scriptTitle || '').trim();
+      const scriptDescription = String(option?.dataset?.scriptDescription || '').trim();
+      const scriptInstruction = String(option?.dataset?.scriptInstruction || '').trim();
+      if (!scriptId) {
+        return false;
+      }
+
+      $('scriptIdInput').value = scriptId;
+      const autoStepId = buildAutoStepId(scriptId);
+      if (autoStepId && (overwrite || !$('stepIdInput').value.trim())) {
+        $('stepIdInput').value = autoStepId;
+      }
+      if (overwrite || !$('titleInput').value.trim()) {
+        $('titleInput').value = scriptTitle;
+      }
+      if (overwrite || !$('descriptionInput').value.trim()) {
+        $('descriptionInput').value = scriptDescription;
+      }
+      if (overwrite || !$('instructionInput').value.trim()) {
+        $('instructionInput').value = scriptInstruction || scriptDescription;
+      }
+      renderPreview();
+      logLine('Applied selected script to form.', {
+        scriptId,
+        stepId: $('stepIdInput').value.trim(),
+        title: scriptTitle,
+        description: scriptDescription,
+        instruction: scriptInstruction
+      });
+      return true;
+    }
+
+    async function loadScripts() {
+      requireAuthentication();
+      $('scriptsStatus').textContent = 'Loading scripts...';
+      logLine('Loading script list.', { url: SCRIPT_LIST_URL });
+      const res = await fetch(SCRIPT_LIST_URL, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      logLine('Script list response received.', {
+        status: res.status,
+        ok: Boolean(res.ok),
+        itemCount: Array.isArray(data.items) ? data.items.length : null,
+        keys: Object.keys(data || {})
+      });
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      scriptsCache = Array.isArray(data.items)
+        ? data.items
+        : Array.isArray(data.scripts)
+          ? data.scripts
+          : [];
+      renderScriptsSelect(scriptsCache);
+      $('scriptsStatus').textContent = `${scriptsCache.length} script(s) loaded.`;
+      logLine(`Loaded ${scriptsCache.length} script(s).`);
+    }
+
+    function fillFromSelectedScript() {
+      const applied = applySelectedScriptToForm({ overwrite: true });
+      if (!applied) {
+        throw new Error('Choose a script first');
+      }
+    }
+
+    async function createLink() {
+      requireAuthentication();
+      const payload = buildPayload();
+      if (!payload.scriptId) {
+        throw new Error('scriptId is required');
+      }
+      if (!payload.stepId) {
+        throw new Error('stepId is required');
+      }
+
+      $('createStatus').textContent = 'Creating step link...';
+      logLine('Creating step link.', payload);
+      const res = await fetch(CREATE_LINK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      logLine('Create step link response received.', {
+        status: res.status,
+        ok: Boolean(res.ok),
+        response: data
+      });
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      $('createStatus').innerHTML = `<span class="success">Step link created: ${data.code}</span>`;
+      $('codeInput').value = String(data.code || '');
+      renderPreview();
+      await loadLinks();
+    }
+
+    async function loadLinks() {
+      requireAuthentication();
+      $('linksStatus').textContent = 'Loading links...';
+      logLine('Loading existing step links.', { url: LIST_LINKS_URL });
+      const res = await fetch(LIST_LINKS_URL, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        }
+      });
+      const data = await res.json().catch(() => ({}));
+      logLine('Existing links response received.', {
+        status: res.status,
+        ok: Boolean(res.ok),
+        itemCount: Array.isArray(data.items) ? data.items.length : null
+      });
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const items = Array.isArray(data.items) ? data.items : [];
+      $('linksStatus').textContent = `${items.length} link(s) loaded.`;
+      const list = $('linksList');
+      list.innerHTML = '';
+
+      if (!items.length) {
+        list.innerHTML = '<div class="status">No step links yet.</div>';
+        return;
+      }
+
+      items.forEach((item) => {
+        const title = String(item?.meta?.title || item.code || '').trim() || item.code;
+        const instruction = String(item?.meta?.instruction || '').trim();
+        const details = [
+          ['Code', item.code],
+          ['Script', item.scriptId],
+          ['Step', item.stepId],
+          ['Updated', item.updatedAt || '-']
+        ];
+        const node = document.createElement('div');
+        node.className = 'link-item';
+        node.innerHTML = `
+          <div class="link-title">
+            <strong>${title}</strong>
+            <span class="badge ${item.active ? 'active' : ''}">${item.active ? 'active' : 'inactive'}</span>
+          </div>
+          ${instruction ? `<div class="status" style="margin-bottom:8px;">${instruction}</div>` : ''}
+          ${details.map(([label, value]) => `<div class="pair"><strong>${label}</strong><span>${value || '-'}</span></div>`).join('')}
+          <pre class="mono" style="margin-top:10px;">${safeJson(item.stepInputs || {})}</pre>
+        `;
+        list.appendChild(node);
+      });
+    }
+
+    function resetForm() {
+      $('scriptSelect').value = '';
+      $('scriptIdInput').value = '';
+      $('stepIdInput').value = '';
+      $('codeInput').value = '';
+      $('titleInput').value = '';
+      $('instructionInput').value = '';
+      $('descriptionInput').value = '';
+      $('bookInput').value = '';
+      $('pageInput').value = '';
+      $('orderInput').value = '';
+      $('textInput').value = '';
+      $('wordInput').value = '';
+      $('lettersInput').value = '';
+      $('soundsInput').value = '';
+      $('repeatInput').value = '1';
+      $('activeInput').checked = true;
+      $('overwriteInput').checked = false;
+      renderPreview();
+    }
+
+    function bindPreviewFields() {
+      [
+        'scriptSelect',
+        'scriptIdInput',
+        'stepIdInput',
+        'codeInput',
+        'titleInput',
+        'descriptionInput',
+        'instructionInput',
+        'bookInput',
+        'pageInput',
+        'orderInput',
+        'textInput',
+        'wordInput',
+        'lettersInput',
+        'soundsInput',
+        'repeatInput',
+        'activeInput',
+        'overwriteInput'
+      ].forEach((id) => {
+        const node = $(id);
+        if (!node) return;
+        node.addEventListener('input', renderPreview);
+        node.addEventListener('change', renderPreview);
+      });
+    }
+
+    function bootstrap() {
+      bindPreviewFields();
+      renderPreview();
+      renderAuthenticationState();
+      $('pageVersion').textContent = `Admin version ${ADMIN_VERSION}`;
+      logLine('Admin page bootstrapped.', {
+        version: ADMIN_VERSION,
+        scriptListUrl: SCRIPT_LIST_URL,
+        linksUrl: LIST_LINKS_URL
+      });
+
+      $('loadScriptsBtn').addEventListener('click', async () => {
+        try {
+          await loadScripts();
+        } catch (err) {
+          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+
+      $('fillSelectedBtn').addEventListener('click', () => {
+        try {
+          fillFromSelectedScript();
+        } catch (err) {
+          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+
+      $('scriptSelect').addEventListener('change', () => {
+        try {
+          applySelectedScriptToForm();
+        } catch (err) {
+          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+
+      $('createLinkBtn').addEventListener('click', async () => {
+        try {
+          await createLink();
+        } catch (err) {
+          $('createStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+
+      $('refreshLinksBtn').addEventListener('click', async () => {
+        try {
+          await loadLinks();
+        } catch (err) {
+          $('linksStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+
+      $('resetFormBtn').addEventListener('click', resetForm);
+      setLogVisibility(false);
+      $('toggleLogBtn').addEventListener('click', () => {
+        const visible = $('logBox') && $('logBox').classList.contains('is-hidden');
+        setLogVisibility(Boolean(visible));
+      });
+      $('copyLogBtn').addEventListener('click', async () => {
+        try {
+          await copyLogToClipboard();
+        } catch (err) {
+          const message = err.message || String(err);
+          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+        }
+      });
+      $('clearLogBtn').addEventListener('click', () => {
+        $('logBox').textContent = 'Log cleared.';
+      });
+
+      $('authBtn').addEventListener('click', async () => {
+        try {
+          $('authStatus').textContent = 'Opening authentication popup...';
+          logLine('Authentication popup requested.');
+          await openAuthenticationPopup();
+          renderAuthenticationState();
+          $('authStatus').innerHTML = '<span class="success">Authentication completed.</span>';
+          $('linksStatus').textContent = 'Authentication completed.';
+          await loadScripts();
+          await loadLinks();
+        } catch (err) {
+          const message = err.message || String(err);
+          logLine('Authentication failed.', { message });
+          const isPopupIssue = /popup blocked|popup closed/i.test(message);
+          if (isPopupIssue) {
+            const authUrl = buildHomepageAuthUrl(window.location.href);
+            $('authStatus').innerHTML = `<span class="error">${message}.</span> <a href="${authUrl}" target="_blank" rel="noopener noreferrer">Open login page</a>`;
+          } else {
+            $('authStatus').innerHTML = `<span class="error">${message}</span>`;
+          }
+          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+        }
+      });
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'braillestudioAuthToken' || event.key === 'elevenlabsAuthToken') {
+          logLine('Authentication storage updated from another window.', {
+            key: event.key,
+            hasValue: Boolean(String(event.newValue || '').trim())
+          });
+          renderAuthenticationState();
+        }
+      });
+
+      if (isAuthenticated()) {
+        loadScripts().catch((err) => {
+          const message = err.message || String(err);
+          $('scriptsStatus').innerHTML = `<span class="error">${message}</span>`;
+          logLine('Automatic script load failed.', { message });
+        });
+        loadLinks().catch((err) => {
+          const message = err.message || String(err);
+          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+          logLine('Automatic link load failed.', { message });
+        });
+      }
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

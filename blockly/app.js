@@ -1204,6 +1204,8 @@ const SOUND_FOLDER_URLS = {
   ux: 'https://www.tastenbraille.com/braillestudio/sounds/ux/'
 };
 const lessonDataCache = new Map();
+const SESSION_RESOLVED_PAYLOAD_STORAGE_KEY = 'braillestudio_session_api_last_resolved';
+let lastAppliedResolvedSessionSignature = '';
 window.BrailleBlocklyDefaultLessonPlaceholders = window.BrailleBlocklyDefaultLessonPlaceholders || {
   word: 'bal',
   soundsCsv: 'b,a,l'
@@ -3879,6 +3881,83 @@ function resetLessonStepRuntimeState(stepInputs = null) {
   getRuntime().lessonCompletion = null;
 }
 
+function readStoredResolvedSessionPayload() {
+  try {
+    const raw = window.localStorage?.getItem(SESSION_RESOLVED_PAYLOAD_STORAGE_KEY) || '';
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (err) {
+    log('Resolved session storage read failed: ' + (err?.message || err));
+    return null;
+  }
+}
+
+function buildResolvedSessionStepMeta(payload = {}) {
+  const meta = payload && typeof payload.meta === 'object' ? payload.meta : {};
+  return {
+    id: String(payload?.stepId || '').trim(),
+    code: String(payload?.code || '').trim(),
+    scriptId: String(payload?.scriptId || '').trim(),
+    title: String(meta?.title || '').trim(),
+    instruction: String(meta?.instruction || '').trim(),
+    prompt: String(meta?.prompt || '').trim(),
+    localScanData: String(payload?.localScanData || '').trim()
+  };
+}
+
+async function applyResolvedSessionPayload(payload = {}, options = {}) {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Resolved session payload must be an object');
+  }
+
+  const scriptId = String(payload.scriptId || '').trim();
+  if (!scriptId) {
+    throw new Error('Resolved session payload is missing scriptId');
+  }
+
+  const signature = JSON.stringify({
+    scriptId,
+    stepId: String(payload.stepId || '').trim(),
+    code: String(payload.code || '').trim(),
+    stepInputs: payload.stepInputs && typeof payload.stepInputs === 'object' ? payload.stepInputs : {},
+    localScanData: String(payload.localScanData || '').trim()
+  });
+
+  if (!options.force && signature === lastAppliedResolvedSessionSignature) {
+    log('Resolved session payload skipped: already applied');
+    return {
+      scriptId,
+      skipped: true
+    };
+  }
+
+  const stepInputs = payload.stepInputs && typeof payload.stepInputs === 'object'
+    ? payload.stepInputs
+    : {};
+
+  await loadWorkspaceOnline(scriptId);
+  window.currentLessonStep = buildResolvedSessionStepMeta(payload);
+  resetLessonStepRuntimeState(stepInputs);
+  renderStatus();
+  lastAppliedResolvedSessionSignature = signature;
+  log(`Resolved session payload applied: script=${scriptId}, step=${String(payload.stepId || '').trim() || '(none)'}, code=${String(payload.code || '').trim() || '(none)'}`);
+
+  if (options.autoRun) {
+    await onRunClicked();
+  }
+
+  return {
+    scriptId,
+    stepId: String(payload.stepId || '').trim(),
+    code: String(payload.code || '').trim(),
+    stepInputs: structuredClone(getLessonStepInputs()),
+    stepMeta: window.currentLessonStep && typeof window.currentLessonStep === 'object'
+      ? structuredClone(window.currentLessonStep)
+      : null
+  };
+}
+
 function normalizeOptionalNumber(value) {
   if (value == null || value === '') return null;
   const number = Number(value);
@@ -5725,6 +5804,7 @@ if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.preloadAudioList =
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,
   loadWorkspaceFromState,
+  loadWorkspaceOnline,
   async runWorkspaceTextHeadless({ text, sourceName = null, lessonData = null, lessonMethod = null, index = 0, stepInputs = null, stepMeta = null, onLog = null, lockInjectedRecord = false } = {}) {
     if (typeof onLog === 'function') {
       externalLogHandler = onLog;
@@ -5988,6 +6068,32 @@ window.BrailleBlocklyApp = {
     if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.setPlayHandler === 'function') {
       window.BrailleStudioAPI.setPlayHandler(fn);
     }
+  },
+  async applyResolvedSessionPayload(payload = {}, options = {}) {
+    return await applyResolvedSessionPayload(payload, options);
+  },
+  async runCurrentWorkspace() {
+    return await onRunClicked();
   }
 };
+
+window.addEventListener('storage', (event) => {
+  if (event.key !== SESSION_RESOLVED_PAYLOAD_STORAGE_KEY || !event.newValue) {
+    return;
+  }
+  const payload = readStoredResolvedSessionPayload();
+  if (!payload) return;
+  applyResolvedSessionPayload(payload, { autoRun: false, force: false })
+    .catch((err) => {
+      log('Resolved session storage apply failed: ' + (err?.message || err));
+    });
+});
+
+const pendingResolvedSessionPayload = readStoredResolvedSessionPayload();
+if (pendingResolvedSessionPayload) {
+  applyResolvedSessionPayload(pendingResolvedSessionPayload, { autoRun: false, force: false })
+    .catch((err) => {
+      log('Resolved session boot apply failed: ' + (err?.message || err));
+    });
+}
 setBootStage('api-ready');

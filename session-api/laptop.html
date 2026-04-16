@@ -1,0 +1,1149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BrailleStudio Session Starter</title>
+  <style>
+    :root {
+      --bg: #eef3f8;
+      --panel: #ffffff;
+      --border: #d7dee8;
+      --text: #16202f;
+      --muted: #627086;
+      --blue: #1d4ed8;
+      --green: #15803d;
+      --red: #b91c1c;
+      --amber: #b45309;
+      --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.5;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .field + .field {
+      margin-top: 14px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button, .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn-blue {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: white;
+    }
+
+    .btn-green {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .btn-red {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: var(--red);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .pill-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #94a3b8;
+    }
+
+    .pill.active .pill-dot {
+      background: var(--green);
+    }
+    .pill.notice {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: #9a3412;
+    }
+    .pill.notice .pill-dot {
+      background: #ea580c;
+    }
+    .pill.notice.is-hidden {
+      display: none;
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .session-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .qr-session-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 520px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .session-side-stack {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+    .session-side-stack .card {
+      padding: 14px;
+      min-width: 0;
+    }
+    .session-side-stack .card h2 {
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .pair {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .session-side-stack .pair {
+      grid-template-columns: 84px minmax(0, 1fr);
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .session-side-stack .pair:last-child {
+      margin-bottom: 0;
+    }
+
+    .pair strong {
+      color: #334155;
+    }
+    .pair span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .mono {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .status-text {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .error {
+      color: var(--red);
+    }
+
+    .success {
+      color: var(--green);
+    }
+
+    iframe {
+      width: 100%;
+      height: 120px;
+      min-height: 120px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: white;
+    }
+    .player-frame-wrap {
+      border: 0;
+      border-radius: 0;
+      overflow: visible;
+      background: transparent;
+    }
+    .player-frame-wrap iframe {
+      border: 0;
+      border-radius: 0;
+    }
+
+    .qr-wrap {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+    }
+    .card--qr {
+      max-width: 520px;
+      justify-self: center;
+      width: 100%;
+    }
+
+    .qr-image {
+      width: min(100%, 280px);
+      aspect-ratio: 1;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      object-fit: contain;
+      padding: 14px;
+    }
+    .is-hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .grid-two, .meta-grid, .session-info-grid, .qr-session-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div>
+        <h1>Braille Sessie</h1>
+        <p>
+          Scan de QR-code op je telefoon. Daarna scan je de qr-code in het boek.
+        </p>
+      </div>
+      <div id="sessionBadge" class="pill">
+        <span class="pill-dot" aria-hidden="true"></span>
+        <span>No active session</span>
+      </div>
+      <div id="incomingStepBadge" class="pill notice is-hidden">
+        <span class="pill-dot" aria-hidden="true"></span>
+        <span>No new step-link</span>
+      </div>
+    </div>
+
+    <section class="card" style="margin-bottom:18px;">
+      <div class="player-frame-wrap">
+        <iframe id="builderFrame" title="Braille Activity Builder"></iframe>
+      </div>
+    </section>
+
+    <div class="qr-session-grid">
+      <section class="card card--qr">
+        <div class="qr-wrap">
+          <img id="qrImage" class="qr-image" alt="Session QR code">
+          <button id="refreshQrBtn" class="btn-blue" type="button">Nieuwe QR-code</button>
+        </div>
+        <div id="resolveStatus" class="status-text is-hidden" style="margin-top: 12px;">Waiting for a started step link.</div>
+      </section>
+
+      <div class="session-side-stack">
+        <section class="card">
+          <h2>Active Session</h2>
+          <div class="pair"><strong>Session id</strong><span id="sessionIdText">-</span></div>
+          <div class="pair"><strong>Expires at</strong><span id="expiresAtText">-</span></div>
+          <div class="pair"><strong>State</strong><span id="sessionStateText">Waiting</span></div>
+        </section>
+
+        <section class="card">
+          <h2>Last Resolved Step</h2>
+          <div class="pair"><strong>Code</strong><span id="resolvedCodeText">-</span></div>
+          <div class="pair"><strong>Script id</strong><span id="resolvedScriptIdText">-</span></div>
+          <div class="pair"><strong>Step id</strong><span id="resolvedStepIdText">-</span></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="card" style="margin-top:18px;">
+      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+        <button id="togglePayloadBtn" type="button">Unhide resolved payload</button>
+      </div>
+      <div id="payloadCardContent" class="is-hidden">
+        <div class="meta-grid">
+          <div>
+            <div class="status-text" style="margin-bottom: 8px;">Meta</div>
+            <pre id="metaBox" class="mono">{}</pre>
+          </div>
+          <div>
+            <div class="status-text" style="margin-bottom: 8px;">Step inputs</div>
+            <pre id="stepInputsBox" class="mono">{}</pre>
+          </div>
+        </div>
+        <div class="status-text" style="margin: 14px 0 8px;">Full response</div>
+        <pre id="payloadBox" class="mono">No resolved payload yet.</pre>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+        <button id="toggleLogBtn" type="button">Unhide log</button>
+        <button id="clearLogBtn" type="button">Clear log</button>
+      </div>
+      <pre id="logBox" class="mono is-hidden">Ready.</pre>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_SESSION_KEY = 'braillestudio_session_api_active_session';
+    const STORAGE_RESOLVED_KEY = 'braillestudio_session_api_last_resolved';
+    const BLOCKLY_URL = 'https://www.tastenbraille.com/braillestudio/blockly/';
+    const STATUS_URL = './status.php';
+    const WAIT_URL = './wait.php';
+    const START_URL = './start.php';
+    const RUNTIME_STATE_URL = './runtime-state.php';
+    const START_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/session-api/start.html';
+    const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=';
+    const STEP_START_NOTICE_AUDIO_URL = 'https://www.tastenbraille.com/braillestudio/sounds/ux/dahang.mp3';
+
+    const $ = (id) => document.getElementById(id);
+    let sessionPollTimer = null;
+    let sessionWaitLoopToken = 0;
+    let lastResolvedSignature = '';
+    let lastStartedStepKey = '';
+    let lastStartedStepStillActive = false;
+    let activeStepRunPromise = null;
+    let blocklyFrameCustomized = false;
+    let blocklyLogBridgeAttached = false;
+    let stepStartNoticeAudio = null;
+    let audioUnlocked = false;
+
+    function safeJsonParse(raw, fallback = null) {
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        return fallback;
+      }
+    }
+
+    function pretty(value) {
+      return JSON.stringify(value ?? {}, null, 2);
+    }
+
+    function logLine(message, data) {
+      const logBox = $('logBox');
+      if (logBox) {
+        const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
+        let line = `[${timestamp}] ${String(message || '').trim()}`;
+        if (typeof data !== 'undefined') {
+          try {
+            line += `\n${JSON.stringify(data, null, 2)}`;
+          } catch {
+            line += `\n${String(data)}`;
+          }
+        }
+        logBox.textContent = logBox.textContent.trim()
+          ? `${logBox.textContent}\n${line}`
+          : line;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+      try {
+        const detail = typeof data === 'undefined'
+          ? ''
+          : ` ${JSON.stringify(data)}`;
+        console.log(`[Braille Sessie] ${message}${detail}`);
+      } catch {
+        console.log(`[Braille Sessie] ${message}`);
+      }
+    }
+
+    function setPayloadVisibility(visible) {
+      const content = $('payloadCardContent');
+      const button = $('togglePayloadBtn');
+      if (!content || !button) return;
+      content.classList.toggle('is-hidden', !visible);
+      button.textContent = visible ? 'Hide resolved payload' : 'Unhide resolved payload';
+    }
+
+    function renderIncomingStepBadge({ visible = false, text = '' } = {}) {
+      const badge = $('incomingStepBadge');
+      if (!badge) return;
+      badge.classList.toggle('is-hidden', !visible);
+      const label = badge.querySelector('span:last-child');
+      if (label) {
+        label.textContent = text || 'Nieuwe step-link ontvangen';
+      }
+    }
+
+    function setLogVisibility(visible) {
+      const content = $('logBox');
+      const button = $('toggleLogBtn');
+      if (!content || !button) return;
+      content.classList.toggle('is-hidden', !visible);
+      button.textContent = visible ? 'Hide log' : 'Unhide log';
+    }
+
+    function getActiveSession() {
+      return safeJsonParse(localStorage.getItem(STORAGE_SESSION_KEY) || '', null);
+    }
+
+    function setActiveSession(session) {
+      localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(session));
+    }
+
+    function clearActiveSession() {
+      localStorage.removeItem(STORAGE_SESSION_KEY);
+    }
+
+    function getLastResolved() {
+      return safeJsonParse(localStorage.getItem(STORAGE_RESOLVED_KEY) || '', null);
+    }
+
+    function setLastResolved(payload) {
+      localStorage.setItem(STORAGE_RESOLVED_KEY, JSON.stringify(payload));
+    }
+
+    function buildSessionStartUrl(sessionId) {
+      const url = new URL(START_PAGE_URL);
+      if (sessionId) {
+        url.searchParams.set('sessionId', sessionId);
+      }
+      return url.toString();
+    }
+
+    async function waitForBlocklyApp(timeoutMs = 15000) {
+      const frame = $('builderFrame');
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < timeoutMs) {
+        try {
+          const app = frame?.contentWindow?.BrailleBlocklyApp;
+          if (app && typeof app.applyResolvedSessionPayload === 'function') {
+            attachBlocklyLogBridge(app);
+            return app;
+          }
+        } catch (err) {}
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      throw new Error('Blockly iframe did not become ready in time');
+    }
+
+    function attachBlocklyLogBridge(app) {
+      if (!app || typeof app.setLogHandler !== 'function' || blocklyLogBridgeAttached) {
+        return;
+      }
+      app.setLogHandler((line) => {
+        logLine('Blockly', { line: String(line || '') });
+      });
+      blocklyLogBridgeAttached = true;
+      logLine('Blockly log bridge attached.');
+    }
+
+    function customizeBlocklyFrameUi() {
+      const frame = $('builderFrame');
+      try {
+        const doc = frame?.contentWindow?.document;
+        if (!doc || !doc.head || !doc.body) {
+          return false;
+        }
+        if (doc.getElementById('sessionLaptopPlayerStyle')) {
+          blocklyFrameCustomized = true;
+          return true;
+        }
+        const style = doc.createElement('style');
+        style.id = 'sessionLaptopPlayerStyle';
+        style.textContent = `
+          html, body {
+            overflow: hidden !important;
+            background: transparent !important;
+          }
+          #app {
+            grid-template-rows: auto !important;
+            height: auto !important;
+          }
+          #topbar {
+            display: flex !important;
+            flex-direction: column !important;
+            border-bottom: 0 !important;
+            padding: 0 !important;
+            gap: 10px !important;
+            background: transparent !important;
+          }
+          #topbar > .topbar-row:first-child,
+          .topbar-row--scripts,
+          #main,
+          #mainDivider,
+          #sidebar,
+          .loading-overlay.is-hidden {
+            display: none !important;
+          }
+          #simCursor5Btn,
+          #simChord1Btn,
+          #gridSnapBtn,
+          #monitorToggleBtn,
+          #sidebarToggleBtn {
+            display: none !important;
+          }
+          .topbar-row--sim {
+            order: 2 !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            align-items: center !important;
+            padding: 0 !important;
+            gap: 8px !important;
+          }
+          .topbar-row--monitor {
+            order: 1 !important;
+            padding: 0 !important;
+          }
+          .braille-monitor-host {
+            width: 100% !important;
+          }
+          .braille-monitor-component,
+          .mono-box.braille-monitor-cells {
+            border: 0 !important;
+            box-shadow: none !important;
+            background: #0f172a !important;
+            color: #e5eefc !important;
+          }
+          .monitor-cell__print {
+            color: #dbeafe !important;
+          }
+          .monitor-cell__braille {
+            color: #ffffff !important;
+          }
+          .btn {
+            box-shadow: none !important;
+            max-width: 100% !important;
+          }
+          #runBtn,
+          #stopBtn,
+          #simThumbLeftBtn,
+          #simThumbRightBtn {
+            flex: 0 1 auto !important;
+          }
+          .topbar-row--sim .spacer {
+            display: none !important;
+          }
+        `;
+        doc.head.appendChild(style);
+        syncBlocklyFrameHeight();
+        blocklyFrameCustomized = true;
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function syncBlocklyFrameHeight() {
+      const frame = $('builderFrame');
+      try {
+        const doc = frame?.contentWindow?.document;
+        const topbar = doc?.getElementById('topbar');
+        if (!frame || !topbar) {
+          return false;
+        }
+        const nextHeight = Math.max(96, Math.ceil(topbar.scrollHeight + 8));
+        frame.style.height = `${nextHeight}px`;
+        frame.style.minHeight = `${nextHeight}px`;
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    async function applyResolvedToBlockly(payload, { autoOpen = true } = {}) {
+      if (!payload || typeof payload !== 'object') {
+        throw new Error('No resolved payload available');
+      }
+      const frame = $('builderFrame');
+      if (autoOpen && !frame.src) {
+        openBlockly();
+      }
+      const app = await waitForBlocklyApp();
+      customizeBlocklyFrameUi();
+      syncBlocklyFrameHeight();
+      const applyResult = await app.applyResolvedSessionPayload(payload, { autoRun: true, force: true });
+      let finalSnapshot = typeof app.getRuntimeSnapshot === 'function'
+        ? app.getRuntimeSnapshot()
+        : null;
+      logLine('Blockly runtime snapshot after auto-start.', finalSnapshot);
+
+      const shouldRetryStart = finalSnapshot &&
+        !finalSnapshot.isActive &&
+        !finalSnapshot.hasActiveAudio &&
+        !finalSnapshot.activeTimers;
+
+      if (shouldRetryStart && typeof app.runCurrentWorkspace === 'function') {
+        logLine('Blockly runtime ended immediately after auto-start; retrying once.', {
+          code: payload.code || '',
+          scriptId: payload.scriptId || '',
+          stepId: payload.stepId || ''
+        });
+        await new Promise((resolve) => window.setTimeout(resolve, 300));
+        await app.runCurrentWorkspace();
+        finalSnapshot = typeof app.getRuntimeSnapshot === 'function'
+          ? app.getRuntimeSnapshot()
+          : null;
+        logLine('Blockly runtime snapshot after auto-start retry.', finalSnapshot);
+      }
+
+      const runtimeStillActive = Boolean(
+        finalSnapshot &&
+        (finalSnapshot.isActive || finalSnapshot.hasActiveAudio || Number(finalSnapshot.activeTimers || 0) > 0)
+      );
+
+      return {
+        ...applyResult,
+        runtimeSnapshot: finalSnapshot,
+        runtimeStillActive
+      };
+    }
+
+    function renderSession(session = null) {
+      const badge = $('sessionBadge');
+      const active = session && session.sessionId;
+      badge.classList.toggle('active', Boolean(active));
+      badge.querySelector('span:last-child').textContent = active ? `Active: ${session.sessionId}` : 'No active session';
+      $('sessionIdText').textContent = session?.sessionId || '-';
+      $('expiresAtText').textContent = session?.expiresAt || '-';
+      $('sessionStateText').textContent = active ? 'Waiting for step link' : 'Waiting';
+      renderQr(session);
+    }
+
+    function renderResolved(payload = null) {
+      $('resolvedCodeText').textContent = payload?.code || '-';
+      $('resolvedScriptIdText').textContent = payload?.scriptId || '-';
+      $('resolvedStepIdText').textContent = payload?.stepId || '-';
+      $('metaBox').textContent = pretty(payload?.meta || {});
+      $('stepInputsBox').textContent = pretty(payload?.stepInputs || {});
+      $('payloadBox').textContent = payload ? pretty(payload) : 'No resolved payload yet.';
+    }
+
+    function renderQr(session = null) {
+      const sessionId = String(session?.sessionId || '').trim();
+      const link = sessionId ? buildSessionStartUrl(sessionId) : START_PAGE_URL;
+      const qrImage = $('qrImage');
+      qrImage.src = sessionId ? `${QR_IMAGE_BASE_URL}${encodeURIComponent(link)}&t=${Date.now()}` : '';
+      qrImage.classList.toggle('is-hidden', !sessionId);
+    }
+
+    async function postJson(url, payload) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload || {})
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    async function playStepStartNotice() {
+      if (!stepStartNoticeAudio) {
+        stepStartNoticeAudio = new Audio(STEP_START_NOTICE_AUDIO_URL);
+        stepStartNoticeAudio.preload = 'auto';
+      }
+      const audio = stepStartNoticeAudio;
+      try {
+        audio.pause();
+      } catch {}
+      try {
+        audio.currentTime = 0;
+      } catch {}
+      await new Promise((resolve, reject) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
+          resolve();
+        };
+        const fail = () => {
+          if (settled) return;
+          settled = true;
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
+          reject(new Error('Could not play step start notification.'));
+        };
+        const onEnded = () => finish();
+        const onError = () => fail();
+        audio.addEventListener('ended', onEnded, { once: true });
+        audio.addEventListener('error', onError, { once: true });
+        audio.play()
+          .then(() => {
+            logLine('Notification sound playback started.', { url: STEP_START_NOTICE_AUDIO_URL });
+            if (!Number.isFinite(audio.duration) || audio.duration === 0) {
+              window.setTimeout(finish, 1500);
+            }
+          })
+          .catch(() => fail());
+      });
+    }
+
+    async function unlockAudioPlayback() {
+      if (!stepStartNoticeAudio) {
+        stepStartNoticeAudio = new Audio(STEP_START_NOTICE_AUDIO_URL);
+        stepStartNoticeAudio.preload = 'auto';
+      }
+      const audio = stepStartNoticeAudio;
+      audio.muted = true;
+      try {
+        audio.currentTime = 0;
+      } catch {}
+      await audio.play();
+      audio.pause();
+      try {
+        audio.currentTime = 0;
+      } catch {}
+      audio.muted = false;
+      audioUnlocked = true;
+      logLine('Audio playback unlocked.');
+    }
+
+    function resetSessionRuntimeState() {
+      if (getActiveSession()?.sessionId) {
+        clearActiveSession();
+      }
+      localStorage.removeItem(STORAGE_RESOLVED_KEY);
+      lastResolvedSignature = '';
+      lastStartedStepKey = '';
+      lastStartedStepStillActive = false;
+      activeStepRunPromise = null;
+      renderIncomingStepBadge({ visible: false });
+      renderResolved(null);
+      renderSession(null);
+    }
+
+    async function startSession() {
+      const response = await postJson(START_URL, {});
+
+      const session = {
+        sessionId: response.sessionId,
+        expiresAt: response.expiresAt || ''
+      };
+      setActiveSession(session);
+      renderSession(session);
+      $('resolveStatus').textContent = 'Waiting for a started step link.';
+      startSessionPolling();
+    }
+
+    async function startFreshSession({ unlockAudio = false } = {}) {
+      stopSessionPolling();
+      resetSessionRuntimeState();
+      if (unlockAudio) {
+        try {
+          await unlockAudioPlayback();
+        } catch (err) {
+          logLine('Audio unlock failed during new QR action.', { message: err?.message || String(err) });
+        }
+      }
+      await startSession();
+      if (unlockAudio) {
+        $('sessionStateText').textContent = audioUnlocked ? 'Audio actief, wacht op step-link' : 'Wacht op step-link';
+      }
+    }
+
+    async function fetchSessionStatus(sessionId) {
+      return await postJson(STATUS_URL, { sessionId });
+    }
+
+    async function waitForSessionStatus(sessionId, since = '') {
+      const requestStartedAt = Date.now();
+      const status = await postJson(WAIT_URL, { sessionId, since });
+      status._clientWaitRoundTripMs = Math.max(0, Date.now() - requestStartedAt);
+      return status;
+    }
+
+    async function updateSessionRuntimeState(state, payload = null) {
+      const sessionId = String(getActiveSession()?.sessionId || '').trim();
+      if (!sessionId) {
+        return null;
+      }
+      const body = { sessionId, state };
+      if (payload && typeof payload === 'object') {
+        body.code = String(payload.code || '').trim();
+        body.scriptId = String(payload.scriptId || '').trim();
+        body.stepId = String(payload.stepId || '').trim();
+      }
+      return await postJson(RUNTIME_STATE_URL, body);
+    }
+
+    async function handleStartedStep(status) {
+      const payload = status?.lastResolved;
+      if (!payload || typeof payload !== 'object') {
+        return;
+      }
+      const resolvedAtMs = payload?.resolvedAt ? Date.parse(String(payload.resolvedAt)) : NaN;
+      const receiveLatencyMs = Number.isFinite(resolvedAtMs)
+        ? Math.max(0, Date.now() - resolvedAtMs)
+        : null;
+      const noticeSignature = JSON.stringify({
+        code: payload.code || '',
+        resolvedAt: payload.resolvedAt || '',
+        stepId: payload.stepId || '',
+        scriptId: payload.scriptId || ''
+      });
+      if (noticeSignature === lastResolvedSignature) {
+        return;
+      }
+      const stepKey = JSON.stringify({
+        code: payload.code || '',
+        stepId: payload.stepId || '',
+        scriptId: payload.scriptId || ''
+      });
+      lastResolvedSignature = noticeSignature;
+      setLastResolved(payload);
+      renderResolved(payload);
+      logLine('Incoming step-link received.', {
+        code: payload.code || '',
+        scriptId: payload.scriptId || '',
+        stepId: payload.stepId || '',
+        resolvedAt: payload.resolvedAt || '',
+        receiveLatencyMs,
+        waitResponseMs: Number(status?.waitedMs ?? 0) || 0,
+        waitRoundTripMs: Number(status?._clientWaitRoundTripMs ?? 0) || 0
+      });
+      renderIncomingStepBadge({
+        visible: true,
+        text: `Nieuwe step-link ontvangen: ${payload.code || payload.stepId || 'onbekend'}`
+      });
+      try {
+        await playStepStartNotice();
+      } catch (err) {
+        logLine('Notification sound blocked or failed.', {
+          message: err?.message || String(err),
+          url: STEP_START_NOTICE_AUDIO_URL
+        });
+        console.warn(err);
+      }
+      if (stepKey === lastStartedStepKey && lastStartedStepStillActive) {
+        logLine('Step already active, skipped auto-start.', {
+          code: payload.code || '',
+          scriptId: payload.scriptId || '',
+          stepId: payload.stepId || ''
+        });
+        $('resolveStatus').innerHTML = `<span class="success">Nieuwe step-link ontvangen. Step ${payload.code || ''} is al actief.</span>`;
+        $('sessionStateText').textContent = 'Step actief';
+        return;
+      }
+      if (lastStartedStepKey && lastStartedStepStillActive) {
+        logLine('New step-link ignored because another step is active.', {
+          activeStepKey: lastStartedStepKey,
+          incomingCode: payload.code || '',
+          incomingStepId: payload.stepId || '',
+          incomingScriptId: payload.scriptId || ''
+        });
+        $('resolveStatus').innerHTML = `<span class="success">Nieuwe step-link genegeerd; de huidige step blijft actief.</span>`;
+        $('sessionStateText').textContent = 'Step actief';
+        return;
+      }
+      try {
+        await updateSessionRuntimeState('active', payload);
+      } catch (err) {
+        logLine('Could not mark session runtime active.', {
+          code: payload.code || '',
+          scriptId: payload.scriptId || '',
+          stepId: payload.stepId || '',
+          message: err?.message || String(err)
+        });
+      }
+      lastStartedStepKey = stepKey;
+      lastStartedStepStillActive = true;
+      $('resolveStatus').innerHTML = `<span class="success">Started step ${payload.code || ''}.</span>`;
+      $('sessionStateText').textContent = 'Step actief';
+      const autoStartStartedAt = Date.now();
+      activeStepRunPromise = (async () => {
+        try {
+          const startResult = await applyResolvedToBlockly(payload, { autoOpen: true });
+          const autoStartDurationMs = Math.max(0, Date.now() - autoStartStartedAt);
+          logLine(startResult?.runtimeStillActive ? 'Step auto-start succeeded.' : 'Step started and completed immediately.', {
+            code: payload.code || '',
+            scriptId: payload.scriptId || '',
+            stepId: payload.stepId || '',
+            autoStartDurationMs,
+            runtimeStillActive: Boolean(startResult?.runtimeStillActive)
+          });
+          lastStartedStepStillActive = Boolean(startResult?.runtimeStillActive);
+          lastStartedStepKey = lastStartedStepStillActive ? stepKey : '';
+          $('resolveStatus').innerHTML = startResult?.runtimeStillActive
+            ? `<span class="success">Started step ${payload.code || ''}.</span>`
+            : `<span class="success">Step ${payload.code || ''} is uitgevoerd en direct afgerond.</span>`;
+          $('sessionStateText').textContent = startResult?.runtimeStillActive ? 'Step actief' : 'Step afgerond';
+          if (!startResult?.runtimeStillActive) {
+            try {
+              await updateSessionRuntimeState('idle');
+            } catch (err) {
+              logLine('Could not mark session runtime idle after completion.', {
+                code: payload.code || '',
+                scriptId: payload.scriptId || '',
+                stepId: payload.stepId || '',
+                message: err?.message || String(err)
+              });
+            }
+          }
+        } catch (err) {
+          lastStartedStepStillActive = false;
+          lastStartedStepKey = '';
+          $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('sessionStateText').textContent = 'Start failed';
+          try {
+            await updateSessionRuntimeState('idle');
+          } catch (idleErr) {
+            logLine('Could not mark session runtime idle after failure.', {
+              code: payload.code || '',
+              scriptId: payload.scriptId || '',
+              stepId: payload.stepId || '',
+              message: idleErr?.message || String(idleErr)
+            });
+          }
+          logLine('Background step start failed.', {
+            code: payload.code || '',
+            scriptId: payload.scriptId || '',
+            stepId: payload.stepId || '',
+            message: err?.message || String(err)
+          });
+        } finally {
+          activeStepRunPromise = null;
+        }
+      })();
+    }
+
+    function stopSessionPolling() {
+      sessionWaitLoopToken += 1;
+      sessionPollTimer = null;
+    }
+
+    function startSessionPolling() {
+      const session = getActiveSession();
+      if (!session?.sessionId) {
+        return;
+      }
+      stopSessionPolling();
+      const loopToken = sessionWaitLoopToken;
+      const loop = async () => {
+        let since = String(getLastResolved()?.resolvedAt || '').trim();
+        if (!since) {
+          try {
+            const initial = await fetchSessionStatus(session.sessionId);
+            if (loopToken !== sessionWaitLoopToken) return;
+            since = String(initial?.lastResolvedAt || '').trim();
+            if (initial?.lastResolvedAt) {
+              await handleStartedStep(initial);
+            }
+          } catch (err) {
+            if (loopToken !== sessionWaitLoopToken) return;
+            $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+            logLine('Initial session status failed.', { message: err?.message || String(err) });
+          }
+        }
+        while (loopToken === sessionWaitLoopToken) {
+          try {
+            const status = await waitForSessionStatus(session.sessionId, since);
+            if (loopToken !== sessionWaitLoopToken) return;
+            if (status?.changed && status?.lastResolvedAt) {
+              logLine('Session wait returned a new step-link.', {
+                sessionId: session.sessionId,
+                waitedMs: Number(status?.waitedMs ?? 0) || 0,
+                roundTripMs: Number(status?._clientWaitRoundTripMs ?? 0) || 0,
+                lastResolvedAt: status?.lastResolvedAt || ''
+              });
+              since = String(status.lastResolvedAt || '').trim();
+              await handleStartedStep(status);
+              continue;
+            }
+            logLine('Session wait returned without changes.', {
+              sessionId: session.sessionId,
+              waitedMs: Number(status?.waitedMs ?? 0) || 0,
+              roundTripMs: Number(status?._clientWaitRoundTripMs ?? 0) || 0
+            });
+            if (status?.lastResolvedAt) {
+              since = String(status.lastResolvedAt || '').trim();
+            }
+          } catch (err) {
+            if (loopToken !== sessionWaitLoopToken) return;
+            $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+            logLine('Session wait failed; retrying.', { message: err?.message || String(err) });
+            await new Promise((resolve) => window.setTimeout(resolve, 800));
+          }
+        }
+      };
+      sessionPollTimer = true;
+      loop().catch((err) => {
+        if (loopToken !== sessionWaitLoopToken) return;
+        $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        logLine('Session wait loop stopped with error.', { message: err?.message || String(err) });
+      });
+    }
+
+    function openBlockly() {
+      const frame = $('builderFrame');
+      if (frame.src === BLOCKLY_URL) {
+        customizeBlocklyFrameUi();
+        return;
+      }
+      frame.src = BLOCKLY_URL;
+    }
+
+    function bootstrap() {
+      setPayloadVisibility(false);
+      setLogVisibility(false);
+      resetSessionRuntimeState();
+      $('resolveStatus').classList.add('is-hidden');
+      $('resolveStatus').textContent = '';
+
+      $('togglePayloadBtn').addEventListener('click', () => {
+        const shouldShow = $('payloadCardContent')?.classList.contains('is-hidden');
+        setPayloadVisibility(Boolean(shouldShow));
+      });
+      $('refreshQrBtn').addEventListener('click', async () => {
+        try {
+          await startFreshSession({ unlockAudio: true });
+        } catch (err) {
+          logLine('New QR action failed.', { message: err?.message || String(err) });
+          $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+        }
+      });
+      $('toggleLogBtn').addEventListener('click', () => {
+        const shouldShow = $('logBox')?.classList.contains('is-hidden');
+        setLogVisibility(Boolean(shouldShow));
+      });
+      $('clearLogBtn').addEventListener('click', () => {
+        const logBox = $('logBox');
+        if (logBox) {
+          logBox.textContent = 'Log cleared.';
+        }
+      });
+      $('builderFrame').addEventListener('load', () => {
+        blocklyFrameCustomized = false;
+        blocklyLogBridgeAttached = false;
+        const startedAt = Date.now();
+        const poll = () => {
+          const app = $('builderFrame')?.contentWindow?.BrailleBlocklyApp;
+          if (app) {
+            attachBlocklyLogBridge(app);
+          }
+          if (customizeBlocklyFrameUi()) {
+            syncBlocklyFrameHeight();
+            return;
+          }
+          if (Date.now() - startedAt < 10000) {
+            window.setTimeout(poll, 250);
+          }
+        };
+        poll();
+      });
+
+      window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_SESSION_KEY) {
+          renderSession(getActiveSession());
+          startSessionPolling();
+        }
+        if (event.key === STORAGE_RESOLVED_KEY) {
+          renderResolved(getLastResolved());
+        }
+      });
+
+      openBlockly();
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
