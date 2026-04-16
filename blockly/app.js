@@ -1205,6 +1205,8 @@ const SOUND_FOLDER_URLS = {
 };
 const lessonDataCache = new Map();
 const SESSION_RESOLVED_PAYLOAD_STORAGE_KEY = 'braillestudio_session_api_last_resolved';
+const EMBED_MODE = new URLSearchParams(window.location.search).get('embed') || '';
+const IS_EMBEDDED_SESSION_PLAYER = EMBED_MODE === 'session-player';
 let lastAppliedResolvedSessionSignature = '';
 window.BrailleBlocklyDefaultLessonPlaceholders = window.BrailleBlocklyDefaultLessonPlaceholders || {
   word: 'bal',
@@ -3490,22 +3492,26 @@ initVariableValues();
 setBootStage('workspace-ready');
 
 setTimeout(() => {
+  log(`Embedded mode: ${EMBED_MODE || 'none'}${IS_EMBEDDED_SESSION_PLAYER ? ' (session-player)' : ''}`);
   const token = getValidElevenLabsAuthToken();
   log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
   if (!token) return;
+  if (IS_EMBEDDED_SESSION_PLAYER) return;
   void refreshOnlineScriptsIfAuthenticated('startup');
   void refreshCompoundLibraryIfAuthenticated('startup');
 }, 0);
 
-window.addEventListener('pageshow', () => {
-  void refreshOnlineScriptsIfAuthenticated('pageshow');
-  void refreshCompoundLibraryIfAuthenticated('pageshow');
-});
+if (!IS_EMBEDDED_SESSION_PLAYER) {
+  window.addEventListener('pageshow', () => {
+    void refreshOnlineScriptsIfAuthenticated('pageshow');
+    void refreshCompoundLibraryIfAuthenticated('pageshow');
+  });
 
-window.addEventListener('focus', () => {
-  void refreshOnlineScriptsIfAuthenticated('focus');
-  void refreshCompoundLibraryIfAuthenticated('focus');
-});
+  window.addEventListener('focus', () => {
+    void refreshOnlineScriptsIfAuthenticated('focus');
+    void refreshCompoundLibraryIfAuthenticated('focus');
+  });
+}
 
 function getVariableIdFromBlock(block) {
   const field = block.getField('VAR');
@@ -6077,23 +6083,25 @@ window.BrailleBlocklyApp = {
   }
 };
 
-window.addEventListener('storage', (event) => {
-  if (event.key !== SESSION_RESOLVED_PAYLOAD_STORAGE_KEY || !event.newValue) {
-    return;
-  }
-  const payload = readStoredResolvedSessionPayload();
-  if (!payload) return;
-  applyResolvedSessionPayload(payload, { autoRun: false, force: false })
-    .catch((err) => {
-      log('Resolved session storage apply failed: ' + (err?.message || err));
-    });
-});
+if (!IS_EMBEDDED_SESSION_PLAYER) {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== SESSION_RESOLVED_PAYLOAD_STORAGE_KEY || !event.newValue) {
+      return;
+    }
+    const payload = readStoredResolvedSessionPayload();
+    if (!payload) return;
+    applyResolvedSessionPayload(payload, { autoRun: false, force: false })
+      .catch((err) => {
+        log('Resolved session storage apply failed: ' + (err?.message || err));
+      });
+  });
 
-const pendingResolvedSessionPayload = readStoredResolvedSessionPayload();
-if (pendingResolvedSessionPayload) {
-  applyResolvedSessionPayload(pendingResolvedSessionPayload, { autoRun: false, force: false })
-    .catch((err) => {
-      log('Resolved session boot apply failed: ' + (err?.message || err));
-    });
+  const pendingResolvedSessionPayload = readStoredResolvedSessionPayload();
+  if (pendingResolvedSessionPayload) {
+    applyResolvedSessionPayload(pendingResolvedSessionPayload, { autoRun: false, force: false })
+      .catch((err) => {
+        log('Resolved session boot apply failed: ' + (err?.message || err));
+      });
+  }
 }
 setBootStage('api-ready');

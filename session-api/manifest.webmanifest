@@ -1,0 +1,23 @@
+{
+  "name": "Braille Sessie Start",
+  "short_name": "Braille Start",
+  "description": "Scan een step-link en start deze voor een BrailleStudio laptopsessie.",
+  "start_url": "/braillestudio/session-api/start.html",
+  "scope": "/braillestudio/session-api/",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "/braillestudio/session-api/icon-start.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/braillestudio/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

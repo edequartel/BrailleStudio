@@ -1562,14 +1562,14 @@
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js');
-    await loadScript('./generators.js');
+    await loadScript('./blocks.js?v=20260416-session-player-2');
+    await loadScript('./generators.js?v=20260416-session-player-2');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js',
       '/braillestudio/components/braille-monitor/braillemonitor.js',
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
     ], { required: false });
-    await loadScript('./app.js');
+    await loadScript('./app.js?v=20260416-session-player-2');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

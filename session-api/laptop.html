@@ -383,6 +383,7 @@
       <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
         <button id="toggleLogBtn" type="button">Unhide log</button>
         <button id="clearLogBtn" type="button">Clear log</button>
+        <button id="copyLogBtn" type="button">Copy log</button>
       </div>
       <pre id="logBox" class="mono is-hidden">Ready.</pre>
     </section>
@@ -391,7 +392,7 @@
   <script>
     const STORAGE_SESSION_KEY = 'braillestudio_session_api_active_session';
     const STORAGE_RESOLVED_KEY = 'braillestudio_session_api_last_resolved';
-    const BLOCKLY_URL = 'https://www.tastenbraille.com/braillestudio/blockly/';
+    const BLOCKLY_URL = 'https://www.tastenbraille.com/braillestudio/blockly/?embed=session-player&v=20260416-session-player-2';
     const STATUS_URL = './status.php';
     const WAIT_URL = './wait.php';
     const START_URL = './start.php';
@@ -527,6 +528,7 @@
       }
       app.setLogHandler((line) => {
         logLine('Blockly', { line: String(line || '') });
+        syncBlocklyFrameHeight();
       });
       blocklyLogBridgeAttached = true;
       logLine('Blockly log bridge attached.');
@@ -588,6 +590,12 @@
           .topbar-row--monitor {
             order: 1 !important;
             padding: 0 !important;
+          }
+          #brailleMonitorRow {
+            display: none !important;
+          }
+          #scriptBrailleMonitorRow {
+            display: flex !important;
           }
           .braille-monitor-host {
             width: 100% !important;
@@ -1108,6 +1116,19 @@
         const logBox = $('logBox');
         if (logBox) {
           logBox.textContent = 'Log cleared.';
+        }
+      });
+      $('copyLogBtn').addEventListener('click', async () => {
+        const logBox = $('logBox');
+        const text = String(logBox?.textContent || '').trim();
+        if (!text) {
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(text);
+          logLine('Log copied to clipboard.');
+        } catch (err) {
+          logLine('Copy log failed.', { message: err?.message || String(err) });
         }
       });
       $('builderFrame').addEventListener('load', () => {

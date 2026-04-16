@@ -206,6 +206,70 @@ function session_api_write_json_file(string $path, array $payload): void
     }
 }
 
+function session_api_update_session_file(string $sessionId, callable $mutator): array
+{
+    $path = session_api_sessions_file($sessionId);
+    session_api_ensure_dir(dirname($path));
+
+    $handle = fopen($path, 'c+b');
+    if ($handle === false) {
+        session_api_error('Could not open session file', 500, ['path' => $path]);
+    }
+
+    try {
+        if (!flock($handle, LOCK_EX)) {
+            session_api_error('Could not lock session file', 500, ['path' => $path]);
+        }
+
+        rewind($handle);
+        $contents = stream_get_contents($handle);
+        if ($contents === false || trim($contents) === '') {
+            flock($handle, LOCK_UN);
+            session_api_error('Session not found', 404, ['sessionId' => $sessionId]);
+        }
+
+        $session = json_decode($contents, true);
+        if (!is_array($session)) {
+            flock($handle, LOCK_UN);
+            session_api_error('Invalid session JSON', 500, ['path' => $path]);
+        }
+
+        if (session_api_is_expired((string)($session['expiresAt'] ?? ''))) {
+            flock($handle, LOCK_UN);
+            session_api_error('Session expired', 410, [
+                'sessionId' => $sessionId,
+                'expiresAt' => $session['expiresAt'] ?? null,
+            ]);
+        }
+
+        $updated = $mutator($session);
+        if (!is_array($updated)) {
+            flock($handle, LOCK_UN);
+            session_api_error('Session mutator must return an array', 500);
+        }
+
+        $json = json_encode($updated, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            flock($handle, LOCK_UN);
+            session_api_error('Could not encode updated session JSON', 500);
+        }
+
+        ftruncate($handle, 0);
+        rewind($handle);
+        $written = fwrite($handle, $json);
+        if ($written === false || $written < strlen($json)) {
+            flock($handle, LOCK_UN);
+            session_api_error('Could not write updated session JSON', 500, ['path' => $path]);
+        }
+
+        fflush($handle);
+        flock($handle, LOCK_UN);
+        return $updated;
+    } finally {
+        fclose($handle);
+    }
+}
+
 function session_api_generate_session_id(): string
 {
     return 'sess_' . bin2hex(random_bytes(SESSION_API_SESSION_ID_BYTES));
