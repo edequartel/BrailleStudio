@@ -16,11 +16,13 @@ function respond(array $data, int $status = 200): never {
 }
 
 $lesson = trim((string)($_GET['lesson'] ?? 'default'));
+$extraData = trim((string)($_GET['data'] ?? ''));
 $session = 'les-' . bin2hex(random_bytes(4));
 
 $data = [
     'session' => $session,
     'lesson' => $lesson,
+    'data' => $extraData,
     'started' => false,
     'startedAt' => null,
     'createdAt' => gmdate('c')
@@ -31,11 +33,13 @@ file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_U
 
 $qrUrl = 'https://www.tastenbraille.com/braillestudio/qr-start/start.html?session='
     . rawurlencode($session)
-    . '&lesson=' . rawurlencode($lesson);
+    . '&lesson=' . rawurlencode($lesson)
+    . '&data=' . rawurlencode($extraData);
 
 respond([
     'ok' => true,
     'session' => $session,
     'lesson' => $lesson,
+    'data' => $extraData,
     'qrUrl' => $qrUrl
 ]);

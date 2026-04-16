@@ -1,0 +1,66 @@
+# ================================
+# CONFIG
+# ================================
+DOMAIN="https://tastenbraille.com"
+TOKEN="YOUR_TOKEN"
+API_KEY="YOUR_OPENAI_API_KEY"
+
+# ================================
+# 1. RUN CHUNKER (build chunks.json)
+# ================================
+curl "$DOMAIN/chunker.php?token=$TOKEN"
+
+# ================================
+# 2. CREATE EMBEDDINGS (build chunks-embedded.json)
+# ================================
+curl "$DOMAIN/embed-chunks.php?token=$TOKEN"
+
+# ================================
+# 3. ASK QUESTION (MAIN CHATBOT)
+# ================================
+curl -X POST "$DOMAIN/ask.php" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "token=$TOKEN" \
+  -d "question=What is this website about?"
+
+# ================================
+# 4. ASK (SHORT INLINE VERSION)
+# ================================
+curl -X POST "$DOMAIN/ask.php" \
+  -d "token=$TOKEN&question=Explain braille for beginners"
+
+# ================================
+# 5. ASK + PRETTY PRINT (Linux/macOS with jq)
+# ================================
+curl -X POST "$DOMAIN/ask.php" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "token=$TOKEN&question=Explain lesson 1" | jq
+
+# ================================
+# 6. DIRECT OPENAI TEST (Responses API)
+# ================================
+curl https://api.openai.com/v1/responses \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-5",
+    "input": "Explain braille simply"
+  }'
+
+# ================================
+# 7. DIRECT OPENAI EMBEDDINGS TEST
+# ================================
+curl https://api.openai.com/v1/embeddings \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "text-embedding-3-small",
+    "input": "Braille is a tactile writing system"
+  }'
+
+# ================================
+# FULL FLOW (RUN EVERYTHING)
+# ================================
+curl "$DOMAIN/chunker.php?token=$TOKEN"
+curl "$DOMAIN/embed-chunks.php?token=$TOKEN"
+curl -X POST "$DOMAIN/ask.php" -d "token=$TOKEN&question=Explain the content"

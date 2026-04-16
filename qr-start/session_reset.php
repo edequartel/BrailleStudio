@@ -30,4 +30,10 @@ $data['startedAt'] = null;
 
 file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
-respond(['ok' => true, 'session' => $session, 'started' => false]);
+respond([
+    'ok' => true,
+    'session' => $session,
+    'lesson' => $data['lesson'] ?? '',
+    'data' => $data['data'] ?? '',
+    'started' => false
+]);

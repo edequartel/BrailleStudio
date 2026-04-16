@@ -85,6 +85,19 @@
       color: var(--text);
     }
 
+    textarea {
+      width: 100%;
+      min-height: 88px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      background: white;
+      color: var(--text);
+      resize: vertical;
+      font-family: inherit;
+    }
+
     .field {
       margin-bottom: 14px;
     }
@@ -256,6 +269,11 @@
             </select>
           </div>
 
+          <div class="field">
+            <label for="dataInput">Data</label>
+            <textarea id="dataInput" placeholder="Extra data to send with this session"></textarea>
+          </div>
+
           <div class="btn-row">
             <button id="createBtn" class="btn-blue" type="button">Create session</button>
             <button id="resetBtn" class="btn-soft" type="button">Reset session</button>
@@ -280,6 +298,7 @@
           <h2>Session info</h2>
           <div class="pair"><strong>Session</strong><span id="sessionText">-</span></div>
           <div class="pair"><strong>Lesson</strong><span id="lessonText">-</span></div>
+          <div class="pair"><strong>Data</strong><span id="dataText">-</span></div>
           <div class="pair"><strong>Started</strong><span id="startedText">no</span></div>
           <div class="pair"><strong>Started at</strong><span id="startedAtText">-</span></div>
         </div>
@@ -310,6 +329,7 @@
 
     let currentSession = '';
     let currentLesson = '';
+    let currentData = '';
     let currentQrUrl = '';
     let pollTimer = null;
     let sessionStartedHandled = false;
@@ -331,8 +351,10 @@
     }
 
     function updateSessionInfo(data) {
+      currentData = data.data || '';
       $('sessionText').textContent = data.session || '-';
       $('lessonText').textContent = data.lesson || '-';
+      $('dataText').textContent = data.data || '-';
       $('startedText').textContent = data.started ? 'yes' : 'no';
       $('startedAtText').textContent = data.startedAt || '-';
     }
@@ -364,10 +386,12 @@
 
     async function createSession() {
       const lessonId = $('lessonInput').value.trim() || 'default';
+      const dataValue = $('dataInput').value.trim();
       currentLesson = lessonId;
+      currentData = dataValue;
       sessionStartedHandled = false;
 
-      const res = await fetch(`${API_BASE}session_create.php?lesson=${encodeURIComponent(lessonId)}&_=${Date.now()}`);
+      const res = await fetch(`${API_BASE}session_create.php?lesson=${encodeURIComponent(lessonId)}&data=${encodeURIComponent(dataValue)}&_=${Date.now()}`);
       const data = await res.json();
 
       if (!data.ok) {
@@ -376,10 +400,12 @@
 
       currentSession = data.session;
       currentQrUrl = data.qrUrl || '';
+      currentData = data.data || '';
       $('qrUrlBox').textContent = currentQrUrl || '';
       updateSessionInfo({
         session: data.session,
         lesson: data.lesson,
+        data: data.data || '',
         started: false,
         startedAt: null
       });
@@ -388,6 +414,9 @@
       setStatus('waiting', 'Waiting for phone');
       log(`Session created: ${data.session}`);
       log(`QR URL: ${currentQrUrl}`);
+      if (data.data) {
+        log(`Session data: ${data.data}`);
+      }
 
       if ($('autoloadSelect').value === 'yes') {
         loadBuilderFrame(lessonId);
@@ -413,6 +442,7 @@
       updateSessionInfo({
         session: currentSession,
         lesson: currentLesson,
+        data: currentData,
         started: false,
         startedAt: null
       });

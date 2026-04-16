@@ -5904,6 +5904,16 @@ window.BrailleBlocklyApp = {
   async ensureBrailleBridgeConnection(timeoutMs = 5000) {
     return await ensureBrailleBridgeConnection(timeoutMs);
   },
+  async warmRuntimeAssets({ preloadPhonemes = true } = {}) {
+    const summary = {
+      phonemesLoaded: false
+    };
+    if (preloadPhonemes) {
+      await getFonemenNlStandaard();
+      summary.phonemesLoaded = true;
+    }
+    return summary;
+  },
   async injectLessonData(data, index = 0) {
     window.aanvankelijkData = Array.isArray(data) ? structuredClone(data) : [];
     return await setActiveLessonRecordByIndex(index);
@@ -5961,6 +5971,11 @@ window.BrailleBlocklyApp = {
     };
   },
   async dispatchRuntimeEvent(event) {
+    if (shouldBlockEventDuringAudio(event)) {
+      log(`Queued runtime event until audio stopped: ${JSON.stringify(event)}`);
+      await waitForAudioStopped();
+      log(`Dispatching queued runtime event after audio: ${JSON.stringify(event)}`);
+    }
     return await dispatchEvent(event, runGeneration);
   },
   clearLog() {

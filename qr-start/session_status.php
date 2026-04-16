@@ -29,6 +29,7 @@ respond([
     'ok' => true,
     'session' => $data['session'] ?? '',
     'lesson' => $data['lesson'] ?? '',
+    'data' => $data['data'] ?? '',
     'started' => (bool)($data['started'] ?? false),
     'startedAt' => $data['startedAt'] ?? null
 ]);

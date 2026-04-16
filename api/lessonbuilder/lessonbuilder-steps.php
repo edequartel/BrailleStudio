@@ -37,6 +37,19 @@ declare(strict_types=1);
       resize: vertical;
     }
 
+    .lesson-content-safe {
+      min-width: 0;
+    }
+
+    .status-log-safe {
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
     .lesson-monitor-fit .braille-monitor-component {
       zoom: 0.78;
       transform-origin: top left;
@@ -52,18 +65,18 @@ declare(strict_types=1);
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-7xl mx-auto p-6 space-y-5">
-    <div class="flex items-center justify-between gap-4">
-      <div>
+    <div class="flex items-start gap-4">
+      <div class="min-w-0">
         <div class="text-sm font-semibold text-blue-700">Stap 3 van 3</div>
         <h1 class="text-3xl font-bold">Lesson steps bouwen</h1>
       </div>
-      <div class="flex gap-2">
+      <div class="ml-auto flex shrink-0 gap-2">
         <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Vorige stap</a>
       </div>
     </div>
 
     <div class="grid gap-5">
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div class="text-lg font-bold">Lesson</div>
         <div id="brailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
           <div id="brailleMonitorComponent"></div>
@@ -77,7 +90,7 @@ declare(strict_types=1);
           <button id="simCursor5Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Cursor 5</button>
           <button id="simChord1Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Chord 1</button>
         </div>
-        <div id="lessonSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
+        <div id="lessonSummary" class="lesson-content-safe rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 break-words"></div>
         <div class="grid gap-3 md:grid-cols-2">
           <input id="lessonIdInput" type="hidden">
           <div>
@@ -127,7 +140,7 @@ declare(strict_types=1);
         </div>
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
+      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
         <div class="flex items-center justify-between gap-3">
           <div class="text-lg font-bold">Debug log</div>
           <div class="flex items-center gap-2">
@@ -136,7 +149,7 @@ declare(strict_types=1);
             <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
           </div>
         </div>
-        <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
+        <pre id="statusBox" class="status-log-safe hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800"></pre>
       </section>
     </div>
   </div>
@@ -176,6 +189,7 @@ declare(strict_types=1);
 
     let state = shared.loadState();
     let scriptsCache = [];
+    const scriptDataCache = new Map();
     let stepConfigs = [];
     let basisItems = [];
     let isDebugLogVisible = false;
@@ -411,6 +425,58 @@ declare(strict_types=1);
     function getScriptItemById(id) {
       const scriptId = String(id || '').trim();
       return scriptsCache.find((item) => String(item?.id || '').trim() === scriptId) || null;
+    }
+
+    async function loadScriptData(id) {
+      const scriptId = String(id || '').trim();
+      if (!scriptId) {
+        throw new Error('Missing script id');
+      }
+      if (scriptDataCache.has(scriptId)) {
+        return scriptDataCache.get(scriptId);
+      }
+      const data = await shared.loadScript(scriptId);
+      if (!data || !data.blockly) {
+        throw new Error(`Script ${scriptId} has no blockly state`);
+      }
+      scriptDataCache.set(scriptId, data);
+      return data;
+    }
+
+    function getReferencedScriptIds(items = stepConfigs) {
+      const ids = new Set();
+      (Array.isArray(items) ? items : []).forEach((step) => {
+        const scriptId = String(step?.id || '').trim();
+        if (scriptId) ids.add(scriptId);
+      });
+      return Array.from(ids);
+    }
+
+    async function preloadReferencedScriptData(items = stepConfigs) {
+      const scriptIds = getReferencedScriptIds(items);
+      if (!scriptIds.length) {
+        return { total: 0, loaded: 0, failed: 0 };
+      }
+      const results = await Promise.allSettled(
+        scriptIds.map(async (scriptId) => {
+          await loadScriptData(scriptId);
+          return scriptId;
+        })
+      );
+      let failedCount = 0;
+      results.forEach((result, index) => {
+        if (result.status !== 'rejected') return;
+        failedCount += 1;
+        appendStatus('Script preload failed.', {
+          scriptId: scriptIds[index],
+          error: result.reason?.message || String(result.reason)
+        });
+      });
+      return {
+        total: scriptIds.length,
+        loaded: results.length - failedCount,
+        failed: failedCount
+      };
     }
 
     function getStepDisplayMeta(stepConfig) {
@@ -882,7 +948,7 @@ declare(strict_types=1);
 
     async function runStepConfig(stepConfig, stepIndex) {
       const method = shared.getDraftMethodMeta(state);
-      const scriptData = await shared.loadScript(stepConfig.id);
+      const scriptData = await loadScriptData(stepConfig.id);
       showDebugLog();
       appendStatus('Step run gestart.', {
         scriptId: stepConfig.id,
@@ -1132,8 +1198,16 @@ declare(strict_types=1);
 
     async function init() {
       try {
+        appendStatus('Initial preload started.');
         state = shared.loadState();
         const method = shared.getDraftMethodMeta(state);
+        const runnerWarmupPromise = waitForRunnerReady(15000).catch((err) => {
+          appendStatus('Runner warmup failed during init.', {
+            error: err.message || String(err),
+            runnerState: getRunnerDebugState()
+          });
+          return null;
+        });
         basisItems = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
         scriptsCache = await shared.listScripts();
         renderScriptsSelect(scriptsCache);
@@ -1180,6 +1254,8 @@ declare(strict_types=1);
         stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(state.steps || []));
         hydrateStepConfigsWithScriptMetadata();
         state = shared.updateState({ steps: stepConfigs });
+        const preloadSummary = await preloadReferencedScriptData(stepConfigs);
+        await runnerWarmupPromise;
         renderLessonSummary();
         renderStepsTable();
         renderDebugLogVisibility();
@@ -1235,6 +1311,12 @@ declare(strict_types=1);
         });
         startBrailleMonitorSync();
         setStatus('Ready.');
+        appendStatus('Initial preload completed.', {
+          scriptsLoaded: scriptsCache.length,
+          preloadedScripts: preloadSummary.loaded,
+          preloadFailures: preloadSummary.failed,
+          runnerReady: getRunnerDebugState().ready
+        });
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
       }
@@ -1257,8 +1339,10 @@ declare(strict_types=1);
         }
         hydrateStepConfigsWithScriptMetadata();
         state = shared.updateState({ steps: stepConfigs });
+        const preloadSummary = await preloadReferencedScriptData(stepConfigs);
         renderStepsTable();
         setStatus(`Loaded ${scriptsCache.length} script(s).`);
+        appendStatus('Scripts refreshed.', preloadSummary);
       } catch (err) {
         setStatus(`Scripts load error: ${err.message}`);
       }

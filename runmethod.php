@@ -356,6 +356,13 @@ $pagePayload = [
     let isRunnerVisible = false;
     let stopRequested = false;
     let scriptsCache = [];
+    const scriptDataCache = new Map();
+    let runnerWarmAssetsPromise = null;
+    const brailleBridgeWarmup = {
+      lastAttemptAt: 0,
+      connected: false,
+      pending: null
+    };
     let brailleMonitorUi = null;
     let scriptBrailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
@@ -1108,6 +1115,64 @@ $pagePayload = [
       throw new Error(`Runner not ready (stage: ${lastState.bootStage || lastState.reason || 'unknown'}${lastState.bootError ? `, error: ${lastState.bootError}` : ''})`);
     }
 
+    async function warmRunnerAssets(app = null) {
+      if (runnerWarmAssetsPromise) {
+        return await runnerWarmAssetsPromise;
+      }
+      runnerWarmAssetsPromise = (async () => {
+        const runnerApp = app || await waitForRunnerReady(5000);
+        if (!runnerApp || typeof runnerApp.warmRuntimeAssets !== 'function') {
+          return null;
+        }
+        const warmed = await runnerApp.warmRuntimeAssets({ preloadPhonemes: true });
+        appendStatus('Runner assets warmed.', warmed);
+        return warmed;
+      })().catch((err) => {
+        appendStatus('Runner asset warmup failed.', {
+          error: err.message || String(err)
+        });
+        runnerWarmAssetsPromise = null;
+        return null;
+      });
+      return await runnerWarmAssetsPromise;
+    }
+
+    function primeBrailleBridgeConnection(app = null, { timeoutMs = 1500, wait = false, force = false } = {}) {
+      const now = Date.now();
+      if (!force) {
+        if (brailleBridgeWarmup.pending) {
+          return wait ? brailleBridgeWarmup.pending : Promise.resolve(brailleBridgeWarmup.connected);
+        }
+        if (brailleBridgeWarmup.connected && now - brailleBridgeWarmup.lastAttemptAt < 30000) {
+          return Promise.resolve(true);
+        }
+        if (!brailleBridgeWarmup.connected && now - brailleBridgeWarmup.lastAttemptAt < 15000) {
+          return Promise.resolve(false);
+        }
+      }
+
+      brailleBridgeWarmup.pending = (async () => {
+        const runnerApp = app || await waitForRunnerReady(5000);
+        if (!runnerApp || typeof runnerApp.ensureBrailleBridgeConnection !== 'function') {
+          brailleBridgeWarmup.connected = false;
+          brailleBridgeWarmup.lastAttemptAt = Date.now();
+          return false;
+        }
+        const connected = await runnerApp.ensureBrailleBridgeConnection(timeoutMs);
+        brailleBridgeWarmup.connected = Boolean(connected);
+        brailleBridgeWarmup.lastAttemptAt = Date.now();
+        appendStatus('Braille bridge warmup completed.', {
+          connected: brailleBridgeWarmup.connected,
+          timeoutMs
+        });
+        return brailleBridgeWarmup.connected;
+      })().finally(() => {
+        brailleBridgeWarmup.pending = null;
+      });
+
+      return wait ? brailleBridgeWarmup.pending : Promise.resolve(false);
+    }
+
     function getBrailleStudioAuthToken() {
       const sessionPrimary = String(sessionStorage.getItem('runmethodAuthToken') || '').trim();
       if (sessionPrimary) return sessionPrimary;
@@ -1192,11 +1257,17 @@ $pagePayload = [
     }
 
     async function loadScriptData(id) {
-      const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(id)}`;
+      const scriptId = String(id || '').trim();
+      if (!scriptId) throw new Error('Missing script id');
+      if (scriptDataCache.has(scriptId)) {
+        return scriptDataCache.get(scriptId);
+      }
+      const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(scriptId)}`;
       const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
-      if (!res.ok) throw new Error(`Failed to load script ${id} (HTTP ${res.status})`);
+      if (!res.ok) throw new Error(`Failed to load script ${scriptId} (HTTP ${res.status})`);
       const data = await res.json();
-      if (!data || !data.blockly) throw new Error(`Script ${id} has no blockly state`);
+      if (!data || !data.blockly) throw new Error(`Script ${scriptId} has no blockly state`);
+      scriptDataCache.set(scriptId, data);
       return data;
     }
 
@@ -1206,6 +1277,43 @@ $pagePayload = [
       if (!res.ok) throw new Error(`Failed to load script list (HTTP ${res.status})`);
       const data = await res.json();
       return Array.isArray(data?.items) ? data.items : [];
+    }
+
+    function getReferencedScriptIds() {
+      const ids = new Set();
+      lessons.forEach((lesson) => {
+        const steps = Array.isArray(lesson?.steps) ? lesson.steps : [];
+        steps.forEach((step) => {
+          const scriptId = String(step?.id || '').trim();
+          if (scriptId) ids.add(scriptId);
+        });
+      });
+      return Array.from(ids);
+    }
+
+    async function preloadReferencedScriptData() {
+      const scriptIds = getReferencedScriptIds();
+      if (!scriptIds.length) {
+        return { total: 0, loaded: 0, failed: 0 };
+      }
+      const results = await Promise.allSettled(
+        scriptIds.map(async (scriptId) => {
+          await loadScriptData(scriptId);
+          return scriptId;
+        })
+      );
+      const failed = results.filter((result) => result.status === 'rejected');
+      failed.forEach((result, index) => {
+        appendStatus('Script preload failed.', {
+          scriptId: scriptIds[index],
+          error: result.reason?.message || String(result.reason)
+        });
+      });
+      return {
+        total: scriptIds.length,
+        loaded: results.length - failed.length,
+        failed: failed.length
+      };
     }
 
 	    async function waitForCompletion(app, timeoutMs = 30000, options = {}) {
@@ -1269,16 +1377,7 @@ $pagePayload = [
       if (!lesson) throw new Error('No lesson selected');
       if (!stepConfig) throw new Error('No step selected');
       const runnerApp = app || await waitForRunnerReady();
-      if (typeof runnerApp.ensureBrailleBridgeConnection === 'function') {
-        const bridgeConnected = await runnerApp.ensureBrailleBridgeConnection(4000);
-        appendStatus('runLessonStep: braille bridge check.', {
-          lessonId: lesson.id,
-          stepIndex,
-          scriptId: stepConfig.id,
-          bridgeConnected,
-          runtimeAfterBridgeCheck: getRunnerRuntimeSnapshot(runnerApp)
-        });
-      }
+      void primeBrailleBridgeConnection(runnerApp, { timeoutMs: 1500, wait: false });
       const basisIndex = Number(lesson.basisIndex ?? -1);
       appendStatus('runLessonStep: loading script.', {
         lessonId: lesson.id,
@@ -1834,9 +1933,26 @@ $pagePayload = [
     }
 
     async function init() {
+      let preloadSummary = { total: 0, loaded: 0, failed: 0 };
       try {
+        appendStatus('Initial preload started.', {
+          lessonCount: lessons.length,
+          runnerUrl
+        });
+        const runnerWarmup = waitForRunnerReady(15000).then(async (app) => {
+          await warmRunnerAssets(app);
+          void primeBrailleBridgeConnection(app, { timeoutMs: 1500, wait: false, force: true });
+          return app;
+        }).catch((err) => {
+          appendStatus('Runner warmup failed.', {
+            error: err.message || String(err)
+          });
+          return null;
+        });
         scriptsCache = await loadScriptsList();
         hydrateLessonsWithScriptMetadata();
+        preloadSummary = await preloadReferencedScriptData();
+        await runnerWarmup;
       } catch (err) {
         appendStatus('Script metadata load failed.', {
           error: err.message || String(err)
@@ -1856,6 +1972,8 @@ $pagePayload = [
         lessons: lessons.length,
         basisRecords: basisRecords.length,
         scripts: scriptsCache.length,
+        preloadedScripts: preloadSummary.loaded,
+        preloadFailures: preloadSummary.failed,
         runnerUrl
       });
     }

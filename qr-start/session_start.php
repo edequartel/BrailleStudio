@@ -24,6 +24,7 @@ if (!is_array($input)) {
 }
 
 $session = trim((string)($input['session'] ?? ''));
+$updatedData = trim((string)($input['data'] ?? ''));
 if ($session === '') {
     respond(['ok' => false, 'error' => 'Missing session'], 400);
 }
@@ -40,6 +41,7 @@ if (!is_array($data)) {
 
 $data['started'] = true;
 $data['startedAt'] = gmdate('c');
+$data['data'] = $updatedData;
 
 file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
@@ -47,5 +49,6 @@ respond([
     'ok' => true,
     'session' => $session,
     'lesson' => $data['lesson'] ?? '',
+    'data' => $data['data'] ?? '',
     'started' => true
 ]);

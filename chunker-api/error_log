@@ -1,0 +1,57 @@
+[11-Apr-2026 23:57:22 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:331
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(331): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(158): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 331
+[11-Apr-2026 23:59:19 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:331
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(331): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(158): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 331
+[12-Apr-2026 00:00:05 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:331
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(331): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(158): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 331
+[12-Apr-2026 00:45:25 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:343
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(343): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(166): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 343
+[12-Apr-2026 00:49:03 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:343
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(343): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(166): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 343
+[12-Apr-2026 00:50:41 America/Boise] PHP Fatal error:  Uncaught TypeError: trim(): Argument #1 ($string) must be of type string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:343
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(343): trim(NULL)
+#1 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(166): cleanText(NULL)
+#2 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 343
+[12-Apr-2026 01:00:03 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 118
+[12-Apr-2026 01:00:03 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192
+[12-Apr-2026 01:00:03 America/Boise] PHP Fatal error:  Uncaught TypeError: str_replace(): Argument #3 ($subject) must be of type array|string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:192
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(192): str_replace('\\', '/', NULL)
+#1 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192
+[12-Apr-2026 01:00:19 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 118
+[12-Apr-2026 01:00:19 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192
+[12-Apr-2026 01:00:19 America/Boise] PHP Fatal error:  Uncaught TypeError: str_replace(): Argument #3 ($subject) must be of type array|string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:192
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(192): str_replace('\\', '/', NULL)
+#1 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192
+[12-Apr-2026 01:00:42 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 118
+[12-Apr-2026 01:00:42 America/Boise] PHP Warning:  Undefined variable $scanRoot in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192
+[12-Apr-2026 01:00:42 America/Boise] PHP Fatal error:  Uncaught TypeError: str_replace(): Argument #3 ($subject) must be of type array|string, null given in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php:192
+Stack trace:
+#0 /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php(192): str_replace('\\', '/', NULL)
+#1 {main}
+  thrown in /home3/kydjgrmy/public_html/braillestudio/chunker-api/chunker.php on line 192

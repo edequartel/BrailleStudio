@@ -20,11 +20,30 @@
       color: white;
       width: 100%;
     }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      font-size: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      font-family: inherit;
+    }
     .box {
       border: 1px solid #ddd;
       padding: 16px;
       border-radius: 12px;
       margin-bottom: 16px;
+    }
+    .data-box {
+      margin-top: 10px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
   </style>
 </head>
@@ -33,6 +52,8 @@
   <div class="box">
     <div><strong>Session:</strong> <span id="sessionText"></span></div>
     <div><strong>Lesson:</strong> <span id="lessonText"></span></div>
+    <div style="margin-top:12px;"><strong>Data:</strong></div>
+    <textarea id="dataInput" placeholder="Extra data"></textarea>
   </div>
   <button id="startBtn">Start lesson on laptop</button>
   <p id="status"></p>
@@ -41,19 +62,25 @@
     const params = new URLSearchParams(location.search);
     const session = params.get('session') || '';
     const lesson = params.get('lesson') || '';
+    const dataValue = params.get('data') || '';
 
     document.getElementById('sessionText').textContent = session;
     document.getElementById('lessonText').textContent = lesson;
+    document.getElementById('dataInput').value = dataValue;
 
     document.getElementById('startBtn').addEventListener('click', async () => {
+      const currentData = document.getElementById('dataInput').value.trim();
       const res = await fetch('./session_start.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session })
+        body: JSON.stringify({ session, data: currentData })
       });
       const data = await res.json();
       document.getElementById('status').textContent =
         data.ok ? 'Lesson started on laptop.' : ('Error: ' + (data.error || 'unknown'));
+      if (data.ok && typeof data.data === 'string') {
+        document.getElementById('dataInput').value = data.data || '';
+      }
     });
   </script>
 </body>
