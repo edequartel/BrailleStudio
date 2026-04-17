@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bartiméus VSO</title>
+
+  <!-- Analytics -->
+  <script
+    defer
+    src="https://cloud.umami.is/script.js"
+    data-website-id="24a47806-a734-4f0d-8880-6b7cc0ffe9de">
+  </script>
+
+  <style>
+    :root {
+      --blue-main: #00509e;
+      --blue-dark: #003a72;
+      --green-main: #28a745;
+      --green-dark: #1e7e34;
+      --red-main: #e53935;
+      --red-dark: #b71c1c;
+
+      --bg-gradient: linear-gradient(135deg, #eef4fb, #f9fbfd);
+      --card-bg: #ffffff;
+
+      --text-main: #1f2937;
+      --radius: 14px;
+
+      --shadow-soft: 0 10px 25px rgba(0, 0, 0, 0.08);
+      --shadow-hover: 0 14px 35px rgba(0, 0, 0, 0.15);
+
+      --transition: 0.25s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+
+    header {
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 3vw, 2.4rem);
+      color: var(--blue-main);
+      letter-spacing: 0.4px;
+    }
+
+    main.button-container {
+      width: 100%;
+      max-width: 420px;
+      background-color: var(--card-bg);
+      padding: 28px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    a[role="button"] {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 56px;
+      padding: 14px 18px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: #ffffff;
+      border-radius: 12px;
+      transition: transform var(--transition),
+                  box-shadow var(--transition),
+                  background-color var(--transition);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Blue buttons */
+    .access-button {
+      background-color: var(--blue-main);
+    }
+
+    .access-button:hover,
+    .access-button:focus-visible {
+      background-color: var(--blue-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Green buttons */
+    .help-button {
+      background-color: var(--green-main);
+    }
+
+    .help-button:hover,
+    .help-button:focus-visible {
+      background-color: var(--green-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Red / festival button */
+    .festival-button {
+      background-color: var(--red-main);
+    }
+
+    .festival-button:hover,
+    .festival-button:focus-visible {
+      background-color: var(--red-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Accessibility: keyboard focus */
+    a:focus-visible {
+      outline: 3px solid #ffd54f;
+      outline-offset: 3px;
+    }
+
+    a:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+    }
+
+    @media (max-width: 480px) {
+      main.button-container {
+        padding: 20px;
+      }
+
+      a[role="button"] {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Bartiméus VSO</h1>
+  </header>
+
+  <main class="button-container">
+    <!--
+    <a href="https://www.bartimeusvso.com/kerst2025.html"
+       target="_blank"
+       class="festival-button"
+       role="button"
+       aria-label="Kerst 2025"
+       rel="noopener noreferrer">
+      Kerst 2025
+    </a>
+    -->
+
+    <a href="http://www.tastenbraille.com/rooster/schedulebartimeus_index.html"
+       target="_blank"
+       class="access-button"
+       role="button"
+       aria-label="Bartiméus VSO Rooster"
+       rel="noopener noreferrer">
+      Bartiméus VSO Rooster
+    </a>
+
+    <a href="https://oop.somtoday.nl/"
+       target="_blank"
+       class="access-button"
+       role="button"
+       aria-label="Somtoday docent"
+       rel="noopener noreferrer">
+      Somtoday docent
+    </a>
+
+    <a href="http://www.somtoday.nl"
+       target="_blank"
+       class="access-button"
+       role="button"
+       aria-label="Somtoday help"
+       rel="noopener noreferrer">
+      Somtoday help
+    </a>
+
+    <a href="https://folge.me/g/shared/9LWMoO4wdmqlvDZ/printen-van-rapporten-in-somtoday"
+       target="_blank"
+       class="help-button"
+       role="button"
+       aria-label="Rapport printen"
+       rel="noopener noreferrer">
+      Rapport printen
+    </a>
+
+    <a href="https://folge.me/g/shared/0xVEverA70JB6G4/absenten---somtoday---procedure"
+       target="_blank"
+       class="help-button"
+       role="button"
+       aria-label="Registratie aan- en afwezigheid"
+       rel="noopener noreferrer">
+      Registratie aan/afwezigheid
+    </a>
+
+    <a href="https://folge.me/g/shared/wk6DVJg0qjeqYLr/-notities-invoeren-in-somtoday---werkwijze-binnen-bartim-us-onderwijs"
+       target="_blank"
+       class="help-button"
+       role="button"
+       aria-label="Notitie invoeren"
+       rel="noopener noreferrer">
+      Notitie invoeren
+    </a>
+
+    <a href="https://www.bartimeusvso.com/vraagbaak"
+       target="_blank"
+       class="help-button"
+       role="button"
+       aria-label="ICT en Braille"
+       rel="noopener noreferrer">
+      ICT en Braille
+    </a>
+  </main>
+</body>
+</html>

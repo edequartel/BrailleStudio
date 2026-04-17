@@ -289,7 +289,7 @@ if (is_file($routesFile)) {
     }
 
     td.col-actions {
-      width: 96px;
+      width: 140px;
     }
 
     .icon-actions {
@@ -405,6 +405,13 @@ if (is_file($routesFile)) {
                     <td><input type="text" name="remarks[]" value="<?= h((string)($record['remarks'] ?? '')) ?>" placeholder="Boek, pagina of notitie"></td>
                     <td class="col-actions">
                       <div class="icon-actions">
+                        <button type="button" class="icon-btn js-open-go-link" aria-label="Open shortened go link" title="Open shortened go link">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M14 5h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M10 14 19 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                          </svg>
+                        </button>
                         <button type="button" class="icon-btn js-copy-go-link" aria-label="Copy shortened go link" title="Copy shortened go link">
                           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <rect x="9" y="9" width="10" height="10" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
@@ -431,6 +438,13 @@ if (is_file($routesFile)) {
                     <td><input type="text" name="remarks[]" value="" placeholder="Boek, pagina of notitie"></td>
                     <td class="col-actions">
                       <div class="icon-actions">
+                        <button type="button" class="icon-btn js-open-go-link" aria-label="Open shortened go link" title="Open shortened go link">
+                          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M14 5h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M10 14 19 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                          </svg>
+                        </button>
                         <button type="button" class="icon-btn js-copy-go-link" aria-label="Copy shortened go link" title="Copy shortened go link">
                           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <rect x="9" y="9" width="10" height="10" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
@@ -466,6 +480,13 @@ if (is_file($routesFile)) {
         <td><input type="text" name="remarks[]" value="" placeholder="Boek, pagina of notitie"></td>
         <td class="col-actions">
           <div class="icon-actions">
+            <button type="button" class="icon-btn js-open-go-link" aria-label="Open shortened go link" title="Open shortened go link">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M14 5h5v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M10 14 19 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </button>
             <button type="button" class="icon-btn js-copy-go-link" aria-label="Copy shortened go link" title="Copy shortened go link">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <rect x="9" y="9" width="10" height="10" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
@@ -489,7 +510,7 @@ if (is_file($routesFile)) {
         const tableBody = document.getElementById('routesTableBody');
         const template = document.getElementById('routeRowTemplate');
         const addRowBtn = document.getElementById('addRowBtn');
-        const goBase = 'https://www.tastenbraille.com/braillestudio/go/';
+        const goBase = 'https://www.tastenbraille.com/go/';
 
         if (!tableBody || !template || !addRowBtn) {
           return;
@@ -532,6 +553,21 @@ if (is_file($routesFile)) {
         }
 
         function bindRowButtons(root) {
+          root.querySelectorAll('.js-open-go-link').forEach((button) => {
+            button.addEventListener('click', () => {
+              const row = button.closest('tr');
+              const codeInput = row ? row.querySelector('input[name="codes[]"]') : null;
+              const code = String(codeInput?.value || '').trim();
+              if (!code) {
+                alert('Vul eerst een short code in.');
+                return;
+              }
+
+              const shortUrl = goBase + encodeURIComponent(code);
+              window.open(shortUrl, '_blank', 'noopener,noreferrer');
+            });
+          });
+
           root.querySelectorAll('.js-remove-row').forEach((button) => {
             button.addEventListener('click', () => {
               const row = button.closest('tr');

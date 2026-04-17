@@ -227,10 +227,10 @@ $pagePayload = [
           <div id="scriptBrailleMonitorComponent"></div>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button id="simThumbLeftBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Left</button>
-          <button id="simThumbRightBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Thumb Right</button>
-          <button id="simCursor5Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Cursor 5</button>
-          <button id="simChord1Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Chord 1</button>
+          <button id="simThumbLeftBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left thumb</button>
+          <button id="simCursor5Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left middle thumb</button>
+          <button id="simChord1Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right middle thumb</button>
+          <button id="simThumbRightBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right thumb</button>
         </div>
       </section>
 
@@ -1837,34 +1837,28 @@ $pagePayload = [
       try {
         await dispatchRunnerInput({ type: 'thumbKey', key: 'left' });
       } catch (err) {
-        appendStatus('Thumb Left failed.', { error: err.message || String(err) });
+        appendStatus('Left thumb failed.', { error: err.message || String(err) });
       }
     });
     simThumbRightBtn?.addEventListener('click', async () => {
       try {
         await dispatchRunnerInput({ type: 'thumbKey', key: 'right' });
       } catch (err) {
-        appendStatus('Thumb Right failed.', { error: err.message || String(err) });
+        appendStatus('Right thumb failed.', { error: err.message || String(err) });
       }
     });
     simCursor5Btn?.addEventListener('click', async () => {
       try {
-        const app = await waitForRunnerReady(5000);
-        const runtime = typeof app?.getRuntimeSnapshot === 'function' ? app.getRuntimeSnapshot() : null;
-        await dispatchRunnerInput({
-          type: 'cursorRouting',
-          cell: 5,
-          textIndex: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : 0
-        });
+        await dispatchRunnerInput({ type: 'thumbKey', key: 'left-middle' });
       } catch (err) {
-        appendStatus('Cursor 5 failed.', { error: err.message || String(err) });
+        appendStatus('Left middle thumb failed.', { error: err.message || String(err) });
       }
     });
     simChord1Btn?.addEventListener('click', async () => {
       try {
-        await dispatchRunnerInput({ type: 'chord', dots: '1' });
+        await dispatchRunnerInput({ type: 'thumbKey', key: 'right-middle' });
       } catch (err) {
-        appendStatus('Chord 1 failed.', { error: err.message || String(err) });
+        appendStatus('Right middle thumb failed.', { error: err.message || String(err) });
       }
     });
     document.addEventListener('keydown', async (event) => {

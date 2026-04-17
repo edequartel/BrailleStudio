@@ -2693,6 +2693,8 @@ async function handleIncomingWs(msg) {
 
 function normalizeThumb(name) {
   const s = String(name || '').toLowerCase();
+  if (s.includes('left-middle') || s.includes('left middle') || s.includes('cursor5') || s.includes('cursor 5')) return 'left-middle';
+  if (s.includes('right-middle') || s.includes('right middle') || s.includes('chord1') || s.includes('chord 1')) return 'right-middle';
   if (s.includes('left')) return 'left';
   if (s.includes('right')) return 'right';
   if (s.includes('up')) return 'up';
@@ -2944,10 +2946,10 @@ function bindAppControls() {
     await dispatchEvent({ type: 'thumbKey', key: 'right' }, runGeneration);
   });
   bind('simCursor5Btn', 'click', async () => {
-    await dispatchEvent({ type: 'cursorRouting', cell: 5, textIndex: getRuntime().textCaret }, runGeneration);
+    await dispatchEvent({ type: 'thumbKey', key: 'left-middle' }, runGeneration);
   });
   bind('simChord1Btn', 'click', async () => {
-    await dispatchEvent({ type: 'chord', dots: '1' }, runGeneration);
+    await dispatchEvent({ type: 'thumbKey', key: 'right-middle' }, runGeneration);
   });
   bind('playSoundBtn', 'click', async () => {
     const input = document.getElementById('soundFileInput');

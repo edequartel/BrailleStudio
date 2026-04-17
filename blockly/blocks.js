@@ -319,6 +319,8 @@
         .appendField('when thumb key')
         .appendField(new Blockly.FieldDropdown([
           ['left', 'left'],
+          ['left middle thumb', 'left-middle'],
+          ['right middle thumb', 'right-middle'],
           ['right', 'right'],
           ['up', 'up'],
           ['down', 'down']
