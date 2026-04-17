@@ -10,24 +10,29 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-start.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-start.svg">
-  <title>Scan QR-code</title>
+  <title>Scan Step-link</title>
   <style>
     :root {
-      --bg: #f6f8fb;
+      --bg: #eef3f9;
       --panel: #ffffff;
+      --panel-soft: #f8fbff;
       --border: #d6deea;
       --text: #16202f;
       --muted: #64748b;
       --blue: #1d4ed8;
+      --blue-dark: #173fb0;
       --green: #15803d;
       --red: #b91c1c;
+      --shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at top left, rgba(29, 78, 216, 0.10), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "Segoe UI", Arial, sans-serif;
     }
@@ -35,15 +40,15 @@
     .page {
       max-width: 760px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 24px 20px 40px;
     }
 
     .card {
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
     }
 
     .card + .card {
@@ -52,6 +57,15 @@
 
     h1, h2 {
       margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 18px;
     }
 
     p {
@@ -70,16 +84,26 @@
     input {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 11px 12px;
-      font-size: 14px;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 15px;
       background: white;
       color: var(--text);
       font-family: inherit;
     }
 
+    input:focus {
+      outline: none;
+      border-color: rgba(29, 78, 216, 0.55);
+      box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.12);
+    }
+
     .field + .field {
       margin-top: 14px;
+    }
+
+    .field--primary {
+      margin-bottom: 22px;
     }
 
     .pair {
@@ -101,9 +125,9 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 44px;
-      padding: 10px 14px;
-      border-radius: 12px;
+      min-height: 46px;
+      padding: 11px 16px;
+      border-radius: 14px;
       border: 1px solid var(--border);
       font-size: 14px;
       font-weight: 700;
@@ -111,6 +135,12 @@
       background: white;
       color: var(--text);
       cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+
+    button:hover, a.button-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
     }
 
     .btn-blue {
@@ -119,9 +149,14 @@
       color: white;
     }
 
+    .btn-blue:hover {
+      background: var(--blue-dark);
+      border-color: var(--blue-dark);
+    }
+
     .mono {
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 16px;
       background: #f8fafc;
       padding: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -137,10 +172,23 @@
     }
     .video-wrap {
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
       background: #0f172a;
       aspect-ratio: 4 / 3;
+      position: relative;
+    }
+    .video-wrap::before {
+      content: "Camera preview";
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 1;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.92);
     }
     video {
       width: 100%;
@@ -152,10 +200,33 @@
       display: none;
     }
 
-    .status {
-      margin-top: 12px;
-      font-size: 14px;
-      font-weight: 700;
+    .actions-row {
+      margin-top: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .actions-row > button {
+      width: 100%;
+    }
+
+    .panel-toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .page-footer {
+      display: flex;
+      justify-content: center;
+      padding: 4px 20px 28px;
+    }
+    .footer-logo {
+      width: 132px;
+      height: auto;
+      opacity: 0.92;
     }
 
     .error {
@@ -165,46 +236,65 @@
     .success {
       color: var(--green);
     }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 16px 14px 28px;
+      }
+
+      .card {
+        padding: 18px;
+        border-radius: 18px;
+      }
+
+      .actions-row {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="page">
     <section class="card">
-      <h1>Scan QR-code</h1>
-      <div class="field">
-        <label for="stepLinkCodeInput">Step-link id / code</label>
+      <h1>Scan Step-link</h1>
+      <div class="field field--primary">
         <input id="stepLinkCodeInput" type="text" placeholder="abc123">
       </div>
-      <div class="field">
+      <div id="cameraField" class="field is-hidden">
         <label>Camera scan</label>
         <div class="video-wrap">
           <video id="scannerVideo" playsinline muted class="is-hidden"></video>
           <canvas id="scannerCanvas" class="is-hidden"></canvas>
         </div>
       </div>
-      <div class="btn-row">
-        <button id="resolveBtn" class="btn-blue" type="button">Start step-link</button>
-        <button id="startScanBtn" type="button">Start camera</button>
-        <button id="stopScanBtn" type="button">Stop camera</button>
-        <a class="button-link" href="./laptop.html">Open laptop page</a>
+      <div class="btn-row actions-row">
+        <button id="startScanBtn" type="button">Scan</button>
+        <button id="resolveBtn" class="btn-blue" type="button">Start</button>
       </div>
-      <div id="statusText" class="status">Ready.</div>
     </section>
 
     <section class="card">
       <h2>Resolved Response</h2>
-      <pre id="payloadBox" class="mono">No resolved payload yet.</pre>
+      <div class="panel-toggle-row">
+        <button id="togglePayloadBtn" type="button">Unhide response</button>
+      </div>
+      <pre id="payloadBox" class="mono is-hidden">No resolved payload yet.</pre>
     </section>
 
     <section class="card">
       <h2>Logging</h2>
-      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+      <div class="panel-toggle-row">
         <button id="toggleLogBtn" type="button">Unhide log</button>
         <button id="clearLogBtn" type="button">Clear log</button>
+        <button id="copyLogBtn" type="button">Copy log</button>
       </div>
       <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
     </section>
   </div>
+
+  <footer class="page-footer" aria-label="Bartiméus">
+    <img class="footer-logo" src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png" alt="Bartiméus">
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
@@ -219,6 +309,23 @@
     let activeScannerStream = null;
     let scanTimer = null;
     let scanHandled = false;
+    let startRequestInFlight = false;
+
+    function copyText(text) {
+      if (navigator.clipboard?.writeText) {
+        return navigator.clipboard.writeText(String(text || ''));
+      }
+      const temp = document.createElement('textarea');
+      temp.value = String(text || '');
+      temp.setAttribute('readonly', 'readonly');
+      temp.style.position = 'absolute';
+      temp.style.left = '-9999px';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+      return Promise.resolve();
+    }
 
     function safeJsonParse(raw, fallback = null) {
       try {
@@ -266,6 +373,14 @@
       button.textContent = visible ? 'Hide log' : 'Unhide log';
     }
 
+    function setPayloadVisibility(visible) {
+      const box = $('payloadBox');
+      const button = $('togglePayloadBtn');
+      if (!box || !button) return;
+      box.classList.toggle('is-hidden', !visible);
+      button.textContent = visible ? 'Hide response' : 'Unhide response';
+    }
+
     function getSessionIdOrThrow() {
       const sessionId = getInitialSessionId();
       if (!sessionId) {
@@ -309,49 +424,71 @@
     }
 
     function setStatus(message, className = '') {
-      const node = $('statusText');
-      node.className = `status ${className}`.trim();
-      node.textContent = message;
+      void message;
+      void className;
     }
 
-    async function startStepLink() {
+    function setBusyState(isBusy) {
+      startRequestInFlight = Boolean(isBusy);
+      $('resolveBtn').disabled = startRequestInFlight;
+      $('startScanBtn').disabled = startRequestInFlight;
+      $('stepLinkCodeInput').disabled = startRequestInFlight;
+    }
+
+    async function submitStepLink(source = 'manual') {
+      if (startRequestInFlight) {
+        logLine('Start request ignored because another request is in flight.', { source });
+        return;
+      }
+
       const sessionId = getSessionIdOrThrow();
       const stepLinkCode = normalizeStepLinkCode($('stepLinkCodeInput').value);
       if (!stepLinkCode) {
         throw new Error('Enter a step-link id / code first.');
       }
-      $('stepLinkCodeInput').value = stepLinkCode;
 
-      setStatus('Starting step-link...');
-      const response = await postJson('./resolve.php', {
+      setBusyState(true);
+      $('stepLinkCodeInput').value = stepLinkCode;
+      stopScanner();
+      logLine('Submitting step-link.', {
+        source,
         sessionId,
         code: stepLinkCode
       });
 
-      if (response.accepted === false && response.ignored === true) {
-        $('payloadBox').textContent = JSON.stringify(response, null, 2);
-        setStatus('Laptop is bezig. Deze step-link is genegeerd.', 'success');
-        logLine('Step-link ignored because laptop session is active.', response);
-        return;
-      }
+      try {
+        setStatus('Starting step-link...');
+        const response = await postJson('./resolve.php', {
+          sessionId,
+          code: stepLinkCode
+        });
 
-      localStorage.setItem(STORAGE_RESOLVED_KEY, JSON.stringify(response));
-      $('payloadBox').textContent = JSON.stringify(response, null, 2);
-      setStatus(`Started step-link ${response.code}.`, 'success');
-      logLine('Step-link started successfully.', response);
+        if (response.accepted === false && response.ignored === true) {
+          $('payloadBox').textContent = JSON.stringify(response, null, 2);
+          setStatus('Laptop is bezig. Deze step-link is genegeerd.', 'success');
+          logLine('Step-link ignored because laptop session is active.', response);
+          return;
+        }
+
+        localStorage.setItem(STORAGE_RESOLVED_KEY, JSON.stringify(response));
+        $('payloadBox').textContent = JSON.stringify(response, null, 2);
+        setStatus(`Started step-link ${response.code}.`, 'success');
+        logLine('Step-link started successfully.', response);
+      } finally {
+        setBusyState(false);
+      }
     }
 
     async function handleScannedValue(rawValue) {
       const code = normalizeStepLinkCode(rawValue);
-      if (!code || scanHandled) {
+      if (!code || scanHandled || startRequestInFlight) {
         return;
       }
       scanHandled = true;
       $('stepLinkCodeInput').value = code;
       logLine('Camera scan detected step-link code.', { rawValue, code });
-      stopScanner();
       try {
-        await startStepLink();
+        await submitStepLink('scanner');
       } catch (err) {
         scanHandled = false;
         logLine('Automatic start after scan failed.', { message: err.message || String(err) });
@@ -416,6 +553,7 @@
       });
       activeScannerStream = stream;
       const video = $('scannerVideo');
+      $('cameraField')?.classList.remove('is-hidden');
       video.srcObject = stream;
       video.classList.remove('is-hidden');
       await video.play();
@@ -446,10 +584,12 @@
         video.srcObject = null;
         video.classList.add('is-hidden');
       }
+      $('cameraField')?.classList.add('is-hidden');
     }
 
     function bootstrap() {
       setLogVisibility(false);
+      setPayloadVisibility(false);
       $('stepLinkCodeInput').value = urlCode;
       logLine('Start page bootstrapped.', {
         urlCode,
@@ -459,7 +599,17 @@
 
       $('resolveBtn').addEventListener('click', async () => {
         try {
-          await startStepLink();
+          await submitStepLink('button');
+        } catch (err) {
+          logLine('Start step-link failed.', { message: err.message || String(err) });
+          setStatus(err.message || String(err), 'error');
+        }
+      });
+      $('stepLinkCodeInput').addEventListener('keydown', async (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        try {
+          await submitStepLink('enter');
         } catch (err) {
           logLine('Start step-link failed.', { message: err.message || String(err) });
           setStatus(err.message || String(err), 'error');
@@ -473,24 +623,26 @@
           setStatus(err.message || String(err), 'error');
         }
       });
-      $('stopScanBtn').addEventListener('click', () => {
-        stopScanner();
-        setStatus('Camera stopped.');
-        logLine('Camera scanner stopped.');
-      });
       $('toggleLogBtn').addEventListener('click', () => {
         const shouldShow = $('logBox')?.classList.contains('is-hidden');
         setLogVisibility(Boolean(shouldShow));
       });
+      $('togglePayloadBtn').addEventListener('click', () => {
+        const shouldShow = $('payloadBox')?.classList.contains('is-hidden');
+        setPayloadVisibility(Boolean(shouldShow));
+      });
       $('clearLogBtn').addEventListener('click', () => {
         $('logBox').textContent = 'Log cleared.';
       });
-      window.addEventListener('beforeunload', stopScanner);
-
-      startScanner().catch((err) => {
-        logLine('Automatic camera start failed.', { message: err.message || String(err) });
-        setStatus('Camera did not start automatically. Use Start camera.', 'error');
+      $('copyLogBtn').addEventListener('click', async () => {
+        try {
+          await copyText($('logBox').textContent || '');
+          logLine('Log copied to clipboard.');
+        } catch (err) {
+          logLine('Copy log failed.', { message: err.message || String(err) });
+        }
       });
+      window.addEventListener('beforeunload', stopScanner);
 
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

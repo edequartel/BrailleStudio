@@ -9,6 +9,7 @@ declare(strict_types=1);
 const SESSION_API_SESSION_TTL_SECONDS = 28800; // 8 hours
 const SESSION_API_SESSION_ID_BYTES = 16;
 const SESSION_API_STEP_CODE_BYTES = 4;
+const SESSION_API_CLEANUP_SCAN_LIMIT = 100;
 
 function session_api_project_root(): string
 {
@@ -101,6 +102,7 @@ function session_api_ensure_storage_dirs(): void
     session_api_ensure_dir(session_api_data_root());
     session_api_ensure_dir(session_api_sessions_dir());
     session_api_ensure_dir(session_api_step_links_dir());
+    session_api_cleanup_expired_sessions();
 }
 
 function session_api_normalize_token(string $value, string $fieldName, int $minLength = 3, int $maxLength = 64): string
@@ -320,6 +322,42 @@ function session_api_load_session_or_fail(string $sessionId): array
     }
 
     return $session;
+}
+
+function session_api_cleanup_expired_sessions(int $scanLimit = SESSION_API_CLEANUP_SCAN_LIMIT): void
+{
+    $dir = session_api_sessions_dir();
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    $files = glob($dir . '/sess_*.json');
+    if (!is_array($files) || !$files) {
+        return;
+    }
+
+    $scanned = 0;
+    foreach ($files as $path) {
+        if ($scanned >= $scanLimit) {
+            break;
+        }
+        $scanned++;
+
+        if (!is_string($path) || !is_file($path)) {
+            continue;
+        }
+
+        $session = session_api_read_json_file($path);
+        if (!is_array($session)) {
+            continue;
+        }
+
+        if (!session_api_is_expired((string)($session['expiresAt'] ?? ''))) {
+            continue;
+        }
+
+        @unlink($path);
+    }
 }
 
 function session_api_normalize_runtime_state(?string $value): string

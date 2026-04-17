@@ -1468,9 +1468,9 @@
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
 </xml>
 
-<script src="./runtime.js?v=20260408-3"></script>
-<script src="./instructions-catalog.js?v=20260408-3"></script>
-<script src="./preload-instructions.js?v=20260408-3"></script>
+<script src="./runtime.js?v=20260416-session-player-3"></script>
+<script src="./instructions-catalog.js?v=20260416-session-player-3"></script>
+<script src="./preload-instructions.js?v=20260416-session-player-3"></script>
 <script>
   (function () {
     const overlay = document.getElementById('loadingOverlay');
@@ -1525,7 +1525,7 @@
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260408-3';
+    const assetVersion = '20260416-session-player-3';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {
@@ -1562,14 +1562,14 @@
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js?v=20260416-session-player-2');
-    await loadScript('./generators.js?v=20260416-session-player-2');
+    await loadScript('./blocks.js');
+    await loadScript('./generators.js');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js',
       '/braillestudio/components/braille-monitor/braillemonitor.js',
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
     ], { required: false });
-    await loadScript('./app.js?v=20260416-session-player-2');
+    await loadScript('./app.js');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

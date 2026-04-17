@@ -300,6 +300,16 @@
     .is-hidden {
       display: none;
     }
+    .page-footer {
+      display: flex;
+      justify-content: center;
+      padding: 4px 28px 28px;
+    }
+    .footer-logo {
+      width: 132px;
+      height: auto;
+      opacity: 0.92;
+    }
 
     @media (max-width: 980px) {
       .grid-two, .meta-grid, .session-info-grid, .qr-session-grid {
@@ -312,9 +322,9 @@
   <div class="page">
     <div class="header">
       <div>
-        <h1>Braille Sessie</h1>
+        <h1>Braille - Step link</h1>
         <p>
-          Scan de QR-code op je telefoon. Daarna scan je de qr-code in het boek.
+          Klik eerst op Aanmelden. Scan daarna de QR-code op je telefoon en scan vervolgens de QR-code in het boek.
         </p>
       </div>
       <div id="sessionBadge" class="pill">
@@ -337,7 +347,7 @@
       <section class="card card--qr">
         <div class="qr-wrap">
           <img id="qrImage" class="qr-image" alt="Session QR code">
-          <button id="refreshQrBtn" class="btn-blue" type="button">Nieuwe QR-code</button>
+          <button id="refreshQrBtn" class="btn-blue" type="button">Aanmelden</button>
         </div>
         <div id="resolveStatus" class="status-text is-hidden" style="margin-top: 12px;">Waiting for a started step link.</div>
       </section>
@@ -389,6 +399,10 @@
     </section>
   </div>
 
+  <footer class="page-footer" aria-label="Bartiméus">
+    <img class="footer-logo" src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png" alt="Bartiméus">
+  </footer>
+
   <script>
     const STORAGE_SESSION_KEY = 'braillestudio_session_api_active_session';
     const STORAGE_RESOLVED_KEY = 'braillestudio_session_api_last_resolved';
@@ -408,6 +422,7 @@
     let lastStartedStepKey = '';
     let lastStartedStepStillActive = false;
     let activeStepRunPromise = null;
+    let activeStepCompletionWatchToken = 0;
     let blocklyFrameCustomized = false;
     let blocklyLogBridgeAttached = false;
     let stepStartNoticeAudio = null;
@@ -572,8 +587,6 @@
           .loading-overlay.is-hidden {
             display: none !important;
           }
-          #simCursor5Btn,
-          #simChord1Btn,
           #gridSnapBtn,
           #monitorToggleBtn,
           #sidebarToggleBtn {
@@ -590,12 +603,33 @@
           .topbar-row--monitor {
             order: 1 !important;
             padding: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
           }
           #brailleMonitorRow {
-            display: none !important;
+            display: flex !important;
           }
           #scriptBrailleMonitorRow {
             display: flex !important;
+          }
+          .topbar-row--monitor.is-hidden {
+            display: flex !important;
+          }
+          #brailleMonitorRow::before,
+          #scriptBrailleMonitorRow::before {
+            display: block !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.02em !important;
+            text-transform: uppercase !important;
+            color: #94a3b8 !important;
+          }
+          #brailleMonitorRow::before {
+            content: "BrailleBridge monitor" !important;
+          }
+          #scriptBrailleMonitorRow::before {
+            content: "Lokale scriptmonitor" !important;
           }
           .braille-monitor-host {
             width: 100% !important;
@@ -620,14 +654,44 @@
           #runBtn,
           #stopBtn,
           #simThumbLeftBtn,
+          #simCursor5Btn,
+          #simChord1Btn,
           #simThumbRightBtn {
             flex: 0 1 auto !important;
           }
+          #simThumbLeftBtn { order: 1 !important; }
+          #simCursor5Btn { order: 2 !important; }
+          #simChord1Btn { order: 3 !important; }
+          #simThumbRightBtn { order: 4 !important; }
           .topbar-row--sim .spacer {
             display: none !important;
           }
         `;
         doc.head.appendChild(style);
+        const leftMiddleBtn = doc.getElementById('simCursor5Btn');
+        if (leftMiddleBtn) {
+          leftMiddleBtn.textContent = 'Linker middelste duimtoets';
+          leftMiddleBtn.setAttribute('aria-label', 'Linker middelste duimtoets');
+          leftMiddleBtn.setAttribute('title', 'Linker middelste duimtoets');
+        }
+        const rightMiddleBtn = doc.getElementById('simChord1Btn');
+        if (rightMiddleBtn) {
+          rightMiddleBtn.textContent = 'Rechter middelste duimtoets';
+          rightMiddleBtn.setAttribute('aria-label', 'Rechter middelste duimtoets');
+          rightMiddleBtn.setAttribute('title', 'Rechter middelste duimtoets');
+        }
+        const leftThumbBtn = doc.getElementById('simThumbLeftBtn');
+        if (leftThumbBtn) {
+          leftThumbBtn.textContent = 'Linker duimtoets';
+          leftThumbBtn.setAttribute('aria-label', 'Linker duimtoets');
+          leftThumbBtn.setAttribute('title', 'Linker duimtoets');
+        }
+        const rightThumbBtn = doc.getElementById('simThumbRightBtn');
+        if (rightThumbBtn) {
+          rightThumbBtn.textContent = 'Rechter duimtoets';
+          rightThumbBtn.setAttribute('aria-label', 'Rechter duimtoets');
+          rightThumbBtn.setAttribute('title', 'Rechter duimtoets');
+        }
         syncBlocklyFrameHeight();
         blocklyFrameCustomized = true;
         return true;
@@ -670,25 +734,6 @@
         : null;
       logLine('Blockly runtime snapshot after auto-start.', finalSnapshot);
 
-      const shouldRetryStart = finalSnapshot &&
-        !finalSnapshot.isActive &&
-        !finalSnapshot.hasActiveAudio &&
-        !finalSnapshot.activeTimers;
-
-      if (shouldRetryStart && typeof app.runCurrentWorkspace === 'function') {
-        logLine('Blockly runtime ended immediately after auto-start; retrying once.', {
-          code: payload.code || '',
-          scriptId: payload.scriptId || '',
-          stepId: payload.stepId || ''
-        });
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
-        await app.runCurrentWorkspace();
-        finalSnapshot = typeof app.getRuntimeSnapshot === 'function'
-          ? app.getRuntimeSnapshot()
-          : null;
-        logLine('Blockly runtime snapshot after auto-start retry.', finalSnapshot);
-      }
-
       const runtimeStillActive = Boolean(
         finalSnapshot &&
         (finalSnapshot.isActive || finalSnapshot.hasActiveAudio || Number(finalSnapshot.activeTimers || 0) > 0)
@@ -699,6 +744,13 @@
         runtimeSnapshot: finalSnapshot,
         runtimeStillActive
       };
+    }
+
+    function snapshotShowsActive(snapshot) {
+      return Boolean(
+        snapshot &&
+        (snapshot.isActive || snapshot.hasActiveAudio || Number(snapshot.activeTimers || 0) > 0)
+      );
     }
 
     function renderSession(session = null) {
@@ -873,6 +925,65 @@
       return await postJson(RUNTIME_STATE_URL, body);
     }
 
+    async function monitorActiveStepCompletion(stepKey, payload) {
+      const watchToken = ++activeStepCompletionWatchToken;
+      logLine('Started active step completion watcher.', {
+        code: payload?.code || '',
+        scriptId: payload?.scriptId || '',
+        stepId: payload?.stepId || ''
+      });
+
+      while (watchToken === activeStepCompletionWatchToken && lastStartedStepKey === stepKey && lastStartedStepStillActive) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        if (watchToken !== activeStepCompletionWatchToken || lastStartedStepKey !== stepKey || !lastStartedStepStillActive) {
+          return;
+        }
+
+        let snapshot = null;
+        try {
+          const app = $('builderFrame')?.contentWindow?.BrailleBlocklyApp;
+          if (!app || typeof app.getRuntimeSnapshot !== 'function') {
+            return;
+          }
+          snapshot = app.getRuntimeSnapshot();
+        } catch (err) {
+          logLine('Active step completion watcher could not read runtime snapshot.', {
+            code: payload?.code || '',
+            scriptId: payload?.scriptId || '',
+            stepId: payload?.stepId || '',
+            message: err?.message || String(err)
+          });
+          return;
+        }
+
+        if (snapshotShowsActive(snapshot)) {
+          continue;
+        }
+
+        lastStartedStepStillActive = false;
+        lastStartedStepKey = '';
+        $('resolveStatus').innerHTML = `<span class="success">Step ${payload?.code || ''} is afgerond.</span>`;
+        $('sessionStateText').textContent = 'Step afgerond';
+        logLine('Active step completion watcher detected runtime idle.', {
+          code: payload?.code || '',
+          scriptId: payload?.scriptId || '',
+          stepId: payload?.stepId || '',
+          snapshot
+        });
+        try {
+          await updateSessionRuntimeState('idle');
+        } catch (err) {
+          logLine('Could not mark session runtime idle after watcher completion.', {
+            code: payload?.code || '',
+            scriptId: payload?.scriptId || '',
+            stepId: payload?.stepId || '',
+            message: err?.message || String(err)
+          });
+        }
+        return;
+      }
+    }
+
     async function handleStartedStep(status) {
       const payload = status?.lastResolved;
       if (!payload || typeof payload !== 'object') {
@@ -942,6 +1053,7 @@
         $('sessionStateText').textContent = 'Step actief';
         return;
       }
+      activeStepCompletionWatchToken += 1;
       try {
         await updateSessionRuntimeState('active', payload);
       } catch (err) {
@@ -985,8 +1097,18 @@
                 message: err?.message || String(err)
               });
             }
+          } else {
+            monitorActiveStepCompletion(stepKey, payload).catch((err) => {
+              logLine('Active step completion watcher failed.', {
+                code: payload.code || '',
+                scriptId: payload.scriptId || '',
+                stepId: payload.stepId || '',
+                message: err?.message || String(err)
+              });
+            });
           }
         } catch (err) {
+          activeStepCompletionWatchToken += 1;
           lastStartedStepStillActive = false;
           lastStartedStepKey = '';
           $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;

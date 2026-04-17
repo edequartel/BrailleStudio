@@ -1324,12 +1324,12 @@ function renderStatus() {
     runBtn.classList.toggle('is-stopping', phase === 'stopping');
     runBtn.disabled = isRunning || pendingStart;
     runBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
-    runBtn.setAttribute('aria-label', phase === 'completed' ? 'Run again' : (phase === 'running' ? 'Running' : (phase === 'stopping' ? 'Stopping' : 'Start')));
+    runBtn.setAttribute('aria-label', phase === 'completed' ? 'Again' : (phase === 'running' ? 'Running' : (phase === 'stopping' ? 'Stopping' : 'Start')));
     if (runLabel) {
       runLabel.textContent =
         phase === 'running' ? 'Running...' :
         phase === 'stopping' ? 'Stopping...' :
-        phase === 'completed' ? 'Run Again' :
+        phase === 'completed' ? 'Again' :
         phase === 'stopped' ? 'Again' :
         'Start';
     }

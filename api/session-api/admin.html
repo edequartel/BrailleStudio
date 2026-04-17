@@ -46,15 +46,12 @@
       max-width: 760px;
       line-height: 1.5;
     }
-    .layout {
+    .top-grid {
       display: grid;
-      grid-template-columns: minmax(360px, 520px) minmax(0, 1fr);
+      grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
       gap: 18px;
       align-items: start;
-    }
-    .stack {
-      display: grid;
-      gap: 18px;
+      margin-bottom: 18px;
     }
     .card {
       background: var(--panel);
@@ -103,6 +100,14 @@
     }
     .field + .field {
       margin-top: 14px;
+    }
+    .form-stack {
+      display: grid;
+      gap: 18px;
+    }
+    .script-selection-grid {
+      display: grid;
+      gap: 18px;
     }
     .btn-row {
       display: flex;
@@ -199,6 +204,75 @@
       display: grid;
       gap: 12px;
     }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fbfdff;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+      font-size: 13px;
+    }
+    .data-table th,
+    .data-table td {
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table th {
+      background: #eff5fb;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #4a607b;
+      white-space: nowrap;
+    }
+    .data-table tr:last-child td {
+      border-bottom: 0;
+    }
+    .data-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .payload-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .payload-section {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fbfdff;
+      padding: 12px;
+    }
+    .payload-section h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+    }
+    .payload-kv {
+      display: grid;
+      grid-template-columns: 140px minmax(0, 1fr);
+      gap: 8px 12px;
+      font-size: 13px;
+      align-items: start;
+    }
+    .payload-kv strong {
+      color: #4a607b;
+    }
+    .muted {
+      color: var(--muted);
+    }
     .link-item {
       border: 1px solid var(--border);
       border-radius: 14px;
@@ -245,7 +319,7 @@
       width: auto;
     }
     @media (max-width: 1080px) {
-      .layout,
+      .top-grid,
       .grid-two,
       .grid-three {
         grid-template-columns: 1fr;
@@ -271,10 +345,10 @@
     </div>
     <div id="authStatus" class="auth-status">Authenticate first to manage step links.</div>
 
-    <div class="layout">
-      <div class="stack">
-        <section class="card">
-          <h2>1. Script Selection</h2>
+    <div class="top-grid">
+      <section class="card">
+        <h2>1. Script Selection</h2>
+        <div class="script-selection-grid">
           <div class="field">
             <label for="scriptSelect">Online script</label>
             <select id="scriptSelect">
@@ -295,15 +369,17 @@
             <label for="codeInput">Short code</label>
             <input id="codeInput" type="text" placeholder="leave empty to auto-generate">
           </div>
-          <div class="btn-row">
-            <button id="loadScriptsBtn" class="btn-blue" type="button">Load scripts</button>
-            <button id="fillSelectedBtn" type="button">Copy selected script id</button>
-          </div>
-          <div id="scriptsStatus" class="status" style="margin-top:12px;">Scripts not loaded yet.</div>
-        </section>
+        </div>
+        <div class="btn-row">
+          <button id="loadScriptsBtn" class="btn-blue" type="button">Load scripts</button>
+          <button id="fillSelectedBtn" type="button">Copy selected script id</button>
+        </div>
+        <div id="scriptsStatus" class="status" style="margin-top:12px;">Scripts not loaded yet.</div>
+      </section>
 
-        <section class="card">
-          <h2>2. Meta</h2>
+      <section class="card">
+        <h2>2. Meta</h2>
+        <div class="form-stack">
           <div class="grid-two">
             <div>
               <label for="titleInput">Title</label>
@@ -314,7 +390,7 @@
               <input id="orderInput" type="number" min="1" step="1" placeholder="3">
             </div>
           </div>
-          <div class="grid-two field">
+          <div class="grid-two">
             <div>
               <label for="bookInput">Book</label>
               <input id="bookInput" type="text" placeholder="method-1">
@@ -332,72 +408,70 @@
             <label for="instructionInput">Instruction</label>
             <textarea id="instructionInput" placeholder="luister naar het woord en typ het"></textarea>
           </div>
-        </section>
-
-        <section class="card">
-          <h2>3. Step Inputs</h2>
-          <div class="grid-two">
-            <div>
-              <label for="textInput">Text</label>
-              <textarea id="textInput" placeholder="bal"></textarea>
-            </div>
-            <div>
-              <label for="wordInput">Word</label>
-              <input id="wordInput" type="text" placeholder="bal">
-              <div class="field">
-                <label for="repeatInput">Repeat</label>
-                <input id="repeatInput" type="number" min="1" step="1" value="1">
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="lettersInput">Letters</label>
-            <textarea id="lettersInput" placeholder="b, a, l"></textarea>
-          </div>
-          <div class="field">
-            <label for="soundsInput">Sounds</label>
-            <textarea id="soundsInput" placeholder="b, a, l"></textarea>
-          </div>
-          <div class="checkbox-row">
-            <input id="activeInput" type="checkbox" checked>
-            <label for="activeInput" style="margin:0;">Active</label>
-            <input id="overwriteInput" type="checkbox" style="margin-left:16px;">
-            <label for="overwriteInput" style="margin:0;">Overwrite if code exists</label>
-          </div>
-          <div class="btn-row">
-            <button id="createLinkBtn" class="btn-green" type="button">Create step link</button>
-            <button id="resetFormBtn" class="btn-red" type="button">Reset form</button>
-          </div>
-          <div id="createStatus" class="status" style="margin-top:12px;">Ready to create a step link.</div>
-        </section>
-      </div>
-
-      <div class="stack">
-        <section class="card">
-          <h2>Preview Payload</h2>
-          <pre id="previewBox" class="mono">{}</pre>
-        </section>
-
-        <section class="card">
-          <h2>Existing Step Links</h2>
-          <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
-            <button id="refreshLinksBtn" class="btn-blue" type="button">Refresh links</button>
-          </div>
-          <div id="linksStatus" class="status" style="margin-bottom:12px;">No links loaded yet.</div>
-          <div id="linksList" class="links-list"></div>
-        </section>
-
-        <section class="card">
-          <h2>Logging</h2>
-          <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
-            <button id="toggleLogBtn" type="button">Unhide log</button>
-            <button id="copyLogBtn" type="button">Copy log</button>
-            <button id="clearLogBtn" type="button">Clear log</button>
-          </div>
-          <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
+
+    <section class="card" style="margin-bottom:18px;">
+      <h2>3. Step Inputs</h2>
+      <div class="grid-two">
+        <div>
+          <label for="textInput">Text</label>
+          <textarea id="textInput" placeholder="bal"></textarea>
+        </div>
+        <div>
+          <label for="wordInput">Word</label>
+          <input id="wordInput" type="text" placeholder="bal">
+          <div class="field">
+            <label for="repeatInput">Repeat</label>
+            <input id="repeatInput" type="number" min="1" step="1" value="1">
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="lettersInput">Letters</label>
+        <textarea id="lettersInput" placeholder="b, a, l"></textarea>
+      </div>
+      <div class="field">
+        <label for="soundsInput">Sounds</label>
+        <textarea id="soundsInput" placeholder="b, a, l"></textarea>
+      </div>
+      <div class="checkbox-row">
+        <input id="activeInput" type="checkbox" checked>
+        <label for="activeInput" style="margin:0;">Active</label>
+        <input id="overwriteInput" type="checkbox" style="margin-left:16px;">
+        <label for="overwriteInput" style="margin:0;">Overwrite if code exists</label>
+      </div>
+      <div class="btn-row">
+        <button id="createLinkBtn" class="btn-green" type="button">Create step link</button>
+        <button id="resetFormBtn" class="btn-red" type="button">Reset form</button>
+      </div>
+      <div id="createStatus" class="status" style="margin-top:12px;">Ready to create a step link.</div>
+    </section>
+
+    <section class="card" style="margin-bottom:18px;">
+      <h2>Preview Payload</h2>
+      <div id="previewBox" class="payload-grid"></div>
+    </section>
+
+    <section class="card" style="margin-bottom:18px;">
+      <h2>Existing Step Links</h2>
+      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+        <button id="refreshLinksBtn" class="btn-blue" type="button">Refresh links</button>
+      </div>
+      <div id="linksStatus" class="status" style="margin-bottom:12px;">No links loaded yet.</div>
+      <div id="linksList" class="links-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Logging</h2>
+      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
+        <button id="toggleLogBtn" type="button">Unhide log</button>
+        <button id="copyLogBtn" type="button">Copy log</button>
+        <button id="clearLogBtn" type="button">Clear log</button>
+      </div>
+      <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
+    </section>
   </div>
 
   <script>
@@ -405,12 +479,15 @@
     const APP_BASE_PATH = '/braillestudio';
     const SCRIPT_LIST_URL = `${APP_BASE_PATH}/blockly-api/list.php`;
     const CREATE_LINK_URL = `${APP_BASE_PATH}/session-api/create-link.php`;
+    const UPDATE_LINK_URL = `${APP_BASE_PATH}/session-api/update-link.php`;
     const LIST_LINKS_URL = `${APP_BASE_PATH}/session-api/list-links.php`;
     const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
     const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
     const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
+    let linksCache = [];
+    let editingOriginalCode = '';
 
     function logLine(message, data) {
       const box = $('logBox');
@@ -577,6 +654,14 @@
       logLine(`Authentication state: ${authenticated ? 'active' : 'inactive'}.`);
     }
 
+    function renderEditingState() {
+      $('createLinkBtn').textContent = editingOriginalCode ? 'Update step link' : 'Create step link';
+      $('resetFormBtn').textContent = editingOriginalCode ? 'Cancel edit' : 'Reset form';
+      $('createStatus').textContent = editingOriginalCode
+        ? `Editing existing step link: ${editingOriginalCode}`
+        : 'Ready to create a step link.';
+    }
+
     function parseCommaList(value) {
       return String(value || '')
         .split(',')
@@ -586,6 +671,34 @@
 
     function safeJson(value) {
       return JSON.stringify(value, null, 2);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatListChips(items) {
+      const list = Array.isArray(items) ? items.filter(Boolean) : [];
+      if (!list.length) {
+        return '<span class="muted">-</span>';
+      }
+      return list.map((item) => `<span class="data-chip">${escapeHtml(item)}</span>`).join(' ');
+    }
+
+    function renderPayloadKeyValue(rows) {
+      return `
+        <div class="payload-kv">
+          ${rows.map(([label, value]) => `
+            <strong>${escapeHtml(label)}</strong>
+            <div>${value}</div>
+          `).join('')}
+        </div>
+      `;
     }
 
     function slugifyStepPart(value) {
@@ -637,8 +750,69 @@
       return payload;
     }
 
+    function beginEditLink(item) {
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+      editingOriginalCode = String(item.code || '').trim();
+      $('codeInput').value = String(item.code || '');
+      $('scriptIdInput').value = String(item.scriptId || '');
+      $('stepIdInput').value = String(item.stepId || '');
+      $('titleInput').value = String(item?.meta?.title || '');
+      $('descriptionInput').value = String(item?.meta?.description || '');
+      $('instructionInput').value = String(item?.meta?.instruction || '');
+      $('bookInput').value = String(item?.meta?.book || '');
+      $('pageInput').value = String(item?.meta?.page || '');
+      $('orderInput').value = item?.meta?.order ?? '';
+      $('textInput').value = String(item?.stepInputs?.text || '');
+      $('wordInput').value = String(item?.stepInputs?.word || '');
+      $('lettersInput').value = Array.isArray(item?.stepInputs?.letters) ? item.stepInputs.letters.join(', ') : '';
+      $('soundsInput').value = Array.isArray(item?.stepInputs?.sounds) ? item.stepInputs.sounds.join(', ') : '';
+      $('repeatInput').value = String(item?.stepInputs?.repeat ?? 1);
+      $('activeInput').checked = Boolean(item.active);
+      $('overwriteInput').checked = false;
+      renderEditingState();
+      renderPreview();
+      $('createStatus').innerHTML = `<span class="success">Editing step link ${escapeHtml(editingOriginalCode)}</span>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      logLine('Editing existing step link.', { code: editingOriginalCode, item });
+    }
+
     function renderPreview() {
-      $('previewBox').textContent = safeJson(buildPayload());
+      const payload = buildPayload();
+      $('previewBox').innerHTML = `
+        <div class="payload-section">
+          <h3>Basis</h3>
+          ${renderPayloadKeyValue([
+            ['Script id', escapeHtml(payload.scriptId || '-')],
+            ['Step id', escapeHtml(payload.stepId || '-')],
+            ['Short code', escapeHtml(payload.code || 'auto-generate')],
+            ['Active', payload.active ? '<span class="data-chip">Yes</span>' : '<span class="muted">No</span>'],
+            ['Overwrite', payload.overwrite ? '<span class="data-chip">Yes</span>' : '<span class="muted">No</span>']
+          ])}
+        </div>
+        <div class="payload-section">
+          <h3>Meta</h3>
+          ${renderPayloadKeyValue([
+            ['Title', escapeHtml(payload.meta?.title || '-')],
+            ['Description', payload.meta?.description ? `<div class="mono">${escapeHtml(payload.meta.description)}</div>` : '<span class="muted">-</span>'],
+            ['Instruction', payload.meta?.instruction ? `<div class="mono">${escapeHtml(payload.meta.instruction)}</div>` : '<span class="muted">-</span>'],
+            ['Book', escapeHtml(payload.meta?.book || '-')],
+            ['Page', escapeHtml(payload.meta?.page || '-')],
+            ['Order', escapeHtml(payload.meta?.order ?? '-')]
+          ])}
+        </div>
+        <div class="payload-section">
+          <h3>Step inputs</h3>
+          ${renderPayloadKeyValue([
+            ['Text', payload.stepInputs?.text ? `<div class="mono">${escapeHtml(payload.stepInputs.text)}</div>` : '<span class="muted">-</span>'],
+            ['Word', escapeHtml(payload.stepInputs?.word || '-')],
+            ['Letters', formatListChips(payload.stepInputs?.letters)],
+            ['Repeat', escapeHtml(payload.stepInputs?.repeat ?? 1)],
+            ['Sounds', formatListChips(payload.stepInputs?.sounds)]
+          ])}
+        </div>
+      `;
     }
 
     function renderScriptsSelect(items) {
@@ -733,7 +907,7 @@
       }
     }
 
-    async function createLink() {
+    async function saveLink() {
       requireAuthentication();
       const payload = buildPayload();
       if (!payload.scriptId) {
@@ -743,18 +917,26 @@
         throw new Error('stepId is required');
       }
 
-      $('createStatus').textContent = 'Creating step link...';
-      logLine('Creating step link.', payload);
-      const res = await fetch(CREATE_LINK_URL, {
+      const isEditing = Boolean(editingOriginalCode);
+      $('createStatus').textContent = isEditing ? 'Updating step link...' : 'Creating step link...';
+      logLine(isEditing ? 'Updating step link.' : 'Creating step link.', {
+        originalCode: editingOriginalCode || null,
+        payload
+      });
+      const requestUrl = isEditing ? UPDATE_LINK_URL : CREATE_LINK_URL;
+      const requestPayload = isEditing
+        ? { originalCode: editingOriginalCode, ...payload }
+        : payload;
+      const res = await fetch(requestUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${getAuthToken()}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(requestPayload)
       });
       const data = await res.json().catch(() => ({}));
-      logLine('Create step link response received.', {
+      logLine(`${isEditing ? 'Update' : 'Create'} step link response received.`, {
         status: res.status,
         ok: Boolean(res.ok),
         response: data
@@ -763,8 +945,10 @@
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      $('createStatus').innerHTML = `<span class="success">Step link created: ${data.code}</span>`;
+      $('createStatus').innerHTML = `<span class="success">Step link ${isEditing ? 'updated' : 'created'}: ${data.code}</span>`;
       $('codeInput').value = String(data.code || '');
+      editingOriginalCode = '';
+      renderEditingState();
       renderPreview();
       await loadLinks();
     }
@@ -799,31 +983,62 @@
         return;
       }
 
-      items.forEach((item) => {
-        const title = String(item?.meta?.title || item.code || '').trim() || item.code;
-        const instruction = String(item?.meta?.instruction || '').trim();
-        const details = [
-          ['Code', item.code],
-          ['Script', item.scriptId],
-          ['Step', item.stepId],
-          ['Updated', item.updatedAt || '-']
-        ];
-        const node = document.createElement('div');
-        node.className = 'link-item';
-        node.innerHTML = `
-          <div class="link-title">
-            <strong>${title}</strong>
-            <span class="badge ${item.active ? 'active' : ''}">${item.active ? 'active' : 'inactive'}</span>
-          </div>
-          ${instruction ? `<div class="status" style="margin-bottom:8px;">${instruction}</div>` : ''}
-          ${details.map(([label, value]) => `<div class="pair"><strong>${label}</strong><span>${value || '-'}</span></div>`).join('')}
-          <pre class="mono" style="margin-top:10px;">${safeJson(item.stepInputs || {})}</pre>
-        `;
-        list.appendChild(node);
+      list.innerHTML = `
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Script</th>
+                <th>Step</th>
+                <th>Title</th>
+                <th>Word</th>
+                <th>Repeat</th>
+                <th>Letters</th>
+                <th>Sounds</th>
+                <th>Status</th>
+                <th>Updated</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item, index) => `
+                <tr data-link-index="${index}">
+                  <td><span class="data-chip">${escapeHtml(item.code || '-')}</span></td>
+                  <td>${escapeHtml(item.scriptId || '-')}</td>
+                  <td>${escapeHtml(item.stepId || '-')}</td>
+                  <td>
+                    <div><strong>${escapeHtml(item?.meta?.title || '-')}</strong></div>
+                    ${item?.meta?.instruction ? `<div class="muted" style="margin-top:4px;">${escapeHtml(item.meta.instruction)}</div>` : ''}
+                  </td>
+                  <td>${escapeHtml(item?.stepInputs?.word || '-')}</td>
+                  <td>${escapeHtml(item?.stepInputs?.repeat ?? '-')}</td>
+                  <td>${formatListChips(item?.stepInputs?.letters)}</td>
+                  <td>${formatListChips(item?.stepInputs?.sounds)}</td>
+                  <td><span class="badge ${item.active ? 'active' : ''}">${item.active ? 'active' : 'inactive'}</span></td>
+                  <td>${escapeHtml(item.updatedAt || '-')}</td>
+                  <td><button type="button" class="js-edit-link">Edit</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      linksCache = items;
+      list.querySelectorAll('.js-edit-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) {
+            return;
+          }
+          beginEditLink(linksCache[index]);
+        });
       });
     }
 
     function resetForm() {
+      editingOriginalCode = '';
       $('scriptSelect').value = '';
       $('scriptIdInput').value = '';
       $('stepIdInput').value = '';
@@ -841,6 +1056,7 @@
       $('repeatInput').value = '1';
       $('activeInput').checked = true;
       $('overwriteInput').checked = false;
+      renderEditingState();
       renderPreview();
     }
 
@@ -908,7 +1124,7 @@
 
       $('createLinkBtn').addEventListener('click', async () => {
         try {
-          await createLink();
+          await saveLink();
         } catch (err) {
           $('createStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
         }
@@ -924,6 +1140,7 @@
 
       $('resetFormBtn').addEventListener('click', resetForm);
       setLogVisibility(false);
+      renderEditingState();
       $('toggleLogBtn').addEventListener('click', () => {
         const visible = $('logBox') && $('logBox').classList.contains('is-hidden');
         setLogVisibility(Boolean(visible));
