@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BrailleStudio</title>
+  <link rel="icon" href="./favicon.ico" sizes="any" />
   
   <script defer src="https://cloud.umami.is/script.js" data-website-id="e5e6688f-dec8-44f0-8b83-b223bda340af"></script> 
 
@@ -47,30 +48,7 @@
       --chip-border: #e5e7eb;
 
       --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-    }
-
-    html[data-theme="dark"] {
-      --bg: #0b1220;
-      --fg: #e5e7eb;
-      --panel: #0f172a;
-      --muted: #94a3b8;
-      --label: #cbd5e1;
-      --code-bg: #111827;
-      --panel2: #101b27;
-      --border: rgba(255,255,255,.10);
-
-      --btn-bg: #e5e7eb;
-      --btn-fg: #0b1220;
-      --btn2-bg: #1f2937;
-      --btn2-fg: #e5e7eb;
-
-      --chip-bg: #0b1220;
-      --chip-fg: #e5e7eb;
-      --chip-border: #243041;
-
-      --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-
-      color-scheme: dark;
+      color-scheme: light;
     }
 
     * { box-sizing: border-box; }
@@ -243,10 +221,6 @@
       background: color-mix(in oklab, var(--panel) 88%, black 12%);
     }
 
-    html[data-theme="dark"] nav a:hover {
-      background: color-mix(in oklab, var(--panel) 88%, black 12%);
-    }
-
     nav a:active {
       transform: translateY(1px);
     }
@@ -302,10 +276,6 @@
       padding: 2px 6px;
       border-radius: 6px;
       font-size: 0.95rem;
-    }
-
-    html[data-theme="dark"] #readme-box code {
-      background: rgba(255, 255, 255, 0.10);
     }
 
     #readme-box a {
@@ -468,13 +438,6 @@
       return "nl";
     }
 
-    const THEME_KEY = "bs_theme";
-
-    function applyTheme(theme) {
-      document.documentElement.setAttribute("data-theme", theme);
-      localStorage.setItem(THEME_KEY, theme);
-    }
-
     function getStoredAuthToken() {
       const fromSession = String(sessionStorage.getItem(AUTH_TOKEN_KEY) || "").trim();
       if (fromSession) return fromSession;
@@ -533,24 +496,6 @@
       } catch {
         return "";
       }
-    }
-
-    function getInitialTheme() {
-      const saved = localStorage.getItem(THEME_KEY);
-      if (saved === "light" || saved === "dark") return saved;
-      return window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
-    }
-
-    applyTheme(getInitialTheme());
-    const themeBtn = document.getElementById("themeBtn");
-    if (themeBtn) {
-      themeBtn.addEventListener("click", () => {
-        const cur = document.documentElement.getAttribute("data-theme");
-        applyTheme(cur === "dark" ? "light" : "dark");
-      });
     }
 
     const lang = getLangFromSettings();
