@@ -1,62 +1,129 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Start lesson</title>
+  <title>Start brailleles</title>
   <style>
+    :root {
+      --bg: #fff7dc;
+      --panel: #ffffff;
+      --border: #f5d36f;
+      --text: #1f2937;
+      --muted: #586173;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --green: #0f9f6e;
+      --red: #b91c1c;
+      --shadow: 0 14px 30px rgba(146, 64, 14, 0.13);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      padding: 24px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      padding: 24px 16px 36px;
       max-width: 520px;
       margin: 0 auto;
+      min-height: 100vh;
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0 12%, transparent 12% 100%),
+        linear-gradient(225deg, rgba(236, 72, 153, 0.12) 0 10%, transparent 10% 100%),
+        linear-gradient(180deg, #fffdf7 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+    h1 {
+      margin: 0 0 14px;
+      padding: 20px;
+      border: 2px solid #fde68a;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #fff7ed 48%, #e0f2fe 100%);
+      color: #7c2d12;
+      font-size: 34px;
+      line-height: 1.12;
+      box-shadow: var(--shadow);
     }
     button {
       font-size: 18px;
       padding: 14px 20px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      background: #2563eb;
+      border-radius: 8px;
+      border: 1px solid var(--blue);
+      background: var(--blue);
       color: white;
       width: 100%;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(120, 53, 15, 0.16);
+    }
+    button:hover {
+      background: var(--blue-dark);
     }
     textarea {
       width: 100%;
       min-height: 110px;
       font-size: 16px;
       padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
+      border-radius: 8px;
+      border: 2px solid #fed7aa;
       resize: vertical;
       font-family: inherit;
+      color: var(--text);
     }
     .box {
-      border: 1px solid #ddd;
+      border: 2px solid var(--border);
       padding: 16px;
-      border-radius: 12px;
+      border-radius: 8px;
       margin-bottom: 16px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
     }
     .data-box {
       margin-top: 10px;
-      border: 1px solid #e5e7eb;
-      background: #f8fafc;
-      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #fffaf0;
+      border-radius: 8px;
       padding: 12px;
       white-space: pre-wrap;
       word-break: break-word;
     }
+    .pair {
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+    .pair strong {
+      color: #7c2d12;
+    }
+    #status {
+      min-height: 48px;
+      padding: 12px;
+      border: 2px dashed #86efac;
+      border-radius: 8px;
+      background: #f0fdf4;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    #status.error {
+      border-color: #fecaca;
+      background: #fff1f2;
+      color: var(--red);
+    }
+    #status.success {
+      color: #047857;
+    }
   </style>
 </head>
 <body>
-  <h1>Start lesson</h1>
+  <h1>Start de brailleles</h1>
   <div class="box">
-    <div><strong>Session:</strong> <span id="sessionText"></span></div>
-    <div><strong>Lesson:</strong> <span id="lessonText"></span></div>
-    <div style="margin-top:12px;"><strong>Data:</strong></div>
-    <textarea id="dataInput" placeholder="Extra data"></textarea>
+    <div class="pair"><strong>Sessie:</strong> <span id="sessionText"></span></div>
+    <div class="pair"><strong>Les:</strong> <span id="lessonText"></span></div>
+    <div style="margin-top:12px;"><strong>Extra informatie:</strong></div>
+    <textarea id="dataInput" placeholder="Optioneel: korte notitie voor deze les"></textarea>
   </div>
-  <button id="startBtn">Start lesson on laptop</button>
-  <p id="status"></p>
+  <button id="startBtn">Start de les op de laptop</button>
+  <p id="status">Klaar om te starten.</p>
 
   <script>
     const params = new URLSearchParams(location.search);
@@ -76,8 +143,10 @@
         body: JSON.stringify({ session, data: currentData })
       });
       const data = await res.json();
-      document.getElementById('status').textContent =
-        data.ok ? 'Lesson started on laptop.' : ('Error: ' + (data.error || 'unknown'));
+      const status = document.getElementById('status');
+      status.className = data.ok ? 'success' : 'error';
+      status.textContent =
+        data.ok ? 'De les is gestart op de laptop.' : ('Fout: ' + (data.error || 'onbekend'));
       if (data.ok && typeof data.data === 'string') {
         document.getElementById('dataInput').value = data.data || '';
       }

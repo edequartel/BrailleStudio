@@ -1,28 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BrailleStudio Session Starter</title>
+  <title>BrailleStudio Lesstarter</title>
   <style>
     :root {
-      --bg: #f3f6fa;
+      --bg: #fff7dc;
       --panel: #ffffff;
-      --border: #d7dee8;
-      --text: #16202f;
-      --muted: #627086;
-      --blue: #1d4ed8;
-      --green: #15803d;
+      --panel-soft: #fffaf0;
+      --border: #f5d36f;
+      --text: #1f2937;
+      --muted: #586173;
+      --blue: #2563eb;
+      --green: #0f9f6e;
       --red: #b91c1c;
-      --amber: #b45309;
-      --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+      --amber: #f59e0b;
+      --pink: #ec4899;
+      --purple: #7c3aed;
+      --cyan: #0891b2;
+      --shadow: 0 14px 30px rgba(146, 64, 14, 0.13);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0 12%, transparent 12% 100%),
+        linear-gradient(225deg, rgba(236, 72, 153, 0.12) 0 10%, transparent 10% 100%),
+        linear-gradient(180deg, #fffdf7 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "Segoe UI", Arial, sans-serif;
     }
@@ -37,12 +44,18 @@
       display: grid;
       gap: 14px;
       margin-bottom: 18px;
+      padding: 20px;
+      border: 2px solid #fde68a;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #fff 0%, #fff7ed 46%, #e0f2fe 100%);
+      box-shadow: var(--shadow);
     }
 
     .header h1 {
       margin: 0 0 8px;
-      font-size: 32px;
+      font-size: 42px;
       line-height: 1.1;
+      color: #7c2d12;
     }
 
     .header p {
@@ -50,20 +63,21 @@
       color: var(--muted);
       max-width: 760px;
       line-height: 1.5;
-      font-size: 17px;
+      font-size: 18px;
     }
 
     .card {
       background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
       padding: 18px;
       box-shadow: var(--shadow);
     }
 
     .card h2 {
       margin: 0 0 14px;
-      font-size: 18px;
+      font-size: 21px;
+      color: #7c2d12;
     }
 
     .btn-row {
@@ -79,7 +93,7 @@
       justify-content: center;
       min-height: 48px;
       padding: 11px 18px;
-      border-radius: 12px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       background: white;
       color: var(--text);
@@ -87,12 +101,16 @@
       font-weight: 700;
       text-decoration: none;
       cursor: pointer;
+      box-shadow: 0 4px 0 rgba(120, 53, 15, 0.18);
     }
 
     .btn-blue {
       background: var(--blue);
       border-color: var(--blue);
       color: white;
+    }
+    .btn-blue:hover {
+      background: #1d4ed8;
     }
 
     .btn-green {
@@ -119,8 +137,8 @@
       gap: 8px;
       border-radius: 999px;
       padding: 9px 12px;
-      background: #f8fafc;
-      border: 1px solid var(--border);
+      background: #ffffff;
+      border: 2px solid var(--border);
       font-size: 13px;
       font-weight: 700;
     }
@@ -181,8 +199,12 @@
 
     .status-text {
       color: var(--muted);
-      font-size: 15px;
+      font-size: 16px;
       line-height: 1.5;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f0fdf4;
+      border: 2px dashed #86efac;
     }
 
     .error {
@@ -197,7 +219,7 @@
       width: 100%;
       min-height: 760px;
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 8px;
       background: white;
     }
 
@@ -221,11 +243,12 @@
     .qr-image {
       width: min(100%, 280px);
       aspect-ratio: 1;
-      border: 1px solid var(--border);
-      border-radius: 18px;
+      border: 4px solid #38bdf8;
+      border-radius: 8px;
       background: #fff;
       object-fit: contain;
       padding: 14px;
+      box-shadow: 0 8px 0 rgba(14, 116, 144, 0.16);
     }
     .is-hidden {
       display: none;
@@ -247,10 +270,13 @@
       color: var(--muted);
       line-height: 1.5;
       text-align: center;
+      max-width: 290px;
     }
 
     .player-card {
       padding: 14px;
+      border-color: #a7f3d0;
+      background: #f0fdfa;
     }
 
     .hidden-debug {
@@ -258,6 +284,10 @@
     }
 
     @media (max-width: 980px) {
+      .header h1 {
+        font-size: 32px;
+      }
+
       .workspace {
         grid-template-columns: 1fr;
       }
@@ -272,19 +302,19 @@
   <div class="page">
     <div class="header">
       <div>
-        <h1>Braille lesson</h1>
+        <h1>Brailleles klaarzetten</h1>
         <p>
-          Click <strong>New QR code</strong>. Then scan the QR code with the phone and start the book activity. The lesson appears below.
+          Scan de sessiecode en scan daarna de code in het boek.
         </p>
       </div>
       <div class="status-strip">
         <div id="sessionBadge" class="pill">
           <span class="pill-dot" aria-hidden="true"></span>
-          <span>No active session</span>
+          <span>Nog geen actieve les</span>
         </div>
         <div id="incomingStepBadge" class="pill notice is-hidden">
           <span class="pill-dot" aria-hidden="true"></span>
-          <span>No new step-link</span>
+          <span>Nog geen nieuwe stap</span>
         </div>
       </div>
     </div>
@@ -292,30 +322,30 @@
     <div class="workspace">
       <div class="sidebar">
         <section class="card">
-          <h2>Start on phone</h2>
+          <h2>1. Start op de telefoon</h2>
           <div class="qr-wrap">
-            <img id="qrImage" class="qr-image" alt="Session QR code">
-            <button id="refreshQrBtn" class="btn-blue" type="button">New QR code</button>
-            <p class="helper-text">Use this QR code on the phone to open the simple start page.</p>
+            <img id="qrImage" class="qr-image" alt="QR-code voor deze les">
+            <button id="refreshQrBtn" class="btn-blue" type="button">Nieuwe QR-code</button>
+            <p class="helper-text">Scan deze sessiecode met de telefoon om de startpagina te openen.</p>
           </div>
         </section>
 
         <section class="card">
-          <h2>Lesson status</h2>
-          <div id="resolveStatus" class="status-text">Waiting for a lesson to start.</div>
+          <h2>2. Lesstatus</h2>
+          <div id="resolveStatus" class="status-text">Klaar voor de les. Maak eerst een QR-code aan.</div>
           <div class="btn-row">
-            <button id="showSessionInfoBtn" type="button">Show details</button>
+            <button id="showSessionInfoBtn" type="button">Technische details</button>
           </div>
         </section>
 
         <section id="sessionInfoCard" class="card is-hidden">
           <h2>Details</h2>
-          <div class="pair"><strong>Session</strong><span id="sessionIdText">-</span></div>
-          <div class="pair"><strong>Expires</strong><span id="expiresAtText">-</span></div>
-          <div class="pair"><strong>State</strong><span id="sessionStateText">Waiting</span></div>
+          <div class="pair"><strong>Sessie</strong><span id="sessionIdText">-</span></div>
+          <div class="pair"><strong>Geldig tot</strong><span id="expiresAtText">-</span></div>
+          <div class="pair"><strong>Status</strong><span id="sessionStateText">Wachten</span></div>
           <div class="pair"><strong>Code</strong><span id="resolvedCodeText">-</span></div>
           <div class="pair"><strong>Script</strong><span id="resolvedScriptIdText">-</span></div>
-          <div class="pair"><strong>Step</strong><span id="resolvedStepIdText">-</span></div>
+          <div class="pair"><strong>Stap</strong><span id="resolvedStepIdText">-</span></div>
         </section>
       </div>
 
@@ -361,6 +391,7 @@
     let activeStepCompletionWatchToken = 0;
     let blocklyFrameCustomized = false;
     let blocklyLogBridgeAttached = false;
+    let blocklyMonitorSyncAttached = false;
     let stepStartNoticeAudio = null;
     let audioUnlocked = false;
 
@@ -409,7 +440,7 @@
       badge.classList.toggle('is-hidden', !visible);
       const label = badge.querySelector('span:last-child');
       if (label) {
-        label.textContent = text || 'Nieuwe step-link ontvangen';
+        label.textContent = text || 'Nieuwe stap ontvangen';
       }
     }
 
@@ -477,6 +508,8 @@
           return false;
         }
         if (doc.getElementById('sessionLaptopPlayerStyle')) {
+          attachBlocklyMonitorSync();
+          syncActiveBlocklyMonitor();
           blocklyFrameCustomized = true;
           return true;
         }
@@ -523,30 +556,28 @@
           .topbar-row--monitor {
             order: 1 !important;
             padding: 0 !important;
-            display: flex !important;
             flex-direction: column !important;
             gap: 6px !important;
           }
-          #brailleMonitorRow {
+          html.session-laptop-use-bridge-monitor #brailleMonitorRow,
+          html.session-laptop-use-script-monitor #scriptBrailleMonitorRow {
             display: flex !important;
           }
-          #scriptBrailleMonitorRow {
-            display: flex !important;
-          }
-          .topbar-row--monitor.is-hidden {
-            display: flex !important;
+          html.session-laptop-use-bridge-monitor #scriptBrailleMonitorRow,
+          html.session-laptop-use-script-monitor #brailleMonitorRow {
+            display: none !important;
           }
           #brailleMonitorRow::before,
           #scriptBrailleMonitorRow::before {
             display: block !important;
             font-size: 12px !important;
             font-weight: 700 !important;
-            letter-spacing: 0.02em !important;
+            letter-spacing: 0 !important;
             text-transform: uppercase !important;
             color: #94a3b8 !important;
           }
           #brailleMonitorRow::before {
-            content: "BrailleBridge monitor" !important;
+            content: "BrailleBridge-monitor" !important;
           }
           #scriptBrailleMonitorRow::before {
             content: "Lokale scriptmonitor" !important;
@@ -590,34 +621,108 @@
         doc.head.appendChild(style);
         const leftMiddleBtn = doc.getElementById('simCursor5Btn');
         if (leftMiddleBtn) {
-          leftMiddleBtn.textContent = 'Left middle thumb';
-          leftMiddleBtn.setAttribute('aria-label', 'Left middle thumb');
-          leftMiddleBtn.setAttribute('title', 'Left middle thumb');
+          leftMiddleBtn.textContent = 'Linker middelduim';
+          leftMiddleBtn.setAttribute('aria-label', 'Linker middelduim');
+          leftMiddleBtn.setAttribute('title', 'Linker middelduim');
         }
         const rightMiddleBtn = doc.getElementById('simChord1Btn');
         if (rightMiddleBtn) {
-          rightMiddleBtn.textContent = 'Right middle thumb';
-          rightMiddleBtn.setAttribute('aria-label', 'Right middle thumb');
-          rightMiddleBtn.setAttribute('title', 'Right middle thumb');
+          rightMiddleBtn.textContent = 'Rechter middelduim';
+          rightMiddleBtn.setAttribute('aria-label', 'Rechter middelduim');
+          rightMiddleBtn.setAttribute('title', 'Rechter middelduim');
         }
         const leftThumbBtn = doc.getElementById('simThumbLeftBtn');
         if (leftThumbBtn) {
-          leftThumbBtn.textContent = 'Left thumb';
-          leftThumbBtn.setAttribute('aria-label', 'Left thumb');
-          leftThumbBtn.setAttribute('title', 'Left thumb');
+          leftThumbBtn.textContent = 'Linker duim';
+          leftThumbBtn.setAttribute('aria-label', 'Linker duim');
+          leftThumbBtn.setAttribute('title', 'Linker duim');
         }
         const rightThumbBtn = doc.getElementById('simThumbRightBtn');
         if (rightThumbBtn) {
-          rightThumbBtn.textContent = 'Right thumb';
-          rightThumbBtn.setAttribute('aria-label', 'Right thumb');
-          rightThumbBtn.setAttribute('title', 'Right thumb');
+          rightThumbBtn.textContent = 'Rechter duim';
+          rightThumbBtn.setAttribute('aria-label', 'Rechter duim');
+          rightThumbBtn.setAttribute('title', 'Rechter duim');
         }
+        attachBlocklyMonitorSync();
+        syncActiveBlocklyMonitor();
         syncBlocklyFrameHeight();
         blocklyFrameCustomized = true;
         return true;
       } catch (err) {
         return false;
       }
+    }
+
+    function getBlocklyWsConnected() {
+      try {
+        const app = $('builderFrame')?.contentWindow?.BrailleBlocklyApp;
+        const snapshot = typeof app?.getRuntimeSnapshot === 'function' ? app.getRuntimeSnapshot() : null;
+        if (snapshot && typeof snapshot.wsConnected !== 'undefined') {
+          return Boolean(snapshot.wsConnected);
+        }
+      } catch (err) {}
+      try {
+        const doc = $('builderFrame')?.contentWindow?.document;
+        return Boolean(doc?.getElementById('bridgeLaunchIndicator')?.classList.contains('is-connected'));
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function setMonitorRowVisible(row, visible) {
+      if (!row) return;
+      const nextDisplay = visible ? 'flex' : 'none';
+      if (row.classList.contains('is-hidden') === visible) {
+        row.classList.toggle('is-hidden', !visible);
+      }
+      if (row.style.getPropertyValue('display') !== nextDisplay) {
+        row.style.setProperty('display', nextDisplay, 'important');
+      }
+    }
+
+    function syncActiveBlocklyMonitor() {
+      const frame = $('builderFrame');
+      try {
+        const doc = frame?.contentWindow?.document;
+        const bridgeRow = doc?.getElementById('brailleMonitorRow');
+        const scriptRow = doc?.getElementById('scriptBrailleMonitorRow');
+        if (!bridgeRow && !scriptRow) {
+          return false;
+        }
+        const useBridgeMonitor = getBlocklyWsConnected();
+        doc.documentElement.classList.toggle('session-laptop-use-bridge-monitor', useBridgeMonitor);
+        doc.documentElement.classList.toggle('session-laptop-use-script-monitor', !useBridgeMonitor);
+        setMonitorRowVisible(bridgeRow, useBridgeMonitor);
+        setMonitorRowVisible(scriptRow, !useBridgeMonitor);
+        syncBlocklyFrameHeight();
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function attachBlocklyMonitorSync() {
+      if (blocklyMonitorSyncAttached) {
+        return;
+      }
+      const frame = $('builderFrame');
+      try {
+        const doc = frame?.contentWindow?.document;
+        if (!doc?.body || typeof frame.contentWindow.MutationObserver !== 'function') {
+          return;
+        }
+        const observer = new frame.contentWindow.MutationObserver(() => {
+          syncActiveBlocklyMonitor();
+        });
+        ['brailleMonitorRow', 'scriptBrailleMonitorRow', 'bridgeLaunchIndicator'].forEach((id) => {
+          const node = doc.getElementById(id);
+          if (node) {
+            observer.observe(node, { attributes: true, attributeFilter: ['class', 'style'] });
+          }
+        });
+        frame.contentWindow.setInterval(syncActiveBlocklyMonitor, 500);
+        blocklyMonitorSyncAttached = true;
+      } catch (err) {}
     }
 
     function syncBlocklyFrameHeight() {
@@ -677,10 +782,10 @@
       const badge = $('sessionBadge');
       const active = session && session.sessionId;
       badge.classList.toggle('active', Boolean(active));
-      badge.querySelector('span:last-child').textContent = active ? `Active: ${session.sessionId}` : 'No active session';
+      badge.querySelector('span:last-child').textContent = active ? `Actieve les: ${session.sessionId}` : 'Nog geen actieve les';
       $('sessionIdText').textContent = session?.sessionId || '-';
       $('expiresAtText').textContent = session?.expiresAt || '-';
-      $('sessionStateText').textContent = active ? 'Waiting for step link' : 'Waiting';
+      $('sessionStateText').textContent = active ? 'Wachten op stap' : 'Wachten';
       renderQr(session);
     }
 
@@ -800,7 +905,7 @@
       };
       setActiveSession(session);
       renderSession(session);
-      $('resolveStatus').textContent = 'Waiting for a lesson to start.';
+      $('resolveStatus').textContent = 'Sessiecode is klaar. Scan daarna de code in het boek.';
       startSessionPolling();
     }
 
@@ -816,7 +921,7 @@
       }
       await startSession();
       if (unlockAudio) {
-        $('sessionStateText').textContent = audioUnlocked ? 'Audio actief, wacht op step-link' : 'Wacht op step-link';
+        $('sessionStateText').textContent = audioUnlocked ? 'Audio actief, wacht op stap' : 'Wacht op stap';
       }
     }
 
@@ -882,8 +987,8 @@
 
         lastStartedStepStillActive = false;
         lastStartedStepKey = '';
-        $('resolveStatus').innerHTML = `<span class="success">Step ${payload?.code || ''} is afgerond.</span>`;
-        $('sessionStateText').textContent = 'Step afgerond';
+        $('resolveStatus').innerHTML = `<span class="success">Stap ${payload?.code || ''} is afgerond.</span>`;
+        $('sessionStateText').textContent = 'Stap afgerond';
         logLine('Active step completion watcher detected runtime idle.', {
           code: payload?.code || '',
           scriptId: payload?.scriptId || '',
@@ -941,7 +1046,7 @@
       });
       renderIncomingStepBadge({
         visible: true,
-        text: `Nieuwe step-link ontvangen: ${payload.code || payload.stepId || 'onbekend'}`
+        text: `Nieuwe stap ontvangen: ${payload.code || payload.stepId || 'onbekend'}`
       });
       try {
         await playStepStartNotice();
@@ -958,8 +1063,8 @@
           scriptId: payload.scriptId || '',
           stepId: payload.stepId || ''
         });
-        $('resolveStatus').innerHTML = `<span class="success">Nieuwe step-link ontvangen. Step ${payload.code || ''} is al actief.</span>`;
-        $('sessionStateText').textContent = 'Step actief';
+        $('resolveStatus').innerHTML = `<span class="success">Nieuwe stap ontvangen. Stap ${payload.code || ''} is al bezig.</span>`;
+        $('sessionStateText').textContent = 'Stap actief';
         return;
       }
       if (lastStartedStepKey && lastStartedStepStillActive) {
@@ -969,8 +1074,8 @@
           incomingStepId: payload.stepId || '',
           incomingScriptId: payload.scriptId || ''
         });
-        $('resolveStatus').innerHTML = `<span class="success">Nieuwe step-link genegeerd; de huidige step blijft actief.</span>`;
-        $('sessionStateText').textContent = 'Step actief';
+        $('resolveStatus').innerHTML = `<span class="success">Nieuwe stap ontvangen; de huidige stap blijft bezig.</span>`;
+        $('sessionStateText').textContent = 'Stap actief';
         return;
       }
       activeStepCompletionWatchToken += 1;
@@ -986,8 +1091,8 @@
       }
       lastStartedStepKey = stepKey;
       lastStartedStepStillActive = true;
-      $('resolveStatus').innerHTML = `<span class="success">Started step ${payload.code || ''}.</span>`;
-      $('sessionStateText').textContent = 'Step actief';
+      $('resolveStatus').innerHTML = `<span class="success">Stap ${payload.code || ''} is gestart.</span>`;
+      $('sessionStateText').textContent = 'Stap actief';
       const autoStartStartedAt = Date.now();
       activeStepRunPromise = (async () => {
         try {
@@ -1003,9 +1108,9 @@
           lastStartedStepStillActive = Boolean(startResult?.runtimeStillActive);
           lastStartedStepKey = lastStartedStepStillActive ? stepKey : '';
           $('resolveStatus').innerHTML = startResult?.runtimeStillActive
-            ? `<span class="success">Started step ${payload.code || ''}.</span>`
-            : `<span class="success">Step ${payload.code || ''} is uitgevoerd en direct afgerond.</span>`;
-          $('sessionStateText').textContent = startResult?.runtimeStillActive ? 'Step actief' : 'Step afgerond';
+            ? `<span class="success">Stap ${payload.code || ''} is gestart.</span>`
+            : `<span class="success">Stap ${payload.code || ''} is uitgevoerd en direct afgerond.</span>`;
+          $('sessionStateText').textContent = startResult?.runtimeStillActive ? 'Stap actief' : 'Stap afgerond';
           if (!startResult?.runtimeStillActive) {
             try {
               await updateSessionRuntimeState('idle');
@@ -1032,7 +1137,7 @@
           lastStartedStepStillActive = false;
           lastStartedStepKey = '';
           $('resolveStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
-          $('sessionStateText').textContent = 'Start failed';
+          $('sessionStateText').textContent = 'Start mislukt';
           try {
             await updateSessionRuntimeState('idle');
           } catch (idleErr) {
@@ -1133,7 +1238,7 @@
 
     function bootstrap() {
       resetSessionRuntimeState();
-      $('resolveStatus').textContent = 'Waiting for a lesson to start.';
+      $('resolveStatus').textContent = 'Klaar voor de les. Maak eerst een QR-code aan.';
       $('refreshQrBtn').addEventListener('click', async () => {
         try {
           await startFreshSession({ unlockAudio: true });
@@ -1148,11 +1253,12 @@
         if (!card || !button) return;
         const shouldShow = card.classList.contains('is-hidden');
         card.classList.toggle('is-hidden', !shouldShow);
-        button.textContent = shouldShow ? 'Hide details' : 'Show details';
+        button.textContent = shouldShow ? 'Details verbergen' : 'Technische details';
       });
       $('builderFrame').addEventListener('load', () => {
         blocklyFrameCustomized = false;
         blocklyLogBridgeAttached = false;
+        blocklyMonitorSyncAttached = false;
         const startedAt = Date.now();
         const poll = () => {
           const app = $('builderFrame')?.contentWindow?.BrailleBlocklyApp;

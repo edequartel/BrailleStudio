@@ -1,28 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#f59e0b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Braille Start">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-start.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-start.svg">
-  <title>Scan Step-link</title>
+  <title>Start brailleles</title>
   <style>
     :root {
-      --bg: #f4f7fb;
+      --bg: #fff7dc;
       --panel: #ffffff;
-      --border: #d6deea;
-      --text: #16202f;
-      --muted: #64748b;
-      --blue: #1d4ed8;
-      --blue-dark: #173fb0;
-      --green: #15803d;
+      --panel-soft: #fffaf0;
+      --border: #f5d36f;
+      --text: #1f2937;
+      --muted: #586173;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --green: #0f9f6e;
       --red: #b91c1c;
-      --shadow: 0 16px 36px rgba(15, 23, 42, 0.07);
+      --pink: #ec4899;
+      --cyan: #0891b2;
+      --shadow: 0 14px 30px rgba(146, 64, 14, 0.13);
     }
 
     * { box-sizing: border-box; }
@@ -30,7 +33,10 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(180deg, #f9fbfd 0%, var(--bg) 100%);
+      background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0 12%, transparent 12% 100%),
+        linear-gradient(225deg, rgba(236, 72, 153, 0.12) 0 10%, transparent 10% 100%),
+        linear-gradient(180deg, #fffdf7 0%, var(--bg) 100%);
       color: var(--text);
       font-family: "Segoe UI", Arial, sans-serif;
     }
@@ -43,8 +49,8 @@
 
     .card {
       background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 20px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
       padding: 24px;
       box-shadow: var(--shadow);
     }
@@ -56,12 +62,13 @@
     h1 {
       margin: 0 0 10px;
       font-size: 32px;
-      letter-spacing: -0.02em;
+      color: #7c2d12;
     }
 
     h2 {
       margin: 0 0 8px;
       font-size: 18px;
+      color: #7c2d12;
     }
 
     p {
@@ -73,6 +80,11 @@
     .hero {
       text-align: center;
       margin-bottom: 20px;
+      padding: 20px;
+      border: 2px solid #fde68a;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, #fff7ed 48%, #e0f2fe 100%);
+      box-shadow: var(--shadow);
     }
 
     .hero p {
@@ -105,8 +117,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: #e8f0ff;
-      color: var(--blue);
+      background: #fef3c7;
+      color: #9a3412;
       font-size: 14px;
       font-weight: 700;
     }
@@ -120,8 +132,8 @@
 
     input {
       width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 14px;
+      border: 2px solid #fed7aa;
+      border-radius: 8px;
       padding: 15px 16px;
       font-size: 17px;
       background: white;
@@ -158,7 +170,7 @@
       width: 100%;
       min-height: 54px;
       padding: 12px 16px;
-      border-radius: 14px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       font-size: 17px;
       font-weight: 700;
@@ -166,6 +178,7 @@
       color: var(--text);
       cursor: pointer;
       transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+      box-shadow: 0 4px 0 rgba(120, 53, 15, 0.16);
     }
 
     button:disabled {
@@ -185,19 +198,20 @@
     }
 
     .btn-soft {
-      background: #f8fbff;
+      background: #fffaf0;
     }
 
     .status-card {
       display: grid;
       gap: 8px;
-      background: #f8fbff;
+      background: #f0fdf4;
+      border-style: dashed;
     }
 
     .status-label {
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
       text-transform: uppercase;
       color: var(--muted);
     }
@@ -210,8 +224,8 @@
 
     .mono {
       border: 1px solid var(--border);
-      border-radius: 16px;
-      background: #f8fafc;
+      border-radius: 8px;
+      background: #fffaf0;
       padding: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 12px;
@@ -226,8 +240,8 @@
     }
 
     .video-wrap {
-      border: 1px solid var(--border);
-      border-radius: 18px;
+      border: 4px solid #38bdf8;
+      border-radius: 8px;
       overflow: hidden;
       background: #111827;
       aspect-ratio: 4 / 3;
@@ -242,7 +256,7 @@
       z-index: 1;
       font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.04em;
+      letter-spacing: 0;
       text-transform: uppercase;
       color: rgba(226, 232, 240, 0.92);
     }
@@ -284,7 +298,7 @@
 
       .card {
         padding: 18px;
-        border-radius: 18px;
+        border-radius: 8px;
       }
     }
   </style>
@@ -292,25 +306,25 @@
 <body>
   <div class="page">
     <div class="hero">
-      <h1>Start a lesson</h1>
-      <p>Scan the book code or type it in, then tap Start.</p>
+      <h1>Start de brailleles</h1>
+      <p>Scan de code uit het boek of typ de code in. Tik daarna op Start.</p>
     </div>
 
     <section class="card">
-      <ul class="guide" aria-label="How to use this page">
-        <li><span class="guide-number">1</span><span>Open this page from the QR code on the laptop.</span></li>
-        <li><span class="guide-number">2</span><span>Scan the code in the book, or type the code here.</span></li>
-        <li><span class="guide-number">3</span><span>Tap Start. The lesson opens on the laptop.</span></li>
+      <ul class="guide" aria-label="Stappen om de les te starten">
+        <li><span class="guide-number">1</span><span>Open deze pagina via de QR-code op de laptop.</span></li>
+        <li><span class="guide-number">2</span><span>Scan de code in het boek, of typ de code hier.</span></li>
+        <li><span class="guide-number">3</span><span>Tik op Start. De les opent vanzelf op de laptop.</span></li>
       </ul>
 
       <div class="field">
-        <label for="stepLinkCodeInput">Book code</label>
-        <input id="stepLinkCodeInput" type="text" placeholder="Scan or enter the code">
-        <div class="field-help">You can paste a full link or only the code.</div>
+        <label for="stepLinkCodeInput">Boekcode</label>
+        <input id="stepLinkCodeInput" type="text" placeholder="Scan of typ de code">
+        <div class="field-help">Een volledige link plakken mag ook.</div>
       </div>
 
       <div id="cameraField" class="field is-hidden">
-        <label for="scannerVideo">Camera view</label>
+        <label for="scannerVideo">Camerabeeld</label>
         <div class="video-wrap">
           <video id="scannerVideo" playsinline muted class="is-hidden"></video>
           <canvas id="scannerCanvas" class="is-hidden"></canvas>
@@ -318,18 +332,18 @@
       </div>
 
       <div class="btn-row">
-        <button id="resolveBtn" class="btn-blue" type="button">Start lesson</button>
-        <button id="startScanBtn" class="btn-soft" type="button">Use camera</button>
+        <button id="resolveBtn" class="btn-blue" type="button">Start de les</button>
+        <button id="startScanBtn" class="btn-soft" type="button">Camera gebruiken</button>
       </div>
     </section>
 
     <section id="statusCard" class="card status-card">
       <div class="status-label">Status</div>
-      <p id="statusText" class="status-text">Ready to start.</p>
+      <p id="statusText" class="status-text">Klaar om te starten.</p>
     </section>
 
-    <pre id="payloadBox" class="mono is-hidden" aria-hidden="true">No resolved payload yet.</pre>
-    <pre id="logBox" class="mono mono-log is-hidden" aria-hidden="true">Ready.</pre>
+    <pre id="payloadBox" class="mono is-hidden" aria-hidden="true">Nog geen lesgegevens ontvangen.</pre>
+    <pre id="logBox" class="mono mono-log is-hidden" aria-hidden="true">Klaar.</pre>
   </div>
 
   <footer class="page-footer" aria-label="Bartiméus">
@@ -408,7 +422,7 @@
     function getSessionIdOrThrow() {
       const sessionId = getInitialSessionId();
       if (!sessionId) {
-        throw new Error('No session id found in this QR link.');
+        throw new Error('Geen sessie gevonden in deze QR-link.');
       }
       return sessionId;
     }
@@ -453,7 +467,7 @@
       if (!statusText || !statusCard) {
         return;
       }
-      statusText.textContent = String(message || '').trim() || 'Ready to start.';
+      statusText.textContent = String(message || '').trim() || 'Klaar om te starten.';
       statusText.className = `status-text${className ? ` ${className}` : ''}`;
       statusCard.style.borderColor = className === 'error'
         ? 'rgba(185, 28, 28, 0.25)'
@@ -467,7 +481,7 @@
       $('resolveBtn').disabled = startRequestInFlight;
       $('startScanBtn').disabled = startRequestInFlight;
       $('stepLinkCodeInput').disabled = startRequestInFlight;
-      $('resolveBtn').textContent = startRequestInFlight ? 'Starting...' : 'Start lesson';
+      $('resolveBtn').textContent = startRequestInFlight ? 'Starten...' : 'Start de les';
     }
 
     async function submitStepLink(source = 'manual') {
@@ -479,7 +493,7 @@
       const sessionId = getSessionIdOrThrow();
       const stepLinkCode = normalizeStepLinkCode($('stepLinkCodeInput').value);
       if (!stepLinkCode) {
-        throw new Error('Enter a step-link id / code first.');
+        throw new Error('Vul eerst een boekcode in.');
       }
 
       setBusyState(true);
@@ -492,7 +506,7 @@
       });
 
       try {
-        setStatus('Starting step-link...');
+        setStatus('De les wordt gestart...');
         const response = await postJson('./resolve.php', {
           sessionId,
           code: stepLinkCode
@@ -500,14 +514,14 @@
 
         if (response.accepted === false && response.ignored === true) {
           $('payloadBox').textContent = JSON.stringify(response, null, 2);
-          setStatus('Laptop is bezig. Deze step-link is genegeerd.', 'success');
+          setStatus('De laptop is bezig. Deze stap wordt overgeslagen.', 'success');
           logLine('Step-link ignored because laptop session is active.', response);
           return;
         }
 
         localStorage.setItem(STORAGE_RESOLVED_KEY, JSON.stringify(response));
         $('payloadBox').textContent = JSON.stringify(response, null, 2);
-        setStatus(`Started step-link ${response.code}.`, 'success');
+        setStatus(`Stap ${response.code} is gestart.`, 'success');
         logLine('Step-link started successfully.', response);
       } finally {
         setBusyState(false);
@@ -573,10 +587,10 @@
 
     async function startScanner() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Camera scanning is not supported on this device/browser.');
+        throw new Error('Scannen met de camera werkt niet op dit apparaat of in deze browser.');
       }
       if (typeof BarcodeDetector === 'undefined' && typeof window.jsQR !== 'function') {
-        throw new Error('QR scanning library is not available. Enter the code manually.');
+        throw new Error('QR-scannen is nu niet beschikbaar. Typ de code handmatig in.');
       }
       stopScanner();
       scanHandled = false;
@@ -592,8 +606,8 @@
       video.srcObject = stream;
       video.classList.remove('is-hidden');
       await video.play();
-      setStatus('Camera active. Point at a step-link QR code.');
-      $('startScanBtn').textContent = 'Stop camera';
+      setStatus('Camera staat aan. Richt op de QR-code in het boek.');
+      $('startScanBtn').textContent = 'Camera stoppen';
       logLine('Camera scanner started.', {
         barcodeDetector: typeof BarcodeDetector !== 'undefined',
         jsQrFallback: typeof window.jsQR === 'function'
@@ -622,13 +636,13 @@
       }
       $('cameraField')?.classList.add('is-hidden');
       if ($('startScanBtn')) {
-        $('startScanBtn').textContent = 'Use camera';
+        $('startScanBtn').textContent = 'Camera gebruiken';
       }
     }
 
     function bootstrap() {
       $('stepLinkCodeInput').value = urlCode;
-      setStatus(urlCode ? 'Code ready. Tap Start lesson.' : 'Ready to start.');
+      setStatus(urlCode ? 'Code staat klaar. Tik op Start de les.' : 'Klaar om te starten.');
       logLine('Start page bootstrapped.', {
         urlCode,
         urlSessionId,
@@ -656,7 +670,7 @@
       $('startScanBtn').addEventListener('click', async () => {
         if (activeScannerStream) {
           stopScanner();
-          setStatus('Camera stopped. You can type the code or start scanning again.');
+          setStatus('Camera gestopt. Je kunt de code typen of opnieuw scannen.');
           return;
         }
         try {
