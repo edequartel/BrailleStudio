@@ -155,6 +155,7 @@ foreach ($files as $file) {
             'id' => $rowId,
             'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
             'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
+            'stepLinkCode' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string)($row['stepLinkCode'] ?? $row['stepCode'] ?? ''))),
             'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
         ];
     }

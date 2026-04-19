@@ -28,8 +28,8 @@ declare(strict_types=1);
     }
 
     .steps-grid {
-      grid-template-columns: minmax(240px, 2.3fr) minmax(220px, 1.9fr) minmax(160px, 1.2fr) minmax(220px, 1.5fr) 92px 72px 72px 72px 88px;
-      min-width: 1240px;
+      grid-template-columns: minmax(240px, 2.3fr) minmax(220px, 1.9fr) minmax(160px, 1.2fr) minmax(220px, 1.5fr) 92px minmax(150px, 1.15fr) 72px 72px 72px 88px;
+      min-width: 1400px;
     }
 
     .steps-textarea {
@@ -130,6 +130,7 @@ declare(strict_types=1);
               <div class="min-w-0 text-left">Word</div>
               <div class="min-w-0 text-left">Letters</div>
               <div class="min-w-0 text-left">Repeat</div>
+              <div class="min-w-0 text-left">Step link</div>
               <div class="text-center">Run</div>
               <div class="text-center">Up</div>
               <div class="text-center">Down</div>
@@ -186,6 +187,7 @@ declare(strict_types=1);
     const simThumbRightBtn = document.getElementById('simThumbRightBtn');
     const simCursor5Btn = document.getElementById('simCursor5Btn');
     const simChord1Btn = document.getElementById('simChord1Btn');
+    const STEP_LINK_CREATE_URL = '../session-api/create-link.php';
 
     let state = shared.loadState();
     let scriptsCache = [];
@@ -492,6 +494,7 @@ declare(strict_types=1);
       return {
         id: String(stepConfig?.id || '').trim(),
         title: meta.title,
+        stepLinkCode: String(stepConfig?.stepLinkCode || '').trim(),
         inputs: {
           text: String(inputs.text || ''),
           word: String(inputs.word || ''),
@@ -521,6 +524,7 @@ declare(strict_types=1);
         built.push({
           id: String(source.id || '').trim(),
           title: meta.title,
+          stepLinkCode: String(source.stepLinkCode || '').trim(),
           inputs: {
             text: String(textValue || ''),
             word: String(wordValue || ''),
@@ -540,6 +544,98 @@ declare(strict_types=1);
           title: cfg.title || String(script?.title || '').trim()
         };
       });
+    }
+
+    function normalizeStepLinkToken(value, fallback = 'step') {
+      let token = String(value || '').trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!token) token = String(fallback || 'step').trim().replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'step';
+      if (!/^[a-zA-Z0-9]/.test(token)) {
+        token = `s-${token}`;
+      }
+      while (token.length < 3) {
+        token += '-x';
+      }
+      return token.slice(0, 128).replace(/-+$/g, '') || 'step';
+    }
+
+    function buildStepLinkStepId(stepConfig, stepIndex) {
+      const lessonId = normalizeStepLinkToken(lessonIdInput.value.trim() || state.lessonId || 'lesson', 'lesson');
+      const stepNumber = String(Math.max(1, Number(stepIndex) + 1)).padStart(2, '0');
+      const scriptId = normalizeStepLinkToken(stepConfig?.id || 'script', 'script');
+      return normalizeStepLinkToken(`${lessonId}-step-${stepNumber}-${scriptId}`, 'step');
+    }
+
+    function buildStepLinkMeta(stepConfig, stepIndex) {
+      const method = shared.getDraftMethodMeta(state);
+      const basisRecord = basisItems[Number(state.basisIndex ?? -1)] || state.basisRecord || null;
+      return {
+        title: String(stepConfig?.title || stepConfig?.id || '').trim(),
+        lessonId: String(lessonIdInput.value.trim() || state.lessonId || '').trim(),
+        lessonTitle: String(lessonTitleInput.value.trim() || state.lessonTitle || '').trim(),
+        lessonNumber: Number(state.lessonNumber || 1),
+        methodId: String(method.id || '').trim(),
+        methodTitle: String(method.title || '').trim(),
+        basisIndex: Number(state.basisIndex ?? -1),
+        basisWord: String(state.basisWord || '').trim(),
+        basisRecord,
+        stepIndex: Number(stepIndex),
+        stepNumber: Number(stepIndex) + 1,
+        scriptTitle: String(stepConfig?.title || '').trim()
+      };
+    }
+
+    function renderStepLinkCodeCell(cell, code = '') {
+      const normalizedCode = String(code || '').trim();
+      cell.querySelector('[data-step-link-code-text]').textContent = normalizedCode || 'No code yet';
+      const copyBtn = cell.querySelector('[data-copy-step-link-code]');
+      if (copyBtn) {
+        copyBtn.disabled = !normalizedCode;
+      }
+    }
+
+    async function createStepLinkForStep(index, cell = null) {
+      syncStepConfigsFromTable();
+      const stepConfig = stepConfigs[index];
+      if (!stepConfig) {
+        throw new Error('Step not found');
+      }
+      if (!String(stepConfig.id || '').trim()) {
+        throw new Error('Step has no script id');
+      }
+      const existingCode = String(stepConfig.stepLinkCode || '').trim();
+      const payload = {
+        scriptId: String(stepConfig.id || '').trim(),
+        stepId: buildStepLinkStepId(stepConfig, index),
+        active: true,
+        overwrite: Boolean(existingCode),
+        meta: buildStepLinkMeta(stepConfig, index),
+        stepInputs: shared.normalizeInputs(stepConfig.inputs || {})
+      };
+      if (existingCode) {
+        payload.code = existingCode;
+      }
+
+      appendStatus('Step-link create gestart.', payload);
+      const res = await fetch(STEP_LINK_CREATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      stepConfigs[index] = {
+        ...stepConfig,
+        stepLinkCode: String(data.code || '').trim()
+      };
+      updateStateStepConfigs();
+      if (cell) {
+        renderStepLinkCodeCell(cell, stepConfigs[index].stepLinkCode);
+      }
+      appendStatus('Step-link aangemaakt.', data);
+      setStatus(`Step-link code: ${stepConfigs[index].stepLinkCode}`);
+      return data;
     }
 
     function renderStepsTable() {
@@ -612,6 +708,45 @@ declare(strict_types=1);
         repeat.addEventListener('change', (e) => applyRepeatValue(e.target));
         repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
 
+        const stepLink = document.createElement('div');
+        stepLink.className = 'min-w-0 space-y-1';
+        stepLink.innerHTML = `
+          <button type="button" data-create-step-link class="w-full rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">Create link</button>
+          <div class="flex min-w-0 items-center gap-1">
+            <code data-step-link-code-text class="block min-w-0 flex-1 truncate rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">No code yet</code>
+            <button type="button" data-copy-step-link-code class="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700">Copy</button>
+          </div>
+        `;
+        renderStepLinkCodeCell(stepLink, cfg.stepLinkCode);
+        const createStepLinkBtn = stepLink.querySelector('[data-create-step-link]');
+        createStepLinkBtn.addEventListener('click', async () => {
+          createStepLinkBtn.disabled = true;
+          createStepLinkBtn.textContent = 'Creating...';
+          try {
+            await createStepLinkForStep(index, stepLink);
+          } catch (err) {
+            showDebugLog();
+            setStatus(`Step-link error: ${err.message}`);
+            appendStatus('Step-link create failed.', {
+              stepIndex: index,
+              error: err.message || String(err)
+            });
+          } finally {
+            createStepLinkBtn.disabled = false;
+            createStepLinkBtn.textContent = 'Create link';
+          }
+        });
+        stepLink.querySelector('[data-copy-step-link-code]').addEventListener('click', async () => {
+          const code = String(stepConfigs[index]?.stepLinkCode || '').trim();
+          if (!code) return;
+          try {
+            await navigator.clipboard.writeText(code);
+            setStatus(`Step-link code copied: ${code}`);
+          } catch (err) {
+            setStatus(`Copy step-link error: ${err.message || String(err)}`);
+          }
+        });
+
         const run = document.createElement('button');
         run.dataset.runStepIndex = String(index);
         run.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
@@ -659,7 +794,7 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        row.append(script, text, word, letters, repeat, run, moveUp, moveDown, remove);
+        row.append(script, text, word, letters, repeat, stepLink, run, moveUp, moveDown, remove);
         stepsTableBody.appendChild(row);
       });
       renderStepRunButtons();

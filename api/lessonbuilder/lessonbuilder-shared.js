@@ -342,6 +342,7 @@
       id: String(cfg?.id ?? '').trim(),
       title: String(cfg?.title ?? cfg?.scriptTitle ?? '').trim(),
       description: String(cfg?.description ?? cfg?.scriptDescription ?? cfg?.meta?.description ?? '').trim(),
+      stepLinkCode: String(cfg?.stepLinkCode ?? cfg?.stepCode ?? '').trim(),
       inputs: normalizeInputs(cfg?.inputs ?? {}, cfg?.variable ?? '')
     })).filter((cfg) => cfg.id);
   }
