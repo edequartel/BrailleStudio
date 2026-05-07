@@ -175,7 +175,7 @@
       display: grid;
       grid-template-columns: 300px 1fr;
       gap: 18px;
-      align-items: start;
+      align-items: stretch;
     }
 
     @media (max-width: 900px) {
@@ -192,6 +192,12 @@
       background: transparent;
       display: grid;
       gap: 10px;
+      align-content: start;
+    }
+
+    .layout > section {
+      min-width: 0;
+      display: flex;
     }
 
     ul {
@@ -230,14 +236,55 @@
       box-shadow: 0 0 0 3px rgba(79, 107, 237, 0.35);
     }
 
+    nav a.group-practice {
+      background: #e8f1ff;
+      border-color: #bfd4ff;
+      color: #1947b3;
+    }
+
+    nav a.group-practice:hover {
+      background: #dceaff;
+    }
+
+    nav a.group-builder {
+      background: #eefbf2;
+      border-color: #c7edd3;
+      color: #18663a;
+    }
+
+    nav a.group-builder:hover {
+      background: #e2f7e9;
+    }
+
+    nav a.group-phonemes {
+      background: #fff4e7;
+      border-color: #f2d2aa;
+      color: #9a4d00;
+    }
+
+    nav a.group-phonemes:hover {
+      background: #ffeccc;
+    }
+
+    nav a.group-bridge {
+      background: #f3ebff;
+      border-color: #d8c4ff;
+      color: #6a34b0;
+    }
+
+    nav a.group-bridge:hover {
+      background: #ecddff;
+    }
+
     #readme-box {
       background: var(--code-bg);
       color: var(--fg);
       border-radius: 12px;
       border: 1px solid var(--border);
       padding: 16px 16px;
-      height: calc(100vh - 140px);
-      max-height: 640px;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
       overflow: auto;
       box-shadow: none;
       font-size: 1rem;
@@ -247,6 +294,7 @@
     @media (max-width: 900px) {
       #readme-box {
         height: auto;
+        min-height: 0;
         max-height: 520px;
       }
     }
@@ -346,22 +394,22 @@
         <div class="layout">
       <nav aria-label="" data-i18n-aria="mainNav">
         <ul>
-          <li><a href="https://www.tastenbraille.com/braillestudio/runmethod.php?id=mpop-1775631274214" aria-label="MPOP">MPOP</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/blockly/index.html" aria-label="Blockly">Blockly</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder.php" aria-label="Lesson Builder">Lesson Builder</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/session-api/laptop.html" aria-label="Braille Sessie">Braille Sessie</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/session-api/admin.html" aria-label="Session Admin">Session Admin</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/phonemes-api/index.html" aria-label="Phonemes API">Phonemes API</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/klanken/index.html" aria-label="Klanken">Klanken</a></li>
-          <li><a href="https://www.tastenbraille.com/braillevolg/index.php" aria-label="BrailleVolg">BrailleVolg</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/editor/index.html" aria-label="Editor">Editor</a></li>
+          <li><a class="group-practice" href="https://www.tastenbraille.com/braillestudio/runmethod.php?id=mpop-1775631274214" aria-label="MPOP">MPOP</a></li>
+          <li><a class="group-practice" href="https://www.tastenbraille.com/braillestudio/session-api/laptop.html" aria-label="Braille Sessie">Braille Sessie</a></li>
+          <li><a class="group-builder" href="https://www.tastenbraille.com/braillestudio/blockly/index.html" aria-label="Blockly">Blockly</a></li>
+          <li><a class="group-builder" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder.php" aria-label="Lesson Builder">Lesson Builder</a></li>
+          <li><a class="group-builder" href="https://www.tastenbraille.com/braillestudio/session-api/admin.html" aria-label="Session Admin">Session Admin</a></li>
+          <li><a class="group-phonemes" href="https://www.tastenbraille.com/braillestudio/phonemes-api/index.html" aria-label="Phonemes API">Phonemes API</a></li>
+          <li><a class="group-phonemes" href="https://www.tastenbraille.com/braillestudio/klanken/index.html" aria-label="Klanken">Klanken</a></li>
         </ul>
         <ul>
-          <li><a href="https://www.tastenbraille.com/braillestudio/tools/braillebridge-com.html" aria-label="BrailleBridge COM">BrailleBridge COM</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/tools/tables.html" aria-label="Tables">Tables</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/elevenlabs-api/index.html" aria-label="ElevenLabs">ElevenLabs</a></li>
-          <li><a href="https://www.tastenbraille.com/braillestudio/downloads/setup_braillebridge_v20.exe" aria-label="Download BrailleBridge">Download BrailleBridge</a></li>
+          <li><a class="group-bridge" href="https://www.tastenbraille.com/braillestudio/tools/braillebridge-com.html" aria-label="BrailleBridge COM">BrailleBridge COM</a></li>
+          <li><a class="group-bridge" href="https://www.tastenbraille.com/braillestudio/tools/tables.html" aria-label="Tables">Tables</a></li>
+          <li><a class="group-bridge" href="https://www.tastenbraille.com/braillestudio/downloads/setup_braillebridge_v20.exe" aria-label="Download BrailleBridge">Download BrailleBridge</a></li>
           <li><a href="https://www.tastenbraille.com/go/admin.php" aria-label="Go Admin">Go Admin</a></li>
+          <li><a href="https://www.tastenbraille.com/braillevolg/index.php" aria-label="BrailleVolg">BrailleVolg</a></li>
+          <li><a href="https://www.tastenbraille.com/braillestudio/editor/index.html" aria-label="Editor">Editor</a></li>
+          <li><a href="https://www.tastenbraille.com/braillestudio/elevenlabs-api/index.html" aria-label="ElevenLabs">ElevenLabs</a></li>
         </ul>
       </nav>
 

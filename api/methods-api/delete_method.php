@@ -34,6 +34,16 @@ if ($index < 0) {
 }
 
 $deleted = $items[$index];
+
+$deletedLessons = methods_delete_lessons_for_method($id);
+if (!empty($deletedLessons['errors'])) {
+    methods_json_response([
+        'ok' => false,
+        'error' => 'Failed to delete linked lessons',
+        'linkedLessons' => $deletedLessons,
+    ], 500);
+}
+
 array_splice($items, $index, 1);
 
 if (!methods_save_all($items)) {
@@ -48,5 +58,6 @@ methods_json_response([
     'deleted' => [
         'id' => $deleted['id'],
         'title' => $deleted['title']
-    ]
+    ],
+    'deletedLessons' => $deletedLessons['deleted'],
 ]);

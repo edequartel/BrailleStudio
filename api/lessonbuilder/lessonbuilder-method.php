@@ -43,6 +43,12 @@ declare(strict_types=1);
 
         <div class="grid gap-3 md:grid-cols-2">
           <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodTechnicalIdDisplay">Technical method id</label>
+            <input id="methodTechnicalIdDisplay" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600" type="text" readonly placeholder="Will be generated on save">
+            <div class="mt-1 text-xs text-slate-500">This id is used for the file name and runmethod link.</div>
+          </div>
+          <div></div>
+          <div>
             <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodTitleInput">Method title</label>
             <input id="methodTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="Aanvankelijk">
           </div>
@@ -66,7 +72,9 @@ declare(strict_types=1);
         </div>
 
         <div class="flex flex-wrap gap-2">
+          <button id="newMethodBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">New method</button>
           <button id="saveMethodBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save method</button>
+          <button id="saveAsNewMethodBtn" class="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Save as new</button>
           <button id="deleteMethodBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete method</button>
           <button id="refreshMethodsBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh methods</button>
         </div>
@@ -86,6 +94,7 @@ declare(strict_types=1);
     const shared = window.LessonBuilderShared;
     const methodsSelect = document.getElementById('methodsSelect');
     const methodIdInput = document.getElementById('methodIdInput');
+    const methodTechnicalIdDisplay = document.getElementById('methodTechnicalIdDisplay');
     const methodTitleInput = document.getElementById('methodTitleInput');
     const methodBasisFileSelect = document.getElementById('methodBasisFileSelect');
     const methodDataSourceInput = document.getElementById('methodDataSourceInput');
@@ -95,6 +104,9 @@ declare(strict_types=1);
     const openRunmethodLink = document.getElementById('openRunmethodLink');
     const statusBox = document.getElementById('statusBox');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
+    const newMethodBtn = document.getElementById('newMethodBtn');
+    const saveMethodBtn = document.getElementById('saveMethodBtn');
+    const saveAsNewMethodBtn = document.getElementById('saveAsNewMethodBtn');
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
 
     let methodsCache = [];
@@ -165,6 +177,11 @@ declare(strict_types=1);
       `;
     }
 
+    function renderTechnicalMethodId() {
+      if (!methodTechnicalIdDisplay) return;
+      methodTechnicalIdDisplay.value = String(methodIdInput.value || '').trim();
+    }
+
     function renderRunmethodLink() {
       if (!openRunmethodLink) return;
       const methodId = String(methodIdInput.value || methodsSelect.value || '').trim();
@@ -182,6 +199,7 @@ declare(strict_types=1);
     function resetMethodForm() {
       methodsSelect.value = '';
       methodIdInput.value = '';
+      renderTechnicalMethodId();
       methodTitleInput.value = '';
       methodDescriptionInput.value = '';
       methodImageUrlInput.value = '';
@@ -275,6 +293,7 @@ declare(strict_types=1);
       const item = await shared.loadMethod(id);
       if (!item) throw new Error('Method not found');
       methodIdInput.value = item.id || '';
+      renderTechnicalMethodId();
       methodTitleInput.value = item.title || '';
       methodDescriptionInput.value = item.description || '';
       methodImageUrlInput.value = item.imageUrl || '';
@@ -307,6 +326,7 @@ declare(strict_types=1);
 
         const state = shared.loadState();
         methodIdInput.value = state.methodId || '';
+        renderTechnicalMethodId();
         methodTitleInput.value = state.methodTitle || '';
         methodDescriptionInput.value = state.methodDescription || '';
         methodImageUrlInput.value = state.methodImageUrl || '';
@@ -354,6 +374,7 @@ declare(strict_types=1);
 
     [methodIdInput, methodTitleInput, methodDescriptionInput, methodImageUrlInput].forEach((input) => {
       input.addEventListener('input', () => {
+        renderTechnicalMethodId();
         renderRunmethodLink();
         shared.updateState({
           methodId: methodIdInput.value.trim(),
@@ -367,13 +388,18 @@ declare(strict_types=1);
       });
     });
 
-    document.getElementById('saveMethodBtn').addEventListener('click', async () => {
+    async function saveMethodWithMode(mode = 'update') {
       const basisFile = methodBasisFileSelect.value.trim();
-      const generatedId = !methodIdInput.value.trim() ? buildUniqueMethodId() : '';
+      const shouldCreateNew = mode === 'create';
+      const generatedId = shouldCreateNew
+        ? buildUniqueMethodId()
+        : (!methodIdInput.value.trim() ? buildUniqueMethodId() : '');
       if (generatedId) {
         methodIdInput.value = generatedId;
+        renderTechnicalMethodId();
         appendStatus('Method ID automatisch gegenereerd.', {
           generatedId,
+          mode,
           basedOn: {
             title: methodTitleInput.value.trim(),
             basisFile
@@ -390,6 +416,7 @@ declare(strict_types=1);
         status: 'active'
       };
       appendStatus('Methode opslaan gestart.', {
+        mode,
         endpoint: METHODS_SAVE_ENDPOINT,
         refreshEndpoint: METHODS_LIST_ENDPOINT,
         expectedStorageFile: payload.id ? `${METHODS_STORAGE_DIR}${payload.id}.json` : null,
@@ -411,12 +438,14 @@ declare(strict_types=1);
         appendStatus('Response van save_method.php ontvangen.', result);
         methodsCache = await shared.listMethods();
         appendStatus('Method list opnieuw geladen.', {
+          mode,
           endpoint: METHODS_LIST_ENDPOINT,
           methodsCount: methodsCache.length,
           containsSavedMethod: methodsCache.some((item) => item.id === payload.id)
         });
         renderMethodOptions(methodsCache);
         methodsSelect.value = payload.id;
+        renderTechnicalMethodId();
         renderRunmethodLink();
         shared.updateState({
           methodId: payload.id,
@@ -427,16 +456,36 @@ declare(strict_types=1);
           methodImageUrl: payload.imageUrl
         });
         setStatus(`Method saved: ${payload.id}`, {
+          mode,
           result,
           expectedStorageFile: `${METHODS_STORAGE_DIR}${payload.id}.json`
         });
       } catch (err) {
         appendStatus('Opslaan mislukt.', {
+          mode,
           error: err.message,
           endpoint: METHODS_SAVE_ENDPOINT,
           payload
         });
         setStatus(`Save error: ${err.message}`);
+      }
+    }
+
+    saveMethodBtn.addEventListener('click', async () => {
+      await saveMethodWithMode('update');
+    });
+
+    saveAsNewMethodBtn.addEventListener('click', async () => {
+      await saveMethodWithMode('create');
+    });
+
+    newMethodBtn.addEventListener('click', async () => {
+      resetMethodForm();
+      try {
+        await loadBasisPreview();
+        setStatus('Nieuwe methode gestart. Vul titel en basisbestand in en klik Save method.');
+      } catch (err) {
+        setStatus(`New method error: ${err.message}`);
       }
     });
 
@@ -452,18 +501,41 @@ declare(strict_types=1);
         expectedStorageFile: `${METHODS_STORAGE_DIR}${id}.json`
       });
       try {
+        const linkedLessons = await shared.listLessons(id);
+        appendStatus('Bijbehorende lessons opgehaald.', {
+          methodId: id,
+          lessonCount: linkedLessons.length,
+          lessonIds: linkedLessons.map((item) => String(item?.id || '').trim()).filter(Boolean)
+        });
+
+        const deletedLessonIds = [];
+        for (const lesson of linkedLessons) {
+          const lessonId = String(lesson?.id || '').trim();
+          if (!lessonId) continue;
+          await shared.deleteLesson(lessonId);
+          deletedLessonIds.push(lessonId);
+        }
+        appendStatus('Bijbehorende lessons verwijderd.', {
+          methodId: id,
+          deletedLessonIds
+        });
+
         const result = await shared.deleteMethod(id);
         methodsCache = await shared.listMethods();
         renderMethodOptions(methodsCache);
         methodsSelect.value = '';
         methodIdInput.value = '';
+        renderTechnicalMethodId();
         methodTitleInput.value = '';
         methodDescriptionInput.value = '';
         methodImageUrlInput.value = '';
         renderMethodImagePreview();
         renderRunmethodLink();
         shared.updateState({ methodId: '', methodTitle: '', methodDescription: '', methodImageUrl: '' });
-        setStatus(`Method deleted: ${id}`, result);
+        setStatus(`Method deleted: ${id}`, {
+          result,
+          deletedLessons: deletedLessonIds
+        });
       } catch (err) {
         appendStatus('Verwijderen mislukt.', {
           error: err.message,

@@ -361,3 +361,62 @@ function methods_enrich_with_lessons(array $method): array
     $method['lessonsCount'] = count($lessons);
     return $method;
 }
+
+function methods_delete_lessons_for_method(string $methodId): array
+{
+    $methodId = methods_normalize_id($methodId);
+    if ($methodId === '') {
+        return [
+            'deleted' => [],
+            'errors' => [],
+        ];
+    }
+
+    $dir = methods_lessons_dir();
+    if (!is_dir($dir)) {
+        return [
+            'deleted' => [],
+            'errors' => [],
+        ];
+    }
+
+    $deleted = [];
+    $errors = [];
+    $files = glob($dir . '/*.json') ?: [];
+
+    foreach ($files as $file) {
+        $json = @file_get_contents($file);
+        if ($json === false || trim($json) === '') {
+            continue;
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+
+        $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
+        if ($lessonMethodId !== $methodId) {
+            continue;
+        }
+
+        $lessonId = methods_normalize_string($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME));
+        if (@unlink($file)) {
+            $deleted[] = [
+                'id' => $lessonId,
+                'filename' => basename($file),
+            ];
+            continue;
+        }
+
+        $errors[] = [
+            'id' => $lessonId,
+            'filename' => basename($file),
+        ];
+    }
+
+    return [
+        'deleted' => $deleted,
+        'errors' => $errors,
+    ];
+}

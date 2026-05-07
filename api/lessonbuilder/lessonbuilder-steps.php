@@ -28,13 +28,70 @@ declare(strict_types=1);
     }
 
     .steps-grid {
-      grid-template-columns: minmax(240px, 2.3fr) minmax(220px, 1.9fr) minmax(160px, 1.2fr) minmax(220px, 1.5fr) 92px minmax(150px, 1.15fr) 72px 72px 72px 88px;
-      min-width: 1400px;
+      grid-template-columns: minmax(190px, 1.35fr) minmax(300px, 2.45fr) minmax(180px, 1.3fr) minmax(300px, 2.15fr) 78px 44px 44px 44px 44px;
+      min-width: 1220px;
     }
 
     .steps-textarea {
-      min-height: 72px;
+      min-height: 92px;
       resize: vertical;
+    }
+
+    .step-script-card {
+      min-width: 0;
+      padding-right: 8px;
+      padding-top: 2px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .step-link-stack {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .step-link-code-row {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .step-action-btn {
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid rgb(203 213 225);
+      background: white;
+      color: rgb(51 65 85);
+    }
+
+    .step-action-btn:hover {
+      background: rgb(248 250 252);
+    }
+
+    .step-action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .step-action-btn svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
+
+    .step-action-btn--danger {
+      border-color: rgb(248 113 113);
+      background: rgb(220 38 38);
+      color: white;
     }
 
     .lesson-content-safe {
@@ -121,6 +178,17 @@ declare(strict_types=1);
           </div>
         </section>
 
+        <section>
+          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center">
+            <select id="copyLessonSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+              <option value="">Select lesson to copy from</option>
+            </select>
+            <button id="refreshLessonsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh lessons</button>
+            <button id="replaceStepsBtn" class="h-10 w-full rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 md:w-auto">Replace steps</button>
+            <button id="appendStepsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Append steps</button>
+          </div>
+        </section>
+
         <div>
           <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
           <div class="rounded-xl border border-slate-200 overflow-x-auto overflow-y-hidden">
@@ -130,11 +198,10 @@ declare(strict_types=1);
               <div class="min-w-0 text-left">Word</div>
               <div class="min-w-0 text-left">Letters</div>
               <div class="min-w-0 text-left">Repeat</div>
-              <div class="min-w-0 text-left">Step link</div>
-              <div class="text-center">Run</div>
-              <div class="text-center">Up</div>
-              <div class="text-center">Down</div>
-              <div class="text-center">Remove</div>
+              <div class="text-center"></div>
+              <div class="text-center"></div>
+              <div class="text-center"></div>
+              <div class="text-center"></div>
             </div>
             <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
           </div>
@@ -171,7 +238,11 @@ declare(strict_types=1);
     const lessonSummary = document.getElementById('lessonSummary');
     const stepsTableBody = document.getElementById('stepsTableBody');
     const scriptsSelect = document.getElementById('scriptsSelect');
+    const copyLessonSelect = document.getElementById('copyLessonSelect');
     const addStepBtn = document.getElementById('addStepBtn');
+    const refreshLessonsBtn = document.getElementById('refreshLessonsBtn');
+    const replaceStepsBtn = document.getElementById('replaceStepsBtn');
+    const appendStepsBtn = document.getElementById('appendStepsBtn');
     const scriptsSummary = document.getElementById('scriptsSummary');
     const statusBox = document.getElementById('statusBox');
     const copyDebugLogBtn = document.getElementById('copyDebugLogBtn');
@@ -191,6 +262,7 @@ declare(strict_types=1);
 
     let state = shared.loadState();
     let scriptsCache = [];
+    let lessonsCache = [];
     const scriptDataCache = new Map();
     let stepConfigs = [];
     let basisItems = [];
@@ -275,6 +347,104 @@ declare(strict_types=1);
           : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
         deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
       }
+    }
+
+    function getCurrentMethodId() {
+      const method = shared.getDraftMethodMeta(state);
+      return String(method?.id || '').trim();
+    }
+
+    function renderCopyLessonSelect() {
+      if (!copyLessonSelect) return;
+      const currentLessonId = String(lessonIdInput.value.trim() || state.lessonId || '').trim();
+      const previousValue = String(copyLessonSelect.value || '').trim();
+      const options = lessonsCache
+        .filter((lesson) => String(lesson?.id || '').trim() && String(lesson?.id || '').trim() !== currentLessonId)
+        .sort((a, b) => {
+          const aNumber = Number(a?.lessonNumber || 0);
+          const bNumber = Number(b?.lessonNumber || 0);
+          if (aNumber !== bNumber) return aNumber - bNumber;
+          return String(a?.title || a?.id || '').localeCompare(String(b?.title || b?.id || ''));
+        });
+
+      copyLessonSelect.innerHTML = '';
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = options.length ? 'Select lesson to copy from' : 'No other lessons available';
+      copyLessonSelect.appendChild(placeholder);
+
+      options.forEach((lesson) => {
+        const option = document.createElement('option');
+        const id = String(lesson?.id || '').trim();
+        const title = String(lesson?.title || '').trim();
+        const lessonNumber = Number(lesson?.lessonNumber || 0);
+        option.value = id;
+        option.textContent = lessonNumber > 0
+          ? `${lessonNumber}. ${title || id}`
+          : (title || id);
+        copyLessonSelect.appendChild(option);
+      });
+
+      if (previousValue && options.some((lesson) => String(lesson?.id || '').trim() === previousValue)) {
+        copyLessonSelect.value = previousValue;
+      }
+
+      const disabled = options.length === 0;
+      copyLessonSelect.disabled = disabled;
+      if (refreshLessonsBtn) refreshLessonsBtn.disabled = !getCurrentMethodId();
+      if (replaceStepsBtn) replaceStepsBtn.disabled = disabled;
+      if (appendStepsBtn) appendStepsBtn.disabled = disabled;
+    }
+
+    async function refreshLessonsCache() {
+      const methodId = getCurrentMethodId();
+      if (!methodId) {
+        lessonsCache = [];
+        renderCopyLessonSelect();
+        return [];
+      }
+      lessonsCache = await shared.listLessons(methodId);
+      renderCopyLessonSelect();
+      return lessonsCache;
+    }
+
+    async function copyStepsFromLesson(mode = 'replace') {
+      showDebugLog();
+      const sourceLessonId = String(copyLessonSelect?.value || '').trim();
+      if (!sourceLessonId) {
+        setStatus('Selecteer eerst een bronlesson.');
+        return;
+      }
+
+      const sourceLesson = await shared.loadLesson(sourceLessonId);
+      const importedSteps = hydrateStepConfigsWithScriptMetadata(
+        serializeStepConfigs(shared.normalizeStepConfigs(sourceLesson?.steps || []))
+      );
+
+      if (!importedSteps.length) {
+        setStatus('De bronlesson heeft geen steps.');
+        appendStatus('Copy steps aborted: source lesson empty.', { sourceLessonId, mode });
+        return;
+      }
+
+      stepConfigs = mode === 'append'
+        ? serializeStepConfigs([...(stepConfigs || []), ...importedSteps])
+        : importedSteps;
+      hydrateStepConfigsWithScriptMetadata();
+      state = shared.updateState({ steps: stepConfigs });
+      renderStepsTable();
+      renderLessonSummary();
+      appendStatus('Steps copied from lesson.', {
+        sourceLessonId,
+        mode,
+        importedCount: importedSteps.length,
+        totalCount: stepConfigs.length
+      });
+      setStatus(
+        mode === 'append'
+          ? `${importedSteps.length} step(s) appended from ${sourceLessonId}.`
+          : `${importedSteps.length} step(s) replaced from ${sourceLessonId}.`
+      );
     }
 
     function showBrailleMonitorPlaceholder() {
@@ -366,11 +536,16 @@ declare(strict_types=1);
         const index = Number(button.getAttribute('data-run-step-index') || -1);
         const isCurrent = index === currentRunningStepIndex;
         const hasActiveRun = currentRunningStepIndex >= 0;
-        button.textContent = isCurrent ? (isStoppingCurrentStep ? 'Stopping...' : 'Stop') : 'Run';
+        const label = isCurrent
+          ? (isStoppingCurrentStep ? 'Stopping step' : 'Stop step')
+          : 'Run step';
+        button.innerHTML = getStepActionIcon(isCurrent ? 'stop' : 'run');
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
         button.disabled = isStoppingCurrentStep || isStoppingLesson || (hasActiveRun && !isCurrent);
         button.className = isCurrent
-          ? 'w-full rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white'
-          : 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
+          ? 'step-action-btn step-action-btn--danger'
+          : 'step-action-btn';
       });
       const runLessonBtn = document.getElementById('runLessonBtn');
       if (runLessonBtn) {
@@ -536,14 +711,18 @@ declare(strict_types=1);
       return built.filter((item) => item.id);
     }
 
-    function hydrateStepConfigsWithScriptMetadata() {
-      stepConfigs = shared.normalizeStepConfigs(stepConfigs).map((cfg) => {
+    function hydrateStepConfigsWithScriptMetadata(items = stepConfigs) {
+      const hydrated = shared.normalizeStepConfigs(items).map((cfg) => {
         const script = getScriptItemById(cfg.id);
         return {
           ...cfg,
           title: cfg.title || String(script?.title || '').trim()
         };
       });
+      if (items === stepConfigs) {
+        stepConfigs = hydrated;
+      }
+      return hydrated;
     }
 
     function normalizeStepLinkToken(value, fallback = 'step') {
@@ -591,6 +770,33 @@ declare(strict_types=1);
       if (copyBtn) {
         copyBtn.disabled = !normalizedCode;
       }
+    }
+
+    function getStepActionIcon(kind) {
+      switch (kind) {
+        case 'run':
+          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 5v14l11-7z"></path></svg>';
+        case 'stop':
+          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>';
+        case 'up':
+          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6l-6 7h4v5h4v-5h4z" fill="currentColor"></path></svg>';
+        case 'down':
+          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 18l6-7h-4V6h-4v5H6z" fill="currentColor"></path></svg>';
+        case 'remove':
+          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6 6l1 14a1 1 0 0 0 1 .92h8a1 1 0 0 0 1-.92L18 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>';
+        default:
+          return '';
+      }
+    }
+
+    function createStepActionButton(kind, label) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'step-action-btn';
+      button.setAttribute('aria-label', label);
+      button.setAttribute('title', label);
+      button.innerHTML = getStepActionIcon(kind);
+      return button;
     }
 
     async function createStepLinkForStep(index, cell = null) {
@@ -652,7 +858,7 @@ declare(strict_types=1);
         row.className = 'steps-grid grid w-full gap-2 items-start px-3 py-2';
 
         const script = document.createElement('div');
-        script.className = 'min-w-0 pr-2 pt-1 text-sm text-slate-800 break-words leading-5';
+        script.className = 'step-script-card text-sm text-slate-800 break-words leading-5';
         script.innerHTML = `
           <div class="font-semibold text-slate-900">${meta.title || cfg.id}</div>
           <div class="text-xs text-slate-500">${cfg.id}</div>
@@ -678,11 +884,11 @@ declare(strict_types=1);
           updateStateStepConfigs();
         });
 
-        const letters = document.createElement('textarea');
+        const letters = document.createElement('input');
         letters.dataset.field = 'letters';
-        letters.rows = 3;
+        letters.type = 'text';
         letters.placeholder = 'a, b, c';
-        letters.className = 'steps-textarea block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        letters.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
@@ -709,14 +915,15 @@ declare(strict_types=1);
         repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
 
         const stepLink = document.createElement('div');
-        stepLink.className = 'min-w-0 space-y-1';
+        stepLink.className = 'step-link-stack';
         stepLink.innerHTML = `
-          <button type="button" data-create-step-link class="w-full rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">Create link</button>
-          <div class="flex min-w-0 items-center gap-1">
+          <button type="button" data-create-step-link class="w-full rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Create link</button>
+          <div class="step-link-code-row">
             <code data-step-link-code-text class="block min-w-0 flex-1 truncate rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">No code yet</code>
             <button type="button" data-copy-step-link-code class="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700">Copy</button>
           </div>
         `;
+        script.appendChild(stepLink);
         renderStepLinkCodeCell(stepLink, cfg.stepLinkCode);
         const createStepLinkBtn = stepLink.querySelector('[data-create-step-link]');
         createStepLinkBtn.addEventListener('click', async () => {
@@ -747,10 +954,8 @@ declare(strict_types=1);
           }
         });
 
-        const run = document.createElement('button');
+        const run = createStepActionButton('run', 'Run step');
         run.dataset.runStepIndex = String(index);
-        run.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
-        run.textContent = 'Run';
         run.addEventListener('click', async () => {
           try {
             await runSingleStep(index);
@@ -759,9 +964,7 @@ declare(strict_types=1);
           }
         });
 
-        const moveUp = document.createElement('button');
-        moveUp.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
-        moveUp.textContent = 'Up';
+        const moveUp = createStepActionButton('up', 'Move step up');
         moveUp.disabled = index === 0;
         moveUp.addEventListener('click', () => {
           if (index === 0) return;
@@ -772,9 +975,7 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        const moveDown = document.createElement('button');
-        moveDown.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
-        moveDown.textContent = 'Down';
+        const moveDown = createStepActionButton('down', 'Move step down');
         moveDown.disabled = index === stepConfigs.length - 1;
         moveDown.addEventListener('click', () => {
           if (index === stepConfigs.length - 1) return;
@@ -785,16 +986,14 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        const remove = document.createElement('button');
-        remove.className = 'w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold';
-        remove.textContent = 'Remove';
+        const remove = createStepActionButton('remove', 'Remove step');
         remove.addEventListener('click', () => {
           stepConfigs.splice(index, 1);
           updateStateStepConfigs();
           renderStepsTable();
         });
 
-        row.append(script, text, word, letters, repeat, stepLink, run, moveUp, moveDown, remove);
+        row.append(script, text, word, letters, repeat, run, moveUp, moveDown, remove);
         stepsTableBody.appendChild(row);
       });
       renderStepRunButtons();
@@ -1345,6 +1544,7 @@ declare(strict_types=1);
         });
         basisItems = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
         scriptsCache = await shared.listScripts();
+        await refreshLessonsCache();
         renderScriptsSelect(scriptsCache);
         if (scriptsSummary) {
           scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
@@ -1389,6 +1589,7 @@ declare(strict_types=1);
         stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(state.steps || []));
         hydrateStepConfigsWithScriptMetadata();
         state = shared.updateState({ steps: stepConfigs });
+        renderCopyLessonSelect();
         const preloadSummary = await preloadReferencedScriptData(stepConfigs);
         await runnerWarmupPromise;
         renderLessonSummary();
@@ -1475,6 +1676,35 @@ declare(strict_types=1);
       }
     });
 
+    refreshLessonsBtn?.addEventListener('click', async () => {
+      try {
+        await refreshLessonsCache();
+        setStatus(`Loaded ${lessonsCache.length} lesson(s).`);
+        appendStatus('Lessons refreshed.', {
+          methodId: getCurrentMethodId(),
+          lessonCount: lessonsCache.length
+        });
+      } catch (err) {
+        setStatus(`Lessons load error: ${err.message}`);
+      }
+    });
+
+    replaceStepsBtn?.addEventListener('click', async () => {
+      try {
+        await copyStepsFromLesson('replace');
+      } catch (err) {
+        setStatus(`Copy steps error: ${err.message}`);
+      }
+    });
+
+    appendStepsBtn?.addEventListener('click', async () => {
+      try {
+        await copyStepsFromLesson('append');
+      } catch (err) {
+        setStatus(`Append steps error: ${err.message}`);
+      }
+    });
+
     scriptsSelect.addEventListener('change', () => {
       renderAddStepAvailability();
     });
@@ -1542,6 +1772,7 @@ declare(strict_types=1);
         stepConfigs = [];
         renderLessonSummary();
         renderStepsTable();
+        renderCopyLessonSelect();
         setStatus('Lesson deleted.', result);
       } catch (err) {
         setStatus(`Delete error: ${err.message}`);

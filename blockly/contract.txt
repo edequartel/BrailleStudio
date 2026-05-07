@@ -1,0 +1,247 @@
+BrailleStudio Blockly Script Contract
+
+Purpose
+- Use this contract when an LLM must generate a BrailleStudio Blockly script JSON for this project.
+- The output must be valid JSON that can be saved through `api/blockly-api/save.php`.
+- The model may receive uploaded project files such as `blockly/index.html`, `blockly/blocks.js`, `blockly/generators.js`, example scripts, lesson payloads, or step-link payloads.
+
+Output format
+- Return one JSON object only.
+- Do not wrap the JSON in Markdown.
+- Do not include explanations before or after the JSON.
+- Do not include comments.
+- Do not include trailing commas.
+
+Top-level JSON wrapper
+- The required wrapper format is:
+
+{
+  "id": "script-id",
+  "title": "Readable title",
+  "blockly": { ...workspace state... },
+  "meta": {
+    "title": "Readable title",
+    "description": "Short description",
+    "instruction": "Optional spoken or written instruction",
+    "prompt": "Optional generation prompt",
+    "status": "draft"
+  },
+  "overwrite": true
+}
+
+Field rules
+- `id`
+  - Required.
+  - Use only letters, digits, `_`, `-`.
+  - Keep it stable and slug-like, for example `spelling-woord`.
+- `title`
+  - Required.
+  - Human-readable script title.
+- `blockly`
+  - Required.
+  - Must be a valid Blockly workspace state object.
+- `meta`
+  - Required.
+  - Must be an object.
+  - `title` should usually match the top-level `title`.
+  - `status` should normally be `draft` unless the user explicitly asks for another status.
+- `overwrite`
+  - Optional in storage, but include it in generated output.
+  - Use `true` unless the user explicitly wants a non-overwriting create flow.
+
+Blockly workspace format
+- The `blockly` field must use Blockly JSON workspace state.
+- Use this outer shape:
+
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      { ...top-level block 1... },
+      { ...top-level block 2... }
+    ]
+  },
+  "variables": [
+    { "name": "myVar", "id": "myVar" }
+  ]
+}
+
+Workspace rules
+- Top-level executable flows usually begin with an event block such as:
+  - `event_when_started`
+  - `event_when_thumb_key`
+  - `event_when_any_thumb_key`
+  - `event_when_program_ended`
+  - `event_when_timer`
+- Connect sequential logic using `next`.
+- Put child statement stacks under `inputs.DO.block`, `inputs.STACK.block`, or the specific input name required by the block.
+- Put value inputs under `inputs.<NAME>.block` or `inputs.<NAME>.shadow`.
+- Use `shadow` for default primitive values where appropriate, especially:
+  - `text`
+  - `math_number`
+
+Allowed block types
+- Only use block types that exist in the uploaded project files.
+- Primary source of truth:
+  - `blockly/blocks.js`
+  - `blockly/index.html` toolbox
+- Do not invent block types.
+- Do not invent field names.
+- Do not invent input names.
+
+Important project conventions
+
+1. Lesson data order
+- If a script reads lesson fields such as `lesson_get_active_field`, set the active lesson record first.
+- Correct order:
+  1. `lesson_set_active_record_index`
+  2. `bb_set_text` or other lesson field reads
+  3. remaining audio or interaction logic
+- Avoid reading `lesson_get_active_field` before the active record is set.
+
+2. Step-link aware scripts
+- If a script is intended to run from step-links or lessonbuilder steps, prefer these inputs:
+  - `lesson_get_step_input` with field values such as `text`, `word`, `letters`
+  - `lesson_get_step_repeat`
+- Use these when the runtime data is expected to come from `stepInputs`.
+
+3. Thumb events
+- Supported thumb values include:
+  - `left`
+  - `left-middle`
+  - `right-middle`
+  - `right`
+  - legacy values like `up` and `down` may still exist in the runtime
+- If you generate `event_when_thumb_key`, use exact field values that exist in the project dropdown.
+
+4. Completion behavior
+- If the script should explicitly mark lesson progress, use:
+  - `lesson_complete_step`
+  - `lesson_complete_lesson`
+- If the script is intended to keep listening for input, use event-based top-level blocks rather than a single finite `event_when_started` chain that immediately ends.
+
+5. Audio behavior
+- Prefer project-native sound blocks over raw URLs when possible:
+  - `sound_play_folder_file`
+  - `sound_play_sounds_relative`
+  - `sound_play_ux_file`
+  - `sound_play_instruction_by_id`
+  - `klanken_play_word_phonemes_nl`
+- Use `sound_wait_stopped` only if explicit sequencing is needed and the block exists in the uploaded files.
+
+6. Braille output
+- Use `bb_set_text` to place text on the braille line.
+- Use `bb_append_text` only when incremental concatenation is intentional.
+- If the script should show a word from lesson data, prefer:
+  - `lesson_set_active_record_index`
+  - then `bb_set_text` with `lesson_get_active_field` or `lesson_get_active_word`
+
+7. Variables
+- Declare variables in the top-level `variables` array if any block refers to them.
+- Ensure variable ids and names are consistent with the blocks that reference them.
+
+Generation rules
+- Prefer simple, readable block structures over deeply nested or over-engineered flows.
+- If a user provides uploaded reference scripts, mirror their structure and naming style.
+- Reuse exact ids, field names, and input names only when they are valid for the intended block type.
+- Blockly block ids may be arbitrary unique strings.
+- If no specific id format is requested for blocks, generate unique string ids.
+
+What the model must not do
+- Do not return plain JavaScript instead of Blockly JSON.
+- Do not return XML.
+- Do not output only the `blockly` field without the required wrapper.
+- Do not invent project APIs or hidden runtime functions.
+- Do not assume unsupported assets or sound files exist unless provided in uploaded files or explicitly specified by the user.
+- Do not silently swap semantics, for example:
+  - replacing thumb events with chord events
+  - replacing lesson field reads with hardcoded text unless requested
+
+Preferred workflow for the LLM
+1. Read uploaded toolbox or `blocks.js` to identify valid block types.
+2. Read uploaded example scripts to copy the correct JSON structure.
+3. Determine whether the script is:
+   - standalone
+   - lesson-data driven
+   - step-link driven
+   - event-driven
+4. Build the `blockly` workspace state.
+5. Wrap it in the save API payload shape.
+6. Return only the final JSON object.
+
+Minimal example
+{
+  "id": "example-word",
+  "title": "Example word",
+  "blockly": {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [
+        {
+          "type": "event_when_started",
+          "id": "start-1",
+          "x": 40,
+          "y": 40,
+          "inputs": {
+            "DO": {
+              "block": {
+                "type": "lesson_set_active_record_index",
+                "id": "set-index-1",
+                "inputs": {
+                  "INDEX": {
+                    "shadow": {
+                      "type": "math_number",
+                      "id": "num-1",
+                      "fields": {
+                        "NUM": 0
+                      }
+                    }
+                  }
+                },
+                "next": {
+                  "block": {
+                    "type": "bb_set_text",
+                    "id": "set-text-1",
+                    "inputs": {
+                      "TEXT": {
+                        "block": {
+                          "type": "lesson_get_active_field",
+                          "id": "field-1",
+                          "fields": {
+                            "FIELD": "word"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "variables": []
+  },
+  "meta": {
+    "title": "Example word",
+    "description": "Shows the active lesson word on the braille line.",
+    "instruction": "",
+    "prompt": "",
+    "status": "draft"
+  },
+  "overwrite": true
+}
+
+Validation checklist
+- Top-level JSON object only
+- Has `id`
+- Has `title`
+- Has `blockly`
+- Has `meta`
+- Uses only valid block types from project files
+- Uses valid input and field names for each block
+- Uses `lesson_set_active_record_index` before lesson field reads when needed
+- Uses step input blocks for step-link driven scripts when appropriate
+- No comments
+- No Markdown fences
