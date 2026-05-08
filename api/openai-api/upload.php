@@ -7,7 +7,7 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 | Put your API key here
 */
-$OPENAI_API_KEY = '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';
+$OPENAI_API_KEY = 'myAPIKEY';
 
 
 /*
