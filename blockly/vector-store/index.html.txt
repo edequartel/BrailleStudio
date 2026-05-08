@@ -990,6 +990,7 @@
         <button id="newBtn" class="btn" type="button">New</button>
         <button id="copyJsonBtn" class="btn" type="button">Export</button>
         <button id="importJsonBtn" class="btn" type="button">Import</button>
+        <a id="openAiBlocklyJsonBtn" class="btn" href="https://www.tastenbraille.com/braillestudio/openai-api/ask-thread.php" target="_blank" rel="noopener noreferrer">AI JSON</a>
         <button id="onlineSaveBtn" class="btn" type="button">Save</button>
         <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
         <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>

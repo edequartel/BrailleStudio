@@ -1,0 +1,272 @@
+{
+    "id": "Story",
+    "title": "Een verhaal",
+    "updatedAt": "2026-04-17T10:38:06+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": ",]Otmuo~wB;-pDP?*BF@",
+                    "x": 48,
+                    "y": 40,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "lesson_set_active_record_index",
+                                "id": "Tda?=-%U0Q2fCGm,Hh6=",
+                                "inputs": {
+                                    "INDEX": {
+                                        "shadow": {
+                                            "type": "math_number",
+                                            "id": "vdh/$`f}hyOIbA%R^Oej",
+                                            "fields": {
+                                                "NUM": 0
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "bb_set_text",
+                                        "id": "k~]!#e7l1gWqI,pevtP_",
+                                        "inputs": {
+                                            "TEXT": {
+                                                "shadow": {
+                                                    "type": "text",
+                                                    "id": "tffI,/Xxa8v)oJ*k@uG,",
+                                                    "fields": {
+                                                        "TEXT": "bal"
+                                                    }
+                                                },
+                                                "block": {
+                                                    "type": "lesson_get_active_field",
+                                                    "id": "%juCXIB^u$AZ}o{k/T{/",
+                                                    "fields": {
+                                                        "FIELD": "word"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "procedures_callnoreturn",
+                                                "id": "c`k}aq6/_Z%*;%ShPC!Y",
+                                                "extraState": {
+                                                    "name": "play instruction"
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "sound_play_folder_file",
+                                                        "id": ")2?vJ#Rrvl.SA7Z+*TD~",
+                                                        "fields": {
+                                                            "FOLDER": "story"
+                                                        },
+                                                        "inputs": {
+                                                            "FILE": {
+                                                                "shadow": {
+                                                                    "type": "text",
+                                                                    "id": "%1)sgcOH%%U=Ah~Q4#Ef",
+                                                                    "fields": {
+                                                                        "TEXT": "bal"
+                                                                    }
+                                                                },
+                                                                "block": {
+                                                                    "type": "lesson_get_active_field",
+                                                                    "id": "+g9Dw,qG4e{x057_zf8O",
+                                                                    "fields": {
+                                                                        "FIELD": "word"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "sound_play_ux_file",
+                                                                "id": "d4|!,CO5p])lgn-ywST|",
+                                                                "inputs": {
+                                                                    "FILE": {
+                                                                        "shadow": {
+                                                                            "type": "text",
+                                                                            "id": "/l+~[V|CUTe!_(|WUL9z",
+                                                                            "fields": {
+                                                                                "TEXT": "bounce"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "procedures_defnoreturn",
+                    "id": "v;VZbYD`L8ze^nv}lIr]",
+                    "x": 840,
+                    "y": 40,
+                    "icons": {
+                        "comment": {
+                            "text": "Describe this function...",
+                            "pinned": false,
+                            "height": 80,
+                            "width": 160
+                        }
+                    },
+                    "fields": {
+                        "NAME": "play instruction"
+                    },
+                    "inputs": {
+                        "STACK": {
+                            "block": {
+                                "type": "sound_play_sounds_relative",
+                                "id": "q/A8d~u8k+/F,;`LvY8u",
+                                "inputs": {
+                                    "PATH": {
+                                        "block": {
+                                            "type": "text",
+                                            "id": "]tR@)qGZmrsuU,9*H3o!",
+                                            "fields": {
+                                                "TEXT": "../nl/instructions/Story-001.mp3"
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "sound_play_folder_file",
+                                        "id": "*A3xxYkC!5JaMJGt%C4*",
+                                        "fields": {
+                                            "FOLDER": "speech"
+                                        },
+                                        "inputs": {
+                                            "FILE": {
+                                                "shadow": {
+                                                    "type": "text",
+                                                    "id": "?joo!nA-w4ieIi[=yg2b",
+                                                    "fields": {
+                                                        "TEXT": "bal"
+                                                    }
+                                                },
+                                                "block": {
+                                                    "type": "lesson_get_active_field",
+                                                    "id": "X?^im%_d|JV!W@lS(,l-",
+                                                    "fields": {
+                                                        "FIELD": "word"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "sound_play_sounds_relative",
+                                                "id": "{2`6z%]*v`;7)B2_LP?:",
+                                                "inputs": {
+                                                    "PATH": {
+                                                        "block": {
+                                                            "type": "text",
+                                                            "id": "Q,=9upeeVwu1JQSj(;,1",
+                                                            "fields": {
+                                                                "TEXT": "../nl/instructions/Story-002.mp3"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "klanken_play_word_phonemes_nl",
+                                                        "id": ")ob3ad(l~ad5(i0_=D3r",
+                                                        "inputs": {
+                                                            "WORD": {
+                                                                "shadow": {
+                                                                    "type": "text",
+                                                                    "id": "|q{y#,TUSWyFWqsIA0hr",
+                                                                    "fields": {
+                                                                        "TEXT": "bal"
+                                                                    }
+                                                                },
+                                                                "block": {
+                                                                    "type": "lesson_get_active_field",
+                                                                    "id": "Z,)ko0ShnR~U.`j.a7FF",
+                                                                    "fields": {
+                                                                        "FIELD": "word"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "sound_play_sounds_relative",
+                                                                "id": "MCl4h+`JA[yNWa*j+8NF",
+                                                                "inputs": {
+                                                                    "PATH": {
+                                                                        "block": {
+                                                                            "type": "text",
+                                                                            "id": "{;wD,aMgl+1-_HlKmG76",
+                                                                            "fields": {
+                                                                                "TEXT": "../nl/instructions/Story-003.mp3"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "words",
+                "id": "words"
+            },
+            {
+                "name": "index",
+                "id": "index"
+            },
+            {
+                "name": "currentWord",
+                "id": "currentWord"
+            },
+            {
+                "name": "score",
+                "id": "62~hiO~uaclaF]2O@E=K"
+            },
+            {
+                "name": "isPaused",
+                "id": "isPaused"
+            },
+            {
+                "name": "count",
+                "id": "AL8,;ex]d_owmPp#=J=#"
+            },
+            {
+                "name": "item",
+                "id": "e4^5@5k[L~;NlQg3qX6Y"
+            }
+        ]
+    },
+    "meta": {
+        "title": "Een verhaal",
+        "description": "Speelt het verhaal af dat bij het woord hoort af.\nOp de leesregel komt het verhaal te staan.",
+        "instruction": "haha [lach] je hoort een verhaal over een woord.\nDit spel je met de volgende letters:\nVeel plezier.",
+        "prompt": "",
+        "status": "in review"
+    }
+}

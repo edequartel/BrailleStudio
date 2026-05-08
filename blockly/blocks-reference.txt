@@ -1,0 +1,223 @@
+BrailleStudio Blockly reference
+
+Purpose
+- This file is a compact, LLM-friendly reference for generating valid Blockly workspace JSON for BrailleStudio.
+- It complements contract.txt.
+- Use this file as context. The real source of truth remains blockly/blocks.js and server-side validation.
+
+Workspace shape
+- Generate importable Blockly workspace JSON only.
+- Expected top-level shape:
+  {
+    "blocks": {
+      "languageVersion": 0,
+      "blocks": [ ... ]
+    },
+    "variables": [ ... ]
+  }
+
+Core structure rules
+- Event blocks are top-level blocks.
+- Event blocks do not use "next".
+- Event blocks put their body in inputs.DO.block.
+- Statement blocks can be chained with next.block.
+- Output/value blocks do not use next or previous.
+- Output/value blocks are used inside inputs of other blocks.
+- Do not output block definition JSON with message0, previousStatement, nextStatement, args0, or colour.
+- Do not invent block types.
+
+Thumb values
+- event_when_thumb_key supports:
+  - left
+  - left-middle
+  - right-middle
+  - right
+  - up
+  - down
+
+Important event blocks
+- event_when_started
+- event_when_program_ended
+- event_when_timer
+- event_when_thumb_key
+- event_when_any_thumb_key
+- event_when_cursor_routing
+- event_when_cursor_position_changed
+- event_when_chord
+- event_when_editor_key
+- event_when_key_name
+
+Important statement/action blocks
+- bb_set_text
+- bb_append_text
+- bb_send_key
+- bb_move_caret
+- bb_set_caret
+- bb_set_caret_from_cell
+- bb_cursor_routing
+- bb_set_editor_mode
+- bb_set_insert_mode
+- bb_set_caret_visibility
+- bb_get_braille_line
+- bb_set_caret_to_begin
+- bb_set_caret_to_end
+- bb_wait
+- bb_wait_ms
+- controls_while_do
+- controls_do_while
+- math_inc_var
+- math_dec_var
+- math_inc_nrof
+- control_wait_until_nrof
+- log_value
+- log_variable
+- log_clear
+- sound_play_folder_file
+- sound_play_speech_file
+- sound_play_letters_file
+- sound_play_instructions_file
+- sound_play_instruction_by_id
+- sound_play_instruction_by_id_with_phoneme
+- sound_play_feedback_file
+- sound_play_story_file
+- sound_play_general_file
+- sound_play_ux_file
+- sound_play_ux_success
+- sound_play_ux_failure
+- sound_play_url
+- sound_play_sounds_relative
+- sound_pause
+- sound_resume
+- sound_stop
+- sound_wait_stopped
+- sound_set_volume
+- list_set_item
+- list_add_item
+- list_remove_item
+- list_for_each_item
+- lesson_set_active_record_index
+- lesson_complete_step
+- lesson_complete_lesson
+- klanken_play_word_sounds
+- klanken_play_word_sounds_with_pause
+- klanken_play_word_phonemes_nl
+- klanken_play_word_phonemes_nl_with_pause
+- timer_start
+- timer_stop
+- timer_stop_all
+
+Important output/value blocks
+- bb_current_text
+- bb_current_braille_unicode
+- bb_letter_under_cursor
+- bb_word_under_cursor
+- math_random_10
+- instruction_get_info_by_id
+- list_make
+- list_empty
+- list_get_item
+- list_length
+- list_nrof_items
+- list_random_item
+- list_pick_random
+- list_next_item
+- list_contains_item
+- list_from_json
+- list_from_text_items
+- list_filter_text_length
+- list_filter_phoneme_category
+- list_filter_phoneme_categories
+- list_shuffle
+- list_sort
+- list_sort_by_length
+- list_random_other_item
+- audio_item_get_word
+- audio_item_get_url
+- klanken_get_aanvankelijklijst
+- lesson_get_data
+- lesson_get_record_count
+- lesson_get_active_record
+- lesson_get_active_record_index
+- lesson_get_active_word
+- lesson_get_active_field
+- lesson_get_active_sounds
+- lesson_get_active_sound_count
+- lesson_get_active_category
+- lesson_get_active_category_count
+- lesson_get_step_input
+- lesson_get_step_repeat
+- klanken_get_speech_audio_by_onlyletters
+- audio_get_speech_audio_by_letters_klanken
+- audio_get_speech_audio_by_onlyletters_klanken_length
+- audio_get_speech_audio_by_onlyletters_length
+- text_join_csv
+- text_concat
+- logic_random_boolean
+- text_from_list
+- text_contains
+- text_first_letter
+- text_last_letter
+- text_lowercase
+- text_uppercase
+- klanken_word_get_sounds
+- klanken_word_get_new_sounds
+- klanken_word_get_known_sounds
+- klanken_split_word_phonemes_nl
+- klanken_split_text_phonemes_nl
+- klanken_item_get_word
+- klanken_item_get_sounds
+- klanken_item_get_category
+- state_text_caret
+- state_cell_caret
+- state_last_thumb_key
+- state_last_cursor_cell
+- state_last_chord
+- state_last_editor_key
+- state_editor_mode
+- state_insert_mode
+- state_last_timer_name
+- state_last_timer_tick
+- state_last_sound
+
+Lesson and step rules
+- If a script uses lesson_get_active_field or lesson_get_active_word, set the active lesson record first with lesson_set_active_record_index.
+- In step-link flows, prefer lesson_get_step_input and lesson_get_step_repeat when the script depends on external step input.
+- A common safe order is:
+  1. lesson_set_active_record_index
+  2. bb_set_text / other output
+  3. sound or lesson logic
+
+Common invalid patterns
+- Invalid: event_when_key_pressed
+- Invalid: event_when_right_thumb_pressed
+- Invalid: top-level event block with next
+- Invalid: text_join in a statement chain
+- Invalid: klanken_word_get_sounds as a top-level statement
+- Invalid: one loose block object instead of a workspace object
+
+Minimal valid example
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "event_when_thumb_key",
+        "id": "thumb-right-1",
+        "x": 40,
+        "y": 40,
+        "fields": {
+          "KEY": "right"
+        },
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "sound_play_ux_success",
+              "id": "ux-success-1"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": []
+}
