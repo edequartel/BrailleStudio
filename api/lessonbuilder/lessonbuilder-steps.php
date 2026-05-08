@@ -128,13 +128,17 @@ declare(strict_types=1);
         <h1 class="text-3xl font-bold">Lesson steps bouwen</h1>
       </div>
       <div class="ml-auto flex shrink-0 gap-2">
+        <button id="authBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Authentication</button>
         <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Vorige stap</a>
       </div>
     </div>
 
     <div class="grid gap-5">
       <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="text-lg font-bold">Lesson</div>
+        <div>
+          <div class="text-lg font-bold">Braille monitor</div>
+          <div class="text-sm text-slate-500">Monitor en thumb-input voor de actieve lesson.</div>
+        </div>
         <div id="brailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
           <div id="brailleMonitorComponent"></div>
         </div>
@@ -147,64 +151,89 @@ declare(strict_types=1);
           <button id="simChord1Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right middle thumb</button>
           <button id="simThumbRightBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right thumb</button>
         </div>
-        <div id="lessonSummary" class="lesson-content-safe rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 break-words"></div>
-        <div class="grid gap-3 md:grid-cols-2">
-          <input id="lessonIdInput" type="hidden">
+      </section>
+
+      <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonTitleInput">Lesson title</label>
-            <input id="lessonTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text">
+            <div class="text-lg font-bold">Les informatie</div>
+            <div class="text-sm text-slate-500">De lesson zelf: titel, woord, beschrijving en run/save acties.</div>
           </div>
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonWordInput">Word</label>
-            <input id="lessonWordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 bg-slate-50" type="text" readonly>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonDescriptionInput">Description</label>
-          <textarea id="lessonDescriptionInput" class="min-h-[92px] w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Lesson description"></textarea>
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-          <button id="saveLessonBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
-          <button id="deleteLessonBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete</button>
-          <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run</button>
-        </div>
-
-        <section>
-          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-            <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"></select>
-            <button id="refreshScriptsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh</button>
-            <button id="addStepBtn" class="h-10 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white md:w-auto">Add</button>
-          </div>
-        </section>
-
-        <section>
-          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center">
-            <select id="copyLessonSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-              <option value="">Select lesson to copy from</option>
-            </select>
-            <button id="refreshLessonsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh lessons</button>
-            <button id="replaceStepsBtn" class="h-10 w-full rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 md:w-auto">Replace steps</button>
-            <button id="appendStepsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Append steps</button>
-          </div>
-        </section>
-
-        <div>
-          <div class="mb-2 text-sm font-semibold text-slate-700">Steps</div>
-          <div class="rounded-xl border border-slate-200 overflow-x-auto overflow-y-hidden">
-            <div class="steps-grid grid w-full gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-              <div class="min-w-0 pr-2 text-left">Step</div>
-              <div class="min-w-0 text-left">Text</div>
-              <div class="min-w-0 text-left">Word</div>
-              <div class="min-w-0 text-left">Letters</div>
-              <div class="min-w-0 text-left">Repeat</div>
-              <div class="text-center"></div>
-              <div class="text-center"></div>
-              <div class="text-center"></div>
-              <div class="text-center"></div>
+          <div id="lessonSummary" class="lesson-content-safe rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 break-words"></div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <input id="lessonIdInput" type="hidden">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonTitleInput">Lesson title</label>
+              <input id="lessonTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text">
             </div>
-            <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonWordInput">Word</label>
+              <input id="lessonWordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 bg-slate-50" type="text" readonly>
+            </div>
           </div>
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonDescriptionInput">Description</label>
+            <textarea id="lessonDescriptionInput" class="min-h-[92px] w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Lesson description"></textarea>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="saveLessonBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
+            <button id="deleteLessonBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete</button>
+            <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run</button>
+          </div>
+          <div id="lessonActionHint" class="text-xs text-slate-500">Use Save to store this lesson, Delete to remove it, and Run to test the current steps.</div>
+        </section>
+
+        <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          <div>
+            <div class="text-lg font-bold">Blockly informatie</div>
+            <div class="text-sm text-slate-500">Scripts kiezen, Blockly-data verversen en steps importeren uit een andere lesson.</div>
+          </div>
+          <section class="space-y-2">
+            <div class="text-sm font-semibold text-slate-700">Beschikbare Blockly scripts</div>
+            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+              <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"></select>
+              <button id="refreshScriptsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh</button>
+              <button id="addStepBtn" class="h-10 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white md:w-auto">Add</button>
+            </div>
+            <div id="scriptsSummary" class="text-xs text-slate-500"></div>
+            <div id="scriptMetaPreview" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              Select a Blockly script to see its metadata.
+            </div>
+          </section>
+
+          <section class="space-y-2">
+            <div class="text-sm font-semibold text-slate-700">Steps kopiëren uit andere lesson</div>
+            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center">
+              <select id="copyLessonSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                <option value="">Select lesson to copy from</option>
+              </select>
+              <button id="refreshLessonsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh lessons</button>
+              <button id="replaceStepsBtn" class="h-10 w-full rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 md:w-auto">Replace steps</button>
+              <button id="appendStepsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Append steps</button>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+        <div>
+          <div class="text-lg font-bold">Steps</div>
+          <div class="text-sm text-slate-500">Een step is een Blockly-script met extra variabele lesson-informatie zoals text, word, letters en repeat.</div>
+        </div>
+        <div class="rounded-xl border border-slate-200 overflow-x-auto overflow-y-hidden">
+          <div class="steps-grid grid w-full gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+            <div class="min-w-0 pr-2 text-left">Step</div>
+            <div class="min-w-0 text-left">Text</div>
+            <div class="min-w-0 text-left">Word</div>
+            <div class="min-w-0 text-left">Letters</div>
+            <div class="min-w-0 text-left">Repeat</div>
+            <div class="text-center"></div>
+            <div class="text-center"></div>
+            <div class="text-center"></div>
+            <div class="text-center"></div>
+          </div>
+          <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
         </div>
       </section>
 
@@ -239,6 +268,7 @@ declare(strict_types=1);
     const stepsTableBody = document.getElementById('stepsTableBody');
     const scriptsSelect = document.getElementById('scriptsSelect');
     const copyLessonSelect = document.getElementById('copyLessonSelect');
+    const scriptMetaPreview = document.getElementById('scriptMetaPreview');
     const addStepBtn = document.getElementById('addStepBtn');
     const refreshLessonsBtn = document.getElementById('refreshLessonsBtn');
     const replaceStepsBtn = document.getElementById('replaceStepsBtn');
@@ -252,6 +282,7 @@ declare(strict_types=1);
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
     const deleteLessonBtn = document.getElementById('deleteLessonBtn');
+    const lessonActionHint = document.getElementById('lessonActionHint');
     const brailleMonitorRow = document.getElementById('brailleMonitorRow');
     const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
     const simThumbLeftBtn = document.getElementById('simThumbLeftBtn');
@@ -346,6 +377,11 @@ declare(strict_types=1);
           ? 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white'
           : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
         deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
+      }
+      if (lessonActionHint) {
+        lessonActionHint.textContent = authenticated
+          ? 'Use Save to store this lesson, Delete to remove it, and Run to test the current steps.'
+          : 'Authenticate first to enable Save and Delete. Run does not require authentication.';
       }
     }
 
@@ -586,6 +622,7 @@ declare(strict_types=1);
         scriptsSelect.value = '';
       }
       renderAddStepAvailability();
+      renderSelectedScriptMeta();
     }
 
     function renderAddStepAvailability() {
@@ -602,6 +639,76 @@ declare(strict_types=1);
     function getScriptItemById(id) {
       const scriptId = String(id || '').trim();
       return scriptsCache.find((item) => String(item?.id || '').trim() === scriptId) || null;
+    }
+
+    function formatDateTime(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '-';
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) {
+        return raw;
+      }
+      return new Intl.DateTimeFormat('nl-NL', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date);
+    }
+
+    function renderSelectedScriptMeta(data = null) {
+      if (!scriptMetaPreview) return;
+      const selectedId = String(scriptsSelect?.value || '').trim();
+      if (!selectedId) {
+        scriptMetaPreview.innerHTML = 'Select a Blockly script to see its metadata.';
+        return;
+      }
+
+      const item = data || getScriptItemById(selectedId) || {};
+      const meta = item?.meta && typeof item.meta === 'object' ? item.meta : {};
+      const title = String(meta.title || item.title || item.id || selectedId).trim();
+      const description = String(meta.description || item.description || '').trim();
+      const instruction = String(meta.instruction || '').trim();
+      const prompt = String(meta.prompt || '').trim();
+      const status = String(meta.status || '').trim();
+      const updatedAt = String(item.updatedAt || '').trim();
+
+      scriptMetaPreview.innerHTML = `
+        <div class="grid gap-3">
+          <div>
+            <div class="font-semibold text-slate-900">${title || selectedId}</div>
+            <div class="mt-1 text-xs text-slate-500">${selectedId}</div>
+          </div>
+          <div class="grid gap-2 md:grid-cols-2">
+            <div><strong>Status:</strong> ${status || '-'}</div>
+            <div><strong>Updated:</strong> ${formatDateTime(updatedAt)}</div>
+          </div>
+          <div><strong>Description:</strong> ${description || '-'}</div>
+          <div><strong>Instruction:</strong> ${instruction || '-'}</div>
+          <div><strong>Prompt:</strong> ${prompt || '-'}</div>
+        </div>
+      `;
+    }
+
+    async function refreshSelectedScriptMeta() {
+      const selectedId = String(scriptsSelect?.value || '').trim();
+      if (!selectedId) {
+        renderSelectedScriptMeta();
+        return;
+      }
+
+      renderSelectedScriptMeta();
+      try {
+        const fullData = await loadScriptData(selectedId);
+        renderSelectedScriptMeta(fullData);
+      } catch (err) {
+        appendStatus('Script metadata preview fallback used.', {
+          scriptId: selectedId,
+          error: err.message || String(err)
+        });
+      }
     }
 
     async function loadScriptData(id) {
@@ -1591,6 +1698,7 @@ declare(strict_types=1);
         state = shared.updateState({ steps: stepConfigs });
         renderCopyLessonSelect();
         const preloadSummary = await preloadReferencedScriptData(stepConfigs);
+        await refreshSelectedScriptMeta();
         await runnerWarmupPromise;
         renderLessonSummary();
         renderStepsTable();
@@ -1671,9 +1779,15 @@ declare(strict_types=1);
         renderStepsTable();
         setStatus(`Loaded ${scriptsCache.length} script(s).`);
         appendStatus('Scripts refreshed.', preloadSummary);
+        await refreshSelectedScriptMeta();
       } catch (err) {
         setStatus(`Scripts load error: ${err.message}`);
       }
+    });
+
+    scriptsSelect?.addEventListener('change', async () => {
+      renderAddStepAvailability();
+      await refreshSelectedScriptMeta();
     });
 
     refreshLessonsBtn?.addEventListener('click', async () => {

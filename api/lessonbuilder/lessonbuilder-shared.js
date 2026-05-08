@@ -18,6 +18,14 @@
   const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
   const HOMEPAGE_ORIGIN = 'https://www.tastenbraille.com';
   const basisDataCache = new Map();
+  const EMPTY_SOUND_CATEGORY_KEYS = [
+    'korteKlinkers',
+    'langeKlinkers',
+    'tweetekenklanken',
+    'medeklinkers',
+    'medeklinkerclusters',
+    'drietekenklanken'
+  ];
 
   function getAuthToken() {
     for (const key of AUTH_TOKEN_KEYS) {
@@ -314,6 +322,26 @@
     throw new Error(`Basisbestand laden mislukt (${fileName}): ${lastError?.message || 'unknown error'}`);
   }
 
+  function clearBasisDataCache(dataSource = '') {
+    const source = String(dataSource || '').trim();
+    if (!source) {
+      basisDataCache.clear();
+      return;
+    }
+    basisDataCache.delete(source);
+  }
+
+  async function saveBasisData(fileName, items) {
+    return apiFetchJson('/save_basis_file.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName,
+        items
+      })
+    }, 'method');
+  }
+
   function normalizeLetters(value) {
     if (Array.isArray(value)) {
       return value.map((item) => String(item ?? '').trim()).filter(Boolean);
@@ -368,6 +396,25 @@
     return `les - ${getBasisWord(basisItem, basisIndex)}`;
   }
 
+  function createEmptySoundCategories() {
+    return EMPTY_SOUND_CATEGORY_KEYS.reduce((acc, key) => {
+      acc[key] = [];
+      return acc;
+    }, {});
+  }
+
+  function createEmptyBasisRecord() {
+    return {
+      word: '',
+      sounds: [],
+      newSounds: [],
+      knownSounds: [],
+      categories: createEmptySoundCategories(),
+      newSoundCategories: createEmptySoundCategories(),
+      knownSoundCategories: createEmptySoundCategories(),
+    };
+  }
+
   function getLessonsForBasis(lessons, basisIndex) {
     return (Array.isArray(lessons) ? lessons : [])
       .filter((item) => Number(item?.basisIndex ?? -1) === Number(basisIndex))
@@ -414,6 +461,8 @@
     listScripts,
     loadScript,
     loadBasisData,
+    clearBasisDataCache,
+    saveBasisData,
     resolveBasisFileUrl,
     resolveMethodDataSource,
     normalizeInputs,
@@ -423,6 +472,8 @@
     buildLessonTitleFromBasis,
     getLessonsForBasis,
     getNextLessonNumber,
-    getDraftMethodMeta
+    getDraftMethodMeta,
+    createEmptyBasisRecord,
+    createEmptySoundCategories
   };
 })();

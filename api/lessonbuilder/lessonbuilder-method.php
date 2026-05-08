@@ -9,6 +9,17 @@ declare(strict_types=1);
   <title>Lesson Builder - Methode</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="./lessonbuilder-shared.js?v=20260407-2"></script>
+  <style>
+    .press-feedback {
+      transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, border-color 120ms ease;
+    }
+
+    .press-feedback:active {
+      transform: translateY(1px) scale(0.985);
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.18);
+      filter: brightness(0.96);
+    }
+  </style>
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="max-w-6xl mx-auto p-6 space-y-5">
@@ -18,8 +29,8 @@ declare(strict_types=1);
         <h1 class="text-3xl font-bold">Methode</h1>
       </div>
       <div class="flex gap-2">
-        <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder.php">Overzicht</a>
-        <a class="rounded-xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Volgende stap</a>
+        <a class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder.php">Overzicht</a>
+        <a class="press-feedback rounded-xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Volgende stap</a>
       </div>
     </div>
 
@@ -27,7 +38,7 @@ declare(strict_types=1);
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
         <div>
           <div class="text-lg font-bold">Methode</div>
-          <p class="text-sm text-slate-600">Kies een bestaande methode of maak een nieuwe. Selecteer daarna het basisbestand waar de basisrecords uit komen.</p>
+          <p class="text-sm text-slate-600">Kies een bestaande methode of maak een nieuwe. Een basisbestand is optioneel.</p>
         </div>
 
         <div class="grid gap-6 md:grid-cols-[minmax(0,420px)_auto]">
@@ -35,8 +46,9 @@ declare(strict_types=1);
             <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodsSelect">Method list</label>
             <select id="methodsSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
           </div>
-          <div class="flex items-end justify-end">
-            <a id="openRunmethodLink" class="inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Link</a>
+          <div class="flex items-end justify-end gap-2">
+            <a id="openRunmethodLink" class="press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Link</a>
+            <button id="copyRunmethodLinkBtn" type="button" class="press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400" disabled>Copy link</button>
           </div>
           <input id="methodIdInput" type="hidden">
         </div>
@@ -72,11 +84,11 @@ declare(strict_types=1);
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button id="newMethodBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">New method</button>
-          <button id="saveMethodBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save method</button>
-          <button id="saveAsNewMethodBtn" class="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Save as new</button>
-          <button id="deleteMethodBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete method</button>
-          <button id="refreshMethodsBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh methods</button>
+          <button id="newMethodBtn" class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">New method</button>
+          <button id="saveMethodBtn" class="press-feedback rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save method</button>
+          <button id="saveAsNewMethodBtn" class="press-feedback rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Save as new</button>
+          <button id="deleteMethodBtn" class="press-feedback rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete method</button>
+          <button id="refreshMethodsBtn" class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh methods</button>
         </div>
       </section>
     </div>
@@ -84,7 +96,7 @@ declare(strict_types=1);
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
       <div class="flex items-center justify-between gap-3">
         <div class="text-lg font-bold">Debug log</div>
-        <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+        <button id="toggleDebugLogBtn" type="button" class="press-feedback rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
       </div>
       <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
     </section>
@@ -102,6 +114,7 @@ declare(strict_types=1);
     const methodImageUrlInput = document.getElementById('methodImageUrlInput');
     const methodImagePreview = document.getElementById('methodImagePreview');
     const openRunmethodLink = document.getElementById('openRunmethodLink');
+    const copyRunmethodLinkBtn = document.getElementById('copyRunmethodLinkBtn');
     const statusBox = document.getElementById('statusBox');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const newMethodBtn = document.getElementById('newMethodBtn');
@@ -188,12 +201,20 @@ declare(strict_types=1);
       if (!methodId) {
         openRunmethodLink.href = '#';
         openRunmethodLink.setAttribute('aria-disabled', 'true');
-        openRunmethodLink.className = 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none';
+        openRunmethodLink.className = 'press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none';
+        if (copyRunmethodLinkBtn) {
+          copyRunmethodLinkBtn.disabled = true;
+          copyRunmethodLinkBtn.className = 'press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400';
+        }
         return;
       }
       openRunmethodLink.href = `https://www.tastenbraille.com/braillestudio/runmethod.php?id=${encodeURIComponent(methodId)}`;
       openRunmethodLink.setAttribute('aria-disabled', 'false');
-      openRunmethodLink.className = 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+      openRunmethodLink.className = 'press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+      if (copyRunmethodLinkBtn) {
+        copyRunmethodLinkBtn.disabled = false;
+        copyRunmethodLinkBtn.className = 'press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+      }
     }
 
     function resetMethodForm() {
@@ -205,10 +226,8 @@ declare(strict_types=1);
       methodImageUrlInput.value = '';
       renderMethodImagePreview();
       renderRunmethodLink();
-      renderBasisFileOptions(basisFileOptions[0]?.name || 'aanvankelijklijst.json');
-      methodDataSourceInput.value = methodBasisFileSelect.value
-        ? shared.resolveBasisFileUrl(methodBasisFileSelect.value)
-        : shared.DEFAULT_BASIS_DATA_URL;
+      renderBasisFileOptions('');
+      methodDataSourceInput.value = '';
       shared.updateState({
         methodId: '',
         methodTitle: '',
@@ -216,7 +235,7 @@ declare(strict_types=1);
         methodImageUrl: '',
         methodBasisFile: methodBasisFileSelect.value || '',
         methodDataSource: methodDataSourceInput.value,
-        basisIndex: 0
+        basisIndex: -1
       });
     }
 
@@ -246,7 +265,7 @@ declare(strict_types=1);
         option.textContent = item.label;
         methodBasisFileSelect.appendChild(option);
       });
-      methodBasisFileSelect.value = selected || basisFileOptions[0]?.name || '';
+      methodBasisFileSelect.value = selected || '';
     }
 
     function getDraftMethod() {
@@ -255,25 +274,38 @@ declare(strict_types=1);
         id: methodIdInput.value.trim() || state.methodId || '',
         title: methodTitleInput.value.trim() || state.methodTitle || '',
         basisFile: methodBasisFileSelect.value.trim() || state.methodBasisFile || '',
-        dataSource: methodDataSourceInput.value.trim() || state.methodDataSource || shared.DEFAULT_BASIS_DATA_URL,
+        dataSource: methodDataSourceInput.value.trim() || state.methodDataSource || '',
         description: methodDescriptionInput.value.trim() || state.methodDescription || '',
         imageUrl: methodImageUrlInput.value.trim() || state.methodImageUrl || ''
       };
     }
 
+    function findExistingMethodById(id) {
+      const targetId = String(id || '').trim().toLowerCase();
+      if (!targetId) return null;
+      return methodsCache.find((item) => String(item?.id || '').trim().toLowerCase() === targetId) || null;
+    }
+
     async function loadBasisPreview() {
       const basisFile = methodBasisFileSelect.value.trim();
-      const dataSource = basisFile ? shared.resolveBasisFileUrl(basisFile) : shared.DEFAULT_BASIS_DATA_URL;
+      const dataSource = basisFile ? shared.resolveBasisFileUrl(basisFile) : '';
       methodDataSourceInput.value = dataSource;
       appendStatus('Basisrecords laden gestart.', {
-        basisFile: basisFile || 'aanvankelijklijst.json',
+        basisFile: basisFile || null,
         dataSource
       });
-      basisItems = await shared.loadBasisData(dataSource);
-      appendStatus('Basisrecords geladen.', {
-        basisCount: basisItems.length,
-        firstWord: basisItems[0]?.word || null
-      });
+      if (dataSource) {
+        basisItems = await shared.loadBasisData(dataSource);
+        appendStatus('Basisrecords geladen.', {
+          basisCount: basisItems.length,
+          firstWord: basisItems[0]?.word || null
+        });
+      } else {
+        basisItems = [];
+        appendStatus('Geen basisbestand gekoppeld aan methode.', {
+          basisCount: 0
+        });
+      }
       shared.updateState({
         methodId: methodIdInput.value.trim(),
         methodTitle: methodTitleInput.value.trim(),
@@ -318,8 +350,8 @@ declare(strict_types=1);
       renderBasisFileOptions([]);
       try {
         basisFileOptions = await shared.listBasisFiles();
-        renderBasisFileOptions(shared.loadState().methodBasisFile || basisFileOptions[0]?.name || 'aanvankelijklijst.json');
-        methodDataSourceInput.value = methodBasisFileSelect.value ? shared.resolveBasisFileUrl(methodBasisFileSelect.value) : shared.DEFAULT_BASIS_DATA_URL;
+        renderBasisFileOptions(shared.loadState().methodBasisFile || '');
+        methodDataSourceInput.value = methodBasisFileSelect.value ? shared.resolveBasisFileUrl(methodBasisFileSelect.value) : '';
 
         methodsCache = await shared.listMethods();
         renderMethodOptions(methodsCache);
@@ -422,16 +454,27 @@ declare(strict_types=1);
         expectedStorageFile: payload.id ? `${METHODS_STORAGE_DIR}${payload.id}.json` : null,
         payload
       });
-      if (!payload.title || !payload.basisFile) {
+      if (!payload.title) {
         appendStatus('Validatie in browser mislukt.', {
           missing: {
-            title: !payload.title,
-            basisFile: !payload.basisFile
+            title: !payload.title
           },
           payload
         });
-        setStatus('Method title en basisbestand zijn verplicht.');
+        setStatus('Method title is verplicht.');
         return;
+      }
+      const existingMethod = findExistingMethodById(payload.id);
+      if (existingMethod) {
+        const confirmed = window.confirm(`Method "${payload.id}" exists already. Overwrite it?`);
+        if (!confirmed) {
+          appendStatus('Opslaan geannuleerd: overwrite niet bevestigd.', {
+            mode,
+            methodId: payload.id
+          });
+          setStatus('Save cancelled.');
+          return;
+        }
       }
       try {
         const result = await shared.saveMethod(payload);
@@ -483,7 +526,7 @@ declare(strict_types=1);
       resetMethodForm();
       try {
         await loadBasisPreview();
-        setStatus('Nieuwe methode gestart. Vul titel en basisbestand in en klik Save method.');
+        setStatus('Nieuwe methode gestart. Vul titel in en klik Save method.');
       } catch (err) {
         setStatus(`New method error: ${err.message}`);
       }
@@ -493,6 +536,14 @@ declare(strict_types=1);
       const id = methodsSelect.value || methodIdInput.value.trim();
       if (!id) {
         setStatus('Kies eerst een methode.');
+        return;
+      }
+      const confirmed = window.confirm(`Delete method "${id}"?`);
+      if (!confirmed) {
+        appendStatus('Verwijderen geannuleerd: delete niet bevestigd.', {
+          methodId: id
+        });
+        setStatus('Delete cancelled.');
         return;
       }
       appendStatus('Methode verwijderen gestart.', {
@@ -543,6 +594,19 @@ declare(strict_types=1);
           endpoint: METHODS_DELETE_ENDPOINT
         });
         setStatus(`Delete error: ${err.message}`);
+      }
+    });
+
+    copyRunmethodLinkBtn?.addEventListener('click', async () => {
+      if (copyRunmethodLinkBtn.disabled || !openRunmethodLink?.href || openRunmethodLink.href === '#') {
+        setStatus('Geen runmethod link beschikbaar.');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(openRunmethodLink.href);
+        setStatus('Runmethod link copied to clipboard.', { href: openRunmethodLink.href });
+      } catch (err) {
+        setStatus(`Copy link error: ${err.message || String(err)}`);
       }
     });
 

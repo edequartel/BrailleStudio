@@ -110,6 +110,9 @@ function methods_normalize_method(array $item): array
     if ($basisFile !== '' && $dataSource === '') {
         $dataSource = 'https://www.tastenbraille.com/braillestudio/klanken/' . rawurlencode($basisFile);
     }
+    if ($basisFile === '') {
+        $dataSource = '';
+    }
 
     return [
         'id' => $id,
@@ -129,16 +132,12 @@ function methods_validate_method(array $item, array $existing = [], bool $isUpda
     $id = methods_normalize_id($item['id'] ?? '');
     $title = methods_normalize_string($item['title'] ?? '');
     $basisFile = methods_normalize_string($item['basisFile'] ?? '');
-    $dataSource = methods_normalize_string($item['dataSource'] ?? '');
 
     if ($id === '') {
         $errors[] = 'id is required';
     }
     if ($title === '') {
         $errors[] = 'title is required';
-    }
-    if ($basisFile === '' && $dataSource === '') {
-        $errors[] = 'basisFile or dataSource is required';
     }
 
     if (!$isUpdate && $id !== '' && methods_find_method_index_by_id($id, $existing) >= 0) {
@@ -151,6 +150,116 @@ function methods_validate_method(array $item, array $existing = [], bool $isUpda
 function methods_file_path(string $id): string
 {
     return methods_save_dir() . '/' . $id . '.json';
+}
+
+function methods_basis_dir_candidates(): array
+{
+    return [
+        dirname(dirname(__DIR__)) . '/klanken',
+        dirname(__DIR__) . '/klanken',
+        dirname(__DIR__, 3) . '/klanken',
+        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/braillestudio/klanken',
+        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/klanken',
+    ];
+}
+
+function methods_basis_dir(): string
+{
+    foreach (methods_basis_dir_candidates() as $dir) {
+        $dir = rtrim((string)$dir, '/');
+        if ($dir !== '' && is_dir($dir)) {
+            return $dir;
+        }
+    }
+
+    $fallback = rtrim((string)(methods_basis_dir_candidates()[0] ?? ''), '/');
+    if ($fallback !== '' && !is_dir($fallback)) {
+        @mkdir($fallback, 0775, true);
+    }
+    return $fallback;
+}
+
+function methods_normalize_basis_filename($value): string
+{
+    $name = basename(methods_normalize_string($value));
+    $name = preg_replace('/[^a-zA-Z0-9._-]/', '', $name);
+    if (!is_string($name)) {
+        return '';
+    }
+    $name = trim($name);
+    if ($name === '' || !str_ends_with(strtolower($name), '.json')) {
+        return '';
+    }
+    return $name;
+}
+
+function methods_basis_file_path(string $fileName): string
+{
+    return methods_basis_dir() . '/' . $fileName;
+}
+
+function methods_normalize_basis_sound_list($value): array
+{
+    $items = [];
+    if (is_array($value)) {
+        foreach ($value as $item) {
+            if (is_scalar($item) || $item === null) {
+                $clean = trim((string)$item);
+                if ($clean !== '') {
+                    $items[] = $clean;
+                }
+            }
+        }
+        return array_values(array_unique($items));
+    }
+
+    $parts = preg_split('/[\r\n,]+/', (string)$value) ?: [];
+    foreach ($parts as $item) {
+        $clean = trim((string)$item);
+        if ($clean !== '') {
+            $items[] = $clean;
+        }
+    }
+    return array_values(array_unique($items));
+}
+
+function methods_normalize_basis_category_map($value): array
+{
+    $keys = ['korteKlinkers', 'langeKlinkers', 'tweetekenklanken', 'medeklinkers', 'medeklinkerclusters', 'drietekenklanken'];
+    $source = is_array($value) ? $value : [];
+    $normalized = [];
+    foreach ($keys as $key) {
+        $normalized[$key] = methods_normalize_basis_sound_list($source[$key] ?? []);
+    }
+    return $normalized;
+}
+
+function methods_normalize_basis_record($value): array
+{
+    $source = is_array($value) ? $value : [];
+    return [
+        'word' => methods_normalize_string($source['word'] ?? ''),
+        'sounds' => methods_normalize_basis_sound_list($source['sounds'] ?? []),
+        'newSounds' => methods_normalize_basis_sound_list($source['newSounds'] ?? []),
+        'knownSounds' => methods_normalize_basis_sound_list($source['knownSounds'] ?? []),
+        'categories' => methods_normalize_basis_category_map($source['categories'] ?? []),
+        'newSoundCategories' => methods_normalize_basis_category_map($source['newSoundCategories'] ?? []),
+        'knownSoundCategories' => methods_normalize_basis_category_map($source['knownSoundCategories'] ?? []),
+    ];
+}
+
+function methods_normalize_basis_items($value): array
+{
+    $items = [];
+    if (!is_array($value)) {
+        return $items;
+    }
+
+    foreach ($value as $item) {
+        $normalized = methods_normalize_basis_record($item);
+        $items[] = $normalized;
+    }
+    return $items;
 }
 
 function methods_load_legacy_all(): array
