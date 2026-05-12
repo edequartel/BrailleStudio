@@ -314,9 +314,9 @@ declare(strict_types=1);
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.html?v=20260415-1';
+        return 'http://127.0.0.1:5500/blockly/index.php?v=20260415-1';
       }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.html?v=20260415-1';
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.php?v=20260415-1';
     }
 
     const RUNNER_URL = resolveRunnerUrl();

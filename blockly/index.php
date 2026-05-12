@@ -47,21 +47,23 @@
   <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
   <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
+  <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
   <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
 
   <style>
     :root {
-      --bg: #f4f6fb;
-      --panel: #ffffff;
-      --panel-soft: #f8faff;
-      --border: #d9e0ea;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --green: #22c55e;
-      --red: #ef4444;
-      --blue: #2563eb;
-      --amber: #f59e0b;
+      --bg: var(--tblr-body-bg);
+      --panel: var(--tblr-bg-surface);
+      --panel-soft: var(--tblr-bg-surface);
+      --border: var(--tblr-border-color);
+      --text: var(--tblr-body-color);
+      --muted: var(--tblr-muted);
+      --green: var(--tblr-success);
+      --red: var(--tblr-danger);
+      --blue: var(--tblr-primary);
+      --amber: var(--tblr-warning);
     }
 
     * { box-sizing: border-box; }
@@ -69,7 +71,7 @@
     html, body {
       height: 100%;
       margin: 0;
-      font-family: Arial, sans-serif;
+      font-family: var(--tblr-font-sans-serif);
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
@@ -111,10 +113,10 @@
     .loading-card {
       width: min(520px, 100%);
       padding: 26px 28px;
-      border-radius: 28px;
-      border: 1px solid rgba(37, 99, 235, 0.16);
-      background: rgba(255, 255, 255, 0.88);
-      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+      border-radius: var(--tblr-border-radius-lg);
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      background: var(--tblr-bg-surface);
+      box-shadow: var(--tblr-box-shadow-lg);
     }
 
     .loading-badge {
@@ -122,9 +124,9 @@
       align-items: center;
       gap: 8px;
       padding: 7px 12px;
-      border-radius: 999px;
-      background: rgba(37, 99, 235, 0.08);
-      color: #1d4ed8;
+      border-radius: var(--tblr-border-radius-pill);
+      background: var(--tblr-primary-lt);
+      color: var(--tblr-primary);
       font-size: 12px;
       font-weight: 700;
       letter-spacing: 0.02em;
@@ -172,10 +174,11 @@
     #topbar {
       background: var(--panel);
       border-bottom: 1px solid var(--border);
-      padding: 10px 14px;
+      padding: 12px 16px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      box-shadow: var(--tblr-box-shadow-sm);
     }
 
     .topbar-row {
@@ -214,9 +217,45 @@
       flex: 1 1 540px;
     }
 
+    .topbar-script-picker {
+      display: flex;
+      flex: 1 1 560px;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+      min-width: min(100%, 560px);
+    }
+
+    .topbar-script-picker #onlineScriptsSelect {
+      flex: 1 1 320px;
+      min-width: 240px;
+    }
+
+    .topbar-script-picker #onlineScriptStatusInput {
+      flex: 0 0 150px;
+    }
+
+    .topbar-script-picker #onlineRefreshBtn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
     .topbar-script-group--actions {
       flex: 0 1 auto;
       justify-content: flex-end;
+    }
+
+    @media (max-width: 760px) {
+      .topbar-script-picker {
+        flex-wrap: wrap;
+        min-width: 100%;
+      }
+
+      .topbar-script-picker #onlineScriptsSelect,
+      .topbar-script-picker #onlineScriptStatusInput,
+      .topbar-script-picker #onlineRefreshBtn {
+        flex: 1 1 100%;
+      }
     }
 
     .braille-monitor-host {
@@ -231,8 +270,11 @@
     }
 
     #title {
-      font-size: 22px;
-      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 20px;
+      font-weight: 600;
       margin-right: 10px;
     }
 
@@ -244,15 +286,18 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid var(--border);
-      background: white;
-      color: var(--text);
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      background: var(--tblr-bg-surface);
+      color: var(--tblr-body-color);
       text-decoration: none;
-      border-radius: 10px;
+      border-radius: var(--tblr-border-radius);
       min-height: 40px;
-      padding: 8px 12px;
-      font-size: 14px;
+      padding: .4375rem .75rem;
+      font-size: var(--tblr-font-size-base);
+      font-weight: 500;
+      line-height: 1.4285714286;
       cursor: pointer;
+      box-shadow: var(--tblr-btn-box-shadow);
     }
 
     #onlineScriptsSelect,
@@ -280,7 +325,8 @@
       padding: 8px 10px;
     }
 
-    .btn-icon svg {
+    .btn-icon svg,
+    .btn-icon .ti {
       display: block;
       width: 20px;
       height: 20px;
@@ -292,7 +338,8 @@
     }
 
     .btn:hover {
-      filter: brightness(0.98);
+      background: var(--tblr-bg-surface-secondary);
+      text-decoration: none;
     }
 
     .btn:disabled {
@@ -302,27 +349,27 @@
     }
 
     .btn-green {
-      background: var(--green);
-      color: white;
-      border-color: var(--green);
+      background: var(--tblr-success);
+      color: var(--tblr-white);
+      border-color: var(--tblr-success);
     }
 
     .btn-red {
-      background: var(--red);
-      color: white;
-      border-color: var(--red);
+      background: var(--tblr-danger);
+      color: var(--tblr-white);
+      border-color: var(--tblr-danger);
     }
 
     .btn-blue {
-      background: var(--blue);
-      color: white;
-      border-color: var(--blue);
+      background: var(--tblr-primary);
+      color: var(--tblr-white);
+      border-color: var(--tblr-primary);
     }
 
     .btn-soft {
-      background: #eef4ff;
-      color: #1d4ed8;
-      border-color: #c7d7ff;
+      background: var(--tblr-primary-lt);
+      color: var(--tblr-primary);
+      border-color: color-mix(in srgb, var(--tblr-primary) 18%, transparent);
     }
 
     .btn-ws {
@@ -365,8 +412,8 @@
       width: 40px;
       min-height: 40px;
       padding: 8px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      border: var(--tblr-border-width) solid var(--border);
+      border-radius: var(--tblr-border-radius);
       background: #fef2f2;
       color: #991b1b;
     }
@@ -458,7 +505,7 @@
 
     .btn.is-stopped {
       border-color: #cbd5e1;
-      background: #f8fafc;
+      background: var(--tblr-bg-surface-secondary);
       color: #475569;
     }
 
@@ -476,8 +523,8 @@
       min-height: 42px;
       padding: 8px 12px;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #f8fafc;
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface-secondary);
       color: #334155;
     }
 
@@ -488,8 +535,8 @@
       min-width: 90px;
       padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid #cbd5e1;
-      background: white;
+      border: 1px solid var(--tblr-border-color);
+      background: var(--tblr-bg-surface);
       font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
@@ -652,9 +699,10 @@
       width: 100%;
       height: 100%;
       border: 1px solid var(--border);
-      border-radius: 14px;
+      border-radius: var(--tblr-border-radius-lg);
       overflow: hidden;
-      background: white;
+      background: var(--tblr-bg-surface);
+      box-shadow: var(--tblr-box-shadow-sm);
     }
 
     .blocklyToolboxDiv,
@@ -698,7 +746,7 @@
 
     #sidebar {
       border-left: 1px solid var(--border);
-      background: var(--panel);
+      background: var(--tblr-bg-surface-secondary);
       padding: 10px;
       display: flex;
       flex-direction: column;
@@ -709,13 +757,18 @@
     .card {
       background: var(--panel-soft);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px;
+      border-radius: var(--tblr-border-radius-lg);
+      padding: 0;
+      box-shadow: var(--tblr-box-shadow-sm);
     }
 
     .card h3 {
-      margin: 0 0 8px 0;
+      margin: 0;
       font-size: 15px;
+    }
+
+    .card-body {
+      padding: 10px;
     }
 
     .mono {
@@ -726,7 +779,7 @@
       overflow-x: auto;
       background: white;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: var(--tblr-border-radius);
       padding: 8px;
       min-height: 110px;
     }
@@ -777,8 +830,8 @@
     .meta-textarea {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: white;
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface);
       color: var(--text);
       font-family: Consolas, Menlo, monospace;
       font-size: 12px;
@@ -822,7 +875,7 @@
       gap: 6px;
       min-height: 40px;
       padding: 8px 12px;
-      border-radius: 10px;
+      border-radius: var(--tblr-border-radius);
       border: 1px solid #c7d7ff;
       background: #eef4ff;
       color: #1d4ed8;
@@ -871,7 +924,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      z-index: 1000;
+      z-index: 1050;
     }
 
     .modal-backdrop.is-open {
@@ -882,9 +935,9 @@
       width: min(480px, 100%);
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
-      padding: 16px;
+      border-radius: var(--tblr-border-radius-lg);
+      box-shadow: var(--tblr-box-shadow-lg);
+      padding: 1rem;
     }
 
     .modal-card h3 {
@@ -924,13 +977,21 @@
 <div id="app">
   <div id="topbar">
     <div class="topbar-row">
-      <div id="title">Braille Activity Builder</div>
+      <div id="title">
+        <span class="avatar avatar-sm bg-primary-lt text-primary">
+          <i class="ti ti-puzzle" aria-hidden="true"></i>
+        </span>
+        <span>Braille Activity Builder</span>
+      </div>
 
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="spacer"></div>
 
-      <button id="elevenlabsLoginBtn" class="btn btn-blue" type="button" aria-label="Authentication">Authentication</button>
+      <button id="elevenlabsLoginBtn" class="btn btn-primary" type="button" aria-label="Authentication">
+        <i class="ti ti-login me-2" aria-hidden="true"></i>
+        Authentication
+      </button>
       <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
         <span class="ws-indicator" aria-hidden="true"></span>
       </button>
@@ -940,26 +1001,31 @@
     </div>
 
     <div class="topbar-row topbar-row--sim">
-      <button id="runBtn" class="btn btn-green btn-icon" type="button" aria-label="Start">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M4 3h2l1.2 2H20l-4.8 5L20 15H7.2L6 17H4V3z"></path>
-        </svg>
+      <button id="runBtn" class="btn btn-success btn-icon" type="button" aria-label="Start">
+        <i class="ti ti-player-play" aria-hidden="true"></i>
         <span class="label">Start</span>
       </button>
-      <button id="stopBtn" class="btn btn-red btn-icon" type="button" aria-label="Stop">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path fill="currentColor" d="M8.2 3h7.6L21 8.2v7.6L15.8 21H8.2L3 15.8V8.2L8.2 3z"></path>
-        </svg>
+      <button id="stopBtn" class="btn btn-danger btn-icon" type="button" aria-label="Stop">
+        <i class="ti ti-player-stop" aria-hidden="true"></i>
         <span class="label">Stop</span>
       </button>
-      <button id="simThumbLeftBtn" class="btn btn-soft">Left thumb</button>
-      <button id="simCursor5Btn" class="btn btn-soft">Left middle thumb</button>
-      <button id="simChord1Btn" class="btn btn-soft">Right middle thumb</button>
-      <button id="simThumbRightBtn" class="btn btn-soft">Right thumb</button>
+      <button id="simThumbLeftBtn" class="btn btn-outline-primary">Left thumb</button>
+      <button id="simCursor5Btn" class="btn btn-outline-primary">Left middle thumb</button>
+      <button id="simChord1Btn" class="btn btn-outline-primary">Right middle thumb</button>
+      <button id="simThumbRightBtn" class="btn btn-outline-primary">Right thumb</button>
       <div class="spacer"></div>
-      <button id="gridSnapBtn" class="btn btn-soft is-active" type="button" aria-pressed="true">Snap On</button>
-      <button id="monitorToggleBtn" class="btn btn-soft is-active" type="button" aria-pressed="false">Hide Monitor</button>
-      <button id="sidebarToggleBtn" class="btn btn-soft" type="button" aria-pressed="true" aria-label="Hide status panel">Status</button>
+      <button id="gridSnapBtn" class="btn btn-outline-primary is-active" type="button" aria-pressed="true">
+        <i class="ti ti-grid-dots me-2" aria-hidden="true"></i>
+        Snap On
+      </button>
+      <button id="monitorToggleBtn" class="btn btn-outline-primary is-active" type="button" aria-pressed="false">
+        <i class="ti ti-device-desktop me-2" aria-hidden="true"></i>
+        Hide Monitor
+      </button>
+      <button id="sidebarToggleBtn" class="btn btn-outline-secondary" type="button" aria-pressed="true" aria-label="Hide status panel">
+        <i class="ti ti-layout-sidebar-right me-2" aria-hidden="true"></i>
+        Status
+      </button>
     </div>
 
     <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor">
@@ -973,28 +1039,33 @@
     <div class="topbar-row topbar-row--scripts">
       <div class="topbar-script-group topbar-script-group--fields">
         <input id="onlineScriptIdInput" type="hidden">
-        <input id="onlineScriptTitleInput" class="btn" type="text" placeholder="Script title (required)" required style="min-width:220px; cursor:text;">
-        <select id="onlineScriptsSelect" class="btn" style="min-width:280px;">
-          <option value="">-- Select online script --</option>
-        </select>
-        <select id="onlineScriptStatusInput" class="btn" style="min-width:150px;">
-          <option value="draft">⚪ draft</option>
-          <option value="started">🟡 started</option>
-          <option value="in review">🔵 in review</option>
-          <option value="approved">🟢 approved</option>
-        </select>
-        <button id="onlineRefreshBtn" class="btn" type="button">Refresh</button>
+        <input id="onlineScriptTitleInput" class="form-control" type="text" placeholder="Script title (required)" required style="min-width:220px;">
+        <div class="topbar-script-picker">
+          <select id="onlineScriptsSelect" class="form-select">
+            <option value="">-- Select online script --</option>
+          </select>
+          <select id="onlineScriptStatusInput" class="form-select">
+            <option value="draft">⚪ draft</option>
+            <option value="started">🟡 started</option>
+            <option value="in review">🔵 in review</option>
+            <option value="approved">🟢 approved</option>
+          </select>
+          <button id="onlineRefreshBtn" class="btn btn-outline-secondary" type="button">
+            <i class="ti ti-refresh me-2" aria-hidden="true"></i>
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div class="topbar-script-group topbar-script-group--actions">
-        <button id="newBtn" class="btn" type="button">New</button>
-        <button id="copyJsonBtn" class="btn" type="button">Export</button>
-        <button id="importJsonBtn" class="btn" type="button">Import</button>
-        <button id="onlineSaveBtn" class="btn" type="button">Save</button>
-        <button id="onlineSaveAsBtn" class="btn" type="button">Save As</button>
-        <button id="onlineDeleteBtn" class="btn" type="button">Delete</button>
-        <button id="clearBtn" class="btn" type="button">Clear</button>
-        <button id="arrangeBtn" class="btn" type="button">Arrange</button>
+        <button id="newBtn" class="btn btn-outline-secondary" type="button">New</button>
+        <button id="copyJsonBtn" class="btn btn-outline-secondary" type="button">Export</button>
+        <button id="importJsonBtn" class="btn btn-outline-secondary" type="button">Import</button>
+        <button id="onlineSaveBtn" class="btn btn-primary" type="button">Save</button>
+        <button id="onlineSaveAsBtn" class="btn btn-outline-primary" type="button">Save As</button>
+        <button id="onlineDeleteBtn" class="btn btn-outline-danger" type="button">Delete</button>
+        <button id="clearBtn" class="btn btn-outline-secondary" type="button">Clear</button>
+        <button id="arrangeBtn" class="btn btn-outline-secondary" type="button">Arrange</button>
       </div>
     </div>
   </div>
@@ -1008,49 +1079,65 @@
 
     <div id="sidebar">
       <div class="card">
-        <h3>Status</h3>
-        <input id="scriptMetaTitle" class="btn" type="text" placeholder="Title" style="width:100%; margin-bottom:8px; cursor:text;">
-        <textarea id="scriptMetaDescription" class="meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
-        <textarea id="scriptMetaInstruction" class="meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <div class="card-header">
+          <h3 class="card-title">Status</h3>
+        </div>
+        <div class="card-body">
+        <input id="scriptMetaTitle" class="form-control" type="text" placeholder="Title" style="width:100%; margin-bottom:8px;">
+        <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptMetaInstruction" class="form-control meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
         <div class="instruction-tts-controls">
-          <select id="instructionTtsVoiceSelect" class="btn" style="min-width:0;">
+          <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
             <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig</option>
           </select>
-          <button id="saveInstructionTtsBtn" class="btn btn-blue" type="button" disabled>Produce</button>
+          <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
-        <textarea id="scriptMetaPrompt" class="meta-textarea meta-textarea--compact" placeholder="Prompt"></textarea>
+        <textarea id="scriptMetaPrompt" class="form-control meta-textarea meta-textarea--compact" placeholder="Prompt"></textarea>
         <div id="statusBox" class="mono"></div>
-      </div>
-
-      <div class="card">
-        <h3>Log</h3>
-        <textarea id="logBox" class="mono" readonly></textarea>
-        <div class="row" style="margin-top:8px;">
-          <button id="clearLogBtn" class="btn" type="button">Clear Log</button>
         </div>
       </div>
 
       <div class="card">
-        <h3>Tips</h3>
-        <div class="small">
-          Use <strong>Variables</strong> for score, tries, level.<br>
-          Use <strong>State values</strong> to react to cursor position and thumb keys.<br>
-          <strong>Start</strong> only runs stacks under <strong>when started</strong>.
+        <div class="card-header">
+          <h3 class="card-title">Log</h3>
+        </div>
+        <div class="card-body">
+          <textarea id="logBox" class="mono" readonly></textarea>
+          <div class="row" style="margin-top:8px;">
+            <button id="clearLogBtn" class="btn btn-outline-secondary" type="button">Clear Log</button>
+          </div>
         </div>
       </div>
 
       <div class="card">
-        <h3>Sounds</h3>
-        <div class="small">Base URL:</div>
-        <div id="soundBaseUrlBox" class="mono"></div>
-        <div class="row">
-          <input id="soundFileInput" type="text" value="voorbeeld.mp3" style="flex:1; min-width:180px; padding:6px 8px;">
-          <button id="playSoundBtn" class="btn">Play file</button>
-          <button id="pauseSoundBtn" class="btn">Pause</button>
-          <button id="resumeSoundBtn" class="btn">Resume</button>
-          <button id="stopSoundBtn" class="btn">Stop sound</button>
+        <div class="card-header">
+          <h3 class="card-title">Tips</h3>
+        </div>
+        <div class="card-body">
+          <div class="small">
+            Use <strong>Variables</strong> for score, tries, level.<br>
+            Use <strong>State values</strong> to react to cursor position and thumb keys.<br>
+            <strong>Start</strong> only runs stacks under <strong>when started</strong>.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Sounds</h3>
+        </div>
+        <div class="card-body">
+          <div class="small">Base URL:</div>
+          <div id="soundBaseUrlBox" class="mono"></div>
+          <div class="row">
+            <input id="soundFileInput" class="form-control" type="text" value="voorbeeld.mp3" style="flex:1; min-width:180px;">
+            <button id="playSoundBtn" class="btn btn-outline-primary">Play file</button>
+            <button id="pauseSoundBtn" class="btn btn-outline-secondary">Pause</button>
+            <button id="resumeSoundBtn" class="btn btn-outline-secondary">Resume</button>
+            <button id="stopSoundBtn" class="btn btn-outline-danger">Stop sound</button>
+          </div>
         </div>
       </div>
 
@@ -1063,9 +1150,9 @@
     <h3 id="confirmModalTitle">Unsaved changes</h3>
     <p id="confirmModalMessage">You have unsaved changes.</p>
     <div class="modal-actions">
-      <button id="confirmModalCancel" class="btn" type="button">Cancel</button>
-      <button id="confirmModalDiscard" class="btn" type="button">Don't Save</button>
-      <button id="confirmModalSave" class="btn btn-blue" type="button">Save</button>
+      <button id="confirmModalCancel" class="btn btn-outline-secondary" type="button">Cancel</button>
+      <button id="confirmModalDiscard" class="btn btn-outline-danger" type="button">Don't Save</button>
+      <button id="confirmModalSave" class="btn btn-primary" type="button">Save</button>
     </div>
   </div>
 </div>
@@ -1475,6 +1562,7 @@
 <script src="./runtime.js?v=20260416-session-player-3"></script>
 <script src="./instructions-catalog.js?v=20260416-session-player-3"></script>
 <script src="./preload-instructions.js?v=20260416-session-player-3"></script>
+<script src="../tabler/core/dist/js/tabler.min.js"></script>
 <script>
   (function () {
     const overlay = document.getElementById('loadingOverlay');

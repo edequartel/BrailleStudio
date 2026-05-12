@@ -59,7 +59,7 @@ $lessonDirs = [
     $rootDir . '/api/lessons-data',
     $rootDir . '/lessons-data',
 ];
-$defaultRunnerUrl = '/braillestudio/blockly/index.html?v=20260415-1';
+$defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260415-1';
 $blocklyApiBase = '/braillestudio/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -172,10 +172,134 @@ $pagePayload = [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
-  <link rel="stylesheet" href="https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css">
   <style>
+    body {
+      min-height: 100vh;
+      background: var(--tblr-body-bg);
+    }
+
+    .method-shell {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .method-stack {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .method-header {
+      position: relative;
+      min-height: 96px;
+      overflow: hidden;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius-lg);
+      background: var(--tblr-bg-surface);
+      box-shadow: var(--tblr-box-shadow-sm);
+    }
+
+    .method-header-image,
+    .method-header-overlay {
+      position: absolute;
+      inset: 0;
+    }
+
+    .method-header-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .method-header-overlay {
+      background: rgba(255, 255, 255, .78);
+    }
+
+    .method-header-content {
+      position: relative;
+      z-index: 1;
+      min-height: 96px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .method-title-group {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: .875rem;
+    }
+
+    .method-title {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .min-w-0 {
+      min-width: 0;
+    }
+
+    .indicator-group,
+    .action-row,
+    .sim-row,
+    .footer-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    .indicator,
+    .indicator-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .indicator {
+      width: 2rem;
+      height: 2rem;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-danger-lt);
+    }
+
+    .indicator-dot {
+      width: .7rem;
+      height: .7rem;
+      border-radius: var(--tblr-border-radius-pill);
+      background: var(--tblr-danger);
+    }
+
+    .indicator.is-connected,
+    .indicator.is-running {
+      background: var(--tblr-success-lt);
+      border-color: color-mix(in srgb, var(--tblr-success) 30%, transparent);
+    }
+
+    .indicator.is-connected .indicator-dot,
+    .indicator.is-running .indicator-dot {
+      background: var(--tblr-success);
+    }
+
+    .indicator.is-stopping {
+      background: var(--tblr-warning-lt);
+      border-color: color-mix(in srgb, var(--tblr-warning) 34%, transparent);
+    }
+
+    .indicator.is-stopping .indicator-dot {
+      background: var(--tblr-warning);
+    }
+
     .lesson-monitor-host {
       overflow: hidden;
       border-radius: 5px;
@@ -186,97 +310,254 @@ $pagePayload = [
     .lesson-monitor-host .braille-monitor-cell-container {
       border-radius: 5px;
     }
+
+    .run-panel,
+    .instruction-panel {
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface-secondary);
+      padding: 1rem;
+    }
+
+    .lesson-grid {
+      display: grid;
+      grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
+      gap: 1.25rem;
+    }
+
+    .list-panel {
+      height: 780px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .list-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .lesson-card {
+      width: 100%;
+      text-align: left;
+      padding: 1rem 1.25rem;
+      border-left-width: 4px;
+      border-left-color: transparent;
+    }
+
+    .lesson-card:hover,
+    .lesson-card.is-active {
+      background: var(--tblr-primary-lt);
+      border-left-color: var(--tblr-primary);
+    }
+
+    .item-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+
+    .item-title {
+      font-weight: 600;
+      color: var(--tblr-body-color);
+    }
+
+    .item-meta {
+      margin-top: .25rem;
+      font-size: .75rem;
+      color: var(--tblr-muted);
+    }
+
+    .status-banner {
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface-secondary);
+      color: var(--tblr-secondary);
+      padding: .75rem 1rem;
+      font-size: .875rem;
+    }
+
+    .status-banner.is-running {
+      border-color: color-mix(in srgb, var(--tblr-primary) 25%, transparent);
+      background: var(--tblr-primary-lt);
+      color: var(--tblr-primary);
+    }
+
+    .status-banner.is-stopping {
+      border-color: color-mix(in srgb, var(--tblr-warning) 35%, transparent);
+      background: var(--tblr-warning-lt);
+      color: var(--tblr-warning);
+    }
+
+    .status-banner.is-completed {
+      border-color: color-mix(in srgb, var(--tblr-success) 35%, transparent);
+      background: var(--tblr-success-lt);
+      color: var(--tblr-success);
+    }
+
+    .status-banner.is-failed {
+      border-color: color-mix(in srgb, var(--tblr-danger) 35%, transparent);
+      background: var(--tblr-danger-lt);
+      color: var(--tblr-danger);
+    }
+
+    .return-values,
+    .debug-log,
+    .instruction-text {
+      overflow: auto;
+      line-height: 1.6;
+      color: var(--tblr-secondary);
+    }
+
+    .return-values {
+      height: 180px;
+    }
+
+    .instruction-text {
+      max-height: 220px;
+      white-space: pre-wrap;
+    }
+
+    .debug-log {
+      min-height: 220px;
+      white-space: pre-wrap;
+      font-size: .75rem;
+      margin: 0;
+      padding: 1rem;
+      background: var(--tblr-bg-surface-secondary);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .footer-logo {
+      height: 2rem;
+      width: auto;
+      object-fit: contain;
+    }
+
+    @media (max-width: 992px) {
+      .lesson-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .list-panel {
+        height: auto;
+        min-height: 460px;
+      }
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="mx-auto max-w-7xl p-6 space-y-5">
-    <header class="relative h-[80px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+<body>
+  <div class="method-shell method-stack">
+    <header class="method-header">
       <?php if (trim((string)($method['imageUrl'] ?? '')) !== ''): ?>
         <img
           src="<?= h(trim((string)$method['imageUrl'])) ?>"
           alt="Method banner"
-          class="absolute inset-0 h-full w-full object-cover"
+          class="method-header-image"
         >
       <?php endif; ?>
-      <div class="absolute inset-0 bg-white/70"></div>
-      <div class="absolute right-4 top-4 z-20 flex items-center gap-2">
-        <span id="bridgeIndicator" class="inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-red-200 bg-red-50" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
-          <span id="bridgeIndicatorDot" class="h-2.5 w-2.5 rounded-sm bg-red-500"></span>
-        </span>
-        <span id="lessonRunIndicator" class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500" aria-label="Not running" title="Not running">
-          <span id="lessonRunIndicatorDot" class="h-4 w-4 rounded-full bg-red-500"></span>
-        </span>
-      </div>
-      <div class="relative z-10 flex h-full items-center gap-4 px-5 pr-40">
-        <div class="min-w-0">
-          <h1 class="truncate text-3xl font-bold"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
+      <div class="method-header-overlay"></div>
+      <div class="method-header-content">
+        <div class="method-title-group">
+          <span class="avatar avatar-md bg-primary-lt text-primary">
+            <i class="ti ti-player-play" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <div class="page-pretitle">Run method</div>
+            <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
+          </div>
+        </div>
+        <div class="indicator-group">
+          <span id="bridgeIndicator" class="indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
+            <span id="bridgeIndicatorDot" class="indicator-dot"></span>
+          </span>
+          <span id="lessonRunIndicator" class="indicator" aria-label="Not running" title="Not running">
+            <span id="lessonRunIndicatorDot" class="indicator-dot"></span>
+          </span>
         </div>
       </div>
     </header>
 
     <?php if ($errorMessage !== ''): ?>
-      <section class="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-700">
-        <?= h($errorMessage) ?>
+      <section class="alert alert-danger">
+        <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
+        <div><?= h($errorMessage) ?></div>
       </section>
     <?php else: ?>
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+      <section class="card">
+        <div class="card-body method-stack">
         <div id="brailleMonitorRow" class="lesson-monitor-host">
           <div id="brailleMonitorComponent"></div>
         </div>
         <div id="scriptBrailleMonitorRow" class="lesson-monitor-host">
           <div id="scriptBrailleMonitorComponent"></div>
         </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="simThumbLeftBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left thumb</button>
-          <button id="simCursor5Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left middle thumb</button>
-          <button id="simChord1Btn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right middle thumb</button>
-          <button id="simThumbRightBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right thumb</button>
+        <div class="sim-row">
+          <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button">Left thumb</button>
+          <button id="simCursor5Btn" class="btn btn-outline-primary" type="button">Left middle thumb</button>
+          <button id="simChord1Btn" class="btn btn-outline-primary" type="button">Right middle thumb</button>
+          <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button">Right thumb</button>
+        </div>
         </div>
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="runSelectedStepBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run step</button>
-          <button id="runCurrentBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Run lesson</button>
-          <button id="runAllBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run all</button>
-          <button id="stopRunBtn" class="inline-flex min-h-[42px] items-center justify-center rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Stop</button>
-          <div class="ml-auto flex items-center gap-2">
-            <button id="toggleRunnerBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhide</button>
-          </div>
+      <section class="card">
+        <div class="card-body method-stack">
+        <div class="action-row">
+          <button id="runSelectedStepBtn" class="btn btn-outline-primary" type="button">Run step</button>
+          <button id="runCurrentBtn" class="btn btn-primary" type="button">Run lesson</button>
+          <button id="runAllBtn" class="btn btn-outline-primary" type="button">Run all</button>
+          <button id="stopRunBtn" class="btn btn-danger" type="button">Stop</button>
+          <button id="toggleRunnerBtn" type="button" class="btn btn-outline-secondary ms-auto">Unhide</button>
         </div>
-        <div id="runStatusBanner" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <div id="runStatusBanner" class="status-banner">
           Idle. Select a lesson or step to start.
         </div>
-        <div id="runnerPanel" class="hidden space-y-4">
-          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-3">
-            <div class="font-semibold text-slate-900">Lesson return values</div>
-            <div id="lessonReturnValues" class="h-[180px] overflow-auto text-sm leading-6 text-slate-600">No values yet.</div>
+        <div id="runnerPanel" class="hidden">
+          <div class="run-panel">
+            <div class="fw-semibold mb-2">Lesson return values</div>
+            <div id="lessonReturnValues" class="return-values">No values yet.</div>
           </div>
         </div>
+          </div>
       </section>
 
-      <div class="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-        <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div class="text-lg font-bold">Lessons</div>
-          <div id="lessonsList" class="flex-1 space-y-2 overflow-auto"></div>
+      <div class="lesson-grid">
+        <section class="card list-panel">
+          <div class="card-header">
+            <h2 class="card-title">Lessons</h2>
+          </div>
+          <div class="list-group list-group-flush list-scroll" id="lessonsList"></div>
         </section>
 
-        <section class="flex h-[780px] flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div class="text-lg font-bold">Steps</div>
-          <div id="stepsPreview" class="flex-1 space-y-2 overflow-auto"></div>
-          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 space-y-2">
-            <div class="font-semibold text-slate-900">Instruction</div>
-            <div id="selectedStepInstruction" class="max-h-[220px] overflow-auto whitespace-pre-wrap leading-6 text-slate-700">No instruction for the selected step.</div>
+        <section class="card list-panel">
+          <div class="card-header">
+            <h2 class="card-title">Steps</h2>
+          </div>
+          <div class="list-group list-group-flush list-scroll" id="stepsPreview"></div>
+          <div class="card-body pt-0">
+          <div class="instruction-panel">
+            <div class="fw-semibold mb-2">Instruction</div>
+            <div id="selectedStepInstruction" class="instruction-text">No instruction for the selected step.</div>
+          </div>
           </div>
         </section>
       </div>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-lg font-bold">Debug log</div>
-          <button id="toggleDebugLogBtn" type="button" class="inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Unhidden</button>
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Debug log</h2>
+          <div class="card-actions">
+            <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary">Unhidden</button>
+          </div>
         </div>
-        <pre id="statusBox" class="hidden min-h-[220px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
+        <div class="card-body">
+          <pre id="statusBox" class="hidden form-control debug-log"></pre>
+        </div>
       </section>
 
       <iframe
@@ -288,17 +569,19 @@ $pagePayload = [
       ></iframe>
     <?php endif; ?>
 
-    <footer class="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-600 shadow-sm">
-      <div class="font-medium text-slate-700"><?= h($methodId) ?></div>
-      <div class="flex items-center gap-3">
-        <span>Powerd by</span>
+    <footer class="card">
+      <div class="card-body footer-row justify-content-between">
+      <div class="fw-medium text-secondary"><?= h($methodId) ?></div>
+      <div class="footer-row">
+        <span class="text-secondary">Powered by</span>
         <a href="https://www.bartimeus.nl" target="_blank" rel="noopener noreferrer">
           <img
-            src="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png"
+            src="./assets/bartimeus.png"
             alt="Bartimeus logo"
-            class="h-8 w-auto object-contain"
+            class="footer-logo"
           >
         </a>
+      </div>
       </div>
     </footer>
   </div>
@@ -307,6 +590,7 @@ $pagePayload = [
     window.RunMethodBootstrap = <?= json_encode($pagePayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
   <?php if ($errorMessage === ''): ?>
+  <script src="./tabler/core/dist/js/tabler.min.js"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
@@ -422,11 +706,11 @@ $pagePayload = [
       const normalized = String(status || 'idle').trim().toLowerCase();
       if (!normalized || normalized === 'idle') return '';
       const variants = {
-        running: 'border-blue-200 bg-blue-50 text-blue-700',
-        stopping: 'border-amber-200 bg-amber-50 text-amber-700',
-        completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-        stopped: 'border-slate-300 bg-slate-100 text-slate-700',
-        failed: 'border-red-200 bg-red-50 text-red-700'
+        running: 'bg-primary-lt text-primary',
+        stopping: 'bg-warning-lt text-warning',
+        completed: 'bg-success-lt text-success',
+        stopped: 'bg-secondary-lt text-secondary',
+        failed: 'bg-danger-lt text-danger'
       };
       const labels = {
         running: 'Running',
@@ -436,7 +720,7 @@ $pagePayload = [
         failed: 'Failed'
       };
       const title = message ? ` title="${escapeHtml(message)}"` : '';
-      return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${variants[normalized] || variants.stopped}"${title}>${labels[normalized] || escapeHtml(normalized)}</span>`;
+      return `<span class="badge ${variants[normalized] || variants.stopped}"${title}>${labels[normalized] || escapeHtml(normalized)}</span>`;
     }
 
     function getRunModeLabel(mode) {
@@ -461,8 +745,8 @@ $pagePayload = [
           ? (isStopping ? 'Stopping step...' : 'Running step...')
           : 'Run step';
         runSelectedStepBtn.className = active?.mode === 'step'
-          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold ${isStopping ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-blue-300 bg-blue-50 text-blue-700'} disabled:cursor-not-allowed disabled:opacity-70`
-          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70';
+          ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
+          : 'btn btn-outline-primary';
       }
       if (runCurrentBtn) {
         runCurrentBtn.disabled = Boolean(active);
@@ -470,8 +754,8 @@ $pagePayload = [
           ? (isStopping ? 'Stopping lesson...' : 'Running lesson...')
           : 'Run lesson';
         runCurrentBtn.className = active?.mode === 'lesson'
-          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold ${isStopping ? 'bg-amber-600 text-white' : 'bg-blue-700 text-white'} disabled:cursor-not-allowed disabled:opacity-70`
-          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-70';
+          ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
+          : 'btn btn-primary';
       }
       if (runAllBtn) {
         runAllBtn.disabled = Boolean(active);
@@ -479,32 +763,32 @@ $pagePayload = [
           ? (isStopping ? 'Stopping all...' : 'Running all...')
           : 'Run all';
         runAllBtn.className = active?.mode === 'all'
-          ? `inline-flex min-h-[42px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold ${isStopping ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-blue-300 bg-blue-50 text-blue-700'} disabled:cursor-not-allowed disabled:opacity-70`
-          : 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70';
+          ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
+          : 'btn btn-outline-primary';
       }
       if (stopRunBtn) {
         stopRunBtn.disabled = !active;
         stopRunBtn.textContent = isStopping ? 'Stopping...' : 'Stop';
-        stopRunBtn.className = `inline-flex min-h-[42px] items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${isStopping ? 'bg-amber-600' : 'bg-red-600'}`;
+        stopRunBtn.className = `btn ${isStopping ? 'btn-warning' : 'btn-danger'}`;
       }
 
       if (runStatusBanner) {
         if (!active) {
           const tones = {
-            idle: 'rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700',
-            running: 'rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800',
-            stopping: 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800',
-            completed: 'rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800',
-            stopped: 'rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm text-slate-700',
-            failed: 'rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800'
+            idle: 'status-banner',
+            running: 'status-banner is-running',
+            stopping: 'status-banner is-stopping',
+            completed: 'status-banner is-completed',
+            stopped: 'status-banner',
+            failed: 'status-banner is-failed'
           };
           runStatusBanner.className = tones[lastRunBanner.tone] || tones.idle;
           runStatusBanner.textContent = lastRunBanner.text || 'Idle. Select a lesson or step to start.';
         } else if (isStopping) {
-          runStatusBanner.className = 'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800';
+          runStatusBanner.className = 'status-banner is-stopping';
           runStatusBanner.textContent = `Stopping ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}`;
         } else {
-          runStatusBanner.className = 'rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800';
+          runStatusBanner.className = 'status-banner is-running';
           const stepText = Number.isInteger(active.stepIndex) ? `, step ${active.stepIndex + 1}` : '';
           runStatusBanner.textContent = `Running ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}${stepText}`;
         }
@@ -626,12 +910,8 @@ $pagePayload = [
 
     function renderBridgeIndicator(isConnected = false) {
       if (!bridgeIndicator || !bridgeIndicatorDot) return;
-      bridgeIndicator.className = isConnected
-        ? 'inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-emerald-200 bg-emerald-50'
-        : 'inline-flex min-h-[28px] min-w-[28px] items-center justify-center rounded-md border border-red-200 bg-red-50';
-      bridgeIndicatorDot.className = isConnected
-        ? 'h-2.5 w-2.5 rounded-sm bg-emerald-500'
-        : 'h-2.5 w-2.5 rounded-sm bg-red-500';
+      bridgeIndicator.className = isConnected ? 'indicator is-connected' : 'indicator';
+      bridgeIndicatorDot.className = 'indicator-dot';
       bridgeIndicator.setAttribute('aria-label', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
       bridgeIndicator.setAttribute('title', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
     }
@@ -714,11 +994,11 @@ $pagePayload = [
         return;
       }
       lessonReturnValues.innerHTML = `
-        <ul class="list-disc space-y-1 pl-5">
+        <ul class="mb-0 ps-3">
           ${entries.map((entry) => `
             <li>
-              <span class="font-semibold text-slate-900">${escapeHtml(entry.key)}:</span>
-              <span class="break-all">${escapeHtml(entry.value)}</span>
+              <span class="fw-semibold">${escapeHtml(entry.key)}:</span>
+              <span class="text-break">${escapeHtml(entry.value)}</span>
             </li>
           `).join('')}
         </ul>
@@ -730,15 +1010,11 @@ $pagePayload = [
       if (!lessonRunIndicator || !lessonRunIndicatorDot) return;
       const isStopping = Boolean(currentRun && currentRun.status === 'stopping');
       lessonRunIndicator.className = isStopping
-        ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-500'
+        ? 'indicator is-stopping'
         : (isLessonRunning
-          ? 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-500'
-          : 'inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-500');
-      lessonRunIndicatorDot.className = isStopping
-        ? 'h-4 w-4 rounded-full bg-amber-500'
-        : (isLessonRunning
-          ? 'h-4 w-4 rounded-full bg-green-500'
-          : 'h-4 w-4 rounded-full bg-red-500');
+          ? 'indicator is-running'
+          : 'indicator');
+      lessonRunIndicatorDot.className = 'indicator-dot';
       lessonRunIndicator.setAttribute('aria-label', label || (isLessonRunning ? 'Running' : 'Not running'));
       lessonRunIndicator.setAttribute('title', label || (isLessonRunning ? 'Running' : 'Not running'));
       renderRunControls();
@@ -754,7 +1030,7 @@ $pagePayload = [
       if (!runnerPanel || !toggleRunnerBtn) return;
       runnerPanel.classList.toggle('hidden', !isRunnerVisible);
       toggleRunnerBtn.textContent = isRunnerVisible ? 'Hide' : 'Unhide';
-      toggleRunnerBtn.className = 'inline-flex min-h-[42px] items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+      toggleRunnerBtn.className = 'btn btn-outline-secondary ms-auto';
     }
 
     function appendStatus(message, data = null) {
@@ -852,7 +1128,7 @@ $pagePayload = [
     function renderLessonsList() {
       lessonsList.innerHTML = '';
       if (!lessons.length) {
-        lessonsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">No lessons found for this method.</div>';
+        lessonsList.innerHTML = '<div class="empty"><p class="empty-title">No lessons found for this method.</p></div>';
         return;
       }
       lessons.forEach((lesson, index) => {
@@ -860,15 +1136,15 @@ $pagePayload = [
         const lessonDescription = String(lesson?.description || '').trim();
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `w-full rounded-xl border px-4 py-3 text-left ${index === selectedLessonIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
+        button.className = `list-group-item list-group-item-action lesson-card${index === selectedLessonIndex ? ' is-active' : ''}`;
         button.innerHTML = `
-          <div class="flex items-start justify-between gap-3">
-            <div class="font-bold">${lessonTitle}</div>
+          <div class="item-head">
+            <div class="item-title">${lessonTitle}</div>
             ${getStatusBadgeMarkup(getLessonStatus(lesson.id).status, getLessonStatus(lesson.id).message)}
           </div>
-          ${lessonDescription ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(lessonDescription)}</div>` : ''}
-          <div class="mt-1 text-xs text-slate-500">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
-          <div class="mt-1 text-xs text-slate-500">${Array.isArray(lesson.steps) ? lesson.steps.length : 0} step(s)</div>
+          ${lessonDescription ? `<div class="item-meta">${escapeHtml(lessonDescription)}</div>` : ''}
+          <div class="item-meta">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
+          <div class="item-meta">${Array.isArray(lesson.steps) ? lesson.steps.length : 0} step(s)</div>
         `;
         button.addEventListener('click', () => {
           selectedLessonIndex = index;
@@ -911,17 +1187,17 @@ $pagePayload = [
       });
       stepsPreview.innerHTML = preview.length
         ? `${preview.map((item, index) => `
-            <button type="button" data-step-index="${index}" class="w-full rounded-xl border px-4 py-3 text-left ${index === selectedStepIndex ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}">
-              <div class="flex items-start justify-between gap-3">
-                <div class="font-bold text-slate-900">${index + 1}. ${escapeHtml(item.title || item.id)}</div>
+            <button type="button" data-step-index="${index}" class="list-group-item list-group-item-action lesson-card${index === selectedStepIndex ? ' is-active' : ''}">
+              <div class="item-head">
+                <div class="item-title">${index + 1}. ${escapeHtml(item.title || item.id)}</div>
                 ${getStatusBadgeMarkup(getStepStatus(lesson.id, index).status, getStepStatus(lesson.id, index).message)}
               </div>
-              <div class="mt-1 text-xs text-slate-500">${escapeHtml(item.id)}</div>
-              ${item.description ? `<div class="mt-1 text-xs text-slate-600">${escapeHtml(item.description)}</div>` : ''}
-              <div class="mt-1 text-xs text-slate-500">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
+              <div class="item-meta">${escapeHtml(item.id)}</div>
+              ${item.description ? `<div class="item-meta">${escapeHtml(item.description)}</div>` : ''}
+              <div class="item-meta">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
             </button>
           `).join('')}`
-        : 'No steps.';
+        : '<div class="empty"><p class="empty-title">No steps.</p></div>';
       stepsPreview.querySelectorAll('[data-step-index]').forEach((button) => {
         button.addEventListener('click', () => {
           selectedStepIndex = Number(button.getAttribute('data-step-index') || 0);
@@ -1203,7 +1479,7 @@ $pagePayload = [
       if (!runmethodAuthStatus) return;
       const text = String(message || '').trim();
       runmethodAuthStatus.textContent = text;
-      runmethodAuthStatus.className = isError ? 'text-sm text-red-700' : 'text-sm text-slate-600';
+      runmethodAuthStatus.className = isError ? 'text-danger small' : 'text-secondary small';
       runmethodAuthStatus.classList.toggle('hidden', !text);
     }
 
