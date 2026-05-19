@@ -1,3 +1,16 @@
+<?php
+declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/blockly$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,6 +19,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <script>
+    window.BrailleBlocklyAuth = {
+      authApiBasePath: <?= $jsValue($urlFor($appBase, 'authentication-api/')) ?>,
+      authLoginPageUrl: <?= $jsValue($urlFor($appBase, 'authentication.php')) ?>,
+      authBridgePageUrl: <?= $jsValue($urlFor($appBase, 'authentication.php?mode=bridge')) ?>,
+      homepageOrigin: 'https://www.tastenbraille.com'
+    };
+
     window.BrailleBlocklyBoot = {
       stage: 'index-html',
       error: '',
@@ -78,100 +98,16 @@
     }
 
     #app {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      height: 100%;
-    }
-
-    .loading-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background:
-        radial-gradient(900px 520px at 20% 15%, rgba(37, 99, 235, 0.18), transparent 60%),
-        radial-gradient(780px 460px at 82% 20%, rgba(34, 197, 94, 0.12), transparent 58%),
-        rgba(244, 246, 251, 0.94);
-      backdrop-filter: blur(10px);
-      transition: opacity 220ms ease, visibility 220ms ease;
-    }
-
-    .loading-overlay.is-hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .loading-overlay.is-error .loading-card {
-      border-color: rgba(239, 68, 68, 0.22);
-      box-shadow: 0 18px 60px rgba(239, 68, 68, 0.18);
-    }
-
-    .loading-card {
-      width: min(520px, 100%);
-      padding: 26px 28px;
-      border-radius: var(--tblr-border-radius-lg);
-      border: var(--tblr-border-width) solid var(--tblr-border-color);
-      background: var(--tblr-bg-surface);
-      box-shadow: var(--tblr-box-shadow-lg);
-    }
-
-    .loading-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 12px;
-      border-radius: var(--tblr-border-radius-pill);
-      background: var(--tblr-primary-lt);
-      color: var(--tblr-primary);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-
-    .loading-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: currentColor;
-      box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.35);
-      animation: loading-pulse 1.4s infinite;
-    }
-
-    .loading-title {
-      margin: 16px 0 8px;
-      font-size: clamp(26px, 3vw, 34px);
-      line-height: 1.05;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-    }
-
-    .loading-subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    .loading-stage {
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(148, 163, 184, 0.22);
-      font-size: 13px;
-      color: #475569;
-    }
-
-    @keyframes loading-pulse {
-      0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.28); }
-      70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(37, 99, 235, 0); }
-      100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+      flex-direction: column;
+      height: 100vh;
+      min-height: 0;
     }
 
     #topbar {
+      position: relative;
+      z-index: 30;
+      flex: 0 0 auto;
       background: var(--panel);
       border-bottom: 1px solid var(--border);
       padding: 12px 16px;
@@ -186,6 +122,10 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+    }
+
+    .topbar-row--main {
+      flex-wrap: nowrap;
     }
 
     .topbar-row--sim {
@@ -232,7 +172,7 @@
     }
 
     .topbar-script-picker #onlineScriptStatusInput {
-      flex: 0 0 150px;
+      flex: 0 0 220px;
     }
 
     .topbar-script-picker #onlineRefreshBtn {
@@ -282,127 +222,11 @@
       flex: 1 1 auto;
     }
 
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: var(--tblr-border-width) solid var(--tblr-border-color);
-      background: var(--tblr-bg-surface);
-      color: var(--tblr-body-color);
-      text-decoration: none;
-      border-radius: var(--tblr-border-radius);
-      min-height: 40px;
-      padding: .4375rem .75rem;
-      font-size: var(--tblr-font-size-base);
-      font-weight: 500;
-      line-height: 1.4285714286;
-      cursor: pointer;
-      box-shadow: var(--tblr-btn-box-shadow);
-    }
-
-    #onlineScriptsSelect,
-    #onlineScriptStatusInput {
-      min-height: 40px;
-      height: 40px;
-      padding: 8px 12px;
-      box-sizing: border-box;
-    }
-
     #instructionTtsVoiceSelect {
       min-height: 40px;
       height: 40px;
       padding: 8px 12px;
       box-sizing: border-box;
-    }
-
-    .btn-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      min-width: 44px;
-      min-height: 40px;
-      padding: 8px 10px;
-    }
-
-    .btn-icon svg,
-    .btn-icon .ti {
-      display: block;
-      width: 20px;
-      height: 20px;
-    }
-
-    .btn-icon .label {
-      font-weight: 600;
-      line-height: 1;
-    }
-
-    .btn:hover {
-      background: var(--tblr-bg-surface-secondary);
-      text-decoration: none;
-    }
-
-    .btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.68;
-      filter: none;
-    }
-
-    .btn-green {
-      background: var(--tblr-success);
-      color: var(--tblr-white);
-      border-color: var(--tblr-success);
-    }
-
-    .btn-red {
-      background: var(--tblr-danger);
-      color: var(--tblr-white);
-      border-color: var(--tblr-danger);
-    }
-
-    .btn-blue {
-      background: var(--tblr-primary);
-      color: var(--tblr-white);
-      border-color: var(--tblr-primary);
-    }
-
-    .btn-soft {
-      background: var(--tblr-primary-lt);
-      color: var(--tblr-primary);
-      border-color: color-mix(in srgb, var(--tblr-primary) 18%, transparent);
-    }
-
-    .btn-ws {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      min-height: 40px;
-      padding: 8px;
-    }
-
-    .btn-ws.is-connected {
-      background: #dcfce7;
-      color: #166534;
-      border-color: #86efac;
-    }
-
-    .btn-ws.is-disconnected {
-      background: #fef2f2;
-      color: #991b1b;
-      border-color: #fecaca;
-    }
-
-    .ws-indicator {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: #dc2626;
-      flex: 0 0 auto;
-    }
-
-    .btn-ws.is-connected .ws-indicator {
-      background: #16a34a;
     }
 
     .bridge-indicator {
@@ -481,39 +305,6 @@
     .badge.stopped {
       background: #fee2e2;
       color: #991b1b;
-    }
-
-    .btn.is-active {
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-      transform: translateY(-1px);
-    }
-
-    .btn-green.is-active {
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.22);
-    }
-
-    .btn-red.is-active {
-      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.22);
-    }
-
-    .btn.is-completed {
-      border-color: #86efac;
-      background: #dcfce7;
-      color: #166534;
-      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
-    }
-
-    .btn.is-stopped {
-      border-color: #cbd5e1;
-      background: var(--tblr-bg-surface-secondary);
-      color: #475569;
-    }
-
-    .btn.is-stopping {
-      border-color: #fcd34d;
-      background: #fffbeb;
-      color: #92400e;
-      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18);
     }
 
     .run-status {
@@ -605,19 +396,6 @@
       color: #b91c1c;
     }
 
-    #runBtn,
-    #stopBtn,
-    #gridSnapBtn {
-      width: 96px;
-      justify-content: center;
-    }
-
-    #sidebarToggleBtn {
-      width: 116px;
-      justify-content: center;
-      white-space: nowrap;
-    }
-
     #fileStateBadge {
       width: 56px;
       justify-content: center;
@@ -630,9 +408,14 @@
     }
 
     #main {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 18px var(--sidebar-width, 780px);
+      height: 100%;
       min-height: 0;
+      overflow: hidden;
     }
 
     #main.is-sidebar-hidden {
@@ -644,9 +427,12 @@
     }
 
     #workspaceWrap {
+      position: relative;
       min-width: 0;
       min-height: 0;
+      height: 100%;
       padding: 10px;
+      overflow: hidden;
     }
 
     .main-divider {
@@ -696,6 +482,8 @@
     }
 
     #blocklyDiv {
+      position: relative;
+      z-index: 1;
       width: 100%;
       height: 100%;
       border: 1px solid var(--border);
@@ -910,12 +698,6 @@
       color: #991b1b;
     }
 
-    #onlineSaveBtn.is-dirty {
-      border-color: #fecaca;
-      background: #fef2f2;
-      color: #991b1b;
-    }
-
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -962,21 +744,25 @@
     }
   </style>
 </head>
-<body>
-<div id="loadingOverlay" class="loading-overlay" role="status" aria-live="polite" aria-atomic="true">
-  <div class="loading-card">
-    <div class="loading-badge">
-      <span class="loading-dot" aria-hidden="true"></span>
-      Blockly Loading
+<body class="bg-body">
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 z-3 d-flex align-items-center justify-content-center bg-body p-3" role="status" aria-live="polite" aria-atomic="true">
+  <div class="container-tight">
+    <div class="card card-md shadow-lg">
+      <div class="card-body">
+        <div class="badge bg-primary-lt mb-3">
+          <span class="spinner-grow spinner-grow-sm me-2" aria-hidden="true"></span>
+          Blockly Loading
+        </div>
+        <h1 class="h2 mb-2">Blockly met data wordt geladen</h1>
+        <p id="loadingSubtitle" class="text-secondary mb-3">De editor en bijbehorende gegevens worden voorbereid. Dit duurt soms een paar seconden.</p>
+        <div id="loadingStage" class="alert alert-info mb-0 py-2">Initialiseren…</div>
+      </div>
     </div>
-    <h1 class="loading-title">Blockly met data wordt geladen</h1>
-    <p id="loadingSubtitle" class="loading-subtitle">De editor en bijbehorende gegevens worden voorbereid. Dit duurt soms een paar seconden.</p>
-    <div id="loadingStage" class="loading-stage">Initialiseren…</div>
   </div>
 </div>
 <div id="app">
   <div id="topbar">
-    <div class="topbar-row">
+    <div class="topbar-row topbar-row--main">
       <div id="title">
         <span class="avatar avatar-sm bg-primary-lt text-primary">
           <i class="ti ti-puzzle" aria-hidden="true"></i>
@@ -986,45 +772,48 @@
 
       <input id="fileInput" type="file" accept=".blockly">
 
-      <div class="spacer"></div>
-
-      <button id="elevenlabsLoginBtn" class="btn btn-primary" type="button" aria-label="Authentication">
-        <i class="ti ti-login me-2" aria-hidden="true"></i>
-        Authentication
-      </button>
-      <button id="wsToggleBtn" class="btn btn-ws is-disconnected" type="button" aria-label="Connect WebSocket">
-        <span class="ws-indicator" aria-hidden="true"></span>
-      </button>
-      <span id="bridgeLaunchIndicator" class="bridge-indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
-        <span class="bridge-indicator-dot" aria-hidden="true"></span>
-      </span>
+      <div class="btn-list ms-auto flex-nowrap">
+        <button id="elevenlabsLoginBtn" class="btn btn-primary" type="button" aria-label="Authentication">
+          <i class="ti ti-login me-2" aria-hidden="true"></i>
+          Authentication
+        </button>
+        <button id="wsToggleBtn" class="btn btn-outline-danger btn-icon" type="button" aria-label="Connect WebSocket" title="Connect WebSocket">
+          <i class="ti ti-plug-connected" aria-hidden="true"></i>
+        </button>
+        <span id="bridgeLaunchIndicator" class="bridge-indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
+          <span class="bridge-indicator-dot" aria-hidden="true"></span>
+        </span>
+      </div>
     </div>
 
     <div class="topbar-row topbar-row--sim">
-      <button id="runBtn" class="btn btn-success btn-icon" type="button" aria-label="Start">
+      <button id="runBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Start" title="Start">
         <i class="ti ti-player-play" aria-hidden="true"></i>
-        <span class="label">Start</span>
       </button>
-      <button id="stopBtn" class="btn btn-danger btn-icon" type="button" aria-label="Stop">
+      <button id="stopBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Stop" title="Stop">
         <i class="ti ti-player-stop" aria-hidden="true"></i>
-        <span class="label">Stop</span>
       </button>
-      <button id="simThumbLeftBtn" class="btn btn-outline-primary">Left thumb</button>
-      <button id="simCursor5Btn" class="btn btn-outline-primary">Left middle thumb</button>
-      <button id="simChord1Btn" class="btn btn-outline-primary">Right middle thumb</button>
-      <button id="simThumbRightBtn" class="btn btn-outline-primary">Right thumb</button>
+      <button id="simThumbLeftBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left thumb" title="Left thumb">
+        <i class="ti ti-chevrons-left" aria-hidden="true"></i>
+      </button>
+      <button id="simCursor5Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left middle thumb" title="Left middle thumb">
+        <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      </button>
+      <button id="simChord1Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right middle thumb" title="Right middle thumb">
+        <i class="ti ti-chevron-right" aria-hidden="true"></i>
+      </button>
+      <button id="simThumbRightBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right thumb" title="Right thumb">
+        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+      </button>
       <div class="spacer"></div>
-      <button id="gridSnapBtn" class="btn btn-outline-primary is-active" type="button" aria-pressed="true">
-        <i class="ti ti-grid-dots me-2" aria-hidden="true"></i>
-        Snap On
+      <button id="gridSnapBtn" class="btn btn-outline-secondary btn-icon btn-lg active" type="button" aria-pressed="true" aria-label="Disable grid snap" title="Disable grid snap">
+        <i class="ti ti-grid-dots" aria-hidden="true"></i>
       </button>
-      <button id="monitorToggleBtn" class="btn btn-outline-primary is-active" type="button" aria-pressed="false">
-        <i class="ti ti-device-desktop me-2" aria-hidden="true"></i>
-        Hide Monitor
+      <button id="monitorToggleBtn" class="btn btn-outline-secondary btn-icon btn-lg active" type="button" aria-pressed="false" aria-label="Hide monitor" title="Hide monitor">
+        <i class="ti ti-device-desktop" aria-hidden="true"></i>
       </button>
-      <button id="sidebarToggleBtn" class="btn btn-outline-secondary" type="button" aria-pressed="true" aria-label="Hide status panel">
-        <i class="ti ti-layout-sidebar-right me-2" aria-hidden="true"></i>
-        Status
+      <button id="sidebarToggleBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-pressed="true" aria-label="Hide status panel" title="Hide status panel">
+        <i class="ti ti-layout-sidebar-right" aria-hidden="true"></i>
       </button>
     </div>
 
@@ -1039,33 +828,48 @@
     <div class="topbar-row topbar-row--scripts">
       <div class="topbar-script-group topbar-script-group--fields">
         <input id="onlineScriptIdInput" type="hidden">
-        <input id="onlineScriptTitleInput" class="form-control" type="text" placeholder="Script title (required)" required style="min-width:220px;">
+        <input id="onlineScriptTitleInput" class="form-control form-control-lg w-auto" type="text" size="18" placeholder="Script title" required>
         <div class="topbar-script-picker">
-          <select id="onlineScriptsSelect" class="form-select">
+          <select id="onlineScriptsSelect" class="form-select form-select-lg">
             <option value="">-- Select online script --</option>
           </select>
-          <select id="onlineScriptStatusInput" class="form-select">
+          <select id="onlineScriptStatusInput" class="form-select form-select-lg">
             <option value="draft">⚪ draft</option>
             <option value="started">🟡 started</option>
             <option value="in review">🔵 in review</option>
             <option value="approved">🟢 approved</option>
           </select>
-          <button id="onlineRefreshBtn" class="btn btn-outline-secondary" type="button">
-            <i class="ti ti-refresh me-2" aria-hidden="true"></i>
-            Refresh
+          <button id="onlineRefreshBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Refresh online scripts" title="Refresh online scripts">
+            <i class="ti ti-refresh" aria-hidden="true"></i>
           </button>
         </div>
       </div>
 
       <div class="topbar-script-group topbar-script-group--actions">
-        <button id="newBtn" class="btn btn-outline-secondary" type="button">New</button>
-        <button id="copyJsonBtn" class="btn btn-outline-secondary" type="button">Export</button>
-        <button id="importJsonBtn" class="btn btn-outline-secondary" type="button">Import</button>
-        <button id="onlineSaveBtn" class="btn btn-primary" type="button">Save</button>
-        <button id="onlineSaveAsBtn" class="btn btn-outline-primary" type="button">Save As</button>
-        <button id="onlineDeleteBtn" class="btn btn-outline-danger" type="button">Delete</button>
-        <button id="clearBtn" class="btn btn-outline-secondary" type="button">Clear</button>
-        <button id="arrangeBtn" class="btn btn-outline-secondary" type="button">Arrange</button>
+        <button id="newBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="New script" title="New script">
+          <i class="ti ti-file-plus" aria-hidden="true"></i>
+        </button>
+        <button id="copyJsonBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Export script" title="Export script">
+          <i class="ti ti-file-export" aria-hidden="true"></i>
+        </button>
+        <button id="importJsonBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Import script" title="Import script">
+          <i class="ti ti-file-import" aria-hidden="true"></i>
+        </button>
+        <button id="onlineSaveBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Save script" title="Save script">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>
+        </button>
+        <button id="onlineSaveAsBtn" class="btn btn-outline-primary btn-icon btn-lg" type="button" aria-label="Save script as" title="Save script as">
+          <i class="ti ti-copy-plus" aria-hidden="true"></i>
+        </button>
+        <button id="onlineDeleteBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Delete script" title="Delete script">
+          <i class="ti ti-trash" aria-hidden="true"></i>
+        </button>
+        <button id="clearBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Clear workspace" title="Clear workspace">
+          <i class="ti ti-eraser" aria-hidden="true"></i>
+        </button>
+        <button id="arrangeBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Arrange blocks" title="Arrange blocks">
+          <i class="ti ti-arrows-sort" aria-hidden="true"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -1094,7 +898,6 @@
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
-        <textarea id="scriptMetaPrompt" class="form-control meta-textarea meta-textarea--compact" placeholder="Prompt"></textarea>
         <div id="statusBox" class="mono"></div>
         </div>
       </div>
@@ -1102,42 +905,14 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Log</h3>
+          <div class="card-actions">
+            <button id="clearLogBtn" class="btn btn-outline-secondary btn-icon" type="button" aria-label="Clear log" title="Clear log">
+              <i class="ti ti-eraser" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <textarea id="logBox" class="mono" readonly></textarea>
-          <div class="row" style="margin-top:8px;">
-            <button id="clearLogBtn" class="btn btn-outline-secondary" type="button">Clear Log</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Tips</h3>
-        </div>
-        <div class="card-body">
-          <div class="small">
-            Use <strong>Variables</strong> for score, tries, level.<br>
-            Use <strong>State values</strong> to react to cursor position and thumb keys.<br>
-            <strong>Start</strong> only runs stacks under <strong>when started</strong>.
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Sounds</h3>
-        </div>
-        <div class="card-body">
-          <div class="small">Base URL:</div>
-          <div id="soundBaseUrlBox" class="mono"></div>
-          <div class="row">
-            <input id="soundFileInput" class="form-control" type="text" value="voorbeeld.mp3" style="flex:1; min-width:180px;">
-            <button id="playSoundBtn" class="btn btn-outline-primary">Play file</button>
-            <button id="pauseSoundBtn" class="btn btn-outline-secondary">Pause</button>
-            <button id="resumeSoundBtn" class="btn btn-outline-secondary">Resume</button>
-            <button id="stopSoundBtn" class="btn btn-outline-danger">Stop sound</button>
-          </div>
         </div>
       </div>
 
@@ -1589,8 +1364,8 @@
       subtitle.textContent = error
         ? 'Blockly kon niet volledig laden. Controleer de foutmelding hieronder of ververs de pagina.'
         : 'De editor en bijbehorende gegevens worden voorbereid. Dit duurt soms een paar seconden.';
-      overlay.classList.toggle('is-error', Boolean(error));
-      overlay.classList.toggle('is-hidden', appReady);
+      stage.className = error ? 'alert alert-danger mb-0 py-2' : 'alert alert-info mb-0 py-2';
+      overlay.classList.toggle('d-none', appReady);
     }
 
     window.addEventListener('braille-blockly-boot-stage', (event) => {
@@ -1617,7 +1392,7 @@
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260416-session-player-3';
+    const assetVersion = '20260512-auth-tabler-4';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {

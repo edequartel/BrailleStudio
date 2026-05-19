@@ -1,95 +1,167 @@
 <?php
 declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+$lessonBuilderBase = $scriptDir;
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
 ?>
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lesson Builder - Basisrecords</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="./lessonbuilder-shared.js?v=20260507-1"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson Builder - Lessons</title>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260507-1')) ?>"></script>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="max-w-7xl mx-auto p-6 space-y-5">
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <div class="text-sm font-semibold text-blue-700">Stap 2 van 3</div>
-        <h1 class="text-3xl font-bold">Basisrecords</h1>
+<body class="bg-body">
+  <div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2">
+            <i class="ti ti-braille text-primary" aria-hidden="true"></i>
+          </span>
+          <span>BrailleStudio</span>
+        </a>
+        <div id="methodSummary" class="navbar-text ms-3"></div>
       </div>
-      <div class="flex gap-2">
-        <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-method.php">Vorige stap</a>
-        <a class="rounded-xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php">Volgende stap</a>
+    </header>
+
+    <main class="page-wrapper">
+      <div class="page-header d-print-none">
+        <div class="container-xl">
+          <div class="row g-3 align-items-center">
+            <div class="col">
+              <div class="page-pretitle">Stap 2 van 3</div>
+              <h1 class="page-title">Lessons</h1>
+            </div>
+            <div class="col-auto">
+              <div class="btn-list">
+                <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-method.php')) ?>">
+                  <i class="ti ti-arrow-left me-2" aria-hidden="true"></i>
+                  Vorige stap
+                </a>
+                <a class="btn btn-primary" href="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-steps.php')) ?>">
+                  Volgende stap
+                  <i class="ti ti-arrow-right ms-2" aria-hidden="true"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-      <div class="text-lg font-bold">Actieve methode</div>
-      <div id="methodSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"></div>
-    </section>
-
-    <div class="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <div class="text-lg font-bold">Lessons</div>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="btn-list mb-3">
+            <button id="newRecordBtn" type="button" class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-plus me-2" aria-hidden="true"></i>
+              New
+            </button>
+            <button id="saveRecordsBtn" type="button" class="btn btn-outline-secondary btn-sm">
+              <i class="ti ti-device-floppy me-2" aria-hidden="true"></i>
+              Save
+            </button>
+            <button id="openLessonBtn" type="button" class="btn btn-outline-secondary btn-sm">Open lesson</button>
+            <button id="moveUpBtn" type="button" class="btn btn-outline-secondary btn-sm">Move up</button>
+            <button id="moveDownBtn" type="button" class="btn btn-outline-secondary btn-sm">Move down</button>
+            <button id="deleteRecordBtn" type="button" class="btn btn-outline-secondary btn-sm">Delete</button>
           </div>
-          <div class="flex gap-2">
-            <button id="newRecordBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">New</button>
-            <button id="saveRecordsBtn" type="button" class="rounded-xl border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white">Save</button>
+
+          <div class="row row-cards">
+            <div class="col-12 col-xl-5">
+              <div class="card">
+                <div id="basisRecordsList" class="list-group list-group-flush overflow-auto"></div>
+              </div>
+            </div>
+
+            <div class="col-12 col-xl-7">
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Editor</h2>
+                    <div id="recordEditorCaption" class="card-subtitle">Kies een record uit de lijst of maak een nieuw record.</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="wordInput">Word</label>
+                      <input id="wordInput" type="text" class="form-control" placeholder="bijv. bal">
+                    </div>
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="soundsInput">Sounds</label>
+                      <input id="soundsInput" type="text" class="form-control" placeholder="b, a, l">
+                    </div>
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="newSoundsInput">newSounds</label>
+                      <input id="newSoundsInput" type="text" class="form-control" placeholder="b, a, l">
+                    </div>
+                    <div class="col-12 col-lg-6">
+                      <label class="form-label" for="knownSoundsInput">knownSounds</label>
+                      <textarea id="knownSoundsInput" class="form-control" rows="4" placeholder="b, a, l"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">Debug log</h2>
+            </div>
+            <div class="card-body">
+              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+            </div>
           </div>
         </div>
-        <div id="basisRecordsList" class="max-h-[620px] space-y-2 overflow-auto"></div>
-      </section>
-
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <div class="text-lg font-bold">Record editor</div>
-            <div id="recordEditorCaption" class="text-sm text-slate-500">Kies een record uit de lijst of maak een nieuw record.</div>
-          </div>
-          <div class="flex flex-wrap justify-end gap-2">
-            <button id="openLessonBtn" type="button" class="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">Open lesson</button>
-            <button id="moveUpBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Move up</button>
-            <button id="moveDownBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">Move down</button>
-            <button id="deleteRecordBtn" type="button" class="rounded-xl border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">Delete</button>
-          </div>
-        </div>
-
-        <div class="grid gap-4 lg:grid-cols-2">
-          <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Word</span>
-            <input id="wordInput" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="bijv. bal">
-          </label>
-          <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">Sounds</span>
-            <input id="soundsInput" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="b, a, l">
-          </label>
-          <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">newSounds</span>
-            <input id="newSoundsInput" type="text" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="b, a, l">
-          </label>
-          <label class="space-y-2">
-            <span class="text-sm font-semibold text-slate-700">knownSounds</span>
-            <textarea id="knownSoundsInput" class="min-h-[108px] w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="b, a, l"></textarea>
-          </label>
-        </div>
-
-        <div id="recordSummary" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">Selecteer een basisrecord. Open daarna met dubbelklik of Enter.</div>
-      </section>
-    </div>
-
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-      <div class="text-lg font-bold">Debug log</div>
-      <pre id="statusBox" class="min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
-    </section>
+      </div>
+    </main>
   </div>
 
+  <div class="modal modal-blur fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Sluiten"></button>
+        <div class="modal-status bg-danger"></div>
+        <div class="modal-body text-center py-4">
+          <i class="ti ti-alert-triangle icon mb-2 text-danger icon-lg" aria-hidden="true"></i>
+          <h3>Record verwijderen?</h3>
+          <div id="deleteConfirmText" class="text-secondary"></div>
+        </div>
+        <div class="modal-footer">
+          <div class="w-100">
+            <div class="row">
+              <div class="col">
+                <button type="button" class="btn w-100" data-bs-dismiss="modal">Annuleren</button>
+              </div>
+              <div class="col">
+                <button id="confirmDeleteRecordBtn" type="button" class="btn btn-danger w-100">
+                  Verwijderen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const basisRecordsList = document.getElementById('basisRecordsList');
     const methodSummary = document.getElementById('methodSummary');
-    const recordSummary = document.getElementById('recordSummary');
     const recordEditorCaption = document.getElementById('recordEditorCaption');
     const statusBox = document.getElementById('statusBox');
     const wordInput = document.getElementById('wordInput');
@@ -102,11 +174,15 @@ declare(strict_types=1);
     const moveUpBtn = document.getElementById('moveUpBtn');
     const moveDownBtn = document.getElementById('moveDownBtn');
     const deleteRecordBtn = document.getElementById('deleteRecordBtn');
+    const deleteConfirmModalElement = document.getElementById('deleteConfirmModal');
+    const deleteConfirmText = document.getElementById('deleteConfirmText');
+    const confirmDeleteRecordBtn = document.getElementById('confirmDeleteRecordBtn');
 
     let state = shared.loadState();
     let basisItems = [];
     let originalBasisItems = [];
     let lessonsCache = [];
+    let pendingDeleteIndex = -1;
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
 
     function setStatus(message, data = null) {
@@ -145,6 +221,15 @@ declare(strict_types=1);
       return ensureRecordUid(shared.createEmptyBasisRecord());
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
     function getSelectedIndex() {
       const basisIndex = Number(state.basisIndex ?? -1);
       if (!Number.isInteger(basisIndex) || basisIndex < 0 || basisIndex >= basisItems.length) {
@@ -160,13 +245,11 @@ declare(strict_types=1);
 
     function renderMethodSummary() {
       const method = shared.getDraftMethodMeta(state);
+      const methodId = String(method.id || '-');
+      const methodTitle = String(method.title || '-');
       methodSummary.innerHTML = `
-        <div><strong>ID:</strong> ${method.id || '-'}</div>
-        <div><strong>Title:</strong> ${method.title || '-'}</div>
-        <div><strong>Basisbestand:</strong> ${method.basisFile || '-'}</div>
-        <div><strong>Data source:</strong> ${method.dataSource || '-'}</div>
-        <div><strong>Image:</strong> ${method.imageUrl || '-'}</div>
-        ${method.imageUrl ? `<div class="mt-3"><img src="${method.imageUrl}" alt="Method image" class="max-h-32 rounded-lg border border-slate-200 bg-white object-contain"></div>` : ''}
+        <span class="fw-medium">${escapeHtml(methodTitle)}</span>
+        <span class="text-secondary ms-2">${escapeHtml(methodId)}</span>
       `;
     }
 
@@ -176,12 +259,6 @@ declare(strict_types=1);
 
     function getLessonsForBasisIndex(basisIndex) {
       return shared.getLessonsForBasis(lessonsCache, basisIndex);
-    }
-
-    function getLessonStepCount(item) {
-      if (!item) return 0;
-      if (Array.isArray(item.steps)) return item.steps.length;
-      return Number(item.stepsCount ?? 0) || 0;
     }
 
     function buildDraftLessonForBasis(basisIndex) {
@@ -241,24 +318,27 @@ declare(strict_types=1);
     function renderBasisList() {
       basisRecordsList.innerHTML = '';
       if (!basisItems.length) {
-        basisRecordsList.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Geen basisrecords geladen.</div>';
+        basisRecordsList.innerHTML = '<div class="list-group-item text-secondary">Geen basisrecords geladen.</div>';
         return;
       }
 
       basisItems.forEach((item, index) => {
         const lessons = getLessonsForBasisIndex(index);
         const button = document.createElement('button');
+        const isSelected = index === getSelectedIndex();
         button.type = 'button';
         button.dataset.index = String(index);
-        button.className = `w-full rounded-xl border px-4 py-3 text-left focus:outline-none focus:ring-0 ${index === getSelectedIndex() ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'}`;
+        button.className = `list-group-item list-group-item-action text-start ${isSelected ? 'active bg-primary text-white border-primary' : ''}`;
         button.innerHTML = `
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <div class="font-bold">${shared.getBasisWord(item, index) || '(zonder woord)'}</div>
-              <div class="mt-1 text-xs text-slate-500">${(item.sounds || []).join(', ') || 'Geen sounds'}</div>
-              <div class="mt-1 text-xs text-slate-500">${lessons.length} lesson(s)</div>
+          <div class="row align-items-start">
+            <div class="col">
+              <div class="fw-bold">${escapeHtml(shared.getBasisWord(item, index) || '(zonder woord)')}</div>
+              <div class="small ${isSelected ? 'text-white-50' : 'text-secondary'}">${escapeHtml((item.sounds || []).join(', ') || 'Geen sounds')}</div>
+              <div class="small ${isSelected ? 'text-white-50' : 'text-secondary'}">${escapeHtml(lessons.length)} lesson(s)</div>
             </div>
-            <div class="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">${String(index + 1).padStart(2, '0')}</div>
+            <div class="col-auto">
+              <span class="badge ${isSelected ? 'bg-white text-primary' : 'bg-secondary-lt'}">${String(index + 1).padStart(2, '0')}</span>
+            </div>
           </div>
         `;
         button.addEventListener('click', () => selectBasisIndex(index));
@@ -273,9 +353,6 @@ declare(strict_types=1);
     function renderEditor() {
       const index = getSelectedIndex();
       const item = getSelectedRecord();
-      const lessons = index >= 0 ? getLessonsForBasisIndex(index) : [];
-      const draftLesson = index >= 0 ? buildDraftLessonForBasis(index) : null;
-      const lesson = index >= 0 ? (getLessonForBasis(index) || draftLesson) : null;
 
       const hasSelection = Boolean(item);
       wordInput.disabled = !hasSelection;
@@ -293,7 +370,6 @@ declare(strict_types=1);
         soundsInput.value = '';
         newSoundsInput.value = '';
         knownSoundsInput.value = '';
-        recordSummary.textContent = 'Selecteer een basisrecord. Open daarna met dubbelklik of Enter.';
         return;
       }
 
@@ -302,15 +378,6 @@ declare(strict_types=1);
       soundsInput.value = (item.sounds || []).join(', ');
       newSoundsInput.value = (item.newSounds || []).join(', ');
       knownSoundsInput.value = (item.knownSounds || []).join(', ');
-      recordSummary.innerHTML = `
-        <div><strong>Word:</strong> ${shared.getBasisWord(item, index) || '-'}</div>
-        <div><strong>Sounds:</strong> ${(item.sounds || []).join(', ') || '-'}</div>
-        <div><strong>newSounds:</strong> ${(item.newSounds || []).join(', ') || '-'}</div>
-        <div><strong>knownSounds:</strong> ${(item.knownSounds || []).join(', ') || '-'}</div>
-        <div><strong>Lesson:</strong> ${lesson?.title || '-'}</div>
-        <div><strong>Steps:</strong> ${getLessonStepCount(lesson)}</div>
-        <div><strong>Linked lessons:</strong> ${lessons.length}</div>
-      `;
     }
 
     function updateSelectedRecordFromInputs() {
@@ -355,22 +422,50 @@ declare(strict_types=1);
       setStatus(`Record verplaatst naar positie ${targetIndex + 1}.`);
     }
 
+    function removeRecordAtIndex(index) {
+      if (index < 0) {
+        return;
+      }
+      const word = shared.getBasisWord(basisItems[index], index);
+
+      basisItems.splice(index, 1);
+      const nextIndex = basisItems.length ? Math.min(index, basisItems.length - 1) : -1;
+      selectBasisIndex(nextIndex);
+      setStatus(`Record "${word}" verwijderd. Sla op om het basisbestand en gekoppelde lessons bij te werken.`);
+    }
+
+    function getDeleteModal() {
+      if (!deleteConfirmModalElement || !window.bootstrap?.Modal) {
+        return null;
+      }
+      return window.bootstrap.Modal.getOrCreateInstance(deleteConfirmModalElement);
+    }
+
     function deleteSelectedRecord() {
       const index = getSelectedIndex();
       if (index < 0) {
         return;
       }
       const linkedLessons = getLessonsForBasisIndex(index);
-      const word = shared.getBasisWord(basisItems[index], index);
+      const word = shared.getBasisWord(basisItems[index], index) || `record ${index + 1}`;
       const suffix = linkedLessons.length ? ` Dit verwijdert na opslaan ook ${linkedLessons.length} gekoppelde lesson(s).` : '';
-      if (!window.confirm(`Record "${word}" verwijderen?${suffix}`)) {
+      pendingDeleteIndex = index;
+      deleteConfirmText.textContent = `Je verwijdert "${word}".${suffix}`;
+      const modal = getDeleteModal();
+      if (modal) {
+        modal.show();
         return;
       }
+      if (window.confirm(`Record "${word}" verwijderen?${suffix}`)) {
+        removeRecordAtIndex(index);
+      }
+    }
 
-      basisItems.splice(index, 1);
-      const nextIndex = basisItems.length ? Math.min(index, basisItems.length - 1) : -1;
-      selectBasisIndex(nextIndex);
-      setStatus(`Record "${word}" verwijderd. Sla op om het basisbestand en gekoppelde lessons bij te werken.`);
+    function confirmDeleteRecord() {
+      const index = pendingDeleteIndex;
+      pendingDeleteIndex = -1;
+      getDeleteModal()?.hide();
+      removeRecordAtIndex(index);
     }
 
     async function syncLessonsAfterBasisSave(previousItems, nextItems) {
@@ -533,6 +628,10 @@ declare(strict_types=1);
     moveUpBtn.addEventListener('click', () => moveSelectedRecord(-1));
     moveDownBtn.addEventListener('click', () => moveSelectedRecord(1));
     deleteRecordBtn.addEventListener('click', deleteSelectedRecord);
+    confirmDeleteRecordBtn.addEventListener('click', confirmDeleteRecord);
+    deleteConfirmModalElement.addEventListener('hidden.bs.modal', () => {
+      pendingDeleteIndex = -1;
+    });
 
     document.addEventListener('keydown', (event) => {
       const target = event.target;

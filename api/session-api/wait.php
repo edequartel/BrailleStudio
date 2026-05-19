@@ -30,6 +30,8 @@ while (true) {
             'active' => (bool)($session['active'] ?? true),
             'createdAt' => (string)($session['createdAt'] ?? ''),
             'expiresAt' => (string)($session['expiresAt'] ?? ''),
+            'joinedAt' => (string)($session['joinedAt'] ?? ''),
+            'lastSeenAt' => (string)($session['lastSeenAt'] ?? ''),
             'runtime' => session_api_build_runtime_state($session),
             'lastResolvedAt' => $lastResolvedAt,
             'lastResolvedCode' => (string)($session['lastResolvedCode'] ?? ''),

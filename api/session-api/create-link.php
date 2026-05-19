@@ -21,17 +21,20 @@ $active = array_key_exists('active', $input) ? (bool)$input['active'] : true;
 $overwrite = array_key_exists('overwrite', $input) ? (bool)$input['overwrite'] : false;
 $meta = isset($input['meta']) && is_array($input['meta']) ? $input['meta'] : [];
 $stepInputs = isset($input['stepInputs']) && is_array($input['stepInputs']) ? $input['stepInputs'] : [];
+$methodIdRaw = trim((string)($input['methodId'] ?? ($meta['methodId'] ?? '')));
+$methodId = $methodIdRaw !== '' ? session_api_normalize_token($methodIdRaw, 'methodId', 3, 128) : '';
 
-$path = session_api_step_link_file($code);
+$path = session_api_step_link_file($code, $methodId);
 $existing = session_api_read_json_file($path);
 if (is_array($existing) && !$overwrite) {
-    session_api_error('Step code already exists', 409, ['code' => $code]);
+    session_api_error('Step code already exists', 409, ['code' => $code, 'methodId' => $methodId]);
 }
 
 $now = session_api_now_iso();
 $record = [
     'code' => $code,
     'active' => $active,
+    'methodId' => $methodId,
     'stepId' => $stepId,
     'scriptId' => $scriptId,
     'createdAt' => is_array($existing) ? (string)($existing['createdAt'] ?? $now) : $now,
@@ -45,6 +48,7 @@ session_api_write_json_file($path, $record);
 session_api_respond([
     'ok' => true,
     'code' => $code,
+    'methodId' => $methodId,
     'created' => !is_array($existing),
     'record' => $record,
 ]);

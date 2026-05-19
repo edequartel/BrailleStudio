@@ -27,8 +27,8 @@ const COMPOUND_LIBRARY_API_BASES = [
 ];
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
 const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
-const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
-const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
+const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php';
 const BRAILLEBRIDGE_PROTOCOL_URL = 'braillebridge://';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';

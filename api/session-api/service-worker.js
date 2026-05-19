@@ -1,6 +1,6 @@
 const CACHE_NAME = 'braille-session-start-v1';
 const APP_SHELL_URLS = [
-  '/braillestudio/api/session-api/start.html',
+  '/braillestudio/session-api/start.php',
   '/braillestudio/api/session-api/manifest.webmanifest',
   '/braillestudio/api/session-api/icon-start.svg',
   '/braillestudio/favicon.ico'

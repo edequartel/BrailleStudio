@@ -14,8 +14,8 @@
   const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
-  const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
-  const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+  const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
+  const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php';
   const HOMEPAGE_ORIGIN = 'https://www.tastenbraille.com';
   const basisDataCache = new Map();
   const EMPTY_SOUND_CATEGORY_KEYS = [
@@ -82,7 +82,7 @@
       const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
       const authUrl = new URL(
         useSameOriginStorageFlow
-          ? 'https://www.tastenbraille.com/braillestudio/authentication.html'
+          ? 'https://www.tastenbraille.com/braillestudio/authentication.php'
           : AUTH_BRIDGE_URL
       );
       if (!useSameOriginStorageFlow) {

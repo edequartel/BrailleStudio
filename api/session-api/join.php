@@ -9,7 +9,15 @@ session_api_ensure_storage_dirs();
 
 $input = session_api_read_json_input();
 $sessionId = session_api_normalize_token((string)($input['sessionId'] ?? ''), 'sessionId', 16, 64);
-$session = session_api_load_session_or_fail($sessionId);
+$now = session_api_now_iso();
+
+$session = session_api_update_session_file($sessionId, static function (array $session) use ($now): array {
+    if (trim((string)($session['joinedAt'] ?? '')) === '') {
+        $session['joinedAt'] = $now;
+    }
+    $session['lastSeenAt'] = $now;
+    return $session;
+});
 
 session_api_respond([
     'ok' => true,
@@ -19,8 +27,4 @@ session_api_respond([
     'expiresAt' => (string)($session['expiresAt'] ?? ''),
     'joinedAt' => (string)($session['joinedAt'] ?? ''),
     'lastSeenAt' => (string)($session['lastSeenAt'] ?? ''),
-    'runtime' => session_api_build_runtime_state($session),
-    'lastResolvedAt' => (string)($session['lastResolvedAt'] ?? ''),
-    'lastResolvedCode' => (string)($session['lastResolvedCode'] ?? ''),
-    'lastResolved' => is_array($session['lastResolved'] ?? null) ? $session['lastResolved'] : null,
 ]);

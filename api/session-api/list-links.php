@@ -30,8 +30,13 @@ if (isset($_GET['code']) && trim((string)$_GET['code']) !== '') {
     $codeFilter = session_api_normalize_token((string)$_GET['code'], 'code', 3, 64);
 }
 
+$methodFilter = '';
+if (isset($_GET['methodId']) && trim((string)$_GET['methodId']) !== '') {
+    $methodFilter = session_api_normalize_token((string)$_GET['methodId'], 'methodId', 3, 128);
+}
+
 $records = [];
-foreach (session_api_list_json_files(session_api_step_links_dir()) as $path) {
+foreach (session_api_list_step_link_files() as $path) {
     $record = session_api_read_json_file($path);
     if (!is_array($record)) {
         continue;
@@ -46,6 +51,11 @@ foreach (session_api_list_json_files(session_api_step_links_dir()) as $path) {
         continue;
     }
 
+    $methodId = trim((string)($record['methodId'] ?? session_api_step_link_method_id_from_path($path)));
+    if ($methodFilter !== '' && $methodId !== $methodFilter) {
+        continue;
+    }
+
     $isActive = (bool)($record['active'] ?? false);
     if ($activeFilter !== null && $isActive !== $activeFilter) {
         continue;
@@ -54,6 +64,7 @@ foreach (session_api_list_json_files(session_api_step_links_dir()) as $path) {
     $records[] = [
         'code' => $code,
         'active' => $isActive,
+        'methodId' => $methodId,
         'stepId' => (string)($record['stepId'] ?? ''),
         'scriptId' => (string)($record['scriptId'] ?? ''),
         'updatedAt' => $record['updatedAt'] ?? null,

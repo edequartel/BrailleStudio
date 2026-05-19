@@ -2,7 +2,7 @@
   "name": "Braille Sessie Start",
   "short_name": "Braille Start",
   "description": "Scan een step-link en start deze voor een BrailleStudio laptopsessie.",
-  "start_url": "/braillestudio/api/session-api/start.html",
+  "start_url": "/braillestudio/session-api/start.php",
   "scope": "/braillestudio/api/session-api/",
   "display": "standalone",
   "background_color": "#f6f8fb",

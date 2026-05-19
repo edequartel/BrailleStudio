@@ -1,169 +1,77 @@
+<?php
+declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = $scriptDir;
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+?>
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BrailleStudio Login</title>
-  <style>
-    :root {
-      --bg: #f3f4f6;
-      --fg: #111827;
-      --panel: #ffffff;
-      --panel2: #f9fafb;
-      --muted: #6b7280;
-      --border: rgba(10,20,40,.12);
-      --radius: 16px;
-      --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-      --sans: Arial, sans-serif;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      color: var(--fg);
-      background:
-        radial-gradient(900px 620px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
-        radial-gradient(860px 540px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
-        var(--bg);
-    }
-
-    .wrap {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 32px 18px;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .title h1 {
-      margin: 0 0 4px;
-      font-size: 28px;
-    }
-
-    .title p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .btn,
-    .input {
-      appearance: none;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 14px;
-    }
-
-    .btn {
-      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
-      color: var(--fg);
-      padding: 10px 14px;
-      cursor: pointer;
-      text-decoration: none;
-      box-shadow: var(--shadow);
-    }
-
-    .btn.ghost {
-      background: transparent;
-      box-shadow: none;
-    }
-
-    .card {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      box-shadow: var(--shadow);
-      padding: 22px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .input {
-      width: 100%;
-      padding: 12px 14px;
-      background: #fff;
-      color: var(--fg);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .status {
-      min-height: 22px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .status.is-error {
-      color: #b91c1c;
-    }
-
-    .help {
-      margin-top: 18px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.55;
-    }
-
-    @media (max-width: 700px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
 </head>
-<body>
-  <div class="wrap">
-    <div class="header">
-      <div class="title">
-        <h1>BrailleStudio Login</h1>
-        <p id="pageSubtitle">Log in om beveiligde onderdelen van BrailleStudio te gebruiken.</p>
+<body class="bg-body d-flex align-items-center justify-content-center min-vh-100">
+  <div class="container container-tight py-4 w-100">
+      <div class="text-center mb-4">
+        <a class="navbar-brand navbar-brand-autodark justify-content-center" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2"><i class="ti ti-braille text-primary" aria-hidden="true"></i></span>
+          <span>BrailleStudio</span>
+        </a>
       </div>
-      <a class="btn ghost" href="./index.html">Terug naar home</a>
-    </div>
 
-    <div class="card">
-      <div class="grid">
-        <input id="authUsernameInput" class="input" type="text" placeholder="Username">
-        <input id="authPasswordInput" class="input" type="password" placeholder="Password">
-      </div>
-      <div class="actions">
-        <button id="authLoginBtn" class="btn" type="button">Log in</button>
-        <button id="authLogoutBtn" class="btn ghost" type="button">Log out</button>
-      </div>
-      <div id="authStatus" class="status">Not logged in.</div>
+      <div class="card card-md">
+        <div class="card-body">
+          <h1 class="h2 text-center mb-2">BrailleStudio Login</h1>
+          <p id="pageSubtitle" class="text-secondary text-center mb-4">Log in om beveiligde onderdelen van BrailleStudio te gebruiken.</p>
 
-      <div class="help">
+          <div class="mb-3">
+            <label class="form-label" for="authUsernameInput">Username</label>
+            <input id="authUsernameInput" class="form-control" type="text" placeholder="Username" autocomplete="username">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="authPasswordInput">Password</label>
+            <input id="authPasswordInput" class="form-control" type="password" placeholder="Password" autocomplete="current-password">
+          </div>
+
+          <div class="btn-list justify-content-center mb-3">
+            <button id="authLoginBtn" class="btn btn-primary" type="button">
+              <i class="ti ti-login me-2" aria-hidden="true"></i>
+              Log in
+            </button>
+            <button id="authLogoutBtn" class="btn btn-outline-secondary" type="button">
+              <i class="ti ti-logout me-2" aria-hidden="true"></i>
+              Log out
+            </button>
+          </div>
+
+          <div id="authStatus" class="alert alert-secondary mb-0">Not logged in.</div>
+        </div>
+      </div>
+
+      <div class="text-center text-secondary mt-3">
         Na het inloggen ga je automatisch terug naar de pagina die je wilde openen.
       </div>
-    </div>
+      <div class="text-center mt-3">
+        <a class="btn btn-link" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">Terug naar home</a>
+      </div>
   </div>
 
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
   (function () {
     "use strict";
 
-    const AUTH_BASE = "https://www.tastenbraille.com/braillestudio/authentication-api/";
+    const AUTH_BASE_PATH = <?= $jsValue($urlFor($appBase, 'authentication-api/')) ?>;
     const AUTH_TOKEN_KEY = "braillestudioAuthToken";
     const LEGACY_ELEVENLABS_AUTH_TOKEN_KEY = "elevenlabsAuthToken";
     const AUTH_AUDIENCE = "braillestudio-api";
@@ -171,14 +79,14 @@
     const params = new URLSearchParams(window.location.search);
     const bridgeMode = params.get("mode") === "bridge";
     const requestedOrigin = String(params.get("origin") || "").trim();
-    const returnTo = normalizeReturnTo(params.get("returnTo"));
+    const returnTo = normalizeReturnTo(params.get("returnTo")) || (bridgeMode ? "" : normalizeReturnTo("index.php"));
 
     function normalizeReturnTo(raw) {
       const value = String(raw || "").trim();
       if (!value) return "";
       try {
         const url = new URL(value, window.location.href);
-        if (url.origin !== HOMEPAGE_ORIGIN) return "";
+        if (url.origin !== window.location.origin && url.origin !== HOMEPAGE_ORIGIN) return "";
         return url.toString();
       } catch {
         return "";
@@ -186,11 +94,7 @@
     }
 
     function getAuthBaseUrl() {
-      const host = String(window.location.hostname || "").toLowerCase();
-      if (host === "127.0.0.1" || host === "localhost") {
-        return AUTH_BASE;
-      }
-      return AUTH_BASE;
+      return new URL(AUTH_BASE_PATH, window.location.origin).toString();
     }
 
     function getAuthEndpointUrl(fileName) {
@@ -228,7 +132,11 @@
       if (!status) return;
       const token = getStoredAuthToken();
       status.textContent = message || (token ? "Authenticated." : "Not logged in.");
-      status.classList.toggle("is-error", !!isError);
+      status.className = isError
+        ? "alert alert-danger mb-0"
+        : token
+          ? "alert alert-success mb-0"
+          : "alert alert-secondary mb-0";
       if (logoutBtn) logoutBtn.disabled = !token;
     }
 

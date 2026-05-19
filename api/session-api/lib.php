@@ -31,6 +31,12 @@ function session_api_step_links_dir(): string
     return session_api_data_root() . '/step-links';
 }
 
+function session_api_step_links_method_dir(string $methodId): string
+{
+    $safeMethodId = session_api_normalize_token($methodId, 'methodId', 3, 128);
+    return session_api_step_links_dir() . '/' . $safeMethodId;
+}
+
 function session_api_send_common_headers(): void
 {
     header('Content-Type: application/json; charset=utf-8');
@@ -129,10 +135,56 @@ function session_api_sessions_file(string $sessionId): string
     return session_api_sessions_dir() . '/' . $safeId . '.json';
 }
 
-function session_api_step_link_file(string $code): string
+function session_api_step_link_file(string $code, string $methodId = ''): string
 {
     $safeCode = session_api_normalize_token($code, 'code', 3, 64);
+    $safeMethodId = trim($methodId);
+    if ($safeMethodId !== '') {
+        return session_api_step_links_method_dir($safeMethodId) . '/' . $safeCode . '.json';
+    }
     return session_api_step_links_dir() . '/' . $safeCode . '.json';
+}
+
+function session_api_find_step_link_path(string $code, string $methodId = ''): ?string
+{
+    $safeCode = session_api_normalize_token($code, 'code', 3, 64);
+    $safeMethodId = trim($methodId);
+    if ($safeMethodId !== '') {
+        $methodPath = session_api_step_link_file($safeCode, $safeMethodId);
+        if (is_file($methodPath)) {
+            return $methodPath;
+        }
+    }
+
+    $legacyPath = session_api_step_link_file($safeCode);
+    if (is_file($legacyPath)) {
+        return $legacyPath;
+    }
+
+    if ($safeMethodId !== '') {
+        return null;
+    }
+
+    foreach (session_api_list_step_link_files() as $path) {
+        if (basename($path) === $safeCode . '.json') {
+            return $path;
+        }
+    }
+
+    return null;
+}
+
+function session_api_step_link_method_id_from_path(string $path): string
+{
+    $base = realpath(session_api_step_links_dir());
+    $realPath = realpath($path);
+    if ($base === false || $realPath === false || !str_starts_with($realPath, $base . DIRECTORY_SEPARATOR)) {
+        return '';
+    }
+
+    $relative = substr($realPath, strlen($base) + 1);
+    $parts = explode(DIRECTORY_SEPARATOR, $relative);
+    return count($parts) > 1 ? $parts[0] : '';
 }
 
 function session_api_read_json_file(string $path): ?array
@@ -375,8 +427,9 @@ function session_api_normalize_runtime_state(?string $value): string
 function session_api_build_runtime_state(array $session): array
 {
     $runtime = is_array($session['runtime'] ?? null) ? $session['runtime'] : [];
+    $state = (string)($runtime['state'] ?? 'idle');
     return [
-        'state' => in_array(($runtime['state'] ?? 'idle'), ['idle', 'active'], true) ? (string)$runtime['state'] : 'idle',
+        'state' => in_array($state, ['idle', 'active'], true) ? $state : 'idle',
         'updatedAt' => (string)($runtime['updatedAt'] ?? ''),
         'code' => (string)($runtime['code'] ?? ''),
         'scriptId' => (string)($runtime['scriptId'] ?? ''),
@@ -404,10 +457,10 @@ function session_api_set_runtime_state(array &$session, string $state, array $pa
     return $runtime;
 }
 
-function session_api_load_step_link_or_fail(string $code): array
+function session_api_load_step_link_or_fail(string $code, string $methodId = ''): array
 {
-    $path = session_api_step_link_file($code);
-    $record = session_api_read_json_file($path);
+    $path = session_api_find_step_link_path($code, $methodId);
+    $record = $path !== null ? session_api_read_json_file($path) : null;
     if (!is_array($record)) {
         session_api_error('Step code not found', 404, ['code' => $code]);
     }
@@ -422,6 +475,7 @@ function session_api_load_step_link_or_fail(string $code): array
         session_api_error('Step code record is incomplete', 500, ['code' => $code]);
     }
 
+    $record['methodId'] = trim((string)($record['methodId'] ?? session_api_step_link_method_id_from_path($path)));
     return $record;
 }
 
@@ -447,6 +501,33 @@ function session_api_list_json_files(string $dir): array
         $path = $dir . '/' . $entry;
         if (is_file($path)) {
             $items[] = $path;
+        }
+    }
+
+    sort($items, SORT_STRING);
+    return $items;
+}
+
+function session_api_list_step_link_files(): array
+{
+    $root = session_api_step_links_dir();
+    if (!is_dir($root)) {
+        return [];
+    }
+
+    $items = session_api_list_json_files($root);
+    $entries = scandir($root);
+    if ($entries === false) {
+        session_api_error('Could not read storage directory', 500, ['path' => $root]);
+    }
+
+    foreach ($entries as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $path = $root . '/' . $entry;
+        if (is_dir($path)) {
+            $items = array_merge($items, session_api_list_json_files($path));
         }
     }
 

@@ -1,489 +1,242 @@
+<?php
+declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/(?:api/)?session-api$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+$sessionBase = $scriptDir;
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+?>
 <!doctype html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Step Link Admin</title>
-  <style>
-    :root {
-      --bg: #eef3f8;
-      --panel: #ffffff;
-      --border: #d7dee8;
-      --text: #16202f;
-      --muted: #627086;
-      --blue: #1d4ed8;
-      --green: #15803d;
-      --red: #b91c1c;
-      --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: linear-gradient(180deg, #f7fafc 0%, var(--bg) 100%);
-      color: var(--text);
-      font-family: "Segoe UI", Arial, sans-serif;
-    }
-    .page {
-      max-width: 1320px;
-      margin: 0 auto;
-      padding: 28px;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: end;
-      gap: 16px;
-      margin-bottom: 22px;
-    }
-    .header h1 {
-      margin: 0 0 8px;
-      font-size: 34px;
-      line-height: 1.1;
-    }
-    .header p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 760px;
-      line-height: 1.5;
-    }
-    .top-grid {
-      display: grid;
-      grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
-      gap: 18px;
-      align-items: start;
-      margin-bottom: 18px;
-    }
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-    .card h2 {
-      margin: 0 0 14px;
-      font-size: 18px;
-    }
-    .grid-two {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-    .grid-three {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      font-weight: 700;
-    }
-    input, textarea, select {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 11px 12px;
-      font-size: 14px;
-      background: white;
-      color: var(--text);
-      font-family: inherit;
-    }
-    select {
-      min-height: 46px;
-      height: 46px;
-    }
-    textarea {
-      min-height: 92px;
-      resize: vertical;
-    }
-    .field + .field {
-      margin-top: 14px;
-    }
-    .form-stack {
-      display: grid;
-      gap: 18px;
-    }
-    .script-selection-grid {
-      display: grid;
-      gap: 18px;
-    }
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 16px;
-    }
-    button, .button-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      padding: 10px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: white;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .btn-blue {
-      background: var(--blue);
-      border-color: var(--blue);
-      color: white;
-    }
-    .btn-green {
-      background: var(--green);
-      border-color: var(--green);
-      color: white;
-    }
-    .btn-red {
-      background: #fff1f2;
-      border-color: #fecdd3;
-      color: var(--red);
-    }
-    .status {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .auth-panel {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .auth-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 38px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: #fff;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .auth-pill.is-ok {
-      border-color: #bbf7d0;
-      background: #ecfdf5;
-      color: #15803d;
-    }
-    .auth-status {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .success { color: var(--green); }
-    .error { color: var(--red); }
-    .mono {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #f8fafc;
-      padding: 12px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 12px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .mono-log {
-      min-height: 180px;
-      max-height: 420px;
-      overflow: auto;
-    }
-    .is-hidden {
-      display: none;
-    }
-    .links-list {
-      display: grid;
-      gap: 12px;
-    }
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fbfdff;
-    }
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 720px;
-      font-size: 13px;
-    }
-    .data-table th,
-    .data-table td {
-      padding: 10px 12px;
-      text-align: left;
-      vertical-align: top;
-      border-bottom: 1px solid var(--border);
-    }
-    .data-table th {
-      background: #eff5fb;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #4a607b;
-      white-space: nowrap;
-    }
-    .data-table tr:last-child td {
-      border-bottom: 0;
-    }
-    .data-chip {
-      display: inline-flex;
-      align-items: center;
-      min-height: 26px;
-      padding: 4px 8px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: #fff;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .payload-grid {
-      display: grid;
-      gap: 14px;
-    }
-    .payload-section {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fbfdff;
-      padding: 12px;
-    }
-    .payload-section h3 {
-      margin: 0 0 10px;
-      font-size: 14px;
-    }
-    .payload-kv {
-      display: grid;
-      grid-template-columns: 140px minmax(0, 1fr);
-      gap: 8px 12px;
-      font-size: 13px;
-      align-items: start;
-    }
-    .payload-kv strong {
-      color: #4a607b;
-    }
-    .muted {
-      color: var(--muted);
-    }
-    .link-item {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      background: #fbfdff;
-    }
-    .link-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      border: 1px solid var(--border);
-      background: #f8fafc;
-    }
-    .badge.active {
-      background: #ecfdf5;
-      border-color: #bbf7d0;
-      color: #15803d;
-    }
-    .pair {
-      display: grid;
-      grid-template-columns: 92px minmax(0, 1fr);
-      gap: 10px;
-      font-size: 13px;
-      margin-bottom: 6px;
-      align-items: start;
-    }
-    .checkbox-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .checkbox-row input {
-      width: auto;
-    }
-    @media (max-width: 1080px) {
-      .top-grid,
-      .grid-two,
-      .grid-three {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
 </head>
-<body>
+<body class="bg-body">
   <div class="page">
-    <div class="header">
-      <div>
-        <h1>Step Link Admin</h1>
-        <p>
-          Create short QR step links by choosing an existing Blockly online script and adding lesson-step style input data like text, word, letters and repeat.
-        </p>
-        <div class="status" id="pageVersion" style="margin-top:10px;">Version pending...</div>
-      </div>
-      <div class="auth-panel">
-        <div id="authStatePill" class="auth-pill">Not authenticated</div>
-        <button id="authBtn" class="btn-blue" type="button">Authentication</button>
-        <a class="button-link" href="./laptop.html">Open session resolver</a>
-      </div>
-    </div>
-    <div id="authStatus" class="auth-status">Authenticate first to manage step links.</div>
-
-    <div class="top-grid">
-      <section class="card">
-        <h2>1. Script Selection</h2>
-        <div class="script-selection-grid">
-          <div class="field">
-            <label for="scriptSelect">Online script</label>
-            <select id="scriptSelect">
-              <option value="">-- load scripts first --</option>
-            </select>
-          </div>
-          <div class="grid-two">
-            <div>
-              <label for="scriptIdInput">Script id</label>
-              <input id="scriptIdInput" type="text" placeholder="listen-and-type-001">
-            </div>
-            <div>
-              <label for="stepIdInput">Step id</label>
-              <input id="stepIdInput" type="text" placeholder="lesson-1-step-3">
-            </div>
-          </div>
-          <div class="field">
-            <label for="codeInput">Short code</label>
-            <input id="codeInput" type="text" placeholder="leave empty to auto-generate">
-          </div>
-        </div>
-        <div class="btn-row">
-          <button id="loadScriptsBtn" class="btn-blue" type="button">Load scripts</button>
-          <button id="fillSelectedBtn" type="button">Copy selected script id</button>
-        </div>
-        <div id="scriptsStatus" class="status" style="margin-top:12px;">Scripts not loaded yet.</div>
-      </section>
-
-      <section class="card">
-        <h2>2. Meta</h2>
-        <div class="form-stack">
-          <div class="grid-two">
-            <div>
-              <label for="titleInput">Title</label>
-              <input id="titleInput" type="text" placeholder="luister naar het woord">
-            </div>
-            <div>
-              <label for="orderInput">Order</label>
-              <input id="orderInput" type="number" min="1" step="1" placeholder="3">
-            </div>
-          </div>
-          <div class="grid-two">
-            <div>
-              <label for="bookInput">Book</label>
-              <input id="bookInput" type="text" placeholder="method-1">
-            </div>
-            <div>
-              <label for="pageInput">Page</label>
-              <input id="pageInput" type="text" placeholder="12">
-            </div>
-          </div>
-          <div class="field">
-            <label for="descriptionInput">Description</label>
-            <textarea id="descriptionInput" placeholder="omschrijving van het script of de step"></textarea>
-          </div>
-          <div class="field">
-            <label for="instructionInput">Instruction</label>
-            <textarea id="instructionInput" placeholder="luister naar het woord en typ het"></textarea>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <section class="card" style="margin-bottom:18px;">
-      <h2>3. Step Inputs</h2>
-      <div class="grid-two">
-        <div>
-          <label for="textInput">Text</label>
-          <textarea id="textInput" placeholder="bal"></textarea>
-        </div>
-        <div>
-          <label for="wordInput">Word</label>
-          <input id="wordInput" type="text" placeholder="bal">
-          <div class="field">
-            <label for="repeatInput">Repeat</label>
-            <input id="repeatInput" type="number" min="1" step="1" value="1">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2">
+            <i class="ti ti-braille text-primary" aria-hidden="true"></i>
+          </span>
+          <span>BrailleStudio</span>
+        </a>
+        <div class="navbar-nav flex-row ms-auto">
+          <div class="nav-item">
+            <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($sessionBase, 'laptop.php')) ?>">
+              <i class="ti ti-device-laptop me-2" aria-hidden="true"></i>
+              Open session resolver
+            </a>
           </div>
         </div>
       </div>
-      <div class="field">
-        <label for="lettersInput">Letters</label>
-        <textarea id="lettersInput" placeholder="b, a, l"></textarea>
-      </div>
-      <div class="field">
-        <label for="soundsInput">Sounds</label>
-        <textarea id="soundsInput" placeholder="b, a, l"></textarea>
-      </div>
-      <div class="checkbox-row">
-        <input id="activeInput" type="checkbox" checked>
-        <label for="activeInput" style="margin:0;">Active</label>
-        <input id="overwriteInput" type="checkbox" style="margin-left:16px;">
-        <label for="overwriteInput" style="margin:0;">Overwrite if code exists</label>
-      </div>
-      <div class="btn-row">
-        <button id="createLinkBtn" class="btn-green" type="button">Create step link</button>
-        <button id="resetFormBtn" class="btn-red" type="button">Reset form</button>
-      </div>
-      <div id="createStatus" class="status" style="margin-top:12px;">Ready to create a step link.</div>
-    </section>
+    </header>
 
-    <section class="card" style="margin-bottom:18px;">
-      <h2>Preview Payload</h2>
-      <div id="previewBox" class="payload-grid"></div>
-    </section>
-
-    <section class="card" style="margin-bottom:18px;">
-      <h2>Existing Step Links</h2>
-      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
-        <button id="refreshLinksBtn" class="btn-blue" type="button">Refresh links</button>
+    <main class="page-wrapper">
+      <div class="page-header d-print-none">
+        <div class="container-xl">
+          <div class="row g-3 align-items-center">
+            <div class="col">
+              <div class="page-pretitle">BrailleStudio</div>
+              <h1 class="page-title">Step Link Admin</h1>
+              <div class="text-secondary mt-2">Create short QR step links by choosing an existing Blockly online script and adding lesson-step input data.</div>
+              <div class="text-secondary small mt-2" id="pageVersion">Version pending...</div>
+            </div>
+            <div class="col-auto">
+              <div class="btn-list">
+                <span id="authStatePill" class="badge bg-secondary-lt">Not authenticated</span>
+                <button id="authBtn" class="btn btn-primary" type="button">
+                  <i class="ti ti-login me-2" aria-hidden="true"></i>
+                  Authentication
+                </button>
+              </div>
+            </div>
+          </div>
+          <div id="authStatus" class="alert alert-warning mt-3 mb-0">Authenticate first to manage step links.</div>
+        </div>
       </div>
-      <div id="linksStatus" class="status" style="margin-bottom:12px;">No links loaded yet.</div>
-      <div id="linksList" class="links-list"></div>
-    </section>
 
-    <section class="card">
-      <h2>Logging</h2>
-      <div class="btn-row" style="margin-top:0; margin-bottom:12px;">
-        <button id="toggleLogBtn" type="button">Unhide log</button>
-        <button id="copyLogBtn" type="button">Copy log</button>
-        <button id="clearLogBtn" type="button">Clear log</button>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="row row-cards">
+            <div class="col-12 col-xl-6">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">1. Script Selection</h2>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label" for="scriptSelect">Online script</label>
+                    <select id="scriptSelect" class="form-select">
+                      <option value="">-- load scripts first --</option>
+                    </select>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="scriptIdInput">Script id</label>
+                      <input id="scriptIdInput" class="form-control" type="text" placeholder="listen-and-type-001">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="stepIdInput">Step id</label>
+                      <input id="stepIdInput" class="form-control" type="text" placeholder="lesson-1-step-3">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="codeInput">Short code</label>
+                      <input id="codeInput" class="form-control" type="text" placeholder="leave empty to auto-generate">
+                    </div>
+                  </div>
+                  <div class="btn-list mt-3">
+                    <button id="loadScriptsBtn" class="btn btn-primary" type="button">Load scripts</button>
+                    <button id="fillSelectedBtn" class="btn btn-outline-secondary" type="button">Copy selected script id</button>
+                  </div>
+                  <div id="scriptsStatus" class="form-hint mt-2">Scripts not loaded yet.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">2. Meta</h2>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="titleInput">Title</label>
+                      <input id="titleInput" class="form-control" type="text" placeholder="luister naar het woord">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="orderInput">Order</label>
+                      <input id="orderInput" class="form-control" type="number" min="1" step="1" placeholder="3">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="bookInput">Book</label>
+                      <input id="bookInput" class="form-control" type="text" placeholder="method-1">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="pageInput">Page</label>
+                      <input id="pageInput" class="form-control" type="text" placeholder="12">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="descriptionInput">Description</label>
+                      <textarea id="descriptionInput" class="form-control" rows="3" placeholder="omschrijving van het script of de step"></textarea>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="instructionInput">Instruction</label>
+                      <textarea id="instructionInput" class="form-control" rows="3" placeholder="luister naar het woord en typ het"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">3. Step Inputs</h2>
+            </div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="textInput">Text</label>
+                  <textarea id="textInput" class="form-control" rows="4" placeholder="bal"></textarea>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="wordInput">Word</label>
+                  <input id="wordInput" class="form-control" type="text" placeholder="bal">
+                  <label class="form-label mt-3" for="repeatInput">Repeat</label>
+                  <input id="repeatInput" class="form-control" type="number" min="1" step="1" value="1">
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="lettersInput">Letters</label>
+                  <textarea id="lettersInput" class="form-control" rows="3" placeholder="b, a, l"></textarea>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="soundsInput">Sounds</label>
+                  <textarea id="soundsInput" class="form-control" rows="3" placeholder="b, a, l"></textarea>
+                </div>
+              </div>
+              <div class="mt-3">
+                <label class="form-check form-check-inline">
+                  <input id="activeInput" class="form-check-input" type="checkbox" checked>
+                  <span class="form-check-label">Active</span>
+                </label>
+                <label class="form-check form-check-inline">
+                  <input id="overwriteInput" class="form-check-input" type="checkbox">
+                  <span class="form-check-label">Overwrite if code exists</span>
+                </label>
+              </div>
+              <div class="btn-list mt-3">
+                <button id="createLinkBtn" class="btn btn-success" type="button">Create step link</button>
+                <button id="resetFormBtn" class="btn btn-outline-danger" type="button">Reset form</button>
+              </div>
+              <div id="createStatus" class="form-hint mt-2">Ready to create a step link.</div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">Preview Payload</h2>
+            </div>
+            <div class="card-body">
+              <div id="previewBox" class="row row-cards"></div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">Existing Step Links</h2>
+              <div class="card-actions">
+                <button id="refreshLinksBtn" class="btn btn-primary btn-sm" type="button">Refresh links</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="linksStatus" class="form-hint mb-3">No links loaded yet.</div>
+              <div id="linksList"></div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">Logging</h2>
+              <div class="card-actions">
+                <div class="btn-list">
+                  <button id="toggleLogBtn" class="btn btn-outline-secondary btn-sm" type="button">Unhide log</button>
+                  <button id="copyLogBtn" class="btn btn-outline-secondary btn-sm" type="button">Copy log</button>
+                  <button id="clearLogBtn" class="btn btn-outline-secondary btn-sm" type="button">Clear log</button>
+                </div>
+              </div>
+            </div>
+            <div id="logBody" class="card-body d-none" hidden>
+              <pre id="logBox" class="form-control font-monospace mb-0">Ready.</pre>
+            </div>
+          </div>
+        </div>
       </div>
-      <pre id="logBox" class="mono mono-log is-hidden">Ready.</pre>
-    </section>
+    </main>
   </div>
 
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const ADMIN_VERSION = '2026-04-16 09:10';
-    const APP_BASE_PATH = '/braillestudio';
-    const SCRIPT_LIST_URL = `${APP_BASE_PATH}/blockly-api/list.php`;
-    const CREATE_LINK_URL = `${APP_BASE_PATH}/session-api/create-link.php`;
-    const UPDATE_LINK_URL = `${APP_BASE_PATH}/session-api/update-link.php`;
-    const LIST_LINKS_URL = `${APP_BASE_PATH}/session-api/list-links.php`;
+    const SCRIPT_LIST_URL = <?= $jsValue($urlFor($appBase, 'blockly-api/list.php')) ?>;
+    const CREATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'create-link.php')) ?>;
+    const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
+    const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
     const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
-    const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
-    const AUTH_LOGIN_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+    const AUTH_BRIDGE_URL = <?= $jsValue($urlFor($appBase, 'authentication.php?mode=bridge')) ?>;
+    const AUTH_LOGIN_URL = <?= $jsValue($urlFor($appBase, 'authentication.php')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
     let linksCache = [];
@@ -517,10 +270,11 @@
     }
 
     function setLogVisibility(visible) {
-      const box = $('logBox');
+      const body = $('logBody');
       const button = $('toggleLogBtn');
-      if (!box || !button) return;
-      box.classList.toggle('is-hidden', !visible);
+      if (!body || !button) return;
+      body.hidden = !visible;
+      body.classList.toggle('d-none', !visible);
       button.textContent = visible ? 'Hide log' : 'Unhide log';
     }
 
@@ -551,7 +305,7 @@
     }
 
     function buildHomepageAuthUrl(returnTo = window.location.href) {
-      const url = new URL(AUTH_LOGIN_URL);
+      const url = new URL(AUTH_LOGIN_URL, window.location.origin);
       const target = String(returnTo || '').trim();
       if (target) {
         url.searchParams.set('returnTo', target);
@@ -565,8 +319,9 @@
         const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
         const authUrl = new URL(
           useSameOriginStorageFlow
-            ? 'https://www.tastenbraille.com/braillestudio/authentication.html'
-            : AUTH_BRIDGE_URL
+            ? AUTH_LOGIN_URL
+            : AUTH_BRIDGE_URL,
+          window.location.origin
         );
         if (!useSameOriginStorageFlow) {
           authUrl.searchParams.set('origin', currentOrigin);
@@ -639,18 +394,21 @@
 
     function renderAuthenticationState() {
       const authenticated = isAuthenticated();
-      $('authStatePill').textContent = authenticated ? 'Authenticated' : 'Not authenticated';
-      $('authStatePill').classList.toggle('is-ok', authenticated);
-      $('authBtn').textContent = authenticated ? 'Authenticated' : 'Authentication';
+      const pill = $('authStatePill');
+      pill.textContent = authenticated ? 'Authenticated' : 'Not authenticated';
+      pill.className = authenticated ? 'badge bg-success-lt' : 'badge bg-secondary-lt';
+      $('authBtn').className = authenticated ? 'btn btn-success' : 'btn btn-primary';
+      $('authBtn').innerHTML = authenticated
+        ? '<i class="ti ti-shield-check me-2" aria-hidden="true"></i>Authenticated'
+        : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
       $('loadScriptsBtn').disabled = !authenticated;
       $('createLinkBtn').disabled = !authenticated;
       $('refreshLinksBtn').disabled = !authenticated;
       $('scriptsStatus').textContent = authenticated
         ? 'Authenticated. You can load scripts and create links.'
         : 'Authenticate first to manage step links.';
-      $('authStatus').textContent = authenticated
-        ? 'Authentication active.'
-        : 'Authenticate first to manage step links.';
+      $('authStatus').className = authenticated ? 'alert alert-success mt-3 mb-0' : 'alert alert-warning mt-3 mb-0';
+      $('authStatus').textContent = authenticated ? 'Authentication active.' : 'Authenticate first to manage step links.';
       logLine(`Authentication state: ${authenticated ? 'active' : 'inactive'}.`);
     }
 
@@ -682,20 +440,34 @@
         .replace(/'/g, '&#39;');
     }
 
+    function statusText(message, tone = 'secondary') {
+      const classes = {
+        danger: 'text-danger',
+        success: 'text-success',
+        warning: 'text-warning',
+        secondary: 'text-secondary'
+      };
+      return `<span class="${classes[tone] || classes.secondary}">${escapeHtml(message)}</span>`;
+    }
+
     function formatListChips(items) {
       const list = Array.isArray(items) ? items.filter(Boolean) : [];
       if (!list.length) {
-        return '<span class="muted">-</span>';
+        return '<span class="text-secondary">-</span>';
       }
-      return list.map((item) => `<span class="data-chip">${escapeHtml(item)}</span>`).join(' ');
+      return list.map((item) => `<span class="badge bg-secondary-lt me-1 mb-1">${escapeHtml(item)}</span>`).join('');
     }
 
     function renderPayloadKeyValue(rows) {
       return `
-        <div class="payload-kv">
+        <div class="list-group list-group-flush">
           ${rows.map(([label, value]) => `
-            <strong>${escapeHtml(label)}</strong>
-            <div>${value}</div>
+            <div class="list-group-item">
+              <div class="row g-2">
+                <div class="col-12 col-md-4 fw-semibold">${escapeHtml(label)}</div>
+                <div class="col text-break">${value}</div>
+              </div>
+            </div>
           `).join('')}
         </div>
       `;
@@ -773,7 +545,7 @@
       $('overwriteInput').checked = false;
       renderEditingState();
       renderPreview();
-      $('createStatus').innerHTML = `<span class="success">Editing step link ${escapeHtml(editingOriginalCode)}</span>`;
+      $('createStatus').innerHTML = statusText(`Editing step link ${editingOriginalCode}`, 'success');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       logLine('Editing existing step link.', { code: editingOriginalCode, item });
     }
@@ -781,36 +553,48 @@
     function renderPreview() {
       const payload = buildPayload();
       $('previewBox').innerHTML = `
-        <div class="payload-section">
-          <h3>Basis</h3>
-          ${renderPayloadKeyValue([
-            ['Script id', escapeHtml(payload.scriptId || '-')],
-            ['Step id', escapeHtml(payload.stepId || '-')],
-            ['Short code', escapeHtml(payload.code || 'auto-generate')],
-            ['Active', payload.active ? '<span class="data-chip">Yes</span>' : '<span class="muted">No</span>'],
-            ['Overwrite', payload.overwrite ? '<span class="data-chip">Yes</span>' : '<span class="muted">No</span>']
-          ])}
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-header"><h3 class="card-title">Basis</h3></div>
+            <div class="card-body p-0">
+              ${renderPayloadKeyValue([
+                ['Script id', escapeHtml(payload.scriptId || '-')],
+                ['Step id', escapeHtml(payload.stepId || '-')],
+                ['Short code', escapeHtml(payload.code || 'auto-generate')],
+                ['Active', payload.active ? '<span class="badge bg-success-lt">Yes</span>' : '<span class="badge bg-secondary-lt">No</span>'],
+                ['Overwrite', payload.overwrite ? '<span class="badge bg-warning-lt">Yes</span>' : '<span class="badge bg-secondary-lt">No</span>']
+              ])}
+            </div>
+          </div>
         </div>
-        <div class="payload-section">
-          <h3>Meta</h3>
-          ${renderPayloadKeyValue([
-            ['Title', escapeHtml(payload.meta?.title || '-')],
-            ['Description', payload.meta?.description ? `<div class="mono">${escapeHtml(payload.meta.description)}</div>` : '<span class="muted">-</span>'],
-            ['Instruction', payload.meta?.instruction ? `<div class="mono">${escapeHtml(payload.meta.instruction)}</div>` : '<span class="muted">-</span>'],
-            ['Book', escapeHtml(payload.meta?.book || '-')],
-            ['Page', escapeHtml(payload.meta?.page || '-')],
-            ['Order', escapeHtml(payload.meta?.order ?? '-')]
-          ])}
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-header"><h3 class="card-title">Meta</h3></div>
+            <div class="card-body p-0">
+              ${renderPayloadKeyValue([
+                ['Title', escapeHtml(payload.meta?.title || '-')],
+                ['Description', payload.meta?.description ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.meta.description)}</pre>` : '<span class="text-secondary">-</span>'],
+                ['Instruction', payload.meta?.instruction ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.meta.instruction)}</pre>` : '<span class="text-secondary">-</span>'],
+                ['Book', escapeHtml(payload.meta?.book || '-')],
+                ['Page', escapeHtml(payload.meta?.page || '-')],
+                ['Order', escapeHtml(payload.meta?.order ?? '-')]
+              ])}
+            </div>
+          </div>
         </div>
-        <div class="payload-section">
-          <h3>Step inputs</h3>
-          ${renderPayloadKeyValue([
-            ['Text', payload.stepInputs?.text ? `<div class="mono">${escapeHtml(payload.stepInputs.text)}</div>` : '<span class="muted">-</span>'],
-            ['Word', escapeHtml(payload.stepInputs?.word || '-')],
-            ['Letters', formatListChips(payload.stepInputs?.letters)],
-            ['Repeat', escapeHtml(payload.stepInputs?.repeat ?? 1)],
-            ['Sounds', formatListChips(payload.stepInputs?.sounds)]
-          ])}
+        <div class="col-12 col-lg-4">
+          <div class="card h-100">
+            <div class="card-header"><h3 class="card-title">Step inputs</h3></div>
+            <div class="card-body p-0">
+              ${renderPayloadKeyValue([
+                ['Text', payload.stepInputs?.text ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.stepInputs.text)}</pre>` : '<span class="text-secondary">-</span>'],
+                ['Word', escapeHtml(payload.stepInputs?.word || '-')],
+                ['Letters', formatListChips(payload.stepInputs?.letters)],
+                ['Repeat', escapeHtml(payload.stepInputs?.repeat ?? 1)],
+                ['Sounds', formatListChips(payload.stepInputs?.sounds)]
+              ])}
+            </div>
+          </div>
         </div>
       `;
     }
@@ -945,7 +729,7 @@
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      $('createStatus').innerHTML = `<span class="success">Step link ${isEditing ? 'updated' : 'created'}: ${data.code}</span>`;
+      $('createStatus').innerHTML = statusText(`Step link ${isEditing ? 'updated' : 'created'}: ${data.code}`, 'success');
       $('codeInput').value = String(data.code || '');
       editingOriginalCode = '';
       renderEditingState();
@@ -979,13 +763,13 @@
       list.innerHTML = '';
 
       if (!items.length) {
-        list.innerHTML = '<div class="status">No step links yet.</div>';
+        list.innerHTML = '<div class="empty"><div class="empty-title">No step links yet.</div></div>';
         return;
       }
 
       list.innerHTML = `
-        <div class="table-wrap">
-          <table class="data-table">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
             <thead>
               <tr>
                 <th>Code</th>
@@ -1004,20 +788,20 @@
             <tbody>
               ${items.map((item, index) => `
                 <tr data-link-index="${index}">
-                  <td><span class="data-chip">${escapeHtml(item.code || '-')}</span></td>
+                  <td><span class="badge bg-primary-lt">${escapeHtml(item.code || '-')}</span></td>
                   <td>${escapeHtml(item.scriptId || '-')}</td>
                   <td>${escapeHtml(item.stepId || '-')}</td>
                   <td>
                     <div><strong>${escapeHtml(item?.meta?.title || '-')}</strong></div>
-                    ${item?.meta?.instruction ? `<div class="muted" style="margin-top:4px;">${escapeHtml(item.meta.instruction)}</div>` : ''}
+                    ${item?.meta?.instruction ? `<div class="text-secondary small mt-1">${escapeHtml(item.meta.instruction)}</div>` : ''}
                   </td>
                   <td>${escapeHtml(item?.stepInputs?.word || '-')}</td>
                   <td>${escapeHtml(item?.stepInputs?.repeat ?? '-')}</td>
                   <td>${formatListChips(item?.stepInputs?.letters)}</td>
                   <td>${formatListChips(item?.stepInputs?.sounds)}</td>
-                  <td><span class="badge ${item.active ? 'active' : ''}">${item.active ? 'active' : 'inactive'}</span></td>
+                  <td><span class="badge ${item.active ? 'bg-success-lt' : 'bg-secondary-lt'}">${item.active ? 'active' : 'inactive'}</span></td>
                   <td>${escapeHtml(item.updatedAt || '-')}</td>
-                  <td><button type="button" class="js-edit-link">Edit</button></td>
+                  <td><button type="button" class="btn btn-outline-secondary btn-sm js-edit-link">Edit</button></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1102,7 +886,7 @@
         try {
           await loadScripts();
         } catch (err) {
-          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
@@ -1110,7 +894,7 @@
         try {
           fillFromSelectedScript();
         } catch (err) {
-          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
@@ -1118,7 +902,7 @@
         try {
           applySelectedScriptToForm();
         } catch (err) {
-          $('scriptsStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
@@ -1126,7 +910,7 @@
         try {
           await saveLink();
         } catch (err) {
-          $('createStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('createStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
@@ -1134,7 +918,7 @@
         try {
           await loadLinks();
         } catch (err) {
-          $('linksStatus').innerHTML = `<span class="error">${err.message || String(err)}</span>`;
+          $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
@@ -1142,15 +926,15 @@
       setLogVisibility(false);
       renderEditingState();
       $('toggleLogBtn').addEventListener('click', () => {
-        const visible = $('logBox') && $('logBox').classList.contains('is-hidden');
-        setLogVisibility(Boolean(visible));
+        const visible = Boolean($('logBody')?.hidden);
+        setLogVisibility(visible);
       });
       $('copyLogBtn').addEventListener('click', async () => {
         try {
           await copyLogToClipboard();
         } catch (err) {
           const message = err.message || String(err);
-          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+          $('linksStatus').innerHTML = statusText(message, 'danger');
         }
       });
       $('clearLogBtn').addEventListener('click', () => {
@@ -1163,7 +947,8 @@
           logLine('Authentication popup requested.');
           await openAuthenticationPopup();
           renderAuthenticationState();
-          $('authStatus').innerHTML = '<span class="success">Authentication completed.</span>';
+          $('authStatus').className = 'alert alert-success mt-3 mb-0';
+          $('authStatus').textContent = 'Authentication completed.';
           $('linksStatus').textContent = 'Authentication completed.';
           await loadScripts();
           await loadLinks();
@@ -1173,11 +958,13 @@
           const isPopupIssue = /popup blocked|popup closed/i.test(message);
           if (isPopupIssue) {
             const authUrl = buildHomepageAuthUrl(window.location.href);
-            $('authStatus').innerHTML = `<span class="error">${message}.</span> <a href="${authUrl}" target="_blank" rel="noopener noreferrer">Open login page</a>`;
+            $('authStatus').className = 'alert alert-danger mt-3 mb-0';
+            $('authStatus').innerHTML = `${escapeHtml(message)}. <a class="alert-link" href="${escapeHtml(authUrl)}" target="_blank" rel="noopener noreferrer">Open login page</a>`;
           } else {
-            $('authStatus').innerHTML = `<span class="error">${message}</span>`;
+            $('authStatus').className = 'alert alert-danger mt-3 mb-0';
+            $('authStatus').textContent = message;
           }
-          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+          $('linksStatus').innerHTML = statusText(message, 'danger');
         }
       });
 
@@ -1194,12 +981,12 @@
       if (isAuthenticated()) {
         loadScripts().catch((err) => {
           const message = err.message || String(err);
-          $('scriptsStatus').innerHTML = `<span class="error">${message}</span>`;
+          $('scriptsStatus').innerHTML = statusText(message, 'danger');
           logLine('Automatic script load failed.', { message });
         });
         loadLinks().catch((err) => {
           const message = err.message || String(err);
-          $('linksStatus').innerHTML = `<span class="error">${message}</span>`;
+          $('linksStatus').innerHTML = statusText(message, 'danger');
           logLine('Automatic link load failed.', { message });
         });
       }

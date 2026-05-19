@@ -1,28 +1,11 @@
 <?php
 declare(strict_types=1);
 
-$baseUrl = './';
-
-$primaryActions = [
-    [
-        'label' => 'Inloggen',
-        'href' => $baseUrl . 'authentication.html',
-        'icon' => 'ti-login',
-        'class' => 'btn-primary',
-    ],
-    [
-        'label' => 'Blockly openen',
-        'href' => $baseUrl . 'blockly/index.php',
-        'icon' => 'ti-puzzle',
-        'class' => 'btn-outline-primary',
-    ],
-    [
-        'label' => 'BrailleBridge',
-        'href' => $baseUrl . 'tools/braillebridge-com.html',
-        'icon' => 'ti-plug-connected',
-        'class' => 'btn-outline-secondary',
-    ],
-];
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$scriptDir = str_replace('\\', '/', dirname($scriptName));
+$scriptDir = $scriptDir === '.' ? '' : rtrim($scriptDir, '/');
+$baseUrl = $scriptDir === '' ? './' : $scriptDir . '/';
+$loginHref = $baseUrl . 'authentication.php?returnTo=' . rawurlencode($baseUrl . 'index.php');
 
 $modules = [
     [
@@ -33,7 +16,7 @@ $modules = [
         'theme' => 'primary',
         'links' => [
             ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
-            ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
+            ['label' => 'Braille sessie', 'href' => $baseUrl . 'session-api/laptop.php', 'icon' => 'ti-device-laptop'],
         ],
     ],
     [
@@ -44,8 +27,8 @@ $modules = [
         'theme' => 'green',
         'links' => [
             ['label' => 'Blockly editor', 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
-            ['label' => 'Lesson Builder', 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
-            ['label' => 'Session Builder', 'href' => $baseUrl . 'api/session-api/admin.html', 'icon' => 'ti-users-group'],
+            ['label' => 'Lesson Builder', 'href' => $baseUrl . 'lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
+            ['label' => 'Session Builder', 'href' => $baseUrl . 'session-api/admin.php', 'icon' => 'ti-users-group'],
         ],
     ],
     [
@@ -55,8 +38,8 @@ $modules = [
         'icon' => 'ti-volume',
         'theme' => 'orange',
         'links' => [
-            ['label' => 'Fonemen', 'href' => $baseUrl . 'api/phonemes/index.html', 'icon' => 'ti-wave-saw-tool'],
-            ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.html', 'icon' => 'ti-music'],
+            ['label' => 'Fonemen', 'href' => $baseUrl . 'phonemes-api/index.php', 'icon' => 'ti-wave-saw-tool'],
+            ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.php', 'icon' => 'ti-music'],
         ],
     ],
     [
@@ -66,9 +49,10 @@ $modules = [
         'icon' => 'ti-tools',
         'theme' => 'purple',
         'links' => [
-            ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.html', 'icon' => 'ti-plug-connected'],
-            ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.html', 'icon' => 'ti-table'],
-            ['label' => 'Download', 'href' => 'https://www.tastenbraille.com/braillestudio/downloads/setup_braillebridge_v20.exe', 'icon' => 'ti-download'],
+            ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
+            ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],
+            ['label' => 'QR-code', 'href' => $baseUrl . 'qr-api/qr.php', 'icon' => 'ti-qrcode'],
+            ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
         ],
     ],
 ];
@@ -163,6 +147,10 @@ function e(string $value): string
             line-height: 1.7;
         }
 
+        .doc-toolbar {
+            max-width: 72ch;
+        }
+
         .doc-content h1,
         .doc-content h2,
         .doc-content h3 {
@@ -191,10 +179,6 @@ function e(string $value): string
 <div class="page">
     <header class="navbar navbar-expand-md d-print-none">
         <div class="container-xl">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false" aria-label="Navigatie openen">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
             <div class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
                 <span class="avatar avatar-sm bg-primary-lt me-2">
                     <i class="ti ti-braille text-primary" aria-hidden="true"></i>
@@ -202,34 +186,14 @@ function e(string $value): string
                 <span>BrailleStudio</span>
             </div>
 
-            <div class="navbar-nav flex-row order-md-last">
+            <div class="navbar-nav flex-row align-items-center order-md-last ms-auto">
+                <div class="nav-item me-2">
+                    <span id="authHeaderStatus" class="navbar-text text-secondary d-none"></span>
+                </div>
                 <div class="nav-item">
-                    <a class="btn btn-primary" href="<?= e($baseUrl) ?>authentication.html">
+                    <a id="authHeaderButton" class="btn btn-primary" href="<?= e($loginHref) ?>">
                         <i class="ti ti-login me-2" aria-hidden="true"></i>
                         Inloggen
-                    </a>
-                </div>
-            </div>
-
-            <div class="collapse navbar-collapse" id="main-navbar">
-                <div class="navbar-nav">
-                    <a class="nav-link" href="#modules">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="ti ti-layout-grid" aria-hidden="true"></i>
-                        </span>
-                        <span class="nav-link-title">Modules</span>
-                    </a>
-                    <a class="nav-link" href="#documentatie">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="ti ti-file-text" aria-hidden="true"></i>
-                        </span>
-                        <span class="nav-link-title">Documentatie</span>
-                    </a>
-                    <a class="nav-link" href="<?= e($baseUrl) ?>tools/braillebridge-com.html">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                            <i class="ti ti-plug-connected" aria-hidden="true"></i>
-                        </span>
-                        <span class="nav-link-title">BrailleBridge</span>
                     </a>
                 </div>
             </div>
@@ -237,44 +201,17 @@ function e(string $value): string
     </header>
 
     <main class="page-wrapper" id="main-content">
-        <div class="page-header d-print-none">
-            <div class="container-xl">
-                <div class="row g-3 align-items-center">
-                    <div class="col">
-                        <div class="page-pretitle">Online leeromgeving</div>
-                        <h1 class="page-title">BrailleStudio</h1>
-                    </div>
-                    <div class="col-auto ms-auto">
-                        <div class="badges-list">
-                            <span class="badge bg-blue-lt">Toegankelijk</span>
-                            <span class="badge bg-green-lt">Interactief</span>
-                            <span class="badge bg-purple-lt">BrailleBridge ready</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="page-body">
             <div class="container-xl">
                 <section class="card hero-panel mb-4">
                     <div class="card-body p-4 p-lg-5">
                         <div class="row g-4 align-items-center">
                             <div class="col-lg-8">
-                                <div class="subheader mb-2">Letters, woorden, verhalen en oefeningen</div>
                                 <h2 class="h1 mb-3">Braille oefenen en lessen bouwen in een rustige werkomgeving.</h2>
                                 <p class="text-secondary mb-4">
                                     BrailleStudio ondersteunt leerlingen, docenten en specialisten met korte activiteiten,
                                     directe feedback, sessiebeheer en koppeling met brailleleesregels via BrailleBridge.
                                 </p>
-                                <div class="btn-list">
-                                    <?php foreach ($primaryActions as $action): ?>
-                                        <a class="btn <?= e($action['class']) ?>" href="<?= e($action['href']) ?>">
-                                            <i class="ti <?= e($action['icon']) ?> me-2" aria-hidden="true"></i>
-                                            <?= e($action['label']) ?>
-                                        </a>
-                                    <?php endforeach; ?>
-                                </div>
                             </div>
                             <div class="col-lg-4">
                                 <div class="row g-3">
@@ -297,14 +234,7 @@ function e(string $value): string
                     </div>
                 </section>
 
-                <section id="modules" aria-labelledby="modules-title">
-                    <div class="row g-3 align-items-center mb-3">
-                        <div class="col">
-                            <h2 class="h3 m-0" id="modules-title">Modules</h2>
-                            <div class="text-secondary">Kies direct de juiste werkruimte.</div>
-                        </div>
-                    </div>
-
+                <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($modules as $module): ?>
                             <div class="col-12 col-md-6 col-xl-3">
@@ -356,6 +286,12 @@ function e(string $value): string
                                         Expertise
                                     </a>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <a class="nav-link" href="#tab-handleiding" data-bs-toggle="tab" aria-selected="false" tabindex="-1" role="tab">
+                                        <i class="ti ti-chalkboard me-2" aria-hidden="true"></i>
+                                        Handleiding
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
@@ -375,6 +311,21 @@ function e(string $value): string
                                             <span class="placeholder col-8"></span>
                                             <span class="placeholder col-12"></span>
                                             <span class="placeholder col-7"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane" id="tab-handleiding" role="tabpanel">
+                                    <div class="doc-toolbar d-flex justify-content-end mb-3">
+                                        <a class="btn btn-primary" href="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step-pdf.php">
+                                            <i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>
+                                            Download als PDF
+                                        </a>
+                                    </div>
+                                    <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
+                                        <div class="placeholder-glow">
+                                            <span class="placeholder col-10"></span>
+                                            <span class="placeholder col-12"></span>
+                                            <span class="placeholder col-8"></span>
                                         </div>
                                     </div>
                                 </div>
@@ -403,6 +354,123 @@ function e(string $value): string
 <script src="<?= e($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+    (function () {
+        const AUTH_TOKEN_KEY = 'braillestudioAuthToken';
+        const LEGACY_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
+        const button = document.getElementById('authHeaderButton');
+        const status = document.getElementById('authHeaderStatus');
+
+        function getStoredToken() {
+            return String(sessionStorage.getItem(AUTH_TOKEN_KEY) || '').trim()
+                || String(localStorage.getItem(AUTH_TOKEN_KEY) || '').trim()
+                || String(sessionStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '').trim()
+                || String(localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '').trim();
+        }
+
+        function parseJwtPayload(token) {
+            const value = String(token || '').trim();
+            if (!value) {
+                return null;
+            }
+
+            const parts = value.split('.');
+            if (parts.length !== 3) {
+                return null;
+            }
+
+            try {
+                const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+                const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+                return JSON.parse(atob(padded));
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function getValidTokenPayload() {
+            const token = getStoredToken();
+            const payload = parseJwtPayload(token);
+            const exp = Number(payload?.exp || 0);
+
+            if (!token) {
+                return null;
+            }
+
+            if (exp && exp <= Math.floor(Date.now() / 1000)) {
+                return null;
+            }
+
+            return payload || {};
+        }
+
+        function setStoredToken(token) {
+            const normalized = String(token || '').trim();
+            const storageTargets = [sessionStorage, localStorage];
+
+            storageTargets.forEach((storage) => {
+                if (normalized) {
+                    storage.setItem(AUTH_TOKEN_KEY, normalized);
+                    storage.setItem(LEGACY_AUTH_TOKEN_KEY, normalized);
+                } else {
+                    storage.removeItem(AUTH_TOKEN_KEY);
+                    storage.removeItem(LEGACY_AUTH_TOKEN_KEY);
+                }
+            });
+        }
+
+        function setButtonContent(iconClass, label) {
+            const icon = document.createElement('i');
+            icon.className = `${iconClass} me-2`;
+            icon.setAttribute('aria-hidden', 'true');
+            button.replaceChildren(icon, document.createTextNode(label));
+        }
+
+        function renderAuthHeader() {
+            if (!button) {
+                return;
+            }
+
+            const payload = getValidTokenPayload();
+            if (!payload) {
+                if (status) {
+                    status.classList.add('d-none');
+                    status.textContent = '';
+                }
+
+                button.className = 'btn btn-primary';
+                button.href = <?= json_encode($loginHref, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+                button.removeAttribute('data-authenticated');
+                button.title = 'Inloggen';
+                setButtonContent('ti ti-login', 'Inloggen');
+                return;
+            }
+
+            const username = String(payload.username || payload.user || payload.sub || '').trim();
+            if (status) {
+                status.textContent = username ? `Ingelogd als ${username}` : 'Ingelogd';
+                status.classList.remove('d-none');
+            }
+
+            button.className = 'btn btn-outline-secondary';
+            button.href = '#logout';
+            button.dataset.authenticated = '1';
+            button.title = 'Uitloggen';
+            setButtonContent('ti ti-logout', 'Uitloggen');
+        }
+
+        button?.addEventListener('click', (event) => {
+            if (button.dataset.authenticated !== '1') {
+                return;
+            }
+
+            event.preventDefault();
+            setStoredToken('');
+            renderAuthHeader();
+        });
+
+        renderAuthHeader();
+    })();
+
     document.querySelectorAll('[data-markdown-source]').forEach(async (target) => {
         try {
             const response = await fetch(target.dataset.markdownSource, {cache: 'no-store'});

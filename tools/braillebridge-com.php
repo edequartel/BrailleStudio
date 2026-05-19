@@ -1,712 +1,279 @@
+<?php
+declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/tools$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+?>
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>BrailleBridge tool</title>
-  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css" />
-
-  <style>
-    @font-face {
-      font-family: "Noto Sans";
-      src: url("../assets/fonts/NotoSans-Regular.woff2") format("woff2");
-      font-weight: 400;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    @font-face {
-      font-family: "Noto Sans";
-      src: url("../assets/fonts/NotoSans-SemiBold.woff2") format("woff2");
-      font-weight: 600;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    :root {
-      --bg: #0b0f14;
-      --panel: #0f1620;
-      --panel2: #101b27;
-      --text: #e6edf3;
-      --muted: #9fb0c0;
-      --border: rgba(255,255,255,.10);
-      --accent: #6aa6ff;
-      --accent2: #7ee787;
-      --danger: #ff6b6b;
-      --warn: #ffd166;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius: 14px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: "Noto Sans", Arial, sans-serif;
-    }
-
-    /* Light theme override */
-    [data-theme="light"] {
-      --bg: #f6f8fb;
-      --panel: #ffffff;
-      --panel2: #fbfcfe;
-      --text: #0b1220;
-      --muted: #4b5a6a;
-      --border: rgba(10,20,40,.12);
-      --accent: #2563eb;
-      --accent2: #16a34a;
-      --danger: #dc2626;
-      --warn: #b45309;
-      --shadow: 0 10px 30px rgba(0,0,0,.10);
-    }
-
-    /* Auto dark based on OS, unless user picked explicit theme */
-    @media (prefers-color-scheme: light) {
-      :root:not([data-theme]) {
-        --bg: #f6f8fb;
-        --panel: #ffffff;
-        --panel2: #fbfcfe;
-        --text: #0b1220;
-        --muted: #4b5a6a;
-        --border: rgba(10,20,40,.12);
-        --accent: #2563eb;
-        --accent2: #16a34a;
-        --danger: #dc2626;
-        --warn: #b45309;
-        --shadow: 0 10px 30px rgba(0,0,0,.10);
-      }
-    }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: var(--sans);
-      background: radial-gradient(1200px 800px at 15% 10%, rgba(106,166,255,.10), transparent 60%),
-                  radial-gradient(900px 650px at 90% 25%, rgba(126,231,135,.10), transparent 55%),
-                  var(--bg);
-      color: var(--text);
-    }
-
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-      background: color-mix(in oklab, var(--bg) 80%, transparent);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 18px 18px;
-    }
-
-    .topbar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .title {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .title h1 {
-      font-size: 18px;
-      margin: 0;
-      letter-spacing: .2px;
-    }
-
-    .title .sub {
-      font-size: 13px;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      appearance: none;
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, color-mix(in oklab, var(--panel) 92%, white 8%), var(--panel));
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 12px;
-      cursor: pointer;
-      box-shadow: var(--shadow);
-      font-size: 13px;
-      line-height: 1;
-      min-height: 38px;
-      transition: transform .06s ease, border-color .15s ease;
-    }
-    a.btn { text-decoration: none; }
-    .btn:active { transform: translateY(1px); }
-    .btn.primary { border-color: color-mix(in oklab, var(--accent) 60%, var(--border)); }
-    .btn.good { border-color: color-mix(in oklab, var(--accent2) 60%, var(--border)); }
-    .btn.danger { border-color: color-mix(in oklab, var(--danger) 55%, var(--border)); }
-    .btn.ghost { background: transparent; box-shadow: none; }
-
-    main .wrap { padding-top: 16px; padding-bottom: 24px; }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 14px;
-    }
-
-    @media (max-width: 980px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-
-    .card {
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .card .hd {
-      padding: 14px 14px 10px 14px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .card .hd h2 {
-      font-size: 14px;
-      margin: 0;
-      letter-spacing: .2px;
-    }
-
-    .card .hd .hint {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-      font-family: var(--mono);
-    }
-
-    .card .bd { padding: 14px; }
-
-    label {
-      font-size: 12px;
-      color: var(--muted);
-      display: block;
-      margin-bottom: 6px;
-    }
-
-    input[type="text"], textarea, select {
-      width: 100%;
-      border: 1px solid var(--border);
-      background: color-mix(in oklab, var(--panel) 92%, black 8%);
-      color: var(--text);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 13px;
-      outline: none;
-      font-family: var(--mono);
-    }
-
-    textarea { min-height: 100px; resize: vertical; }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    @media (max-width: 560px) {
-      .row { grid-template-columns: 1fr; }
-    }
-
-    .inline {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      font-size: 12px;
-      color: var(--muted);
-      font-family: var(--mono);
-      user-select: none;
-    }
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--danger);
-      box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 18%, transparent);
-    }
-    .dot.ok {
-      background: var(--accent2);
-      box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent2) 18%, transparent);
-    }
-    .dot.warn {
-      background: var(--warn);
-      box-shadow: 0 0 0 3px color-mix(in oklab, var(--warn) 18%, transparent);
-    }
-
-    .log {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: color-mix(in oklab, var(--panel) 94%, black 6%);
-      padding: 10px;
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.35;
-      min-height: 220px;
-      max-height: 560px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .log .line { white-space: pre-wrap; }
-    .log .ts { font-size: 10px; color: var(--muted); }
-
-    .kpi {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .kpi .box {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: color-mix(in oklab, var(--panel2) 85%, transparent);
-    }
-    .kpi .box .v {
-      font-family: var(--mono);
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .small {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 10px;
-    }
-
-    .split {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    code.badge {
-      font-family: var(--mono);
-      font-size: 12px;
-      padding: 2px 6px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: color-mix(in oklab, var(--panel2) 70%, transparent);
-      color: var(--text);
-    }
-
-    .warn {
-      color: var(--warn);
-      font-family: var(--mono);
-      font-size: 12px;
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
 </head>
-
-<body>
-  <header>
-    <div class="wrap">
-      <div class="topbar">
-        <div class="title">
-          <h1>BrailleBridge tool</h1>
-          <div class="sub"></div>
-        </div>
-
-        <div class="actions">
-          <a class="btn" href="../index.html" title="Home">Home</a>
-          <a class="btn" href="./tables.html" title="Open Tables tool">Tables</a>
-          <button class="btn" id="showBrailleBridgeBtn" title="Show BrailleBridge window">Show BrailleBridge</button>
-          <a class="btn" href="braillebridge://" title="Open BrailleBridge">Open BrailleBridge</a>
+<body class="bg-body">
+  <div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2"><i class="ti ti-braille text-primary" aria-hidden="true"></i></span>
+          <span>BrailleStudio</span>
+        </a>
+        <div class="navbar-nav flex-row ms-auto">
+          <div class="nav-item">
+            <div class="btn-list">
+              <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>"><i class="ti ti-home me-2" aria-hidden="true"></i>Home</a>
+              <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($scriptDir, 'tables.php')) ?>"><i class="ti ti-table me-2" aria-hidden="true"></i>Tables</a>
+              <button class="btn btn-outline-secondary" id="showBrailleBridgeBtn" type="button"><i class="ti ti-window me-2" aria-hidden="true"></i>Show BrailleBridge</button>
+              <a class="btn btn-primary" href="braillebridge://"><i class="ti ti-plug-connected me-2" aria-hidden="true"></i>Open BrailleBridge</a>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main>
-    <div class="wrap">
-      <section class="card" style="margin-bottom:14px;">
-        <div class="hd">
-          <div>
-            <h2>BrailleMonitor</h2>
-          </div>
-          <div class="pill">
-            <span>WS</span>
-            <span class="dot" id="brailleMonitorWsDot"></span>
-            <span>brailleLine</span>
+    <main class="page-wrapper">
+      <div class="page-header d-print-none">
+        <div class="container-xl">
+          <div class="row g-3 align-items-center">
+            <div class="col">
+              <div class="page-pretitle">BrailleStudio tools</div>
+              <h1 class="page-title">BrailleBridge tool</h1>
+              <div class="text-secondary mt-2">HTTP and WebSocket controls for the local BrailleBridge runtime.</div>
+            </div>
+            <div class="col-auto">
+              <span class="badge bg-secondary-lt">localhost:5000</span>
+            </div>
           </div>
         </div>
-        <div class="bd">
-          <div id="brailleMonitorComponent"></div>
-        </div>
-      </section>
-
-      <div class="grid">
-
-        <!-- Left: HTTP controls -->
-        <section class="card">
-          <div class="hd">
-            <div>
-              <h2>API</h2>
-              <div class="hint"></div>
-            </div>
-            <div class="pill">
-              <span>HTTP status</span>
-              <span class="dot" id="httpDot"></span>
-              <span id="httpStatusText">unknown</span>
-            </div>
-          </div>
-
-          <div class="bd">
-            <div>
-              <input id="httpBase" type="text" value="http://localhost:5000" aria-label="HTTP Base URL" />
-            </div>
-
-            <div class="inline" style="margin-top:10px;">
-              <button class="btn" id="getPathsBtn">GET /paths</button>
-              <button class="btn" id="getPingBtn">GET /ping</button>
-              <button class="btn" id="getClearBtn">GET /clear</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="getDevicesBtn">GET /devices</button>
-              <button class="btn" id="getActiveDeviceBtn">GET /devices/active</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="getTablesBtn">GET /tables</button>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- Right: WebSocket + Log -->
-        <section class="card">
-          <div class="hd">
-            <div>
-              <h2>WebSocket</h2>
-              <div class="hint"></div>
-            </div>
-            <div class="inline">
-              <div class="pill">
-                <span>WS</span>
-                <span class="dot" id="wsDot"></span>
-                <span id="wsStatusText">unknown</span>
-              </div>
-              <div class="pill">
-                <span>Editor mode</span>
-                <span class="dot" id="editorModeDot"></span>
-                <span id="editorModeText">unknown</span>
-              </div>
-              <div class="pill">
-                <span>Insert mode</span>
-                <span class="dot warn" id="insertModeDot"></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="bd">
-            <div>
-              <input id="wsBase" type="text" value="ws://localhost:5000/ws" aria-label="WebSocket URL" />
-            </div>
-            <div class="inline" style="margin-top:12px;">
-              <button class="btn" id="wsConnectBtn">Connect</button>
-              <button class="btn danger" id="wsDisconnectBtn">Disconnect</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="wsSendModeBtn">Enable editorMode</button>
-              <button class="btn danger" id="wsSendModeDisableBtn">Disable editorMode</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="wsSetInsertModeOnBtn">Insert mode ON</button>
-              <button class="btn danger" id="wsSetInsertModeOffBtn">Insert mode OFF</button>
-              <button class="btn" id="wsGetLineBtn">getBrailleLine</button>
-            </div>
-
-            <div class="row" style="margin-top:12px;">
-              <div>
-                <select id="wsInputKind">
-                  <option value="text">text</option>
-                  <option value="braille">braille</option>
-                  <option value="key">key</option>
-                </select>
-              </div>
-            </div>
-
-            <div id="wsTextField" style="margin-top:10px;">
-              <input id="wsTextValue" type="text" value="aap Aap AAP 123 ,.?" />
-            </div>
-            <div id="wsBrailleField" style="margin-top:10px;" hidden>
-              <label for="wsBrailleValue">braille unicode</label>
-              <input id="wsBrailleValue" type="text" value="&#x2801;" />
-            </div>
-            <div id="wsKeyField" style="margin-top:10px;" hidden>
-              <label for="wsKeyValue">key</label>
-              <select id="wsKeyValue">
-                <option>Backspace</option>
-                <option>Delete</option>
-                <option>DEL</option>
-                <option>Space</option>
-                <option>Enter</option>
-                <option>ArrowLeft</option>
-                <option>ArrowRight</option>
-                <option>ArrowUp</option>
-                <option>ArrowDown</option>
-              </select>
-            </div>
-            <div class="inline" style="margin-top:10px;">
-              <button class="btn" id="wsSendInputBtn">Send editorInput</button>
-            </div>
-            <div class="row" style="margin-top:12px;">
-              <div>
-                <label for="wsCaretTextIndex">setCaret textIndex</label>
-                <input id="wsCaretTextIndex" type="text" value="0" />
-              </div>
-              <div>
-                <label for="wsCaretCellIndex">cellIndex</label>
-                <input id="wsCaretCellIndex" type="text" value="0" />
-              </div>
-            </div>
-            <div class="inline" style="margin-top:10px;">
-              <button class="btn" id="wsSetCaretBtn">setCaret</button>
-              <button class="btn" id="wsMoveCaretCharLeftBtn">moveCaret -1 char</button>
-              <button class="btn" id="wsMoveCaretCharRightBtn">moveCaret +1 char</button>
-              <button class="btn" id="wsMoveCaretCellRightBtn">moveCaret +1 cell</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="wsSetCaretFromCellBtn">setCaretFromCell</button>
-              <button class="btn" id="wsCursorRoutingBtn">cursorRouting</button>
-              <button class="btn" id="wsCaretToBeginBtn">setCaretToBegin</button>
-              <button class="btn" id="wsCaretToEndBtn">setCaretToEnd</button>
-            </div>
-            <div class="inline" style="margin-top:8px;">
-              <button class="btn" id="wsCaretVisibleOnBtn">caret visible ON</button>
-              <button class="btn danger" id="wsCaretVisibleOffBtn">caret visible OFF</button>
-            </div>
-
-
-          </div>
-        </section>
-
-        <!-- Right: Latest brailleLine -->
-        <section class="card">
-          <div class="hd">
-            <div>
-              <h2>Brailleline</h2>
-            </div>
-            <div class="pill">
-              <span>WS</span>
-              <span class="dot ok"></span>
-              <span>brailleLine</span>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="split">
-              <div>
-                <label for="brailleUnicode">Braille UnicodeText</label>
-                <textarea id="brailleUnicode" readonly></textarea>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="brailleTable">Table</label>
-                  <input id="brailleTable" type="text" readonly />
-                </div>
-                <div>
-                  <label for="brailleTimestamp">TimestampUtc</label>
-                  <input id="brailleTimestamp" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="brailleCaretTextPosition">CaretTextPosition</label>
-                  <input id="brailleCaretTextPosition" type="text" readonly />
-                </div>
-                <div>
-                  <label for="brailleCaretCellPosition">CaretCellPosition</label>
-                  <input id="brailleCaretCellPosition" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="brailleLineLength">LineLength</label>
-                  <input id="brailleLineLength" type="text" readonly />
-                </div>
-                <div>
-                  <label for="brailleStatusModes">Status (editor/insert)</label>
-                  <input id="brailleStatusModes" type="text" readonly />
-                </div>
-              </div>
-              <div>
-                <label for="brailleSourceText">SourceText</label>
-                <textarea id="brailleSourceText" readonly></textarea>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Right: Latest context events -->
-        <section class="card">
-          <div class="hd">
-            <div>
-              <h2>Contexts</h2>
-            </div>
-            <div class="pill">
-              <span>WS</span>
-              <span class="dot ok"></span>
-              <span id="latestContextTypePill">context</span>
-            </div>
-          </div>
-          <div class="bd">
-            <div class="split">
-              <div class="row">
-                <div>
-                  <label for="latestContextType">Latest Type</label>
-                  <input id="latestContextType" type="text" readonly />
-                </div>
-                <div>
-                  <label for="latestContextSamMsgType">Latest Sam.MsgType</label>
-                  <input id="latestContextSamMsgType" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="latestContextOk">Ok</label>
-                  <input id="latestContextOk" type="text" readonly />
-                </div>
-                <div>
-                  <label for="latestContextTimestamp">TimestampUtc</label>
-                  <input id="latestContextTimestamp" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="latestContextSamUnitId">Latest Sam.UnitId</label>
-                  <input id="latestContextSamUnitId" type="text" readonly />
-                </div>
-                <div>
-                  <label for="latestContextSamStrip">Latest Sam.Strip</label>
-                  <input id="latestContextSamStrip" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="latestContextSamParam">Latest Sam.Param</label>
-                  <input id="latestContextSamParam" type="text" readonly />
-                </div>
-                <div>
-                  <label for="latestContextPayloadPress">Payload Press</label>
-                  <input id="latestContextPayloadPress" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="latestContextPayloadName">Payload Name</label>
-                  <input id="latestContextPayloadName" type="text" readonly />
-                </div>
-                <div>
-                  <label for="latestContextPayloadKey">Payload Key</label>
-                  <input id="latestContextPayloadKey" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="cursorCellIndex">Cursor CellIndex</label>
-                  <input id="cursorCellIndex" type="text" readonly />
-                </div>
-                <div>
-                  <label for="cursorTextIndex">Cursor TextIndex</label>
-                  <input id="cursorTextIndex" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="cursorCharacter">Character</label>
-                  <input id="cursorCharacter" type="text" readonly />
-                </div>
-                <div>
-                  <label for="cursorWord">Word</label>
-                  <input id="cursorWord" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="cursorCellChar">Braille CellChar</label>
-                  <input id="cursorCellChar" type="text" readonly />
-                </div>
-                <div>
-                  <label for="cursorCellCodePoint">CellCodePoint</label>
-                  <input id="cursorCellCodePoint" type="text" readonly />
-                </div>
-              </div>
-              <div class="row">
-                <div>
-                  <label for="cursorTable">Table</label>
-                  <input id="cursorTable" type="text" readonly />
-                </div>
-                <div>
-                  <label for="cursorTimestamp">TimestampUtc</label>
-                  <input id="cursorTimestamp" type="text" readonly />
-                </div>
-              </div>
-              <div>
-                <label for="cursorSourceText">SourceText</label>
-                <textarea id="cursorSourceText" readonly></textarea>
-              </div>
-            </div>
-          </div>
-        </section>
-
       </div>
 
-      <section class="card" style="margin-top:14px;">
-        <div class="hd">
-          <div>
-            <h2>Log</h2>
-          </div>
-          <div class="inline">
-            <button class="btn" id="toggleLogBtn" title="Show or hide log">Show log</button>
-            <button class="btn" id="copyLogBtn" title="Copy log to clipboard">Copy log</button>
-            <button class="btn danger" id="clearLogBtn" title="Clear log">Clear log</button>
-            <div class="pill">
-              <span>Log</span>
-              <span class="dot ok"></span>
-              <span>active</span>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="row row-cards">
+            <div class="col-12">
+              <section class="card">
+                <div class="card-header">
+                  <h2 class="card-title">BrailleMonitor</h2>
+                  <div class="card-actions">
+                    <span class="badge bg-danger-lt" id="brailleMonitorWsDot">offline</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="brailleMonitorComponent" class="form-control font-monospace min-vh-25"></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-12 col-xl-5">
+              <section class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">API</h2>
+                  <div class="card-actions">
+                    <span class="badge bg-danger-lt" id="httpDot">offline</span>
+                    <span class="text-secondary ms-2" id="httpStatusText">unknown</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label" for="httpBase">HTTP Base URL</label>
+                    <input id="httpBase" class="form-control font-monospace" type="text" value="http://localhost:5000" aria-label="HTTP Base URL">
+                  </div>
+                  <div class="btn-list mb-2">
+                    <button class="btn btn-outline-secondary" id="getPathsBtn" type="button">GET /paths</button>
+                    <button class="btn btn-outline-secondary" id="getPingBtn" type="button">GET /ping</button>
+                    <button class="btn btn-outline-secondary" id="getClearBtn" type="button">GET /clear</button>
+                  </div>
+                  <div class="btn-list mb-2">
+                    <button class="btn btn-outline-secondary" id="getDevicesBtn" type="button">GET /devices</button>
+                    <button class="btn btn-outline-secondary" id="getActiveDeviceBtn" type="button">GET /devices/active</button>
+                  </div>
+                  <div class="btn-list">
+                    <button class="btn btn-outline-secondary" id="getTablesBtn" type="button">GET /tables</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-12 col-xl-7">
+              <section class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">WebSocket</h2>
+                  <div class="card-actions">
+                    <span class="badge bg-danger-lt" id="wsDot">offline</span>
+                    <span class="text-secondary ms-2" id="wsStatusText">unknown</span>
+                    <span class="badge bg-warning-lt ms-2" id="editorModeDot">unknown</span>
+                    <span class="text-secondary ms-2" id="editorModeText">unknown</span>
+                    <span class="badge bg-warning-lt ms-2" id="insertModeDot">unknown</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label" for="wsBase">WebSocket URL</label>
+                    <input id="wsBase" class="form-control font-monospace" type="text" value="ws://localhost:5000/ws" aria-label="WebSocket URL">
+                  </div>
+                  <div class="btn-list mb-2">
+                    <button class="btn btn-primary" id="wsConnectBtn" type="button">Connect</button>
+                    <button class="btn btn-outline-danger" id="wsDisconnectBtn" type="button">Disconnect</button>
+                  </div>
+                  <div class="btn-list mb-2">
+                    <button class="btn btn-outline-secondary" id="wsSendModeBtn" type="button">Enable editorMode</button>
+                    <button class="btn btn-outline-danger" id="wsSendModeDisableBtn" type="button">Disable editorMode</button>
+                  </div>
+                  <div class="btn-list mb-3">
+                    <button class="btn btn-outline-secondary" id="wsSetInsertModeOnBtn" type="button">Insert mode ON</button>
+                    <button class="btn btn-outline-danger" id="wsSetInsertModeOffBtn" type="button">Insert mode OFF</button>
+                    <button class="btn btn-outline-secondary" id="wsGetLineBtn" type="button">getBrailleLine</button>
+                  </div>
+
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="wsInputKind">Input kind</label>
+                      <select id="wsInputKind" class="form-select">
+                        <option value="text">text</option>
+                        <option value="braille">braille</option>
+                        <option value="key">key</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6" id="wsTextField">
+                      <label class="form-label" for="wsTextValue">Text</label>
+                      <input id="wsTextValue" class="form-control font-monospace" type="text" value="aap Aap AAP 123 ,.?">
+                    </div>
+                    <div class="col-12 col-md-6" id="wsBrailleField" hidden>
+                      <label class="form-label" for="wsBrailleValue">Braille unicode</label>
+                      <input id="wsBrailleValue" class="form-control font-monospace" type="text" value="&#x2801;">
+                    </div>
+                    <div class="col-12 col-md-6" id="wsKeyField" hidden>
+                      <label class="form-label" for="wsKeyValue">Key</label>
+                      <select id="wsKeyValue" class="form-select">
+                        <option>Backspace</option><option>Delete</option><option>DEL</option><option>Space</option><option>Enter</option><option>ArrowLeft</option><option>ArrowRight</option><option>ArrowUp</option><option>ArrowDown</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="btn-list mt-3 mb-3">
+                    <button class="btn btn-outline-secondary" id="wsSendInputBtn" type="button">Send editorInput</button>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="wsCaretTextIndex">setCaret textIndex</label>
+                      <input id="wsCaretTextIndex" class="form-control font-monospace" type="text" value="0">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="wsCaretCellIndex">cellIndex</label>
+                      <input id="wsCaretCellIndex" class="form-control font-monospace" type="text" value="0">
+                    </div>
+                  </div>
+                  <div class="btn-list mt-3 mb-2">
+                    <button class="btn btn-outline-secondary" id="wsSetCaretBtn" type="button">setCaret</button>
+                    <button class="btn btn-outline-secondary" id="wsMoveCaretCharLeftBtn" type="button">moveCaret -1 char</button>
+                    <button class="btn btn-outline-secondary" id="wsMoveCaretCharRightBtn" type="button">moveCaret +1 char</button>
+                    <button class="btn btn-outline-secondary" id="wsMoveCaretCellRightBtn" type="button">moveCaret +1 cell</button>
+                  </div>
+                  <div class="btn-list mb-2">
+                    <button class="btn btn-outline-secondary" id="wsSetCaretFromCellBtn" type="button">setCaretFromCell</button>
+                    <button class="btn btn-outline-secondary" id="wsCursorRoutingBtn" type="button">cursorRouting</button>
+                    <button class="btn btn-outline-secondary" id="wsCaretToBeginBtn" type="button">setCaretToBegin</button>
+                    <button class="btn btn-outline-secondary" id="wsCaretToEndBtn" type="button">setCaretToEnd</button>
+                  </div>
+                  <div class="btn-list">
+                    <button class="btn btn-outline-secondary" id="wsCaretVisibleOnBtn" type="button">caret visible ON</button>
+                    <button class="btn btn-outline-danger" id="wsCaretVisibleOffBtn" type="button">caret visible OFF</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-12 col-xl-6">
+              <section class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">Brailleline</h2>
+                  <div class="card-actions"><span class="badge bg-success-lt">brailleLine</span></div>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label" for="brailleUnicode">Braille UnicodeText</label>
+                      <textarea id="brailleUnicode" class="form-control font-monospace" rows="4" readonly></textarea>
+                    </div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleTable">Table</label><input id="brailleTable" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleTimestamp">TimestampUtc</label><input id="brailleTimestamp" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleCaretTextPosition">CaretTextPosition</label><input id="brailleCaretTextPosition" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleCaretCellPosition">CaretCellPosition</label><input id="brailleCaretCellPosition" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleLineLength">LineLength</label><input id="brailleLineLength" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="brailleStatusModes">Status (editor/insert)</label><input id="brailleStatusModes" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12"><label class="form-label" for="brailleSourceText">SourceText</label><textarea id="brailleSourceText" class="form-control font-monospace" rows="4" readonly></textarea></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-12 col-xl-6">
+              <section class="card h-100">
+                <div class="card-header">
+                  <h2 class="card-title">Contexts</h2>
+                  <div class="card-actions"><span class="badge bg-secondary-lt" id="latestContextTypePill">context</span></div>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextType">Latest Type</label><input id="latestContextType" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextSamMsgType">Latest Sam.MsgType</label><input id="latestContextSamMsgType" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextOk">Ok</label><input id="latestContextOk" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextTimestamp">TimestampUtc</label><input id="latestContextTimestamp" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextSamUnitId">Latest Sam.UnitId</label><input id="latestContextSamUnitId" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextSamStrip">Latest Sam.Strip</label><input id="latestContextSamStrip" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextSamParam">Latest Sam.Param</label><input id="latestContextSamParam" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextPayloadPress">Payload Press</label><input id="latestContextPayloadPress" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextPayloadName">Payload Name</label><input id="latestContextPayloadName" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="latestContextPayloadKey">Payload Key</label><input id="latestContextPayloadKey" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorCellIndex">Cursor CellIndex</label><input id="cursorCellIndex" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorTextIndex">Cursor TextIndex</label><input id="cursorTextIndex" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorCharacter">Character</label><input id="cursorCharacter" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorWord">Word</label><input id="cursorWord" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorCellChar">Braille CellChar</label><input id="cursorCellChar" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorCellCodePoint">CellCodePoint</label><input id="cursorCellCodePoint" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorTable">Table</label><input id="cursorTable" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12 col-md-6"><label class="form-label" for="cursorTimestamp">TimestampUtc</label><input id="cursorTimestamp" class="form-control font-monospace" type="text" readonly></div>
+                    <div class="col-12"><label class="form-label" for="cursorSourceText">SourceText</label><textarea id="cursorSourceText" class="form-control font-monospace" rows="4" readonly></textarea></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="col-12">
+              <section class="card">
+                <div class="card-header">
+                  <h2 class="card-title">Log</h2>
+                  <div class="card-actions">
+                    <div class="btn-list">
+                      <button class="btn btn-outline-secondary btn-sm" id="toggleLogBtn" type="button">Show log</button>
+                      <button class="btn btn-outline-secondary btn-sm" id="copyLogBtn" type="button">Copy log</button>
+                      <button class="btn btn-outline-danger btn-sm" id="clearLogBtn" type="button">Clear log</button>
+                      <span class="badge bg-success-lt">active</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-body" id="logCardBody" hidden>
+                  <div class="form-control font-monospace overflow-auto" id="log"></div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
-        <div class="bd" id="logCardBody" hidden>
-          <div class="log" id="log"></div>
-        </div>
-      </section>
-    </div>
-  </main>
+      </div>
+    </main>
+  </div>
 
-  <script src="../components/braille-monitor/braillemonitor.js"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js')) ?>"></script>
   <script>
     (function () {
       const el = (id) => document.getElementById(id);
@@ -850,12 +417,12 @@
       function appendLog(line) {
         const maxLines = 1200; // cap to avoid runaway memory
         const row = document.createElement("div");
-        row.className = "line";
+        row.className = "mb-1 text-break";
         const ts = document.createElement("span");
-        ts.className = "ts";
+        ts.className = "text-secondary";
         ts.textContent = `[${nowTs()}] `;
         const msg = document.createElement("span");
-        msg.className = "msg";
+        msg.className = "text-body";
         msg.textContent = line;
         row.append(ts, msg);
         if (log.firstChild) log.insertBefore(row, log.firstChild);
@@ -870,25 +437,36 @@
         if (toggleLogBtn) toggleLogBtn.textContent = visible ? "Hide log" : "Show log";
       }
       function setHttpStatus(ok, text) {
-        httpDot.classList.toggle("ok", !!ok);
+        if (httpDot) {
+          httpDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
+          httpDot.textContent = ok ? "online" : "offline";
+        }
         httpStatusText.textContent = text;
       }
       function setWsStatus(ok, text) {
-        wsDot.classList.toggle("ok", !!ok);
-        if (brailleMonitorWsDot) brailleMonitorWsDot.classList.toggle("ok", !!ok);
+        if (wsDot) {
+          wsDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
+          wsDot.textContent = ok ? "connected" : "offline";
+        }
+        if (brailleMonitorWsDot) {
+          brailleMonitorWsDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
+          brailleMonitorWsDot.textContent = ok ? "connected" : "offline";
+        }
         if (wsStatusText) wsStatusText.textContent = text;
       }
       function setEditorModeStatus(enabled) {
-        editorModeDot.classList.toggle("ok", enabled === true);
-        editorModeDot.classList.toggle("warn", enabled !== true && enabled !== false);
+        if (editorModeDot) {
+          editorModeDot.className = enabled === true ? "badge bg-success-lt" : enabled === false ? "badge bg-secondary-lt" : "badge bg-warning-lt";
+          editorModeDot.textContent = enabled === true ? "enabled" : enabled === false ? "disabled" : "unknown";
+        }
         if (editorModeText) {
           editorModeText.textContent = enabled === true ? "enabled" : enabled === false ? "disabled" : "unknown";
         }
       }
       function setInsertModeStatus(enabled) {
         if (!insertModeDot) return;
-        insertModeDot.classList.toggle("ok", enabled === true);
-        insertModeDot.classList.toggle("warn", enabled !== true && enabled !== false);
+        insertModeDot.className = enabled === true ? "badge bg-success-lt" : enabled === false ? "badge bg-secondary-lt" : "badge bg-warning-lt";
+        insertModeDot.textContent = enabled === true ? "on" : enabled === false ? "off" : "unknown";
       }
       // Copy/Clear log
       copyLogBtn.addEventListener("click", async () => {

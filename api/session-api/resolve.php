@@ -10,12 +10,15 @@ session_api_ensure_storage_dirs();
 $input = session_api_read_json_input();
 $sessionId = session_api_normalize_token((string)($input['sessionId'] ?? ''), 'sessionId', 16, 64);
 $code = session_api_normalize_token((string)($input['code'] ?? ''), 'code', 3, 64);
+$methodIdRaw = trim((string)($input['methodId'] ?? ''));
+$methodId = $methodIdRaw !== '' ? session_api_normalize_token($methodIdRaw, 'methodId', 3, 128) : '';
 
-$stepLink = session_api_load_step_link_or_fail($code);
+$stepLink = session_api_load_step_link_or_fail($code, $methodId);
 
 $resolvedAt = session_api_now_iso();
 $resolvedPayload = [
     'code' => $code,
+    'methodId' => (string)($stepLink['methodId'] ?? $methodId),
     'stepId' => (string)$stepLink['stepId'],
     'scriptId' => (string)$stepLink['scriptId'],
     'meta' => is_array($stepLink['meta'] ?? null) ? $stepLink['meta'] : new stdClass(),

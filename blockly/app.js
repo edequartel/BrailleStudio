@@ -26,9 +26,11 @@ const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
-const ELEVENLABS_AUTH_API_BASE = 'https://www.tastenbraille.com/braillestudio/authentication-api/';
-const AUTH_BRIDGE_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html?mode=bridge';
-const AUTH_LOGIN_PAGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.html';
+const BRAILLE_BLOCKLY_AUTH_CONFIG = window.BrailleBlocklyAuth || {};
+const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || '/braillestudio/authentication-api/';
+const AUTH_BRIDGE_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authBridgePageUrl || '/braillestudio/authentication.php?mode=bridge';
+const AUTH_LOGIN_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authLoginPageUrl || '/braillestudio/authentication.php';
+const AUTH_HOMEPAGE_ORIGIN = BRAILLE_BLOCKLY_AUTH_CONFIG.homepageOrigin || 'https://www.tastenbraille.com';
 const BRAILLEBRIDGE_PROTOCOL_URL = 'braillebridge://';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
@@ -163,16 +165,18 @@ function renderWsControl() {
 
   const isConnected = !!ws && ws.readyState === WebSocket.OPEN;
 
-  btn.classList.remove('is-connected', 'is-disconnected');
+  btn.classList.remove('btn-outline-success', 'btn-outline-danger');
 
   if (isConnected) {
-    btn.classList.add('is-connected');
+    btn.classList.add('btn-outline-success');
     btn.setAttribute('aria-label', 'Disconnect WebSocket');
+    btn.title = 'Disconnect WebSocket';
     return;
   }
 
-  btn.classList.add('is-disconnected');
+  btn.classList.add('btn-outline-danger');
   btn.setAttribute('aria-label', 'Connect WebSocket');
+  btn.title = 'Connect WebSocket';
 }
 
 function renderBrailleBridgeIndicator() {
@@ -400,11 +404,7 @@ function getElevenLabsAuthHeaders(extra = {}) {
 }
 
 function getElevenLabsAuthBaseUrl() {
-  const host = String(window.location.hostname || '').toLowerCase();
-  if (host === '127.0.0.1' || host === 'localhost') {
-    return ELEVENLABS_AUTH_API_BASE;
-  }
-  return new URL('../authentication-api/', window.location.href).toString();
+  return new URL(ELEVENLABS_AUTH_API_BASE, window.location.origin).toString();
 }
 
 function getElevenLabsAuthEndpointUrl(fileName) {
@@ -416,9 +416,10 @@ function renderElevenLabsAuthStatus(message = '') {
   const token = getValidElevenLabsAuthToken();
 
   if (loginBtn) {
-    loginBtn.textContent = token ? 'Logout' : 'Authentication';
-    loginBtn.classList.remove('btn-blue', 'btn-soft');
-    loginBtn.classList.add(token ? 'btn-soft' : 'btn-blue');
+    loginBtn.className = token ? 'btn btn-outline-secondary' : 'btn btn-primary';
+    loginBtn.innerHTML = token
+      ? '<i class="ti ti-logout me-2" aria-hidden="true"></i>Logout'
+      : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
     loginBtn.disabled = false;
     loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
   }
@@ -447,7 +448,7 @@ async function refreshCompoundLibraryIfAuthenticated(reason = 'state-change') {
 }
 
 function buildHomepageAuthUrl(returnTo = window.location.href) {
-  const url = new URL(AUTH_LOGIN_PAGE_URL);
+  const url = new URL(AUTH_LOGIN_PAGE_URL, window.location.origin);
   const target = String(returnTo || '').trim();
   if (target) {
     url.searchParams.set('returnTo', target);
@@ -494,11 +495,12 @@ function logoutElevenLabsAuth() {
 function openBrailleStudioAuthPopup() {
   return new Promise((resolve, reject) => {
     const currentOrigin = String(window.location.origin || '').trim();
-    const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
+    const useSameOriginStorageFlow = currentOrigin === AUTH_HOMEPAGE_ORIGIN;
     const authUrl = new URL(
       useSameOriginStorageFlow
         ? AUTH_LOGIN_PAGE_URL
-        : AUTH_BRIDGE_PAGE_URL
+        : AUTH_BRIDGE_PAGE_URL,
+      window.location.origin
     );
     if (!useSameOriginStorageFlow) {
       authUrl.searchParams.set('origin', currentOrigin);
@@ -524,7 +526,7 @@ function openBrailleStudioAuthPopup() {
     };
 
     const onMessage = (event) => {
-      if (event.origin !== 'https://www.tastenbraille.com') return;
+      if (event.origin !== AUTH_HOMEPAGE_ORIGIN) return;
       if (event.data?.type !== 'braillestudio-auth-token') return;
       const token = String(event.data?.token || '').trim();
       log(`Auth popup message received from ${event.origin}; token ${token ? 'present' : 'missing'}`);
@@ -931,9 +933,18 @@ function applyMetadataToXmlDom(xmlDom) {
 function renderGridSnapControl() {
   const btn = document.getElementById('gridSnapBtn');
   if (!btn) return;
-  btn.classList.toggle('is-active', !!gridSnapEnabled);
+  btn.classList.toggle('active', !!gridSnapEnabled);
   btn.setAttribute('aria-pressed', gridSnapEnabled ? 'true' : 'false');
-  btn.textContent = gridSnapEnabled ? 'Snap On' : 'Snap Off';
+  btn.setAttribute('aria-label', gridSnapEnabled ? 'Disable grid snap' : 'Enable grid snap');
+  btn.title = gridSnapEnabled ? 'Disable grid snap' : 'Enable grid snap';
+  setIconButtonContent(btn, 'ti ti-grid-dots');
+}
+
+function setIconButtonContent(btn, iconClass) {
+  const icon = document.createElement('i');
+  icon.className = iconClass;
+  icon.setAttribute('aria-hidden', 'true');
+  btn.replaceChildren(icon);
 }
 
 function renderSidebarToggleControl() {
@@ -942,11 +953,11 @@ function renderSidebarToggleControl() {
   if (!btn || !main) return;
   const isHidden = main.classList.contains('is-sidebar-hidden');
   const isVisible = !isHidden;
-  btn.classList.toggle('is-active', isVisible);
+  btn.classList.toggle('active', isVisible);
   btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
   btn.setAttribute('aria-label', isVisible ? 'Hide status panel' : 'Show status panel');
   btn.title = isVisible ? 'Hide status panel' : 'Show status panel';
-  btn.textContent = 'Status';
+  setIconButtonContent(btn, 'ti ti-layout-sidebar-right');
 }
 
 function applySidebarWidth(nextWidth) {
@@ -969,11 +980,11 @@ function renderBrailleMonitorToggleControl() {
   if (scriptRow) {
     scriptRow.classList.toggle('is-hidden', !isVisible || wsConnected);
   }
-  btn.classList.toggle('is-active', isVisible);
+  btn.classList.toggle('active', isVisible);
   btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
   btn.setAttribute('aria-label', isVisible ? 'Hide monitor' : 'Show monitor');
   btn.title = isVisible ? 'Hide monitor' : 'Show monitor';
-  btn.textContent = 'Monitor';
+  setIconButtonContent(btn, 'ti ti-device-desktop');
 }
 
 function applyBrailleMonitorVisibility(visible) {
@@ -1310,47 +1321,27 @@ function renderStatus() {
   const isRunning = isRuntimeActive(rt);
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
-  const runLabel = runBtn?.querySelector('.label');
-  const stopLabel = stopBtn?.querySelector('.label');
 
   const phase = isRunning
     ? (uiExecutionState.phase === 'stopping' ? 'stopping' : 'running')
     : (uiExecutionState.phase || 'idle');
 
   if (runBtn) {
-    runBtn.classList.toggle('is-active', phase === 'running');
-    runBtn.classList.toggle('is-completed', phase === 'completed');
-    runBtn.classList.toggle('is-stopped', phase === 'stopped');
-    runBtn.classList.toggle('is-stopping', phase === 'stopping');
+    runBtn.classList.toggle('active', phase === 'running');
     runBtn.disabled = isRunning || pendingStart;
     runBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
-    runBtn.setAttribute('aria-label', phase === 'completed' ? 'Again' : (phase === 'running' ? 'Running' : (phase === 'stopping' ? 'Stopping' : 'Start')));
-    if (runLabel) {
-      runLabel.textContent =
-        phase === 'running' ? 'Running...' :
-        phase === 'stopping' ? 'Stopping...' :
-        phase === 'completed' ? 'Again' :
-        phase === 'stopped' ? 'Again' :
-        'Start';
-    }
+    const label = phase === 'completed' ? 'Again' : (phase === 'running' ? 'Running' : (phase === 'stopping' ? 'Stopping' : 'Start'));
+    runBtn.setAttribute('aria-label', label);
+    runBtn.title = label;
   }
 
   if (stopBtn) {
-    stopBtn.classList.toggle('is-active', phase === 'running');
-    stopBtn.classList.toggle('is-completed', phase === 'completed');
-    stopBtn.classList.toggle('is-stopped', phase === 'stopped');
-    stopBtn.classList.toggle('is-stopping', phase === 'stopping');
+    stopBtn.classList.toggle('active', phase === 'running');
     stopBtn.disabled = phase === 'stopping' || (!isRunning && !pendingStart);
     stopBtn.setAttribute('aria-pressed', isRunning || pendingStart ? 'true' : 'false');
-    stopBtn.setAttribute('aria-label', phase === 'completed' ? 'Finished' : (phase === 'stopped' ? 'Stopped' : (phase === 'stopping' ? 'Stopping' : 'Stop')));
-    if (stopLabel) {
-      stopLabel.textContent =
-        phase === 'running' ? 'Stop' :
-        phase === 'stopping' ? 'Stopping...' :
-        phase === 'completed' ? 'Finished' :
-        phase === 'stopped' ? 'Stopped' :
-        'Stop';
-    }
+    const label = phase === 'completed' ? 'Finished' : (phase === 'stopped' ? 'Stopped' : (phase === 'stopping' ? 'Stopping' : 'Stop'));
+    stopBtn.setAttribute('aria-label', label);
+    stopBtn.title = label;
   }
 
   document.getElementById('statusBox').textContent =

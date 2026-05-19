@@ -1,107 +1,176 @@
 <?php
 declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+$lessonBuilderBase = $scriptDir;
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
 ?>
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lesson Builder - Methode</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="./lessonbuilder-shared.js?v=20260407-2"></script>
-  <style>
-    .press-feedback {
-      transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease, border-color 120ms ease;
-    }
-
-    .press-feedback:active {
-      transform: translateY(1px) scale(0.985);
-      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.18);
-      filter: brightness(0.96);
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260407-2')) ?>"></script>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="max-w-6xl mx-auto p-6 space-y-5">
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <div class="text-sm font-semibold text-blue-700">Stap 1 van 3</div>
-        <h1 class="text-3xl font-bold">Methode</h1>
+<body class="bg-body">
+  <div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2">
+            <i class="ti ti-braille text-primary" aria-hidden="true"></i>
+          </span>
+          <span>BrailleStudio</span>
+        </a>
+        <div class="navbar-nav flex-row ms-auto">
+          <div class="nav-item">
+            <button id="authBtn" class="btn btn-outline-primary" type="button">
+              <i class="ti ti-login me-2" aria-hidden="true"></i>
+              Authentication
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="flex gap-2">
-        <a class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder.php">Overzicht</a>
-        <a class="press-feedback rounded-xl border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Volgende stap</a>
+    </header>
+
+    <main class="page-wrapper">
+      <div class="page-header d-print-none">
+        <div class="container-xl">
+          <div class="row g-3 align-items-center">
+            <div class="col">
+              <div class="page-pretitle">Stap 1 van 3</div>
+              <h1 class="page-title">Methode</h1>
+              <div class="text-secondary mt-2">Kies een bestaande methode of maak een nieuwe. Een basisbestand is optioneel.</div>
+            </div>
+            <div class="col-auto">
+              <div class="btn-list">
+                <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder.php')) ?>">
+                  <i class="ti ti-arrow-left me-2" aria-hidden="true"></i>
+                  Overzicht
+                </a>
+                <a class="btn btn-primary" href="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-records.php')) ?>">
+                  Volgende stap
+                  <i class="ti ti-arrow-right ms-2" aria-hidden="true"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="space-y-5">
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div>
-          <div class="text-lg font-bold">Methode</div>
-          <p class="text-sm text-slate-600">Kies een bestaande methode of maak een nieuwe. Een basisbestand is optioneel.</p>
-        </div>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Methode</h2>
+                <div class="card-subtitle">Beheer de methodegegevens en het gekoppelde basisbestand.</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-7">
+                  <label class="form-label" for="methodsSelect">Method list</label>
+                  <select id="methodsSelect" class="form-select"></select>
+                </div>
+                <div class="col-12 col-lg-5">
+                  <div class="btn-list justify-content-lg-end">
+                    <a id="openRunmethodLink" class="btn btn-outline-secondary disabled" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">
+                      <i class="ti ti-external-link me-2" aria-hidden="true"></i>
+                      Link
+                    </a>
+                    <button id="copyRunmethodLinkBtn" type="button" class="btn btn-outline-secondary" disabled>
+                      <i class="ti ti-copy me-2" aria-hidden="true"></i>
+                      Copy link
+                    </button>
+                  </div>
+                </div>
+                <input id="methodIdInput" type="hidden">
+              </div>
 
-        <div class="grid gap-6 md:grid-cols-[minmax(0,420px)_auto]">
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodsSelect">Method list</label>
-            <select id="methodsSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
+              <div class="row g-3 mt-1">
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="methodTechnicalIdDisplay">Technical method id</label>
+                  <input id="methodTechnicalIdDisplay" class="form-control" type="text" readonly placeholder="Will be generated on save">
+                  <div class="form-hint">This id is used for the file name and runmethod link.</div>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="methodBasisFileSelect">Basisbestand</label>
+                  <select id="methodBasisFileSelect" class="form-select"></select>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="methodTitleInput">Method title</label>
+                  <input id="methodTitleInput" class="form-control" type="text" placeholder="Aanvankelijk">
+                </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="methodDescriptionInput">Description</label>
+                  <input id="methodDescriptionInput" class="form-control" type="text" placeholder="Woordenlijst voor aanvankelijk lezen">
+                </div>
+                <div class="col-12 col-lg-8">
+                  <label class="form-label" for="methodImageUrlInput">Image URL</label>
+                  <div class="row g-2 align-items-center">
+                    <div class="col">
+                      <input id="methodImageUrlInput" class="form-control" type="text" placeholder="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png">
+                    </div>
+                    <div id="methodImagePreview" class="col-auto d-none" hidden></div>
+                  </div>
+                </div>
+              </div>
+
+              <input id="methodDataSourceInput" type="hidden">
+
+              <div class="btn-list mt-4">
+                <button id="newMethodBtn" class="btn btn-outline-secondary" type="button">
+                  <i class="ti ti-plus me-2" aria-hidden="true"></i>
+                  New method
+                </button>
+                <button id="saveMethodBtn" class="btn btn-primary" type="button">
+                  <i class="ti ti-device-floppy me-2" aria-hidden="true"></i>
+                  Save method
+                </button>
+                <button id="saveAsNewMethodBtn" class="btn btn-outline-primary" type="button">
+                  <i class="ti ti-copy-plus me-2" aria-hidden="true"></i>
+                  Save as new
+                </button>
+                <button id="deleteMethodBtn" class="btn btn-danger" type="button">
+                  <i class="ti ti-trash me-2" aria-hidden="true"></i>
+                  Delete method
+                </button>
+                <button id="refreshMethodsBtn" class="btn btn-outline-secondary" type="button">
+                  <i class="ti ti-refresh me-2" aria-hidden="true"></i>
+                  Refresh methods
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="flex items-end justify-end gap-2">
-            <a id="openRunmethodLink" class="press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">Link</a>
-            <button id="copyRunmethodLinkBtn" type="button" class="press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400" disabled>Copy link</button>
-          </div>
-          <input id="methodIdInput" type="hidden">
-        </div>
 
-        <div class="grid gap-3 md:grid-cols-2">
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodTechnicalIdDisplay">Technical method id</label>
-            <input id="methodTechnicalIdDisplay" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-slate-600" type="text" readonly placeholder="Will be generated on save">
-            <div class="mt-1 text-xs text-slate-500">This id is used for the file name and runmethod link.</div>
-          </div>
-          <div></div>
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodTitleInput">Method title</label>
-            <input id="methodTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="Aanvankelijk">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodBasisFileSelect">Basisbestand</label>
-            <select id="methodBasisFileSelect" class="h-10 w-full rounded-xl border border-slate-300 px-3 py-2"></select>
+          <div class="card mt-3">
+            <div class="card-header">
+              <h2 class="card-title">Debug log</h2>
+              <div class="card-actions">
+                <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary btn-sm">Unhide</button>
+              </div>
+            </div>
+            <div class="card-body d-none" id="debugLogBody" hidden>
+              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+            </div>
           </div>
         </div>
-
-        <input id="methodDataSourceInput" type="hidden">
-
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodDescriptionInput">Description</label>
-          <input id="methodDescriptionInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="Woordenlijst voor aanvankelijk lezen">
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-slate-700 mb-1" for="methodImageUrlInput">Image URL</label>
-          <input id="methodImageUrlInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text" placeholder="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png">
-          <div id="methodImagePreview" class="mt-2 hidden rounded-xl border border-slate-200 bg-slate-50 p-3"></div>
-        </div>
-
-        <div class="flex flex-wrap gap-2">
-          <button id="newMethodBtn" class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">New method</button>
-          <button id="saveMethodBtn" class="press-feedback rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save method</button>
-          <button id="saveAsNewMethodBtn" class="press-feedback rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">Save as new</button>
-          <button id="deleteMethodBtn" class="press-feedback rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete method</button>
-          <button id="refreshMethodsBtn" class="press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Refresh methods</button>
-        </div>
-      </section>
-    </div>
-
-    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-      <div class="flex items-center justify-between gap-3">
-        <div class="text-lg font-bold">Debug log</div>
-        <button id="toggleDebugLogBtn" type="button" class="press-feedback rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
       </div>
-      <pre id="statusBox" class="hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800 whitespace-pre-wrap"></pre>
-    </section>
+    </main>
   </div>
 
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const methodsSelect = document.getElementById('methodsSelect');
@@ -116,6 +185,7 @@ declare(strict_types=1);
     const openRunmethodLink = document.getElementById('openRunmethodLink');
     const copyRunmethodLinkBtn = document.getElementById('copyRunmethodLinkBtn');
     const statusBox = document.getElementById('statusBox');
+    const debugLogBody = document.getElementById('debugLogBody');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const newMethodBtn = document.getElementById('newMethodBtn');
     const saveMethodBtn = document.getElementById('saveMethodBtn');
@@ -145,7 +215,10 @@ declare(strict_types=1);
     }
 
     function renderDebugLogVisibility() {
-      statusBox.classList.toggle('hidden', !isDebugLogVisible);
+      if (debugLogBody) {
+        debugLogBody.hidden = !isDebugLogVisible;
+        debugLogBody.classList.toggle('d-none', !isDebugLogVisible);
+      }
       toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
     }
 
@@ -179,15 +252,20 @@ declare(strict_types=1);
     function renderMethodImagePreview() {
       const imageUrl = methodImageUrlInput.value.trim();
       if (!imageUrl) {
-        methodImagePreview.classList.add('hidden');
+        methodImagePreview.hidden = true;
+        methodImagePreview.classList.add('d-none');
         methodImagePreview.innerHTML = '';
         return;
       }
-      methodImagePreview.classList.remove('hidden');
-      methodImagePreview.innerHTML = `
-        <div class="text-xs text-slate-500 break-all mb-2">${imageUrl}</div>
-        <img src="${imageUrl}" alt="Method preview" class="max-h-36 rounded-lg border border-slate-200 bg-white object-contain">
-      `;
+      methodImagePreview.hidden = false;
+      methodImagePreview.classList.remove('d-none');
+      methodImagePreview.innerHTML = '';
+      const previewImage = document.createElement('img');
+      previewImage.className = 'rounded';
+      previewImage.src = imageUrl;
+      previewImage.alt = 'Method preview';
+      previewImage.width = 144;
+      methodImagePreview.appendChild(previewImage);
     }
 
     function renderTechnicalMethodId() {
@@ -201,19 +279,19 @@ declare(strict_types=1);
       if (!methodId) {
         openRunmethodLink.href = '#';
         openRunmethodLink.setAttribute('aria-disabled', 'true');
-        openRunmethodLink.className = 'press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400 pointer-events-none';
+        openRunmethodLink.className = 'btn btn-outline-secondary disabled';
         if (copyRunmethodLinkBtn) {
           copyRunmethodLinkBtn.disabled = true;
-          copyRunmethodLinkBtn.className = 'press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-400';
+          copyRunmethodLinkBtn.className = 'btn btn-outline-secondary';
         }
         return;
       }
       openRunmethodLink.href = `https://www.tastenbraille.com/braillestudio/runmethod.php?id=${encodeURIComponent(methodId)}`;
       openRunmethodLink.setAttribute('aria-disabled', 'false');
-      openRunmethodLink.className = 'press-feedback rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+      openRunmethodLink.className = 'btn btn-outline-primary';
       if (copyRunmethodLinkBtn) {
         copyRunmethodLinkBtn.disabled = false;
-        copyRunmethodLinkBtn.className = 'press-feedback inline-flex h-10 items-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900';
+        copyRunmethodLinkBtn.className = 'btn btn-outline-secondary';
       }
     }
 

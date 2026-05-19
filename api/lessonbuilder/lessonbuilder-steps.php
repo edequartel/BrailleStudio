@@ -1,270 +1,260 @@
 <?php
 declare(strict_types=1);
+
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptDir = rtrim($scriptDir, '/');
+$appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
+$appBase = rtrim($appBase, '/');
+$lessonBuilderBase = $scriptDir;
+$sessionApiBase = $appBase . '/session-api';
+
+$urlFor = static function (string $base, string $path): string {
+    return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
+};
+$htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 ?>
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lesson Builder - Steps</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="./lessonbuilder-shared.js?v=20260407-2"></script>
-  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
-  <link rel="stylesheet" href="https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.css">
-  <style>
-    .lesson-monitor-fit {
-      overflow: hidden;
-    }
-
-    .lesson-monitor-host {
-      overflow: hidden;
-      border-radius: 5px;
-    }
-
-    .lesson-monitor-host .braille-monitor-component,
-    .lesson-monitor-host .braille-monitor-cells,
-    .lesson-monitor-host .braille-monitor-cell-container {
-      border-radius: 5px;
-    }
-
-    .steps-grid {
-      grid-template-columns: minmax(190px, 1.35fr) minmax(300px, 2.45fr) minmax(180px, 1.3fr) minmax(300px, 2.15fr) 78px 44px 44px 44px 44px;
-      min-width: 1220px;
-    }
-
-    .steps-textarea {
-      min-height: 92px;
-      resize: vertical;
-    }
-
-    .step-script-card {
-      min-width: 0;
-      padding-right: 8px;
-      padding-top: 2px;
-      display: grid;
-      gap: 10px;
-      align-content: start;
-    }
-
-    .step-link-stack {
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-    }
-
-    .step-link-code-row {
-      display: flex;
-      min-width: 0;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .step-action-btn {
-      width: 36px;
-      min-width: 36px;
-      height: 36px;
-      min-height: 36px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      border: 1px solid rgb(203 213 225);
-      background: white;
-      color: rgb(51 65 85);
-    }
-
-    .step-action-btn:hover {
-      background: rgb(248 250 252);
-    }
-
-    .step-action-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .step-action-btn svg {
-      width: 16px;
-      height: 16px;
-      display: block;
-    }
-
-    .step-action-btn--danger {
-      border-color: rgb(248 113 113);
-      background: rgb(220 38 38);
-      color: white;
-    }
-
-    .lesson-content-safe {
-      min-width: 0;
-    }
-
-    .status-log-safe {
-      max-width: 100%;
-      overflow-x: auto;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
-
-    .lesson-monitor-fit .braille-monitor-component {
-      zoom: 0.78;
-      transform-origin: top left;
-    }
-
-    @supports not (zoom: 1) {
-      .lesson-monitor-fit .braille-monitor-component {
-        transform: scale(0.78);
-        width: calc(100% / 0.78);
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
+  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260407-2')) ?>"></script>
 </head>
-<body class="bg-slate-100 text-slate-900">
-  <div class="max-w-7xl mx-auto p-6 space-y-5">
-    <div class="flex items-start gap-4">
-      <div class="min-w-0">
-        <div class="text-sm font-semibold text-blue-700">Stap 3 van 3</div>
-        <h1 class="text-3xl font-bold">Lesson steps bouwen</h1>
+<body class="bg-body">
+  <div class="page">
+    <header class="navbar navbar-expand-md d-print-none">
+      <div class="container-xl">
+        <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+          <span class="avatar avatar-sm bg-primary-lt me-2">
+            <i class="ti ti-braille text-primary" aria-hidden="true"></i>
+          </span>
+          <span>BrailleStudio</span>
+        </a>
+        <div class="navbar-nav flex-row ms-auto">
+          <div class="nav-item">
+            <button id="authBtn" class="btn btn-outline-primary" type="button">
+              <i class="ti ti-login me-2" aria-hidden="true"></i>
+              Authentication
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="ml-auto flex shrink-0 gap-2">
-        <button id="authBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Authentication</button>
-        <a class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" href="https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-records.php">Vorige stap</a>
-      </div>
-    </div>
+    </header>
 
-    <div class="grid gap-5">
-      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div>
-          <div class="text-lg font-bold">Braille monitor</div>
-          <div class="text-sm text-slate-500">Monitor en thumb-input voor de actieve lesson.</div>
+    <main class="page-wrapper">
+      <div class="page-header d-print-none">
+        <div class="container-xl">
+          <div class="row g-3 align-items-center">
+            <div class="col">
+              <div class="page-pretitle">Stap 3 van 3</div>
+              <h1 class="page-title">Lesson steps bouwen</h1>
+            </div>
+            <div class="col-auto">
+              <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-records.php')) ?>">
+                <i class="ti ti-arrow-left me-2" aria-hidden="true"></i>
+                Vorige stap
+              </a>
+            </div>
+          </div>
         </div>
-        <div id="brailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
-          <div id="brailleMonitorComponent"></div>
-        </div>
-        <div id="scriptBrailleMonitorRow" class="lesson-monitor-fit lesson-monitor-host">
-          <div id="scriptBrailleMonitorComponent"></div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button id="simThumbLeftBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left thumb</button>
-          <button id="simCursor5Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Left middle thumb</button>
-          <button id="simChord1Btn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right middle thumb</button>
-          <button id="simThumbRightBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold" type="button">Right thumb</button>
-        </div>
-      </section>
-
-      <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div>
-            <div class="text-lg font-bold">Les informatie</div>
-            <div class="text-sm text-slate-500">De lesson zelf: titel, woord, beschrijving en run/save acties.</div>
-          </div>
-          <div id="lessonSummary" class="lesson-content-safe rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 break-words"></div>
-          <div class="grid gap-3 md:grid-cols-2">
-            <input id="lessonIdInput" type="hidden">
-            <div>
-              <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonTitleInput">Lesson title</label>
-              <input id="lessonTitleInput" class="w-full rounded-xl border border-slate-300 px-3 py-2" type="text">
-            </div>
-            <div>
-              <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonWordInput">Word</label>
-              <input id="lessonWordInput" class="w-full rounded-xl border border-slate-300 px-3 py-2 bg-slate-50" type="text" readonly>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1" for="lessonDescriptionInput">Description</label>
-            <textarea id="lessonDescriptionInput" class="min-h-[92px] w-full rounded-xl border border-slate-300 px-3 py-2" placeholder="Lesson description"></textarea>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <button id="saveLessonBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Save</button>
-            <button id="deleteLessonBtn" class="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white">Delete</button>
-            <button id="runLessonBtn" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold">Run</button>
-          </div>
-          <div id="lessonActionHint" class="text-xs text-slate-500">Use Save to store this lesson, Delete to remove it, and Run to test the current steps.</div>
-        </section>
-
-        <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-          <div>
-            <div class="text-lg font-bold">Blockly informatie</div>
-            <div class="text-sm text-slate-500">Scripts kiezen, Blockly-data verversen en steps importeren uit een andere lesson.</div>
-          </div>
-          <section class="space-y-2">
-            <div class="text-sm font-semibold text-slate-700">Beschikbare Blockly scripts</div>
-            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-              <select id="scriptsSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"></select>
-              <button id="refreshScriptsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh</button>
-              <button id="addStepBtn" class="h-10 w-full rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white md:w-auto">Add</button>
-            </div>
-            <div id="scriptsSummary" class="text-xs text-slate-500"></div>
-            <div id="scriptMetaPreview" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              Select a Blockly script to see its metadata.
-            </div>
-          </section>
-
-          <section class="space-y-2">
-            <div class="text-sm font-semibold text-slate-700">Steps kopiëren uit andere lesson</div>
-            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-center">
-              <select id="copyLessonSelect" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
-                <option value="">Select lesson to copy from</option>
-              </select>
-              <button id="refreshLessonsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Refresh lessons</button>
-              <button id="replaceStepsBtn" class="h-10 w-full rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-semibold text-amber-800 md:w-auto">Replace steps</button>
-              <button id="appendStepsBtn" class="h-10 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold md:w-auto">Append steps</button>
-            </div>
-          </section>
-        </section>
       </div>
 
-      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
-        <div>
-          <div class="text-lg font-bold">Steps</div>
-          <div class="text-sm text-slate-500">Een step is een Blockly-script met extra variabele lesson-informatie zoals text, word, letters en repeat.</div>
-        </div>
-        <div class="rounded-xl border border-slate-200 overflow-x-auto overflow-y-hidden">
-          <div class="steps-grid grid w-full gap-2 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-            <div class="min-w-0 pr-2 text-left">Step</div>
-            <div class="min-w-0 text-left">Text</div>
-            <div class="min-w-0 text-left">Word</div>
-            <div class="min-w-0 text-left">Letters</div>
-            <div class="min-w-0 text-left">Repeat</div>
-            <div class="text-center"></div>
-            <div class="text-center"></div>
-            <div class="text-center"></div>
-            <div class="text-center"></div>
+      <div class="page-body">
+        <div class="container-xl">
+          <div class="card mb-3">
+            <div class="card-header border-0">
+              <div>
+                <h2 class="card-title">Braille monitor</h2>
+                <div class="card-subtitle">Monitor en thumb-input voor de actieve lesson.</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="brailleMonitorRow">
+                <div id="brailleMonitorComponent"></div>
+              </div>
+              <div id="scriptBrailleMonitorRow">
+                <div id="scriptBrailleMonitorComponent"></div>
+              </div>
+              <div class="btn-list mt-3">
+                <button id="simThumbLeftBtn" class="btn btn-outline-secondary" type="button">Left thumb</button>
+                <button id="simCursor5Btn" class="btn btn-outline-secondary" type="button">Left middle thumb</button>
+                <button id="simChord1Btn" class="btn btn-outline-secondary" type="button">Right middle thumb</button>
+                <button id="simThumbRightBtn" class="btn btn-outline-secondary" type="button">Right thumb</button>
+              </div>
+            </div>
           </div>
-          <div id="stepsTableBody" class="divide-y divide-slate-200"></div>
-        </div>
-      </section>
 
-      <section class="lesson-content-safe rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-2">
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-lg font-bold">Debug log</div>
-          <div class="flex items-center gap-2">
-            <button id="copyDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Copy log</button>
-            <button id="clearDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Clear log</button>
-            <button id="toggleDebugLogBtn" type="button" class="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">Unhide</button>
+          <div class="row row-cards">
+            <div class="col-12 col-xl-6">
+              <div class="card h-100">
+                <div class="card-header border-0">
+                  <div>
+                    <h2 class="card-title">Les informatie</h2>
+                    <div class="card-subtitle">De lesson zelf: titel, woord, beschrijving en run/save acties.</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3">
+                    <input id="lessonIdInput" type="hidden">
+                    <div class="col-12">
+                      <label class="form-label" for="lessonTitleInput">Lesson title</label>
+                      <input id="lessonTitleInput" class="form-control" type="text">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="lessonWordInput">Word</label>
+                      <input id="lessonWordInput" class="form-control" type="text" readonly>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="lessonSoundsInput">Sounds</label>
+                      <input id="lessonSoundsInput" class="form-control" type="text" readonly>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label" for="lessonNewSoundsInput">newSounds</label>
+                      <input id="lessonNewSoundsInput" class="form-control" type="text" readonly>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="lessonKnownSoundsInput">knownSounds</label>
+                      <textarea id="lessonKnownSoundsInput" class="form-control" rows="2" readonly aria-readonly="true"></textarea>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="lessonDescriptionInput">Description</label>
+                      <textarea id="lessonDescriptionInput" class="form-control" rows="4" placeholder="Lesson description" readonly aria-readonly="true"></textarea>
+                    </div>
+                  </div>
+                  <div class="btn-list mt-3">
+                    <button id="saveLessonBtn" class="btn btn-primary" type="button">
+                      <i class="ti ti-device-floppy me-2" aria-hidden="true"></i>
+                      Save
+                    </button>
+                    <button id="deleteLessonBtn" class="btn btn-danger" type="button">
+                      <i class="ti ti-trash me-2" aria-hidden="true"></i>
+                      Delete
+                    </button>
+                    <button id="runLessonBtn" class="btn btn-outline-secondary" type="button">
+                      <i class="ti ti-player-play me-2" aria-hidden="true"></i>
+                      Run
+                    </button>
+                  </div>
+                  <div id="lessonActionHint" class="form-hint mt-2">Use Save to store the current steps, Delete to remove the lesson, and Run to test the current steps.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-xl-6">
+              <div class="card h-100">
+                <div class="card-header border-0">
+                  <div>
+                    <h2 class="card-title">Blockly informatie</h2>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-2">
+                    <label class="form-label" for="scriptsSelect">Beschikbare Blockly scripts</label>
+                    <div class="row g-2">
+                      <div class="col">
+                        <select id="scriptsSelect" class="form-select"></select>
+                      </div>
+                      <div class="col-auto">
+                        <button id="refreshScriptsBtn" class="btn btn-outline-secondary" type="button">Refresh</button>
+                      </div>
+                      <div class="col-auto">
+                        <button id="addStepBtn" class="btn btn-primary" type="button">Add</button>
+                      </div>
+                    </div>
+                    <div id="scriptsSummary" class="form-hint"></div>
+                    <div id="scriptMetaPreview" class="list-group list-group-flush mt-2">
+                      <div class="list-group-item border-0 py-2 text-secondary">Select a Blockly script to see its metadata.</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="form-label" for="copyLessonSelect">Steps kopiëren uit andere lesson</label>
+                    <div class="row g-2">
+                      <div class="col">
+                        <select id="copyLessonSelect" class="form-select">
+                          <option value="">Select lesson to copy from</option>
+                        </select>
+                      </div>
+                      <div class="col-auto">
+                        <button id="refreshLessonsBtn" class="btn btn-outline-secondary" type="button">Refresh lessons</button>
+                      </div>
+                      <div class="col-auto">
+                        <button id="replaceStepsBtn" class="btn btn-outline-warning" type="button">Replace steps</button>
+                      </div>
+                      <div class="col-auto">
+                        <button id="appendStepsBtn" class="btn btn-outline-secondary" type="button">Append steps</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header border-0">
+              <div>
+                <h2 class="card-title">Steps</h2>
+                <div class="card-subtitle">Een step is een Blockly-script met extra variabele lesson-informatie zoals text, word, letters en repeat.</div>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter table-borderless card-table">
+                <thead>
+                  <tr>
+                    <th>Step</th>
+                    <th>Text</th>
+                    <th>Word</th>
+                    <th>Letters</th>
+                    <th>Repeat</th>
+                    <th class="w-1"></th>
+                    <th class="w-1"></th>
+                    <th class="w-1"></th>
+                    <th class="w-1"></th>
+                  </tr>
+                </thead>
+                <tbody id="stepsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header border-0">
+              <h2 class="card-title">Debug log</h2>
+              <div class="card-actions">
+                <div class="btn-list">
+                  <button id="copyDebugLogBtn" type="button" class="btn btn-outline-secondary btn-sm">Copy log</button>
+                  <button id="clearDebugLogBtn" type="button" class="btn btn-outline-secondary btn-sm">Clear log</button>
+                  <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary btn-sm">Unhide</button>
+                </div>
+              </div>
+            </div>
+            <div id="debugLogBody" class="card-body d-none" hidden>
+              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+            </div>
           </div>
         </div>
-        <pre id="statusBox" class="status-log-safe hidden min-h-[180px] rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800"></pre>
-      </section>
-    </div>
+      </div>
+    </main>
   </div>
 
-  <iframe
-    id="lessonRunnerFrame"
-    title="Lesson runner"
-    allow="autoplay"
-    style="position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; left:-9999px; top:auto;"
-  ></iframe>
+  <iframe id="lessonRunnerFrame" class="d-none" title="Lesson runner" allow="autoplay" hidden></iframe>
 
+  <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
     const lessonWordInput = document.getElementById('lessonWordInput');
+    const lessonSoundsInput = document.getElementById('lessonSoundsInput');
+    const lessonNewSoundsInput = document.getElementById('lessonNewSoundsInput');
+    const lessonKnownSoundsInput = document.getElementById('lessonKnownSoundsInput');
     const lessonDescriptionInput = document.getElementById('lessonDescriptionInput');
-    const lessonSummary = document.getElementById('lessonSummary');
     const stepsTableBody = document.getElementById('stepsTableBody');
     const scriptsSelect = document.getElementById('scriptsSelect');
     const copyLessonSelect = document.getElementById('copyLessonSelect');
@@ -278,6 +268,7 @@ declare(strict_types=1);
     const copyDebugLogBtn = document.getElementById('copyDebugLogBtn');
     const clearDebugLogBtn = document.getElementById('clearDebugLogBtn');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
+    const debugLogBody = document.getElementById('debugLogBody');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
@@ -289,13 +280,15 @@ declare(strict_types=1);
     const simThumbRightBtn = document.getElementById('simThumbRightBtn');
     const simCursor5Btn = document.getElementById('simCursor5Btn');
     const simChord1Btn = document.getElementById('simChord1Btn');
-    const STEP_LINK_CREATE_URL = '../session-api/create-link.php';
+    const STEP_LINK_CREATE_URL = <?= $jsValue($urlFor($sessionApiBase, 'create-link.php')) ?>;
+    const STEP_LINK_UPDATE_URL = <?= $jsValue($urlFor($sessionApiBase, 'update-link.php')) ?>;
 
     let state = shared.loadState();
     let scriptsCache = [];
     let lessonsCache = [];
     const scriptDataCache = new Map();
     let stepConfigs = [];
+    let savedStepLinkCodes = new Set();
     let basisItems = [];
     let isDebugLogVisible = false;
     let currentRunningStepIndex = -1;
@@ -352,30 +345,35 @@ declare(strict_types=1);
     }
 
     function renderDebugLogVisibility() {
-      statusBox.classList.toggle('hidden', !isDebugLogVisible);
+      if (debugLogBody) {
+        debugLogBody.hidden = !isDebugLogVisible;
+        debugLogBody.classList.toggle('d-none', !isDebugLogVisible);
+      }
       toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hide' : 'Unhide';
     }
 
     function renderAuthenticationState() {
       const authenticated = Boolean(shared?.getAuthToken?.());
       if (authBtn) {
-        authBtn.textContent = authenticated ? 'Authenticated' : 'Authentication';
         authBtn.className = authenticated
-          ? 'rounded-xl border border-green-300 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700'
-          : 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+          ? 'btn btn-outline-success'
+          : 'btn btn-outline-primary';
+        authBtn.innerHTML = authenticated
+          ? '<i class="ti ti-shield-check me-2" aria-hidden="true"></i>Authenticated'
+          : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
       }
       if (saveLessonBtn) {
         saveLessonBtn.disabled = !authenticated;
         saveLessonBtn.className = authenticated
-          ? 'rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white'
-          : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
+          ? 'btn btn-primary'
+          : 'btn btn-secondary disabled';
         saveLessonBtn.title = authenticated ? 'Save lesson' : 'Authenticate first to save';
       }
       if (deleteLessonBtn) {
         deleteLessonBtn.disabled = !authenticated;
         deleteLessonBtn.className = authenticated
-          ? 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white'
-          : 'rounded-xl bg-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 cursor-not-allowed';
+          ? 'btn btn-danger'
+          : 'btn btn-secondary disabled';
         deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
       }
       if (lessonActionHint) {
@@ -455,6 +453,7 @@ declare(strict_types=1);
       const sourceLesson = await shared.loadLesson(sourceLessonId);
       const importedSteps = hydrateStepConfigsWithScriptMetadata(
         serializeStepConfigs(shared.normalizeStepConfigs(sourceLesson?.steps || []))
+          .map((step) => ({ ...step, stepLinkCode: '' }))
       );
 
       if (!importedSteps.length) {
@@ -467,13 +466,14 @@ declare(strict_types=1);
         ? serializeStepConfigs([...(stepConfigs || []), ...importedSteps])
         : importedSteps;
       hydrateStepConfigsWithScriptMetadata();
+      ensureAutomaticStepLinkCodes();
       state = shared.updateState({ steps: stepConfigs });
       renderStepsTable();
-      renderLessonSummary();
       appendStatus('Steps copied from lesson.', {
         sourceLessonId,
         mode,
         importedCount: importedSteps.length,
+        stepLinksCopied: false,
         totalCount: stepConfigs.length
       });
       setStatus(
@@ -497,10 +497,12 @@ declare(strict_types=1);
 
     function renderMonitorSourceVisibility(isWsConnected = false) {
       if (brailleMonitorRow) {
-        brailleMonitorRow.classList.toggle('hidden', !isWsConnected);
+        brailleMonitorRow.hidden = !isWsConnected;
+        brailleMonitorRow.classList.toggle('d-none', !isWsConnected);
       }
       if (scriptBrailleMonitorRow) {
-        scriptBrailleMonitorRow.classList.toggle('hidden', !!isWsConnected);
+        scriptBrailleMonitorRow.hidden = !!isWsConnected;
+        scriptBrailleMonitorRow.classList.toggle('d-none', !!isWsConnected);
       }
     }
 
@@ -580,28 +582,19 @@ declare(strict_types=1);
         button.setAttribute('title', label);
         button.disabled = isStoppingCurrentStep || isStoppingLesson || (hasActiveRun && !isCurrent);
         button.className = isCurrent
-          ? 'step-action-btn step-action-btn--danger'
-          : 'step-action-btn';
+          ? 'btn btn-icon btn-danger'
+          : 'btn btn-icon btn-outline-secondary';
       });
       const runLessonBtn = document.getElementById('runLessonBtn');
       if (runLessonBtn) {
-        runLessonBtn.textContent = isLessonRunning ? (isStoppingLesson ? 'Stopping...' : 'Stop') : 'Run';
         runLessonBtn.disabled = isStoppingCurrentStep || isStoppingLesson || (currentRunningStepIndex >= 0 && !isLessonRunning);
         runLessonBtn.className = isLessonRunning
-          ? 'rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white'
-          : 'rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold';
+          ? 'btn btn-danger'
+          : 'btn btn-outline-secondary';
+        runLessonBtn.innerHTML = isLessonRunning
+          ? `<i class="ti ti-player-stop me-2" aria-hidden="true"></i>${isStoppingLesson ? 'Stopping...' : 'Stop'}`
+          : '<i class="ti ti-player-play me-2" aria-hidden="true"></i>Run';
       }
-    }
-
-    function renderLessonSummary() {
-      const method = shared.getDraftMethodMeta(state);
-      lessonSummary.innerHTML = `
-        <div><strong>Method:</strong> ${method.title || method.id || '-'}</div>
-        <div><strong>Basisrecord:</strong> ${state.basisWord || '-'}</div>
-        <div><strong>Lesson:</strong> ${lessonTitleInput.value || lessonIdInput.value || '-'}</div>
-        <div><strong>Description:</strong> ${lessonDescriptionInput.value.trim() || '-'}</div>
-        <div><strong>Lesnummer:</strong> ${state.lessonNumber || 1}</div>
-      `;
     }
 
     function renderScriptsSelect(items) {
@@ -633,7 +626,13 @@ declare(strict_types=1);
     function updateStateStepConfigs() {
       stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(stepConfigs));
       state = shared.updateState({ steps: stepConfigs });
-      renderLessonSummary();
+    }
+
+    function refreshDerivedStepNamesForLessonTitle() {
+      syncStepConfigsFromTable();
+      ensureAutomaticStepLinkCodes();
+      updateStateStepConfigs();
+      renderStepsTable();
     }
 
     function getScriptItemById(id) {
@@ -658,11 +657,20 @@ declare(strict_types=1);
       }).format(date);
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
     function renderSelectedScriptMeta(data = null) {
       if (!scriptMetaPreview) return;
       const selectedId = String(scriptsSelect?.value || '').trim();
       if (!selectedId) {
-        scriptMetaPreview.innerHTML = 'Select a Blockly script to see its metadata.';
+        scriptMetaPreview.innerHTML = '<div class="list-group-item border-0 py-2 text-secondary">Select a Blockly script to see its metadata.</div>';
         return;
       }
 
@@ -671,23 +679,37 @@ declare(strict_types=1);
       const title = String(meta.title || item.title || item.id || selectedId).trim();
       const description = String(meta.description || item.description || '').trim();
       const instruction = String(meta.instruction || '').trim();
-      const prompt = String(meta.prompt || '').trim();
       const status = String(meta.status || '').trim();
       const updatedAt = String(item.updatedAt || '').trim();
 
       scriptMetaPreview.innerHTML = `
-        <div class="grid gap-3">
-          <div>
-            <div class="font-semibold text-slate-900">${title || selectedId}</div>
-            <div class="mt-1 text-xs text-slate-500">${selectedId}</div>
+        <div class="list-group-item border-0 py-2 px-0">
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Script title</label>
+              <input class="form-control form-control-sm" type="text" value="${escapeHtml(title || selectedId)}" readonly aria-readonly="true">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Script ID</label>
+              <input class="form-control form-control-sm" type="text" value="${escapeHtml(selectedId)}" readonly aria-readonly="true">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Status</label>
+              <input class="form-control form-control-sm" type="text" value="${escapeHtml(status || '-')}" readonly aria-readonly="true">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small mb-1">Updated</label>
+              <input class="form-control form-control-sm" type="text" value="${escapeHtml(formatDateTime(updatedAt))}" readonly aria-readonly="true">
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1">Description</label>
+              <textarea class="form-control form-control-sm" rows="2" readonly aria-readonly="true">${escapeHtml(description || '-')}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1">Instruction</label>
+              <textarea class="form-control form-control-sm" rows="2" readonly aria-readonly="true">${escapeHtml(instruction || '-')}</textarea>
+            </div>
           </div>
-          <div class="grid gap-2 md:grid-cols-2">
-            <div><strong>Status:</strong> ${status || '-'}</div>
-            <div><strong>Updated:</strong> ${formatDateTime(updatedAt)}</div>
-          </div>
-          <div><strong>Description:</strong> ${description || '-'}</div>
-          <div><strong>Instruction:</strong> ${instruction || '-'}</div>
-          <div><strong>Prompt:</strong> ${prompt || '-'}</div>
         </div>
       `;
     }
@@ -792,6 +814,115 @@ declare(strict_types=1);
         .filter((item) => item.id);
     }
 
+    function getStepLinkCodes(items = stepConfigs) {
+      return new Set((Array.isArray(items) ? items : [])
+        .map((item) => String(item?.stepLinkCode || '').trim())
+        .filter(Boolean));
+    }
+
+    function ensureAutomaticStepLinkCodes(items = stepConfigs) {
+      (Array.isArray(items) ? items : []).forEach((item, index) => {
+        if (!item || typeof item !== 'object') return;
+        item.stepLinkCode = buildAutomaticStepLinkCode(index);
+      });
+      return items;
+    }
+
+    async function upsertStepLinkRecord(payload) {
+      const res = await fetch(STEP_LINK_CREATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, overwrite: true })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    async function updateStepLinkRecord(payload) {
+      const res = await fetch(STEP_LINK_UPDATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    async function syncStepLinkActivationAfterSave() {
+      ensureAutomaticStepLinkCodes();
+      const method = shared.getDraftMethodMeta(state);
+      const methodId = String(method.id || '').trim();
+      const currentCodes = getStepLinkCodes(stepConfigs);
+      const updates = [];
+
+      stepConfigs.forEach((stepConfig, index) => {
+        const code = String(stepConfig?.stepLinkCode || '').trim();
+        if (!code) return;
+        updates.push(upsertStepLinkRecord({
+          code,
+          methodId,
+          scriptId: String(stepConfig.id || '').trim(),
+          stepId: buildStepLinkStepId(stepConfig, index),
+          active: true,
+          meta: buildStepLinkMeta(stepConfig, index),
+          stepInputs: shared.normalizeInputs(stepConfig.inputs || {})
+        }));
+      });
+
+      savedStepLinkCodes.forEach((code) => {
+        if (currentCodes.has(code)) return;
+        updates.push(updateStepLinkRecord({
+          originalCode: code,
+          methodId,
+          active: false
+        }));
+      });
+
+      const results = await Promise.allSettled(updates);
+      const failed = results.filter((result) => result.status === 'rejected');
+      if (failed.length) {
+        failed.forEach((result) => appendStatus('Step-link activation sync failed.', {
+          error: result.reason?.message || String(result.reason)
+        }));
+        throw new Error(`${failed.length} step-link update(s) failed`);
+      }
+      savedStepLinkCodes = currentCodes;
+      return {
+        activeCodes: Array.from(currentCodes),
+        updated: results.length
+      };
+    }
+
+    async function deactivateStepLinkCodes(codes) {
+      const method = shared.getDraftMethodMeta(state);
+      const methodId = String(method.id || '').trim();
+      const uniqueCodes = [...new Set(Array.from(codes || [])
+        .map((code) => String(code || '').trim())
+        .filter(Boolean))];
+      if (!uniqueCodes.length) {
+        return { deactivated: 0 };
+      }
+      const results = await Promise.allSettled(uniqueCodes.map((code) => updateStepLinkRecord({
+        originalCode: code,
+        methodId,
+        active: false
+      })));
+      const failed = results.filter((result) => result.status === 'rejected');
+      if (failed.length) {
+        failed.forEach((result) => appendStatus('Step-link deactivate failed.', {
+          error: result.reason?.message || String(result.reason)
+        }));
+        throw new Error(`${failed.length} step-link deactivate update(s) failed`);
+      }
+      return { deactivated: uniqueCodes.length };
+    }
+
     function buildStepConfigsFromTable() {
       const rows = stepsTableBody.querySelectorAll('[data-step-index]');
       const built = [];
@@ -844,6 +975,36 @@ declare(strict_types=1);
       return token.slice(0, 128).replace(/-+$/g, '') || 'step';
     }
 
+    function buildAutomaticStepLinkCode(stepIndex) {
+      const lessonTitle = String(
+        lessonTitleInput.value
+        || state.lessonMetaTitle
+        || state.lessonTitle
+        || lessonIdInput.value
+        || 'lesson'
+      ).trim();
+      const stepNumber = String(Math.max(1, Number(stepIndex) + 1)).padStart(4, '0');
+      const rawCode = `B${[lessonTitle, stepNumber].filter(Boolean).join('-')}`;
+      const suffix = `-${stepNumber}`;
+      const normalized = normalizeStepLinkToken(rawCode, `step-${stepNumber}`);
+      if (normalized.length <= 64) return normalized;
+      return `${normalized.slice(0, Math.max(3, 64 - suffix.length)).replace(/-+$/g, '')}${suffix}`;
+    }
+
+    function formatSoundList(value) {
+      if (Array.isArray(value)) {
+        return value.map((item) => String(item || '').trim()).filter(Boolean).join(', ');
+      }
+      return String(value || '').trim();
+    }
+
+    function renderLessonMetadata(record = null) {
+      const item = record && typeof record === 'object' ? record : {};
+      lessonSoundsInput.value = formatSoundList(item.sounds);
+      lessonNewSoundsInput.value = formatSoundList(item.newSounds);
+      lessonKnownSoundsInput.value = formatSoundList(item.knownSounds);
+    }
+
     function buildStepLinkStepId(stepConfig, stepIndex) {
       const lessonId = normalizeStepLinkToken(lessonIdInput.value.trim() || state.lessonId || 'lesson', 'lesson');
       const stepNumber = String(Math.max(1, Number(stepIndex) + 1)).padStart(2, '0');
@@ -854,8 +1015,12 @@ declare(strict_types=1);
     function buildStepLinkMeta(stepConfig, stepIndex) {
       const method = shared.getDraftMethodMeta(state);
       const basisRecord = basisItems[Number(state.basisIndex ?? -1)] || state.basisRecord || null;
+      const script = getScriptItemById(stepConfig?.id);
+      const scriptMeta = script?.meta && typeof script.meta === 'object' ? script.meta : {};
       return {
         title: String(stepConfig?.title || stepConfig?.id || '').trim(),
+        description: String(stepConfig?.description || scriptMeta.description || script?.description || '').trim(),
+        instruction: String(stepConfig?.instruction || scriptMeta.instruction || '').trim(),
         lessonId: String(lessonIdInput.value.trim() || state.lessonId || '').trim(),
         lessonTitle: String(lessonTitleInput.value.trim() || state.lessonTitle || '').trim(),
         lessonNumber: Number(state.lessonNumber || 1),
@@ -882,15 +1047,15 @@ declare(strict_types=1);
     function getStepActionIcon(kind) {
       switch (kind) {
         case 'run':
-          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 5v14l11-7z"></path></svg>';
+          return '<i class="ti ti-player-play" aria-hidden="true"></i>';
         case 'stop':
-          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"></rect></svg>';
+          return '<i class="ti ti-player-stop" aria-hidden="true"></i>';
         case 'up':
-          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 6l-6 7h4v5h4v-5h4z" fill="currentColor"></path></svg>';
+          return '<i class="ti ti-arrow-up" aria-hidden="true"></i>';
         case 'down':
-          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 18l6-7h-4V6h-4v5H6z" fill="currentColor"></path></svg>';
+          return '<i class="ti ti-arrow-down" aria-hidden="true"></i>';
         case 'remove':
-          return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M6 6l1 14a1 1 0 0 0 1 .92h8a1 1 0 0 0 1-.92L18 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>';
+          return '<i class="ti ti-trash" aria-hidden="true"></i>';
         default:
           return '';
       }
@@ -899,83 +1064,42 @@ declare(strict_types=1);
     function createStepActionButton(kind, label) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'step-action-btn';
+      button.className = 'btn btn-icon btn-outline-secondary';
       button.setAttribute('aria-label', label);
       button.setAttribute('title', label);
       button.innerHTML = getStepActionIcon(kind);
       return button;
     }
 
-    async function createStepLinkForStep(index, cell = null) {
-      syncStepConfigsFromTable();
-      const stepConfig = stepConfigs[index];
-      if (!stepConfig) {
-        throw new Error('Step not found');
-      }
-      if (!String(stepConfig.id || '').trim()) {
-        throw new Error('Step has no script id');
-      }
-      const existingCode = String(stepConfig.stepLinkCode || '').trim();
-      const payload = {
-        scriptId: String(stepConfig.id || '').trim(),
-        stepId: buildStepLinkStepId(stepConfig, index),
-        active: true,
-        overwrite: Boolean(existingCode),
-        meta: buildStepLinkMeta(stepConfig, index),
-        stepInputs: shared.normalizeInputs(stepConfig.inputs || {})
-      };
-      if (existingCode) {
-        payload.code = existingCode;
-      }
-
-      appendStatus('Step-link create gestart.', payload);
-      const res = await fetch(STEP_LINK_CREATE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-      stepConfigs[index] = {
-        ...stepConfig,
-        stepLinkCode: String(data.code || '').trim()
-      };
-      updateStateStepConfigs();
-      if (cell) {
-        renderStepLinkCodeCell(cell, stepConfigs[index].stepLinkCode);
-      }
-      appendStatus('Step-link aangemaakt.', data);
-      setStatus(`Step-link code: ${stepConfigs[index].stepLinkCode}`);
-      return data;
-    }
-
     function renderStepsTable() {
       stepsTableBody.innerHTML = '';
       if (!stepConfigs.length) {
-        stepsTableBody.innerHTML = '<div class="px-3 py-3 text-sm text-slate-500">No steps yet. Add a script from the list.</div>';
+        stepsTableBody.innerHTML = '<tr><td class="text-secondary" colspan="9">No steps yet. Add a script from the list.</td></tr>';
         return;
       }
+      ensureAutomaticStepLinkCodes();
       stepConfigs.forEach((cfg, index) => {
         const inputs = shared.normalizeInputs(cfg.inputs || {});
         const meta = getStepDisplayMeta(cfg);
-        const row = document.createElement('div');
+        const row = document.createElement('tr');
         row.dataset.stepIndex = String(index);
-        row.className = 'steps-grid grid w-full gap-2 items-start px-3 py-2';
 
-        const script = document.createElement('div');
-        script.className = 'step-script-card text-sm text-slate-800 break-words leading-5';
+        const script = document.createElement('td');
         script.innerHTML = `
-          <div class="font-semibold text-slate-900">${meta.title || cfg.id}</div>
-          <div class="text-xs text-slate-500">${cfg.id}</div>
+          <div class="d-flex align-items-start gap-2">
+            <span class="badge bg-secondary-lt">${index + 1}</span>
+            <div>
+              <div class="fw-semibold">${meta.title || cfg.id}</div>
+              <div class="small text-secondary">${cfg.id}</div>
+            </div>
+          </div>
         `;
 
         const text = document.createElement('textarea');
         text.dataset.field = 'text';
         text.rows = 3;
         text.placeholder = 'Text';
-        text.className = 'steps-textarea block w-full min-w-0 rounded-lg border border-slate-300 px-2 py-1 text-sm';
+        text.className = 'form-control';
         text.value = inputs.text;
         text.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), text: e.target.value };
@@ -984,7 +1108,7 @@ declare(strict_types=1);
 
         const word = document.createElement('input');
         word.dataset.field = 'word';
-        word.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
+        word.className = 'form-control';
         word.value = inputs.word;
         word.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), word: e.target.value };
@@ -995,7 +1119,7 @@ declare(strict_types=1);
         letters.dataset.field = 'letters';
         letters.type = 'text';
         letters.placeholder = 'a, b, c';
-        letters.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
+        letters.className = 'form-control';
         letters.value = inputs.letters.join(', ');
         letters.addEventListener('input', (e) => {
           stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
@@ -1007,7 +1131,7 @@ declare(strict_types=1);
         repeat.type = 'number';
         repeat.min = '1';
         repeat.step = '1';
-        repeat.className = 'block h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-sm';
+        repeat.className = 'form-control';
         repeat.value = String(inputs.repeat || 1);
         const applyRepeatValue = (target) => {
           const nextRepeat = Math.max(1, Math.floor(Number(target.value) || 1));
@@ -1022,34 +1146,17 @@ declare(strict_types=1);
         repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
 
         const stepLink = document.createElement('div');
-        stepLink.className = 'step-link-stack';
+        stepLink.className = 'mt-2';
         stepLink.innerHTML = `
-          <button type="button" data-create-step-link class="w-full rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Create link</button>
-          <div class="step-link-code-row">
-            <code data-step-link-code-text class="block min-w-0 flex-1 truncate rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">No code yet</code>
-            <button type="button" data-copy-step-link-code class="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700">Copy</button>
+          <div class="btn-list">
+            <button type="button" data-copy-step-link-code class="btn btn-outline-secondary btn-icon" aria-label="Copy link code" title="Copy link code">
+              <i class="ti ti-copy" aria-hidden="true"></i>
+            </button>
           </div>
+          <code data-step-link-code-text class="form-control text-truncate mt-2">No code yet</code>
         `;
         script.appendChild(stepLink);
         renderStepLinkCodeCell(stepLink, cfg.stepLinkCode);
-        const createStepLinkBtn = stepLink.querySelector('[data-create-step-link]');
-        createStepLinkBtn.addEventListener('click', async () => {
-          createStepLinkBtn.disabled = true;
-          createStepLinkBtn.textContent = 'Creating...';
-          try {
-            await createStepLinkForStep(index, stepLink);
-          } catch (err) {
-            showDebugLog();
-            setStatus(`Step-link error: ${err.message}`);
-            appendStatus('Step-link create failed.', {
-              stepIndex: index,
-              error: err.message || String(err)
-            });
-          } finally {
-            createStepLinkBtn.disabled = false;
-            createStepLinkBtn.textContent = 'Create link';
-          }
-        });
         stepLink.querySelector('[data-copy-step-link-code]').addEventListener('click', async () => {
           const code = String(stepConfigs[index]?.stepLinkCode || '').trim();
           if (!code) return;
@@ -1100,7 +1207,12 @@ declare(strict_types=1);
           renderStepsTable();
         });
 
-        row.append(script, text, word, letters, repeat, run, moveUp, moveDown, remove);
+        [text, word, letters, repeat, run, moveUp, moveDown, remove].forEach((node) => {
+          const cell = document.createElement('td');
+          cell.appendChild(node);
+          row.appendChild(cell);
+        });
+        row.insertBefore(script, row.firstChild);
         stepsTableBody.appendChild(row);
       });
       renderStepRunButtons();
@@ -1583,6 +1695,7 @@ declare(strict_types=1);
       showDebugLog();
       syncStepConfigsFromTable();
       stepConfigs = buildStepConfigsFromTable();
+      ensureAutomaticStepLinkCodes();
       state = shared.updateState({ steps: stepConfigs });
       const method = shared.getDraftMethodMeta(state);
       const basisIndex = Number(state.basisIndex ?? -1);
@@ -1615,6 +1728,8 @@ declare(strict_types=1);
       let result;
       try {
         result = await shared.saveLesson(payload);
+        const linkSyncResult = await syncStepLinkActivationAfterSave();
+        appendStatus('Step-link activation synced.', linkSyncResult);
       } catch (err) {
         appendStatus('Lesson save error.', {
           message: err?.message || String(err),
@@ -1692,15 +1807,17 @@ declare(strict_types=1);
         lessonIdInput.value = state.lessonId || '';
         lessonTitleInput.value = state.lessonMetaTitle || state.lessonTitle || (state.lessonWord ? `les - ${state.lessonWord}` : '');
         lessonWordInput.value = state.lessonWord || state.basisWord || '';
+        renderLessonMetadata(basisItem || state.basisRecord || null);
         lessonDescriptionInput.value = state.lessonDescription || '';
         stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(state.steps || []));
         hydrateStepConfigsWithScriptMetadata();
+        savedStepLinkCodes = getStepLinkCodes(stepConfigs);
+        ensureAutomaticStepLinkCodes();
         state = shared.updateState({ steps: stepConfigs });
         renderCopyLessonSelect();
         const preloadSummary = await preloadReferencedScriptData(stepConfigs);
         await refreshSelectedScriptMeta();
         await runnerWarmupPromise;
-        renderLessonSummary();
         renderStepsTable();
         renderDebugLogVisibility();
         renderAuthenticationState();
@@ -1841,6 +1958,7 @@ declare(strict_types=1);
         inputs: { text: '', word: '', letters: [], repeat: 1 }
       });
       stepConfigs = serializeStepConfigs(stepConfigs);
+      ensureAutomaticStepLinkCodes();
       state = shared.updateState({ steps: stepConfigs });
       appendStatus('After add steps length.', {
         length: stepConfigs.length,
@@ -1877,14 +1995,18 @@ declare(strict_types=1);
         return;
       }
       try {
+        const codesToDeactivate = new Set([...savedStepLinkCodes, ...getStepLinkCodes(stepConfigs)]);
         const result = await shared.deleteLesson(lessonIdInput.value.trim());
+        const deactivationResult = await deactivateStepLinkCodes(codesToDeactivate);
+        appendStatus('Step-links deactivated after lesson delete.', deactivationResult);
+        savedStepLinkCodes = new Set();
         state = shared.updateState({ lessonId: '', lessonTitle: '', lessonWord: '', steps: [] });
         lessonIdInput.value = '';
         lessonTitleInput.value = '';
         lessonWordInput.value = '';
+        renderLessonMetadata(null);
         lessonDescriptionInput.value = '';
         stepConfigs = [];
-        renderLessonSummary();
         renderStepsTable();
         renderCopyLessonSelect();
         setStatus('Lesson deleted.', result);
@@ -1947,14 +2069,13 @@ declare(strict_types=1);
         lessonTitle: lessonTitleInput.value.trim(),
         lessonMetaTitle: lessonTitleInput.value.trim()
       });
-      renderLessonSummary();
+      refreshDerivedStepNamesForLessonTitle();
     });
 
     lessonDescriptionInput.addEventListener('input', () => {
       state = shared.updateState({
         lessonDescription: lessonDescriptionInput.value.trim()
       });
-      renderLessonSummary();
     });
 
     window.addEventListener('load', () => {
