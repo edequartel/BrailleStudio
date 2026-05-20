@@ -538,13 +538,13 @@ $pagePayload = [
           <div class="card-header">
             <h2 class="card-title">Steps</h2>
           </div>
+          <div class="card-body pb-3">
+            <div class="instruction-panel">
+              <div class="fw-semibold mb-2">Instruction</div>
+              <div id="selectedStepInstruction" class="instruction-text">No instruction for the selected step.</div>
+            </div>
+          </div>
           <div class="list-group list-group-flush list-scroll" id="stepsPreview"></div>
-          <div class="card-body pt-0">
-          <div class="instruction-panel">
-            <div class="fw-semibold mb-2">Instruction</div>
-            <div id="selectedStepInstruction" class="instruction-text">No instruction for the selected step.</div>
-          </div>
-          </div>
         </section>
       </div>
 

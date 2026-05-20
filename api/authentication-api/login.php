@@ -11,33 +11,45 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input = authenticate_get_json_input();
-$username = trim((string)($input['username'] ?? ''));
+$identifier = trim((string)($input['username'] ?? $input['email'] ?? ''));
 $password = (string)($input['password'] ?? '');
-$audience = trim((string)($input['audience'] ?? 'braillestudio-elevenlabs-api'));
+$audience = trim((string)($input['audience'] ?? 'braillestudio-api')) ?: 'braillestudio-api';
+$remember = (bool)($input['remember'] ?? false);
 
-if ($audience === '') {
-    $audience = 'braillestudio-elevenlabs-api';
+if ($identifier === '' || $password === '') {
+    authenticate_json_response([
+        'ok' => false,
+        'error' => 'Email/username and password are required.'
+    ], 400);
 }
 
-$user = authenticate_user($username, $password);
-if (!is_array($user)) {
+try {
+    $user = bs_auth_login_identifier($identifier, $password, $remember);
+} catch (\Delight\Auth\InvalidEmailException|\Delight\Auth\InvalidPasswordException|\Delight\Auth\UnknownUsernameException|\Delight\Auth\AmbiguousUsernameException $e) {
     authenticate_json_response([
         'ok' => false,
         'error' => 'Invalid username or password.'
     ], 401);
+} catch (\Delight\Auth\EmailNotVerifiedException $e) {
+    authenticate_json_response([
+        'ok' => false,
+        'error' => 'Email not verified.'
+    ], 403);
+} catch (\Delight\Auth\TooManyRequestsException $e) {
+    authenticate_json_response([
+        'ok' => false,
+        'error' => 'Too many login attempts. Try again later.'
+    ], 429);
 }
 
-$issued = authenticate_issue_token($user['username'], $user['role'], $audience);
+$issued = authenticate_issue_token($user['display'], $user['role'], $audience);
 
 authenticate_json_response([
     'ok' => true,
     'token' => $issued['token'],
-    'token_type' => 'Bearer',
+    'token_type' => 'Session',
     'audience' => $audience,
     'expires_in' => max(0, (int)$issued['claims']['exp'] - time()),
     'expires_at' => gmdate('c', (int)$issued['claims']['exp']),
-    'user' => [
-        'username' => $user['username'],
-        'role' => $user['role'],
-    ],
+    'user' => $user,
 ]);

@@ -1,14 +1,15 @@
 <?php
 declare(strict_types=1);
 
-return [
-    'jwt_secret' => 'replace-with-a-long-random-secret',
-    'token_ttl' => 3600,
-    'users' => [
-        [
-            'username' => 'eric',
-            'role' => 'admin',
-            'password_hash' => 'replace-with-password_hash-output',
-        ],
-    ],
-];
+/*
+ * Legacy path kept as a pointer only.
+ *
+ * Authentication now uses delight-im/PHP-Auth and PDO. Copy:
+ *
+ *   auth/config.example.php
+ *
+ * to a location outside public_html, for example:
+ *
+ *   /home/USER/braillestudio-auth/config.php
+ */
+return [];

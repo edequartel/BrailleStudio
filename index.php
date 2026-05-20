@@ -7,6 +7,15 @@ $scriptDir = $scriptDir === '.' ? '' : rtrim($scriptDir, '/');
 $baseUrl = $scriptDir === '' ? './' : $scriptDir . '/';
 $loginHref = $baseUrl . 'authentication.php?returnTo=' . rawurlencode($baseUrl . 'index.php');
 
+require_once __DIR__ . '/auth/bootstrap.php';
+
+$authUser = null;
+try {
+    $authUser = bs_auth_current_user();
+} catch (Throwable $e) {
+    $authUser = null;
+}
+
 $modules = [
     [
         'title' => 'Oefenen',
@@ -187,15 +196,39 @@ function e(string $value): string
             </div>
 
             <div class="navbar-nav flex-row align-items-center order-md-last ms-auto">
-                <div class="nav-item me-2">
-                    <span id="authHeaderStatus" class="navbar-text text-secondary d-none"></span>
-                </div>
-                <div class="nav-item">
-                    <a id="authHeaderButton" class="btn btn-primary" href="<?= e($loginHref) ?>">
-                        <i class="ti ti-login me-2" aria-hidden="true"></i>
-                        Inloggen
-                    </a>
-                </div>
+                <?php if ($authUser !== null): ?>
+                    <div class="nav-item me-2">
+                        <span class="navbar-text text-secondary">
+                            Ingelogd als <?= e($authUser['display']) ?> (<?= e($authUser['role']) ?>)
+                        </span>
+                    </div>
+                    <?php if ($authUser['role'] === 'admin'): ?>
+                        <div class="nav-item me-2">
+                            <a class="btn btn-outline-secondary" href="<?= e($baseUrl) ?>users.php">
+                                <i class="ti ti-users me-2" aria-hidden="true"></i>
+                                Gebruikers
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <div class="nav-item">
+                        <form method="post" action="<?= e($baseUrl) ?>authentication.php" class="mb-0">
+                            <input type="hidden" name="csrf" value="<?= e(bs_auth_csrf_token()) ?>">
+                            <input type="hidden" name="action" value="logout">
+                            <input type="hidden" name="returnTo" value="<?= e($baseUrl) ?>index.php">
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="ti ti-logout me-2" aria-hidden="true"></i>
+                                Uitloggen
+                            </button>
+                        </form>
+                    </div>
+                <?php else: ?>
+                    <div class="nav-item">
+                        <a class="btn btn-primary" href="<?= e($loginHref) ?>">
+                            <i class="ti ti-login me-2" aria-hidden="true"></i>
+                            Inloggen
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </header>
@@ -354,123 +387,6 @@ function e(string $value): string
 <script src="<?= e($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    (function () {
-        const AUTH_TOKEN_KEY = 'braillestudioAuthToken';
-        const LEGACY_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
-        const button = document.getElementById('authHeaderButton');
-        const status = document.getElementById('authHeaderStatus');
-
-        function getStoredToken() {
-            return String(sessionStorage.getItem(AUTH_TOKEN_KEY) || '').trim()
-                || String(localStorage.getItem(AUTH_TOKEN_KEY) || '').trim()
-                || String(sessionStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '').trim()
-                || String(localStorage.getItem(LEGACY_AUTH_TOKEN_KEY) || '').trim();
-        }
-
-        function parseJwtPayload(token) {
-            const value = String(token || '').trim();
-            if (!value) {
-                return null;
-            }
-
-            const parts = value.split('.');
-            if (parts.length !== 3) {
-                return null;
-            }
-
-            try {
-                const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-                const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-                return JSON.parse(atob(padded));
-            } catch (error) {
-                return null;
-            }
-        }
-
-        function getValidTokenPayload() {
-            const token = getStoredToken();
-            const payload = parseJwtPayload(token);
-            const exp = Number(payload?.exp || 0);
-
-            if (!token) {
-                return null;
-            }
-
-            if (exp && exp <= Math.floor(Date.now() / 1000)) {
-                return null;
-            }
-
-            return payload || {};
-        }
-
-        function setStoredToken(token) {
-            const normalized = String(token || '').trim();
-            const storageTargets = [sessionStorage, localStorage];
-
-            storageTargets.forEach((storage) => {
-                if (normalized) {
-                    storage.setItem(AUTH_TOKEN_KEY, normalized);
-                    storage.setItem(LEGACY_AUTH_TOKEN_KEY, normalized);
-                } else {
-                    storage.removeItem(AUTH_TOKEN_KEY);
-                    storage.removeItem(LEGACY_AUTH_TOKEN_KEY);
-                }
-            });
-        }
-
-        function setButtonContent(iconClass, label) {
-            const icon = document.createElement('i');
-            icon.className = `${iconClass} me-2`;
-            icon.setAttribute('aria-hidden', 'true');
-            button.replaceChildren(icon, document.createTextNode(label));
-        }
-
-        function renderAuthHeader() {
-            if (!button) {
-                return;
-            }
-
-            const payload = getValidTokenPayload();
-            if (!payload) {
-                if (status) {
-                    status.classList.add('d-none');
-                    status.textContent = '';
-                }
-
-                button.className = 'btn btn-primary';
-                button.href = <?= json_encode($loginHref, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
-                button.removeAttribute('data-authenticated');
-                button.title = 'Inloggen';
-                setButtonContent('ti ti-login', 'Inloggen');
-                return;
-            }
-
-            const username = String(payload.username || payload.user || payload.sub || '').trim();
-            if (status) {
-                status.textContent = username ? `Ingelogd als ${username}` : 'Ingelogd';
-                status.classList.remove('d-none');
-            }
-
-            button.className = 'btn btn-outline-secondary';
-            button.href = '#logout';
-            button.dataset.authenticated = '1';
-            button.title = 'Uitloggen';
-            setButtonContent('ti ti-logout', 'Uitloggen');
-        }
-
-        button?.addEventListener('click', (event) => {
-            if (button.dataset.authenticated !== '1') {
-                return;
-            }
-
-            event.preventDefault();
-            setStoredToken('');
-            renderAuthHeader();
-        });
-
-        renderAuthHeader();
-    })();
-
     document.querySelectorAll('[data-markdown-source]').forEach(async (target) => {
         try {
             const response = await fetch(target.dataset.markdownSource, {cache: 'no-store'});

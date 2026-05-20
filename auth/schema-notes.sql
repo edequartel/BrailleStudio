@@ -1,0 +1,12 @@
+-- Install delight-im/PHP-Auth with Composer:
+--   composer require delight-im/auth
+--
+-- Then import the official schema for your database from:
+--   vendor/delight-im/auth/Database/MySQL.sql
+--   vendor/delight-im/auth/Database/PostgreSQL.sql
+--   vendor/delight-im/auth/Database/SQLite.sql
+--
+-- BrailleStudio roles are mapped onto PHP-Auth roles:
+--   admin    -> Delight\Auth\Role::ADMIN
+--   docent   -> Delight\Auth\Role::EDITOR
+--   leerling -> Delight\Auth\Role::SUBSCRIBER

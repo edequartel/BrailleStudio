@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../auth/bootstrap.php';
+
+$authUser = bs_auth_require_login(['admin', 'docent']);
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/blockly$~', '', $scriptDir) ?? '';
@@ -10,6 +14,7 @@ $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
 };
 $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+$html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ?>
 <!doctype html>
 <html lang="en">
@@ -773,10 +778,18 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="btn-list ms-auto flex-nowrap">
-        <button id="elevenlabsLoginBtn" class="btn btn-primary" type="button" aria-label="Authentication">
-          <i class="ti ti-login me-2" aria-hidden="true"></i>
-          Authentication
-        </button>
+        <span class="navbar-text text-secondary d-none d-lg-inline">
+          Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+        </span>
+        <form method="post" action="<?= $html($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+          <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+          <input type="hidden" name="action" value="logout">
+          <input type="hidden" name="returnTo" value="<?= $html($urlFor($appBase, 'index.php')) ?>">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="ti ti-logout me-2" aria-hidden="true"></i>
+            Uitloggen
+          </button>
+        </form>
         <button id="wsToggleBtn" class="btn btn-outline-danger btn-icon" type="button" aria-label="Connect WebSocket" title="Connect WebSocket">
           <i class="ti ti-plug-connected" aria-hidden="true"></i>
         </button>
@@ -1392,7 +1405,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260512-auth-tabler-4';
+    const assetVersion = '20260520-php-auth-session-1';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {

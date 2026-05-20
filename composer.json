@@ -1,0 +1,6 @@
+{
+  "license": "proprietary",
+  "require": {
+    "delight-im/auth": "^9.0"
+  }
+}

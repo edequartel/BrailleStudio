@@ -14,7 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$saveDir = dirname(__DIR__) . '/blockly-data';
+blockly_api_require_authentication();
+
+$saveDir = blockly_api_data_dir();
 
 if (!is_dir($saveDir)) {
     echo json_encode([

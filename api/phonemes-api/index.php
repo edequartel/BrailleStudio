@@ -1,9 +1,13 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
-$appBase = preg_replace('~/phonemes-api$~', '', $scriptDir) ?? '';
+$appBase = preg_replace('~/(?:api/)?phonemes-api$~', '', $scriptDir) ?? '';
 $appBase = rtrim($appBase, '/');
 
 $urlFor = static function (string $base, string $path): string {

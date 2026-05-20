@@ -1,5 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
+require_once __DIR__ . '/../auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'json');
+
 /*
 ==========================================================
 API: list.php

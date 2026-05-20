@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
@@ -20,7 +24,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>Lesson Builder - Lessons</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260507-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">

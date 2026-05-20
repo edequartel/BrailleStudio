@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $scriptDir = str_replace('\\', '/', dirname($scriptName));
 $scriptDir = $scriptDir === '.' ? '' : rtrim($scriptDir, '/');

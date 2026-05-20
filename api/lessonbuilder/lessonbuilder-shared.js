@@ -40,10 +40,7 @@
   function withAuthHeaders(options = {}) {
     const next = { ...(options || {}) };
     const headers = { ...(next.headers || {}) };
-    const token = getAuthToken();
-    if (token && !headers.Authorization) {
-      headers.Authorization = `Bearer ${token}`;
-    }
+    next.credentials = next.credentials || 'same-origin';
     next.headers = headers;
     return next;
   }
@@ -364,10 +361,23 @@
     return normalized;
   }
 
+  function getStepScriptId(cfg) {
+    const script = cfg?.script && typeof cfg.script === 'object' ? cfg.script : {};
+    return String(
+      cfg?.id
+      ?? cfg?.scriptId
+      ?? cfg?.blocklyScriptId
+      ?? cfg?.script_id
+      ?? cfg?.blockly_script_id
+      ?? script.id
+      ?? ''
+    ).trim();
+  }
+
   function normalizeStepConfigs(configs) {
     if (!Array.isArray(configs)) return [];
     return configs.map((cfg) => ({
-      id: String(cfg?.id ?? '').trim(),
+      id: getStepScriptId(cfg),
       title: String(cfg?.title ?? cfg?.scriptTitle ?? '').trim(),
       description: String(cfg?.description ?? cfg?.scriptDescription ?? cfg?.meta?.description ?? '').trim(),
       stepLinkCode: String(cfg?.stepLinkCode ?? cfg?.stepCode ?? '').trim(),

@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
+$authUser = bs_auth_current_user() ?? ['display' => '', 'role' => ''];
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
@@ -12,6 +18,7 @@ $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
 };
 $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 ?>
 <!doctype html>
@@ -23,10 +30,24 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260407-2')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
 </head>
 <body class="bg-body">
-  <div class="page">
+  <div id="stepsLoadingScreen" class="page page-center">
+    <div class="container-tight py-4">
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="mb-3">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          </div>
+          <h1 class="h2 mb-2">Steps laden</h1>
+          <p id="stepsLoadingMessage" class="text-secondary mb-0">De lesson steps worden voorbereid.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="stepsAppPage" class="page d-none" hidden>
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
         <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
@@ -36,12 +57,18 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           <span>BrailleStudio</span>
         </a>
         <div class="navbar-nav flex-row ms-auto">
-          <div class="nav-item">
-            <button id="authBtn" class="btn btn-outline-primary" type="button">
-              <i class="ti ti-login me-2" aria-hidden="true"></i>
-              Authentication
+          <span class="navbar-text text-secondary me-2">
+            Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+          </span>
+          <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+            <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+            <input type="hidden" name="action" value="logout">
+            <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="ti ti-logout me-2" aria-hidden="true"></i>
+              Uitloggen
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </header>
@@ -248,6 +275,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
+    const stepsLoadingScreen = document.getElementById('stepsLoadingScreen');
+    const stepsLoadingMessage = document.getElementById('stepsLoadingMessage');
+    const stepsAppPage = document.getElementById('stepsAppPage');
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
     const lessonWordInput = document.getElementById('lessonWordInput');
@@ -304,6 +334,39 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
 
+    function setLoadingMessage(message) {
+      if (stepsLoadingMessage) {
+        stepsLoadingMessage.textContent = message;
+      }
+    }
+
+    function hideLoadingScreen() {
+      if (stepsLoadingScreen) {
+        stepsLoadingScreen.hidden = true;
+        stepsLoadingScreen.classList.add('d-none');
+      }
+      if (stepsAppPage) {
+        stepsAppPage.hidden = false;
+        stepsAppPage.classList.remove('d-none');
+      }
+    }
+
+    function showLoadingError(message) {
+      if (stepsLoadingScreen) {
+        stepsLoadingScreen.hidden = false;
+        stepsLoadingScreen.classList.remove('d-none');
+      }
+      if (stepsAppPage) {
+        stepsAppPage.hidden = true;
+        stepsAppPage.classList.add('d-none');
+      }
+      if (stepsLoadingMessage) {
+        stepsLoadingMessage.textContent = message;
+        stepsLoadingMessage.classList.remove('text-secondary');
+        stepsLoadingMessage.classList.add('text-danger');
+      }
+    }
+
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
@@ -353,33 +416,18 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     function renderAuthenticationState() {
-      const authenticated = Boolean(shared?.getAuthToken?.());
-      if (authBtn) {
-        authBtn.className = authenticated
-          ? 'btn btn-outline-success'
-          : 'btn btn-outline-primary';
-        authBtn.innerHTML = authenticated
-          ? '<i class="ti ti-shield-check me-2" aria-hidden="true"></i>Authenticated'
-          : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
-      }
       if (saveLessonBtn) {
-        saveLessonBtn.disabled = !authenticated;
-        saveLessonBtn.className = authenticated
-          ? 'btn btn-primary'
-          : 'btn btn-secondary disabled';
-        saveLessonBtn.title = authenticated ? 'Save lesson' : 'Authenticate first to save';
+        saveLessonBtn.disabled = false;
+        saveLessonBtn.className = 'btn btn-primary';
+        saveLessonBtn.title = 'Save lesson';
       }
       if (deleteLessonBtn) {
-        deleteLessonBtn.disabled = !authenticated;
-        deleteLessonBtn.className = authenticated
-          ? 'btn btn-danger'
-          : 'btn btn-secondary disabled';
-        deleteLessonBtn.title = authenticated ? 'Delete lesson' : 'Authenticate first to delete';
+        deleteLessonBtn.disabled = false;
+        deleteLessonBtn.className = 'btn btn-danger';
+        deleteLessonBtn.title = 'Delete lesson';
       }
       if (lessonActionHint) {
-        lessonActionHint.textContent = authenticated
-          ? 'Use Save to store this lesson, Delete to remove it, and Run to test the current steps.'
-          : 'Authenticate first to enable Save and Delete. Run does not require authentication.';
+        lessonActionHint.textContent = 'Use Save to store this lesson, Delete to remove it, and Run to test the current steps.';
       }
     }
 
@@ -1754,6 +1802,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     async function init() {
       try {
+        setLoadingMessage('Methodegegevens laden.');
         appendStatus('Initial preload started.');
         state = shared.loadState();
         const method = shared.getDraftMethodMeta(state);
@@ -1764,8 +1813,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           });
           return null;
         });
+        setLoadingMessage('Basisdata laden.');
         basisItems = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
+        setLoadingMessage('Blockly scripts laden.');
         scriptsCache = await shared.listScripts();
+        setLoadingMessage('Lessons laden.');
         await refreshLessonsCache();
         renderScriptsSelect(scriptsCache);
         if (scriptsSummary) {
@@ -1786,6 +1838,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
         if (state.lessonId) {
           try {
+            setLoadingMessage('Lesson steps laden.');
             const loadedLesson = await shared.loadLesson(state.lessonId);
             state = shared.updateState({
               lessonId: loadedLesson.id || state.lessonId,
@@ -1815,7 +1868,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         ensureAutomaticStepLinkCodes();
         state = shared.updateState({ steps: stepConfigs });
         renderCopyLessonSelect();
+        setLoadingMessage('Blockly scripts voor de steps voorbereiden.');
         const preloadSummary = await preloadReferencedScriptData(stepConfigs);
+        setLoadingMessage('Editor klaarzetten.');
         await refreshSelectedScriptMeta();
         await runnerWarmupPromise;
         renderStepsTable();
@@ -1870,8 +1925,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           preloadFailures: preloadSummary.failed,
           runnerReady: getRunnerDebugState().ready
         });
+        hideLoadingScreen();
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
+        showLoadingError(`Init error: ${err.message}`);
       }
     }
 
@@ -1969,12 +2026,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     });
 
     document.getElementById('saveLessonBtn').addEventListener('click', async () => {
-      if (!shared?.getAuthToken?.()) {
-        showDebugLog();
-        setStatus('Authenticate first to save this lesson.');
-        renderAuthenticationState();
-        return;
-      }
       try {
         await saveCurrentLesson();
       } catch (err) {
@@ -1984,12 +2035,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     });
 
     document.getElementById('deleteLessonBtn').addEventListener('click', async () => {
-      if (!shared?.getAuthToken?.()) {
-        showDebugLog();
-        setStatus('Authenticate first to delete this lesson.');
-        renderAuthenticationState();
-        return;
-      }
       if (!lessonIdInput.value.trim()) {
         setStatus('Geen lesson geselecteerd.');
         return;
@@ -2020,29 +2065,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         await runLesson();
       } catch (err) {
         setStatus(`Run error: ${err.message}`);
-      }
-    });
-
-    authBtn?.addEventListener('click', async () => {
-      isDebugLogVisible = true;
-      renderDebugLogVisibility();
-      setStatus('Authentication starten...');
-      try {
-        if (!shared || typeof shared.openAuthenticationPopup !== 'function') {
-          throw new Error('lessonbuilder-shared.js is not up to date or did not load');
-        }
-        await shared.openAuthenticationPopup();
-        renderAuthenticationState();
-        setStatus('Authentication completed.');
-      } catch (err) {
-        renderAuthenticationState();
-        setStatus(`Authentication error: ${err.message}`);
-      }
-    });
-
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'braillestudioAuthToken' || event.key === 'elevenlabsAuthToken') {
-        renderAuthenticationState();
       }
     });
 

@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'json');
+
 set_time_limit(0);
 ini_set('memory_limit', '512M');
 ignore_user_abort(true);

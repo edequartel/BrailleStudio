@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
+$authUser = bs_auth_current_user() ?? ['display' => '', 'role' => ''];
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
@@ -11,6 +17,7 @@ $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
 };
 $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 ?>
 <!doctype html>
 <html lang="nl">
@@ -20,7 +27,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>Lesson Builder - Methode</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($lessonBuilderBase, 'lessonbuilder-shared.js?v=20260407-2')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -33,12 +40,18 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
           <span>BrailleStudio</span>
         </a>
         <div class="navbar-nav flex-row ms-auto">
-          <div class="nav-item">
-            <button id="authBtn" class="btn btn-outline-primary" type="button">
-              <i class="ti ti-login me-2" aria-hidden="true"></i>
-              Authentication
+          <span class="navbar-text text-secondary me-2">
+            Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+          </span>
+          <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+            <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+            <input type="hidden" name="action" value="logout">
+            <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="ti ti-logout me-2" aria-hidden="true"></i>
+              Uitloggen
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </header>
@@ -702,21 +715,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         });
       } catch (err) {
         setStatus(`Refresh error: ${err.message}`);
-      }
-    });
-
-    document.getElementById('authBtn')?.addEventListener('click', async () => {
-      isDebugLogVisible = true;
-      renderDebugLogVisibility();
-      setStatus('Authentication starten...');
-      try {
-        if (!shared || typeof shared.openAuthenticationPopup !== 'function') {
-          throw new Error('lessonbuilder-shared.js is not up to date or did not load');
-        }
-        await shared.openAuthenticationPopup();
-        setStatus('Authentication completed.');
-      } catch (err) {
-        setStatus(`Authentication error: ${err.message}`);
       }
     });
 

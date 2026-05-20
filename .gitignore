@@ -6,5 +6,7 @@
 *.tmp
 *~
 api/elevenlabs-api/elevenlabs_config.php
+/auth/config.php
+/vendor
 /tabler
 /.pnpm-home

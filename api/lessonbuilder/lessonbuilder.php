@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
+$authUser = bs_auth_current_user() ?? ['display' => '', 'role' => ''];
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
@@ -11,6 +17,7 @@ $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
 };
 $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
 $authLoginUrl = $urlFor($appBase, 'authentication.php');
@@ -49,34 +56,6 @@ $steps = [
   <title>BrailleStudio Lesson Builder</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script>
-    (function () {
-      const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
-      const AUTH_LOGIN_URL = <?= $jsValue($authLoginUrl) ?>;
-      const PRODUCTION_ORIGIN = 'https://www.tastenbraille.com';
-
-      function getAuthToken() {
-        for (const key of AUTH_TOKEN_KEYS) {
-          const sessionValue = String(sessionStorage.getItem(key) || '').trim();
-          if (sessionValue) return sessionValue;
-          const localValue = String(localStorage.getItem(key) || '').trim();
-          if (localValue) return localValue;
-        }
-        return '';
-      }
-
-      if (String(window.location.origin || '') !== PRODUCTION_ORIGIN) {
-        return;
-      }
-      if (getAuthToken()) {
-        return;
-      }
-
-      const url = new URL(AUTH_LOGIN_URL, window.location.href);
-      url.searchParams.set('returnTo', window.location.href);
-      window.location.replace(url.toString());
-    })();
-  </script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -89,12 +68,18 @@ $steps = [
           <span>BrailleStudio</span>
         </a>
         <div class="navbar-nav flex-row ms-auto">
-          <div class="nav-item">
-            <button id="authBtn" class="btn btn-outline-primary" type="button">
-              <i class="ti ti-login me-2" aria-hidden="true"></i>
-              <span>Authentication</span>
+          <span class="navbar-text text-secondary me-2">
+            Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+          </span>
+          <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+            <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+            <input type="hidden" name="action" value="logout">
+            <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="ti ti-logout me-2" aria-hidden="true"></i>
+              Uitloggen
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </header>
@@ -198,55 +183,5 @@ $steps = [
   </div>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
-  <script>
-    (function () {
-      const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
-      const AUTH_LOGIN_URL = <?= $jsValue($authLoginUrl) ?>;
-      const authBtn = document.getElementById('authBtn');
-
-      function getAuthToken() {
-        for (const key of AUTH_TOKEN_KEYS) {
-          const sessionValue = String(sessionStorage.getItem(key) || '').trim();
-          if (sessionValue) return sessionValue;
-          const localValue = String(localStorage.getItem(key) || '').trim();
-          if (localValue) return localValue;
-        }
-        return '';
-      }
-
-      function clearAuthTokens() {
-        for (const key of AUTH_TOKEN_KEYS) {
-          sessionStorage.removeItem(key);
-          localStorage.removeItem(key);
-        }
-      }
-
-      function renderAuthButton() {
-        if (!authBtn) return;
-        const authenticated = Boolean(getAuthToken());
-        const label = authBtn.querySelector('span');
-        authBtn.className = authenticated ? 'btn btn-outline-danger' : 'btn btn-outline-primary';
-        if (label) {
-          label.textContent = authenticated ? 'Logout' : 'Authentication';
-        }
-        authBtn.title = authenticated ? 'Authenticated.' : 'Not authenticated.';
-      }
-
-      authBtn?.addEventListener('click', () => {
-        if (getAuthToken()) {
-          clearAuthTokens();
-          renderAuthButton();
-          return;
-        }
-        const url = new URL(AUTH_LOGIN_URL, window.location.href);
-        url.searchParams.set('returnTo', window.location.href);
-        window.location.assign(url.toString());
-      });
-
-      renderAuthButton();
-      window.addEventListener('storage', renderAuthButton);
-      window.addEventListener('focus', renderAuthButton);
-    })();
-  </script>
 </body>
 </html>

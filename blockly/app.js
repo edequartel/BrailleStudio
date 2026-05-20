@@ -22,7 +22,6 @@ const FONEMEN_NL_JSON_URLS = [
 ];
 const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
 const COMPOUND_LIBRARY_API_BASES = [
-  'https://www.tastenbraille.com/braillestudio/api/blockly-library',
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
@@ -413,21 +412,18 @@ function getElevenLabsAuthEndpointUrl(fileName) {
 
 function renderElevenLabsAuthStatus(message = '') {
   const loginBtn = document.getElementById('elevenlabsLoginBtn');
+  if (!loginBtn) return;
   const token = getValidElevenLabsAuthToken();
 
-  if (loginBtn) {
-    loginBtn.className = token ? 'btn btn-outline-secondary' : 'btn btn-primary';
-    loginBtn.innerHTML = token
-      ? '<i class="ti ti-logout me-2" aria-hidden="true"></i>Logout'
-      : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
-    loginBtn.disabled = false;
-    loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
-  }
+  loginBtn.className = token ? 'btn btn-outline-secondary' : 'btn btn-primary';
+  loginBtn.innerHTML = token
+    ? '<i class="ti ti-logout me-2" aria-hidden="true"></i>Logout'
+    : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
+  loginBtn.disabled = false;
+  loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
 }
 
 async function refreshOnlineScriptsIfAuthenticated(reason = 'state-change') {
-  const token = getValidElevenLabsAuthToken();
-  if (!token) return;
   try {
     log(`Refreshing online scripts (${reason})`);
     await refreshOnlineScripts();
@@ -437,8 +433,6 @@ async function refreshOnlineScriptsIfAuthenticated(reason = 'state-change') {
 }
 
 async function refreshCompoundLibraryIfAuthenticated(reason = 'state-change') {
-  const token = getValidElevenLabsAuthToken();
-  if (!token) return;
   try {
     log(`Refreshing compound library (${reason})`);
     await refreshCompoundLibrary();
@@ -566,7 +560,7 @@ function getInstructionTtsState() {
     instruction,
     voiceId,
     canPlay: instruction !== '',
-    canSave: scriptId !== '' && instruction !== '' && getElevenLabsAuthToken() !== ''
+    canSave: scriptId !== '' && instruction !== ''
   };
 }
 
@@ -741,11 +735,6 @@ function renderInstructionTtsControl(message = '') {
     return;
   }
 
-  if (!getElevenLabsAuthToken()) {
-    status.textContent = 'Login first to produce ElevenLabs instruction audio.';
-    return;
-  }
-
   status.textContent = `Generated instruction audio will be saved under ${state.scriptId}-NNN.mp3 in /braillestudio/sounds/nl/instructions/.`;
 }
 
@@ -850,12 +839,6 @@ async function saveInstructionAsMp3() {
     if (status) status.classList.add('is-error');
     return;
   }
-  if (!getElevenLabsAuthToken()) {
-    renderInstructionTtsControl('Login first to produce ElevenLabs instruction audio.');
-    if (status) status.classList.add('is-error');
-    return;
-  }
-
   if (button) button.disabled = true;
   if (status) {
     status.classList.remove('is-error');
@@ -871,6 +854,7 @@ async function saveInstructionAsMp3() {
     for (const segment of parsed.generatedSegments) {
       const res = await fetch(ELEVENLABS_TTS_API_URL, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: getElevenLabsAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
         voice_id: state.voiceId,
@@ -1400,12 +1384,14 @@ function applyGridSnap(enabled) {
 }
 
 function getOnlineApiBases() {
-  return [...new Set([ONLINE_SCRIPT_API_BASE])];
+  const dynamicCandidates = [
+    new URL('../blockly-api', window.location.href).toString().replace(/\/$/, '')
+  ];
+  return [...new Set([...dynamicCandidates, ONLINE_SCRIPT_API_BASE])];
 }
 
 function getCompoundLibraryApiBases() {
   const dynamicCandidates = [
-    new URL('../api/blockly-library', window.location.href).toString().replace(/\/$/, ''),
     new URL('../blockly-library', window.location.href).toString().replace(/\/$/, '')
   ];
   return [...new Set([...dynamicCandidates, ...COMPOUND_LIBRARY_API_BASES])];
@@ -1415,6 +1401,7 @@ async function apiFetchJsonFromBases(bases, path, options = {}, logLabel = 'API'
   const method = String(options.method || 'GET').toUpperCase();
   const requestOptions = {
     ...(options || {}),
+    credentials: options.credentials || 'same-origin',
     headers: getElevenLabsAuthHeaders(options.headers || {})
   };
   let lastError = null;
@@ -3487,8 +3474,7 @@ setBootStage('workspace-ready');
 setTimeout(() => {
   log(`Embedded mode: ${EMBED_MODE || 'none'}${IS_EMBEDDED_SESSION_PLAYER ? ' (session-player)' : ''}`);
   const token = getValidElevenLabsAuthToken();
-  log(`Authentication token at startup: ${token ? 'present' : 'missing'}`);
-  if (!token) return;
+  log(`Legacy authentication token at startup: ${token ? 'present' : 'missing'}`);
   if (IS_EMBEDDED_SESSION_PLAYER) return;
   void refreshOnlineScriptsIfAuthenticated('startup');
   void refreshCompoundLibraryIfAuthenticated('startup');

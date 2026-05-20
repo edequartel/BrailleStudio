@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+bs_auth_require_when_direct_script(__FILE__, ['admin', 'docent'], 'page');
+
+$authUser = bs_auth_current_user() ?? ['display' => '', 'role' => ''];
+
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?session-api$~', '', $scriptDir) ?? '';
@@ -11,6 +17,7 @@ $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
 };
 $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+$html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 ?>
 <!doctype html>
@@ -55,15 +62,21 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             </div>
             <div class="col-auto">
               <div class="btn-list">
-                <span id="authStatePill" class="badge bg-secondary-lt">Not authenticated</span>
-                <button id="authBtn" class="btn btn-primary" type="button">
-                  <i class="ti ti-login me-2" aria-hidden="true"></i>
-                  Authentication
-                </button>
+                <span class="navbar-text text-secondary">
+                  Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+                </span>
+                <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+                  <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+                  <input type="hidden" name="action" value="logout">
+                  <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+                  <button class="btn btn-outline-secondary" type="submit">
+                    <i class="ti ti-logout me-2" aria-hidden="true"></i>
+                    Uitloggen
+                  </button>
+                </form>
               </div>
             </div>
           </div>
-          <div id="authStatus" class="alert alert-warning mt-3 mb-0">Authenticate first to manage step links.</div>
         </div>
       </div>
 
@@ -234,9 +247,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const CREATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'create-link.php')) ?>;
     const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
     const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
-    const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
-    const AUTH_BRIDGE_URL = <?= $jsValue($urlFor($appBase, 'authentication.php?mode=bridge')) ?>;
-    const AUTH_LOGIN_URL = <?= $jsValue($urlFor($appBase, 'authentication.php')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
     let linksCache = [];
@@ -279,12 +289,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     function getAuthToken() {
-      for (const key of AUTH_TOKEN_KEYS) {
-        const fromSession = String(sessionStorage.getItem(key) || '').trim();
-        if (fromSession) return fromSession;
-        const fromLocal = String(localStorage.getItem(key) || '').trim();
-        if (fromLocal) return fromLocal;
-      }
       return '';
     }
 
@@ -383,33 +387,24 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     function isAuthenticated() {
-      return Boolean(getAuthToken());
+      return true;
     }
 
     function requireAuthentication() {
-      if (!isAuthenticated()) {
-        throw new Error('Authenticate first');
-      }
+      return true;
     }
 
     function renderAuthenticationState() {
-      const authenticated = isAuthenticated();
       const pill = $('authStatePill');
-      pill.textContent = authenticated ? 'Authenticated' : 'Not authenticated';
-      pill.className = authenticated ? 'badge bg-success-lt' : 'badge bg-secondary-lt';
-      $('authBtn').className = authenticated ? 'btn btn-success' : 'btn btn-primary';
-      $('authBtn').innerHTML = authenticated
-        ? '<i class="ti ti-shield-check me-2" aria-hidden="true"></i>Authenticated'
-        : '<i class="ti ti-login me-2" aria-hidden="true"></i>Authentication';
-      $('loadScriptsBtn').disabled = !authenticated;
-      $('createLinkBtn').disabled = !authenticated;
-      $('refreshLinksBtn').disabled = !authenticated;
-      $('scriptsStatus').textContent = authenticated
-        ? 'Authenticated. You can load scripts and create links.'
-        : 'Authenticate first to manage step links.';
-      $('authStatus').className = authenticated ? 'alert alert-success mt-3 mb-0' : 'alert alert-warning mt-3 mb-0';
-      $('authStatus').textContent = authenticated ? 'Authentication active.' : 'Authenticate first to manage step links.';
-      logLine(`Authentication state: ${authenticated ? 'active' : 'inactive'}.`);
+      if (pill) {
+        pill.textContent = 'Authenticated';
+        pill.className = 'badge bg-success-lt';
+      }
+      $('loadScriptsBtn').disabled = false;
+      $('createLinkBtn').disabled = false;
+      $('refreshLinksBtn').disabled = false;
+      $('scriptsStatus').textContent = 'Authenticated. You can load scripts and create links.';
+      logLine('Authentication state: active.');
     }
 
     function renderEditingState() {
@@ -658,9 +653,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       $('scriptsStatus').textContent = 'Loading scripts...';
       logLine('Loading script list.', { url: SCRIPT_LIST_URL });
       const res = await fetch(SCRIPT_LIST_URL, {
+        credentials: 'same-origin',
         headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          'Accept': 'application/json'
         }
       });
       const data = await res.json().catch(() => ({}));
@@ -713,9 +708,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         : payload;
       const res = await fetch(requestUrl, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestPayload)
       });
@@ -742,9 +737,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       $('linksStatus').textContent = 'Loading links...';
       logLine('Loading existing step links.', { url: LIST_LINKS_URL });
       const res = await fetch(LIST_LINKS_URL, {
+        credentials: 'same-origin',
         headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${getAuthToken()}`
+          'Accept': 'application/json'
         }
       });
       const data = await res.json().catch(() => ({}));
@@ -941,7 +936,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         $('logBox').textContent = 'Log cleared.';
       });
 
-      $('authBtn').addEventListener('click', async () => {
+      $('authBtn')?.addEventListener('click', async () => {
         try {
           $('authStatus').textContent = 'Opening authentication popup...';
           logLine('Authentication popup requested.');

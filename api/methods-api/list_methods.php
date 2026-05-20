@@ -11,6 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     methods_method_not_allowed(['GET']);
 }
 
+methods_require_authentication();
+
 $items = methods_load_all();
 $status = methods_normalize_string($_GET['status'] ?? '');
 $q = methods_normalize_string($_GET['q'] ?? '');

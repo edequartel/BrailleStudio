@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 lessons_api_require_authentication();
 
-$saveDir = dirname(__DIR__) . '/lessons-data';
+$saveDir = lessons_api_data_dir();
 
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);

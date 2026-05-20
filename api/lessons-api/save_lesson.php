@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 lessons_api_require_authentication();
 
-$saveDir = dirname(__DIR__) . '/lessons-data';
+$saveDir = lessons_api_data_dir();
 
 if (!is_dir($saveDir)) {
     mkdir($saveDir, 0775, true);
@@ -191,9 +191,7 @@ foreach ($steps as $row) {
     if (!is_array($row)) {
         continue;
     }
-    $rowId = trim((string)($row['id'] ?? ''));
-    $rowId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $rowId);
-    $rowId = trim($rowId, '-_');
+    $rowId = lessons_api_clean_step_script_id($row);
     if ($rowId === '') {
         continue;
     }

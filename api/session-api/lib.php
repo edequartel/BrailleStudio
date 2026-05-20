@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
+$sessionApiScript = str_replace('\\', '/', (string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
+if (strpos($sessionApiScript, '/api/session-api/') !== false) {
+    bs_auth_require_login(['admin', 'docent', 'leerling'], 'json');
+}
+
 /*
  * Minimal file-based session + step resolver backend for BrailleStudio.
  * Designed for shared hosting: no database, no composer, JSON files only.
@@ -13,12 +20,17 @@ const SESSION_API_CLEANUP_SCAN_LIMIT = 100;
 
 function session_api_project_root(): string
 {
-    return dirname(__DIR__);
+    return dirname(__DIR__, 2);
 }
 
 function session_api_data_root(): string
 {
     return session_api_project_root() . '/data';
+}
+
+function session_api_legacy_data_root(): string
+{
+    return dirname(__DIR__) . '/data';
 }
 
 function session_api_sessions_dir(): string
@@ -29,6 +41,16 @@ function session_api_sessions_dir(): string
 function session_api_step_links_dir(): string
 {
     return session_api_data_root() . '/step-links';
+}
+
+function session_api_step_links_dirs(): array
+{
+    $dirs = [session_api_step_links_dir()];
+    $legacyDir = session_api_legacy_data_root() . '/step-links';
+    if ($legacyDir !== $dirs[0] && is_dir($legacyDir)) {
+        $dirs[] = $legacyDir;
+    }
+    return $dirs;
 }
 
 function session_api_step_links_method_dir(string $methodId): string
@@ -176,15 +198,23 @@ function session_api_find_step_link_path(string $code, string $methodId = ''): ?
 
 function session_api_step_link_method_id_from_path(string $path): string
 {
-    $base = realpath(session_api_step_links_dir());
     $realPath = realpath($path);
-    if ($base === false || $realPath === false || !str_starts_with($realPath, $base . DIRECTORY_SEPARATOR)) {
+    if ($realPath === false) {
         return '';
     }
 
-    $relative = substr($realPath, strlen($base) + 1);
-    $parts = explode(DIRECTORY_SEPARATOR, $relative);
-    return count($parts) > 1 ? $parts[0] : '';
+    foreach (session_api_step_links_dirs() as $dir) {
+        $base = realpath($dir);
+        if ($base === false || !str_starts_with($realPath, $base . DIRECTORY_SEPARATOR)) {
+            continue;
+        }
+
+        $relative = substr($realPath, strlen($base) + 1);
+        $parts = explode(DIRECTORY_SEPARATOR, $relative);
+        return count($parts) > 1 ? $parts[0] : '';
+    }
+
+    return '';
 }
 
 function session_api_read_json_file(string $path): ?array
@@ -510,27 +540,30 @@ function session_api_list_json_files(string $dir): array
 
 function session_api_list_step_link_files(): array
 {
-    $root = session_api_step_links_dir();
-    if (!is_dir($root)) {
-        return [];
-    }
-
-    $items = session_api_list_json_files($root);
-    $entries = scandir($root);
-    if ($entries === false) {
-        session_api_error('Could not read storage directory', 500, ['path' => $root]);
-    }
-
-    foreach ($entries as $entry) {
-        if ($entry === '.' || $entry === '..') {
+    $items = [];
+    foreach (session_api_step_links_dirs() as $root) {
+        if (!is_dir($root)) {
             continue;
         }
-        $path = $root . '/' . $entry;
-        if (is_dir($path)) {
-            $items = array_merge($items, session_api_list_json_files($path));
+
+        $items = array_merge($items, session_api_list_json_files($root));
+        $entries = scandir($root);
+        if ($entries === false) {
+            session_api_error('Could not read storage directory', 500, ['path' => $root]);
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $path = $root . '/' . $entry;
+            if (is_dir($path)) {
+                $items = array_merge($items, session_api_list_json_files($path));
+            }
         }
     }
 
+    $items = array_values(array_unique($items));
     sort($items, SORT_STRING);
     return $items;
 }

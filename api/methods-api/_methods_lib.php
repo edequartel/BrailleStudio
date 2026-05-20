@@ -5,11 +5,19 @@ require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 
 function methods_data_file(): string
 {
+    $publicFile = dirname(__DIR__, 2) . '/methods.json';
+    if (is_file($publicFile)) {
+        return $publicFile;
+    }
     return __DIR__ . '/methods.json';
 }
 
 function methods_save_dir(): string
 {
+    $publicDir = dirname(__DIR__, 2) . '/methods-data';
+    if (is_dir($publicDir)) {
+        return $publicDir;
+    }
     return dirname(__DIR__) . '/methods-data';
 }
 

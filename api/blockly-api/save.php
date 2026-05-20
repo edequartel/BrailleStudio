@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 blockly_api_require_authentication();
 
-$saveDir = dirname(__DIR__) . '/blockly-data';
+$saveDir = blockly_api_data_dir();
 
 if (!is_dir($saveDir)) {
     mkdir($saveDir, 0775, true);

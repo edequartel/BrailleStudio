@@ -14,7 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$saveDir = dirname(__DIR__) . '/lessons-data';
+lessons_api_require_authentication();
+
+$saveDir = lessons_api_data_dir();
 $filterMethodId = trim((string)($_GET['methodId'] ?? ''));
 $filterBasisIndex = array_key_exists('basisIndex', $_GET) ? (int)$_GET['basisIndex'] : null;
 
@@ -146,7 +148,7 @@ foreach ($files as $file) {
         if (!is_array($row)) {
             continue;
         }
-        $rowId = trim((string)($row['id'] ?? ''));
+        $rowId = lessons_api_step_script_id($row);
         if ($rowId === '') {
             continue;
         }

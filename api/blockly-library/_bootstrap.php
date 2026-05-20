@@ -13,6 +13,10 @@ function blockly_library_require_authentication(): array
 
 function blockly_library_data_dir(): string
 {
+    $publicDir = dirname(__DIR__, 2) . '/blockly-library-data';
+    if (is_dir($publicDir)) {
+        return $publicDir;
+    }
     return dirname(__DIR__) . '/blockly-library-data';
 }
 
