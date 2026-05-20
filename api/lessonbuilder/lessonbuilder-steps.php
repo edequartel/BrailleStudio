@@ -984,8 +984,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         || 'lesson'
       ).trim();
       const stepNumber = String(Math.max(1, Number(stepIndex) + 1)).padStart(4, '0');
-      const rawCode = `B${[lessonTitle, stepNumber].filter(Boolean).join('-')}`;
-      const suffix = `-${stepNumber}`;
+      const rawCode = `B${lessonTitle}${stepNumber}`;
+      const suffix = stepNumber;
       const normalized = normalizeStepLinkToken(rawCode, `step-${stepNumber}`);
       if (normalized.length <= 64) return normalized;
       return `${normalized.slice(0, Math.max(3, 64 - suffix.length)).replace(/-+$/g, '')}${suffix}`;
