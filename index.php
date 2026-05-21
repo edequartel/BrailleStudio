@@ -185,7 +185,21 @@ function e(string $value): string
 <body>
 <a class="visually-hidden-focusable" href="#main-content">Naar hoofdinhoud</a>
 
-<div class="page">
+<div id="indexLoadingScreen" class="page page-center">
+    <div class="container-tight py-4">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-3">
+                    <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                </div>
+                <h1 class="h2 mb-2">BrailleStudio laden</h1>
+                <p id="indexLoadingMessage" class="text-secondary mb-0">De leeromgeving wordt voorbereid.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="indexAppPage" class="page d-none" hidden>
     <header class="navbar navbar-expand-md d-print-none">
         <div class="container-xl">
             <div class="navbar-brand navbar-brand-autodark pe-0 pe-md-3">
@@ -387,8 +401,30 @@ function e(string $value): string
 <script src="<?= e($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-    document.querySelectorAll('[data-markdown-source]').forEach(async (target) => {
+    const indexLoadingScreen = document.getElementById('indexLoadingScreen');
+    const indexLoadingMessage = document.getElementById('indexLoadingMessage');
+    const indexAppPage = document.getElementById('indexAppPage');
+
+    function setIndexLoadingMessage(message) {
+        if (indexLoadingMessage) {
+            indexLoadingMessage.textContent = message;
+        }
+    }
+
+    function showIndexPage() {
+        if (indexLoadingScreen) {
+            indexLoadingScreen.hidden = true;
+            indexLoadingScreen.classList.add('d-none');
+        }
+        if (indexAppPage) {
+            indexAppPage.hidden = false;
+            indexAppPage.classList.remove('d-none');
+        }
+    }
+
+    async function loadMarkdownBlock(target) {
         try {
+            setIndexLoadingMessage('Documentatie laden.');
             const response = await fetch(target.dataset.markdownSource, {cache: 'no-store'});
 
             if (!response.ok) {
@@ -409,7 +445,15 @@ function e(string $value): string
                 </div>
             `;
         }
-    });
+    }
+
+    (async () => {
+        setIndexLoadingMessage('Pagina voorbereiden.');
+        const markdownTargets = Array.from(document.querySelectorAll('[data-markdown-source]'));
+        await Promise.all(markdownTargets.map((target) => loadMarkdownBlock(target)));
+        setIndexLoadingMessage('Alles staat klaar.');
+        showIndexPage();
+    })();
 </script>
 </body>
 </html>
