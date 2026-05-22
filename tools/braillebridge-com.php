@@ -90,6 +90,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
                   </div>
                   <div class="btn-list mb-2">
                     <button class="btn btn-outline-secondary" id="getPathsBtn" type="button">GET /paths</button>
+                    <button class="btn btn-outline-secondary" id="getVersionBtn" type="button">GET /version</button>
                     <button class="btn btn-outline-secondary" id="getPingBtn" type="button">GET /ping</button>
                     <button class="btn btn-outline-secondary" id="getClearBtn" type="button">GET /clear</button>
                   </div>
@@ -285,6 +286,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const wsBaseLabel = el("wsBaseLabel");
 
       const getPathsBtn = el("getPathsBtn");
+      const getVersionBtn = el("getVersionBtn");
       const getPingBtn = el("getPingBtn");
       const getClearBtn = el("getClearBtn");
       const getDevicesBtn = el("getDevicesBtn");
@@ -568,6 +570,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
 
       // Hook up HTTP buttons
       getPathsBtn.addEventListener("click", () => httpGet("/paths"));
+      getVersionBtn.addEventListener("click", () => httpGet("/version"));
       getPingBtn.addEventListener("click", () => httpGet("/ping"));
       getClearBtn.addEventListener("click", () => httpGet("/clear"));
       getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
@@ -959,7 +962,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
 
       // On load: show initial instruction in log
       appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: GET /ping, GET /clear, GET /devices, GET /tables, GET /paths.");
+      appendLog("Spec: GET /ping, GET /clear, GET /devices, GET /tables, GET /paths, GET /version.");
       appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key).");
       appendLog("Spec: out setEditorMode/setEditorInsertMode/editorInput and caret/query/cursorRouting commands.");
     })();

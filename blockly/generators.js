@@ -368,13 +368,13 @@
   javascriptGenerator.forBlock['lesson_get_step_input'] = function (block) {
     const field = q(block.getFieldValue('FIELD') || 'text');
     return [
-      `(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; const key = ${field}; const value = inputs[key]; if (key === 'letters') return Array.isArray(value) ? value : []; if (key === 'repeat') return Math.max(1, Math.floor(Number(value) || 1)); return value != null ? value : ''; })()`,
+      `(() => { const defaults = { text: 'bal,kam,aap', word: 'bal', letters: ['b', 'a', 'l'], repeat: 1 }; const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; const key = ${field}; const value = inputs[key]; if (key === 'letters') { const list = Array.isArray(value) ? value.map(item => String(item ?? '').trim()).filter(Boolean) : String(value ?? '').split(',').map(item => item.trim()).filter(Boolean); return list.length ? list : [...defaults.letters]; } if (key === 'repeat') return Math.max(1, Math.floor(Number(value ?? defaults.repeat) || defaults.repeat)); const text = String(value ?? '').trim(); return text || defaults[key] || ''; })()`,
       ORDER_ATOMIC
     ];
   };
 
   javascriptGenerator.forBlock['lesson_get_step_repeat'] = function () {
-    return [`(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; return Math.max(1, Math.floor(Number(inputs.repeat) || 1)); })()`, ORDER_ATOMIC];
+    return [`(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; return Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1)); })()`, ORDER_ATOMIC];
   };
 
   javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {

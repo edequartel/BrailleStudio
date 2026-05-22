@@ -175,6 +175,7 @@ $pagePayload = [
   <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260522-17">
   <style>
     body {
       min-height: 100vh;
@@ -241,6 +242,25 @@ $pagePayload = [
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .method-header-status {
+      flex: 0 1 auto;
+      min-width: min(100%, 520px);
+    }
+
+    .method-header-status.is-collapsed {
+      min-width: 0;
+    }
+
+    .method-header-status .braillebridge-status__body {
+      padding: .625rem .75rem;
+    }
+
+    .method-header-status .braillebridge-status__icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.15rem;
     }
 
     .min-w-0 {
@@ -421,11 +441,47 @@ $pagePayload = [
 
     .debug-log {
       min-height: 220px;
-      white-space: pre-wrap;
       font-size: .75rem;
       margin: 0;
       padding: 1rem;
       background: var(--tblr-bg-surface-secondary);
+    }
+
+    .debug-log-grid {
+      display: grid;
+      grid-template-columns: max-content max-content max-content max-content minmax(22rem, 1fr);
+      gap: 0;
+      align-items: stretch;
+      overflow: auto;
+      max-height: 360px;
+      line-height: 1.35;
+    }
+
+    .debug-log-cell {
+      min-width: 0;
+      padding: .35rem .5rem;
+      border-bottom: var(--tblr-border-width) solid var(--tblr-border-color);
+      white-space: nowrap;
+    }
+
+    .debug-log-cell--message {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .debug-log-head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--tblr-bg-surface-secondary);
+      color: var(--tblr-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .debug-log-cell.debug-log-row-bb {
+      background: color-mix(in srgb, var(--tblr-primary) 5%, transparent);
     }
 
     .hidden {
@@ -439,6 +495,16 @@ $pagePayload = [
     }
 
     @media (max-width: 992px) {
+      .method-header-content {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .method-header-status {
+        flex-basis: auto;
+        min-width: 0;
+      }
+
       .lesson-grid {
         grid-template-columns: 1fr;
       }
@@ -471,14 +537,16 @@ $pagePayload = [
             <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
           </div>
         </div>
-        <div class="indicator-group">
-          <span id="bridgeIndicator" class="indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
-            <span id="bridgeIndicatorDot" class="indicator-dot"></span>
-          </span>
-          <span id="lessonRunIndicator" class="indicator" aria-label="Not running" title="Not running">
-            <span id="lessonRunIndicatorDot" class="indicator-dot"></span>
-          </span>
-        </div>
+        <?php if ($errorMessage === ''): ?>
+          <section
+            class="method-header-status"
+            data-braillebridge-status
+            data-base-url="http://localhost:5000"
+            data-ws-url="ws://localhost:5000/ws"
+            data-launch-url="braillebridge://"
+            aria-label="BrailleBridge status"
+          ></section>
+        <?php endif; ?>
       </div>
     </header>
 
@@ -552,11 +620,12 @@ $pagePayload = [
         <div class="card-header">
           <h2 class="card-title">Debug log</h2>
           <div class="card-actions">
+            <button id="clearDebugLogBtn" type="button" class="btn btn-outline-secondary">Clear</button>
             <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary">Unhidden</button>
           </div>
         </div>
         <div class="card-body">
-          <pre id="statusBox" class="hidden form-control debug-log"></pre>
+          <div id="statusBox" class="hidden form-control debug-log debug-log-grid" role="log" aria-live="polite"></div>
         </div>
       </section>
 
@@ -591,6 +660,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260522-17"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
@@ -606,13 +676,9 @@ $pagePayload = [
     const statusBox = document.getElementById('statusBox');
     const lessonRunnerFrame = document.getElementById('lessonRunnerFrame');
     const brailleMonitorStatus = document.getElementById('brailleMonitorStatus');
-    const bridgeIndicator = document.getElementById('bridgeIndicator');
-    const bridgeIndicatorDot = document.getElementById('bridgeIndicatorDot');
-    const lessonRunIndicator = document.getElementById('lessonRunIndicator');
-    const lessonRunIndicatorDot = document.getElementById('lessonRunIndicatorDot');
-    const lessonRunIndicatorText = document.getElementById('lessonRunIndicatorText');
     const lessonReturnValues = document.getElementById('lessonReturnValues');
     const runStatusBanner = document.getElementById('runStatusBanner');
+    const clearDebugLogBtn = document.getElementById('clearDebugLogBtn');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const toggleRunnerBtn = document.getElementById('toggleRunnerBtn');
     const runnerPanel = document.getElementById('runnerPanel');
@@ -908,14 +974,6 @@ $pagePayload = [
       throw new Error('Blockly runner does not support runtime input dispatch');
     }
 
-    function renderBridgeIndicator(isConnected = false) {
-      if (!bridgeIndicator || !bridgeIndicatorDot) return;
-      bridgeIndicator.className = isConnected ? 'indicator is-connected' : 'indicator';
-      bridgeIndicatorDot.className = 'indicator-dot';
-      bridgeIndicator.setAttribute('aria-label', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
-      bridgeIndicator.setAttribute('title', isConnected ? 'BrailleBridge connected' : 'BrailleBridge unavailable');
-    }
-
     function escapeHtml(value) {
       return String(value)
         .replaceAll('&', '&amp;')
@@ -940,7 +998,7 @@ $pagePayload = [
       if (value == null) return '';
       if (typeof value === 'string') return value;
       try {
-        return JSON.stringify(value, null, 2);
+        return JSON.stringify(value);
       } catch (err) {
         return String(value);
       }
@@ -1007,16 +1065,6 @@ $pagePayload = [
 
     function setLessonRunningState(running, label = '') {
       isLessonRunning = Boolean(running);
-      if (!lessonRunIndicator || !lessonRunIndicatorDot) return;
-      const isStopping = Boolean(currentRun && currentRun.status === 'stopping');
-      lessonRunIndicator.className = isStopping
-        ? 'indicator is-stopping'
-        : (isLessonRunning
-          ? 'indicator is-running'
-          : 'indicator');
-      lessonRunIndicatorDot.className = 'indicator-dot';
-      lessonRunIndicator.setAttribute('aria-label', label || (isLessonRunning ? 'Running' : 'Not running'));
-      lessonRunIndicator.setAttribute('title', label || (isLessonRunning ? 'Running' : 'Not running'));
       renderRunControls();
     }
 
@@ -1033,14 +1081,109 @@ $pagePayload = [
       toggleRunnerBtn.className = 'btn btn-outline-secondary ms-auto';
     }
 
+    function compactDebugMessage(message) {
+      const text = String(message || '').trim();
+      if (!text.startsWith('BrailleBridge status: ')) return text;
+      return text
+        .replace(/^BrailleBridge status:\s*/, 'BB ')
+        .replace(/^BB snapshot -> start$/, 'BB SNAP -> start')
+        .replace(/^BB snapshot <- done$/, 'BB SNAP <- done')
+        .replace(/^BB test -> start$/, 'BB TEST -> start')
+        .replace(/^BB test <- done$/, 'BB TEST <- done')
+        .replace(/^BB launch -> /, 'BB APP -> ')
+        .replace(/^BB HTTP -> /, 'BB API -> ')
+        .replace(/^BB HTTP <- /, 'BB API <- ')
+        .replace(/^BB HTTP xx /, 'BB API xx ')
+        .replace(/^BB WS -> /, 'BB WS -> ')
+        .replace(/^BB WS <- /, 'BB WS <- ')
+        .replace(/^BB state$/, 'BB STATE')
+        .replace(/^BB init$/, 'BB INIT');
+    }
+
+    function getDebugEntryParts(message, data = null) {
+      const compactMessage = compactDebugMessage(message);
+      const dataText = data != null ? formatDebugData(data) : '';
+      const parts = {
+        source: 'RUN',
+        channel: 'APP',
+        direction: '',
+        event: compactMessage,
+        message: dataText
+      };
+
+      if (!compactMessage.startsWith('BB ')) {
+        return parts;
+      }
+
+      parts.source = 'BB';
+      const rest = compactMessage.slice(3);
+      const match = rest.match(/^(API|WS|TEST|SNAP|APP|STATE|INIT)\s*(->|<-|xx)?\s*(.*)$/);
+      if (!match) {
+        parts.channel = 'STATUS';
+        parts.event = rest;
+        return parts;
+      }
+
+      parts.channel = match[1];
+      parts.direction = match[2] || '';
+      parts.event = (match[3] || match[1]).trim();
+      if (dataText) {
+        parts.message = dataText;
+      }
+      return parts;
+    }
+
+    function ensureDebugLogHeader() {
+      if (!statusBox || statusBox.dataset.hasHeader === 'true') return;
+      statusBox.dataset.hasHeader = 'true';
+      ['Time', 'Source', 'Type', 'Dir', 'Message'].forEach((label) => {
+        const cell = document.createElement('div');
+        cell.className = 'debug-log-cell debug-log-head';
+        cell.textContent = label;
+        statusBox.appendChild(cell);
+      });
+    }
+
+    function getDebugLogInsertBeforeNode() {
+      if (!statusBox) return null;
+      return statusBox.children.length > 5 ? statusBox.children[5] : null;
+    }
+
     function appendStatus(message, data = null) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
-      const block = data != null
-        ? `[${timestamp}] ${message}\n${formatDebugData(data)}`
-        : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
-      statusBox.scrollTop = statusBox.scrollHeight;
+      const parts = getDebugEntryParts(message, data);
+      ensureDebugLogHeader();
+      const rowClass = parts.source === 'BB' ? ' debug-log-row-bb' : '';
+      const fragment = document.createDocumentFragment();
+      [
+        timestamp,
+        parts.source,
+        parts.channel,
+        parts.direction,
+        [parts.event, parts.message].filter(Boolean).join(' | ')
+      ].forEach((value, index) => {
+        const cell = document.createElement('div');
+        cell.className = `debug-log-cell${index === 4 ? ' debug-log-cell--message' : ''}${rowClass}`;
+        cell.title = String(value || '');
+        cell.textContent = String(value || '');
+        fragment.appendChild(cell);
+      });
+      statusBox.insertBefore(fragment, getDebugLogInsertBeforeNode());
+      statusBox.scrollTop = 0;
     }
+
+    window.appendStatus = appendStatus;
+    if (Array.isArray(window.__brailleBridgeStatusLogQueue)) {
+      window.__brailleBridgeStatusLogQueue.splice(0).forEach((entry) => {
+        appendStatus(entry.message, entry.data ?? null);
+      });
+    }
+
+    clearDebugLogBtn?.addEventListener('click', () => {
+      if (!statusBox) return;
+      statusBox.replaceChildren();
+      delete statusBox.dataset.hasHeader;
+    });
 
     function getStepDebugSnapshot(stepConfig, stepIndex) {
       const inputs = stepConfig?.inputs || {};
@@ -1285,7 +1428,6 @@ $pagePayload = [
         const app = runner?.BrailleBlocklyApp;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') {
           renderMonitorSourceVisibility(false);
-          renderBridgeIndicator(false);
           if (lastBrailleSnapshot !== JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER })) {
             showBrailleMonitorPlaceholder();
           }
@@ -1297,7 +1439,6 @@ $pagePayload = [
         const runtime = app.getRuntimeSnapshot();
         const isWsConnected = Boolean(runtime?.wsConnected);
         renderMonitorSourceVisibility(isWsConnected);
-        renderBridgeIndicator(isWsConnected);
         const brailleUnicode = String(runtime?.brailleUnicode || '');
         const sourceText = String(runtime?.text || '');
         const signature = JSON.stringify({
@@ -1340,7 +1481,6 @@ $pagePayload = [
         }
       } catch (err) {
         renderMonitorSourceVisibility(false);
-        renderBridgeIndicator(false);
         if (brailleMonitorUi && typeof brailleMonitorUi.setText === 'function') {
           brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
         }

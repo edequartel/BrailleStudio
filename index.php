@@ -423,15 +423,20 @@ function e(string $value): string
     }
 
     async function loadMarkdownBlock(target) {
+        if (!target || target.dataset.markdownLoaded === 'true') {
+            return;
+        }
+
         try {
             setIndexLoadingMessage('Documentatie laden.');
-            const response = await fetch(target.dataset.markdownSource, {cache: 'no-store'});
+            const response = await fetch(target.dataset.markdownSource);
 
             if (!response.ok) {
                 throw new Error(`Markdown request failed: ${response.status}`);
             }
 
             target.innerHTML = marked.parse(await response.text());
+            target.dataset.markdownLoaded = 'true';
         } catch (error) {
             console.error(error);
             target.innerHTML = `
@@ -449,8 +454,20 @@ function e(string $value): string
 
     (async () => {
         setIndexLoadingMessage('Pagina voorbereiden.');
-        const markdownTargets = Array.from(document.querySelectorAll('[data-markdown-source]'));
-        await Promise.all(markdownTargets.map((target) => loadMarkdownBlock(target)));
+        const activeMarkdownTarget = document.querySelector('.tab-pane.active [data-markdown-source]');
+        await loadMarkdownBlock(activeMarkdownTarget);
+
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach((tab) => {
+            tab.addEventListener('shown.bs.tab', () => {
+                const selector = tab.getAttribute('href');
+                if (!selector) {
+                    return;
+                }
+                const pane = document.querySelector(selector);
+                loadMarkdownBlock(pane?.querySelector('[data-markdown-source]'));
+            });
+        });
+
         setIndexLoadingMessage('Alles staat klaar.');
         showIndexPage();
     })();

@@ -137,6 +137,7 @@ function clearLogBox() {
 }
 
 function formatLogValue(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item ?? '')).join(',');
   if (typeof value === 'string') return value === '' ? '""' : value;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (value == null) return '';
@@ -159,23 +160,6 @@ function formatTextJoinValue(value) {
 }
 
 function renderWsControl() {
-  const btn = document.getElementById('wsToggleBtn');
-  if (!btn) return;
-
-  const isConnected = !!ws && ws.readyState === WebSocket.OPEN;
-
-  btn.classList.remove('btn-outline-success', 'btn-outline-danger');
-
-  if (isConnected) {
-    btn.classList.add('btn-outline-success');
-    btn.setAttribute('aria-label', 'Disconnect WebSocket');
-    btn.title = 'Disconnect WebSocket';
-    return;
-  }
-
-  btn.classList.add('btn-outline-danger');
-  btn.setAttribute('aria-label', 'Connect WebSocket');
-  btn.title = 'Connect WebSocket';
 }
 
 function renderBrailleBridgeIndicator() {
@@ -327,6 +311,17 @@ function renderScriptMetadata(meta = null) {
   if (instructionInput) instructionInput.value = String(meta?.instruction || '');
   if (promptInput) promptInput.value = String(meta?.prompt || '');
   renderInstructionTtsControl();
+  renderStatusScriptName();
+}
+
+function renderStatusScriptName() {
+  const target = document.getElementById('statusScriptName');
+  if (!target) return;
+  const scriptId = String(document.getElementById('onlineScriptIdInput')?.value || currentOnlineScriptId || '').trim();
+  const fileName = String(document.getElementById('fileNameInput')?.value || '').trim();
+  const name = scriptId || fileName || 'Geen script geopend';
+  target.textContent = name;
+  target.parentElement?.setAttribute('title', `Script-id: ${name}`);
 }
 
 function readScriptMetadataFromInputs() {
@@ -1073,6 +1068,10 @@ function renderFileState() {
   }
   if (saveBtn) {
     saveBtn.classList.toggle('is-dirty', workspaceDirty);
+    saveBtn.classList.toggle('btn-outline-secondary', !workspaceDirty);
+    saveBtn.classList.toggle('btn-primary', workspaceDirty);
+    saveBtn.setAttribute('aria-label', workspaceDirty ? 'Save script with unsaved changes' : 'Save script');
+    saveBtn.title = workspaceDirty ? 'Save script with unsaved changes' : 'Save script';
   }
 }
 
@@ -1207,6 +1206,12 @@ window.BrailleBlocklyDefaultLessonPlaceholders = window.BrailleBlocklyDefaultLes
   word: 'bal',
   soundsCsv: 'b,a,l'
 };
+const DEFAULT_LESSON_STEP_INPUTS = Object.freeze({
+  text: 'bal,kam,aap',
+  word: 'bal',
+  letters: Object.freeze(['b', 'a', 'l']),
+  repeat: 1
+});
 let fonemenNlJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
@@ -1522,6 +1527,7 @@ function setOnlineScriptInputs({ id = '', title = '', status = 'draft' } = {}) {
   if (idInput) idInput.value = String(id || '');
   if (titleInput) titleInput.value = String(title || '');
   if (statusInput) statusInput.value = String(status || 'draft');
+  renderStatusScriptName();
 }
 
 function setOnlineCurrentScript({ id = '', title = '', status = 'draft' } = {}) {
@@ -2746,17 +2752,6 @@ async function runStartedProgram(generation) {
 }
 
 function bindWsControls() {
-  const wsToggleBtn = document.getElementById('wsToggleBtn');
-  if (wsToggleBtn && !wsToggleBtn.dataset.wsBound) {
-    wsToggleBtn.addEventListener('click', () => {
-      if (isWsOpen() || (ws && ws.readyState === WebSocket.CONNECTING)) {
-        disconnectWs();
-      } else {
-        connectWs('manual');
-      }
-    });
-    wsToggleBtn.dataset.wsBound = '1';
-  }
   renderWsControl();
 }
 
@@ -3011,7 +3006,10 @@ function bindAppControls() {
   const onlineTitle = document.getElementById('onlineScriptTitleInput');
   const onlineStatus = document.getElementById('onlineScriptStatusInput');
   if (metaTitle && !metaTitle.dataset.initialized) {
-    metaTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
+    metaTitle.addEventListener('input', () => {
+      refreshWorkspaceDirtyState();
+      renderStatusScriptName();
+    });
     metaTitle.dataset.initialized = '1';
   }
   if (metaDescription && !metaDescription.dataset.initialized) {
@@ -3036,7 +3034,10 @@ function bindAppControls() {
     metaPrompt.dataset.initialized = '1';
   }
   if (onlineTitle && !onlineTitle.dataset.initialized) {
-    onlineTitle.addEventListener('input', () => refreshWorkspaceDirtyState());
+    onlineTitle.addEventListener('input', () => {
+      refreshWorkspaceDirtyState();
+      renderStatusScriptName();
+    });
     onlineTitle.dataset.initialized = '1';
   }
   if (onlineStatus && !onlineStatus.dataset.initialized) {
@@ -3457,6 +3458,37 @@ workspace.addChangeListener(() => {
 });
 
 workspace.addChangeListener((event) => {
+  if (suppressDirtyTracking > 0 || !event || event.isUiEvent === true) return;
+  const dirtyEventTypes = new Set([
+    Blockly.Events.BLOCK_CREATE,
+    Blockly.Events.BLOCK_DELETE,
+    Blockly.Events.BLOCK_CHANGE,
+    Blockly.Events.BLOCK_MOVE,
+    Blockly.Events.VAR_CREATE,
+    Blockly.Events.VAR_DELETE,
+    Blockly.Events.VAR_RENAME,
+    Blockly.Events.COMMENT_CREATE,
+    Blockly.Events.COMMENT_DELETE,
+    Blockly.Events.COMMENT_CHANGE,
+    Blockly.Events.COMMENT_MOVE,
+    'create',
+    'delete',
+    'change',
+    'move',
+    'var_create',
+    'var_delete',
+    'var_rename',
+    'comment_create',
+    'comment_delete',
+    'comment_change',
+    'comment_move'
+  ]);
+  if (dirtyEventTypes.has(event.type)) {
+    setWorkspaceDirty(true);
+  }
+});
+
+workspace.addChangeListener((event) => {
   if (!event || event.isUiEvent !== true) return;
   if (event.type !== Blockly.Events.SELECTED) return;
   const newElementId = String(event.newElementId || '').trim();
@@ -3844,20 +3876,28 @@ function getLessonMethod() {
 
 function normalizeLessonStepInputs(inputs) {
   const source = inputs && typeof inputs === 'object' ? inputs : {};
+  const text = String(source.text ?? '').trim() || DEFAULT_LESSON_STEP_INPUTS.text;
+  const word = String(source.word ?? '').trim() || DEFAULT_LESSON_STEP_INPUTS.word;
+  const letters = Array.isArray(source.letters)
+    ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean);
   return {
-    text: String(source.text ?? '').trim(),
-    word: String(source.word ?? '').trim(),
-    letters: Array.isArray(source.letters)
-      ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
-      : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean),
-    repeat: Math.max(1, Math.floor(Number(source.repeat ?? 1) || 1))
+    text,
+    word,
+    letters: letters.length ? letters : [...DEFAULT_LESSON_STEP_INPUTS.letters],
+    repeat: Math.max(1, Math.floor(Number(source.repeat ?? DEFAULT_LESSON_STEP_INPUTS.repeat) || 1))
   };
 }
 
 function getLessonStepInputs() {
   return window.lessonStepInputs && typeof window.lessonStepInputs === 'object'
-    ? window.lessonStepInputs
-    : { text: '', word: '', letters: [], repeat: 1 };
+    ? normalizeLessonStepInputs(window.lessonStepInputs)
+    : {
+      text: DEFAULT_LESSON_STEP_INPUTS.text,
+      word: DEFAULT_LESSON_STEP_INPUTS.word,
+      letters: [...DEFAULT_LESSON_STEP_INPUTS.letters],
+      repeat: DEFAULT_LESSON_STEP_INPUTS.repeat
+    };
 }
 
 function resetLessonStepRuntimeState(stepInputs = null) {
@@ -5552,6 +5592,7 @@ function setSelectedFileName(name) {
   const normalized = normalizeXmlFileName(name);
   const input = document.getElementById('fileNameInput');
   if (input) input.value = normalized;
+  renderStatusScriptName();
 }
 
 function downloadXml(xmlText, fileName) {
@@ -5772,6 +5813,7 @@ async function newWorkspace() {
 
 renderStatus();
 renderScriptMetadata(null);
+renderStatusScriptName();
 renderInstructionTtsControl();
 renderFileState();
 setWsBadge(false);

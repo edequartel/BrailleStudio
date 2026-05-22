@@ -1,0 +1,228 @@
+.braillebridge-status {
+  border: var(--tblr-border-width) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg);
+  background: var(--tblr-bg-surface);
+  box-shadow: var(--tblr-box-shadow-sm);
+}
+
+.braillebridge-status__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: var(--tblr-border-width) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-bg-surface);
+  color: var(--tblr-secondary);
+  cursor: pointer;
+}
+
+.braillebridge-status__toggle:hover {
+  color: var(--tblr-primary);
+  border-color: color-mix(in srgb, var(--tblr-primary) 34%, var(--tblr-border-color));
+}
+
+.braillebridge-status__toggle-icon {
+  font-size: 1.3rem;
+}
+
+.braillebridge-status__toggle-dot {
+  position: absolute;
+  width: .55rem;
+  height: .55rem;
+  margin-top: -1.35rem;
+  margin-left: 1.35rem;
+  border-radius: var(--tblr-border-radius-pill);
+  background: var(--tblr-secondary);
+  box-shadow: 0 0 0 2px var(--tblr-bg-surface);
+}
+
+.braillebridge-status[data-state="ready"] .braillebridge-status__toggle-dot {
+  background: var(--tblr-success);
+}
+
+.braillebridge-status[data-state="starting"] .braillebridge-status__toggle-dot,
+.braillebridge-status[data-state="partial"] .braillebridge-status__toggle-dot {
+  background: var(--tblr-warning);
+}
+
+.braillebridge-status[data-state="offline"] .braillebridge-status__toggle-dot {
+  background: var(--tblr-danger);
+}
+
+.braillebridge-status__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .875rem 1rem;
+}
+
+.braillebridge-status__header-toggle {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.braillebridge-status.is-collapsed {
+  width: 2.75rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.braillebridge-status.is-collapsed .braillebridge-status__body {
+  display: none;
+}
+
+.braillebridge-status:not(.is-collapsed) > .braillebridge-status__toggle {
+  display: none;
+}
+
+.braillebridge-status__details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+  padding: 0 1rem 1rem;
+}
+
+.braillebridge-status.is-collapsed .braillebridge-status__details {
+  display: none;
+}
+
+.braillebridge-status__detail {
+  min-width: 0;
+  border: var(--tblr-border-width) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-bg-surface-secondary);
+  padding: .5rem .625rem;
+}
+
+.braillebridge-status__detail-label {
+  color: var(--tblr-muted);
+  font-size: .6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.braillebridge-status__detail-value {
+  margin-top: .125rem;
+  color: var(--tblr-body-color);
+  font-size: .8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.braillebridge-status__main {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  min-width: 0;
+}
+
+.braillebridge-status__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  border-radius: var(--tblr-border-radius);
+  background: var(--tblr-secondary-lt);
+  color: var(--tblr-secondary);
+  font-size: 1.35rem;
+}
+
+.braillebridge-status[data-state="ready"] .braillebridge-status__icon {
+  background: var(--tblr-success-lt);
+  color: var(--tblr-success);
+}
+
+.braillebridge-status[data-state="starting"] .braillebridge-status__icon,
+.braillebridge-status[data-state="partial"] .braillebridge-status__icon {
+  background: var(--tblr-warning-lt);
+  color: var(--tblr-warning);
+}
+
+.braillebridge-status[data-state="offline"] .braillebridge-status__icon {
+  background: var(--tblr-danger-lt);
+  color: var(--tblr-danger);
+}
+
+.braillebridge-status__text {
+  min-width: 0;
+}
+
+.braillebridge-status[data-state="ready"] .braillebridge-status__subtitle {
+  display: none;
+}
+
+.braillebridge-status__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--tblr-body-color);
+}
+
+.braillebridge-status__subtitle {
+  margin-top: .125rem;
+  color: var(--tblr-secondary);
+  font-size: .875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.braillebridge-status__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.braillebridge-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  min-height: 1.75rem;
+}
+
+.braillebridge-status__dot {
+  width: .5rem;
+  height: .5rem;
+  flex: 0 0 auto;
+  border-radius: var(--tblr-border-radius-pill);
+  background: currentColor;
+}
+
+.braillebridge-status__action {
+  white-space: nowrap;
+}
+
+.braillebridge-status__incoming {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .braillebridge-status__body {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .braillebridge-status__meta {
+    justify-content: flex-start;
+  }
+
+  .braillebridge-status__details {
+    grid-template-columns: 1fr;
+  }
+
+  .braillebridge-status__subtitle {
+    white-space: normal;
+  }
+}

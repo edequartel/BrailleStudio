@@ -75,6 +75,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260522-17">
   <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
 
   <style>
@@ -234,55 +235,48 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       box-sizing: border-box;
     }
 
-    .bridge-indicator {
-      display: inline-flex;
+    .status-card-bridge-status {
+      margin-bottom: 12px;
+    }
+
+    .status-card-bridge-status [data-role="test"] {
+      display: none;
+    }
+
+    .status-card-bridge-status .braillebridge-status__body {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .status-card-bridge-status .braillebridge-status__meta {
+      justify-content: flex-start;
+    }
+
+    .status-card-script-name {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      width: 40px;
-      min-height: 40px;
-      padding: 8px;
-      border: var(--tblr-border-width) solid var(--border);
+      gap: .5rem;
+      min-height: 36px;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
       border-radius: var(--tblr-border-radius);
-      background: #fef2f2;
-      color: #991b1b;
+      background: var(--tblr-bg-surface-secondary);
+      color: var(--tblr-body-color);
+      font-size: .875rem;
+      font-weight: 600;
     }
 
-    .bridge-indicator-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: #dc2626;
-      flex: 0 0 auto;
+    .status-card-script-name i {
+      color: var(--tblr-muted);
+      font-size: 1rem;
     }
 
-    .bridge-indicator.is-disconnected {
-      background: #fef2f2;
-      color: #991b1b;
-      border-color: #fecaca;
-    }
-
-    .bridge-indicator.is-disconnected .bridge-indicator-dot {
-      background: #dc2626;
-    }
-
-    .bridge-indicator.is-starting {
-      background: #fef2f2;
-      color: #991b1b;
-      border-color: #fecaca;
-    }
-
-    .bridge-indicator.is-starting .bridge-indicator-dot {
-      background: #dc2626;
-    }
-
-    .bridge-indicator.is-connected {
-      background: #dcfce7;
-      color: #166534;
-      border-color: #86efac;
-    }
-
-    .bridge-indicator.is-connected .bridge-indicator-dot {
-      background: #16a34a;
+    .status-card-script-name span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .badge {
@@ -703,6 +697,20 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       color: #991b1b;
     }
 
+    #onlineSaveBtn.is-dirty {
+      border-color: var(--tblr-primary);
+      background: var(--tblr-primary);
+      color: var(--tblr-primary-fg);
+      box-shadow: 0 0 0 .25rem color-mix(in srgb, var(--tblr-primary) 18%, transparent);
+    }
+
+    #onlineSaveBtn.is-dirty:hover,
+    #onlineSaveBtn.is-dirty:focus {
+      border-color: color-mix(in srgb, var(--tblr-primary) 86%, #000);
+      background: color-mix(in srgb, var(--tblr-primary) 92%, #000);
+      color: var(--tblr-primary-fg);
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -790,12 +798,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
             Uitloggen
           </button>
         </form>
-        <button id="wsToggleBtn" class="btn btn-outline-danger btn-icon" type="button" aria-label="Connect WebSocket" title="Connect WebSocket">
-          <i class="ti ti-plug-connected" aria-hidden="true"></i>
-        </button>
-        <span id="bridgeLaunchIndicator" class="bridge-indicator" aria-label="BrailleBridge unavailable" title="BrailleBridge unavailable">
-          <span class="bridge-indicator-dot" aria-hidden="true"></span>
-        </span>
       </div>
     </div>
 
@@ -900,7 +902,19 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <h3 class="card-title">Status</h3>
         </div>
         <div class="card-body">
-        <input id="scriptMetaTitle" class="form-control" type="text" placeholder="Title" style="width:100%; margin-bottom:8px;">
+        <section
+          class="status-card-bridge-status"
+          data-braillebridge-status
+          data-expanded="true"
+          data-base-url="http://localhost:5000"
+          data-ws-url="ws://localhost:5000/ws"
+          data-launch-url="braillebridge://"
+          aria-label="BrailleBridge status"
+        ></section>
+        <div class="status-card-script-name" title="Script-id">
+          <i class="ti ti-file-code" aria-hidden="true"></i>
+          <span id="statusScriptName">Geen script geopend</span>
+        </div>
         <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptMetaInstruction" class="form-control meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
         <div class="instruction-tts-controls">
@@ -1156,29 +1170,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
 
   <category name="Lesson" colour="#14B8A6">
-    <block type="lesson_set_active_record_index">
-      <value name="INDEX">
-        <shadow type="math_number">
-          <field name="NUM">0</field>
-        </shadow>
-      </value>
-    </block>
-    <block type="lesson_get_data"></block>
-    <block type="lesson_get_record_count"></block>
-    <block type="lesson_get_active_record"></block>
-    <block type="lesson_get_active_record_index"></block>
-    <block type="lesson_get_active_word"></block>
-    <block type="lesson_get_active_field"></block>
-    <block type="lesson_get_active_sounds"></block>
-    <block type="lesson_get_active_sound_count"></block>
-    <block type="lesson_get_active_category"></block>
-    <block type="lesson_get_active_category_count"></block>
-    <block type="klanken_word_get_sounds"></block>
-    <block type="klanken_word_get_new_sounds"></block>
-    <block type="klanken_word_get_known_sounds"></block>
-    <block type="klanken_item_get_word"></block>
-    <block type="klanken_item_get_sounds"></block>
-    <block type="klanken_item_get_category"></block>
     <block type="lesson_complete_step"></block>
     <block type="lesson_complete_lesson"></block>
   </category>
@@ -1405,7 +1396,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260520-php-auth-session-1';
+    const assetVersion = '20260522-step-defaults-1';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {
@@ -1448,6 +1439,11 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       '../components/braille-monitor/braillemonitor.js',
       '/braillestudio/components/braille-monitor/braillemonitor.js',
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+    ], { required: false });
+    await loadScriptCandidates([
+      '../components/braillebridge-status/braillebridge-status.js',
+      '/braillestudio/components/braillebridge-status/braillebridge-status.js',
+      'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
     await loadScript('./app.js');
   })().catch((err) => {
