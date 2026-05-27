@@ -16,20 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 lessons_api_require_authentication();
 
-$saveDir = lessons_api_data_dir();
 $filterMethodId = trim((string)($_GET['methodId'] ?? ''));
 $filterBasisIndex = array_key_exists('basisIndex', $_GET) ? (int)$_GET['basisIndex'] : null;
-
-if (!is_dir($saveDir)) {
-    echo json_encode([
-        'ok' => true,
-        'items' => []
-    ]);
-    exit;
-}
-
-$files = glob($saveDir . '/*.json');
-$items = [];
 
 function normalize_list_step_inputs($inputs, $fallbackVariable = '')
 {
@@ -111,17 +99,10 @@ function normalize_list_step_inputs($inputs, $fallbackVariable = '')
             continue;
         }
         if (is_array($value)) {
-            $cleanList = [];
-            foreach ($value as $item) {
-                $item = trim((string)$item);
-                if ($item !== '') {
-                    $cleanList[] = $item;
-                }
-            }
-            $normalized[$safeKey] = $cleanList;
+            $normalized[$safeKey] = $value;
             continue;
         }
-        $normalized[$safeKey] = trim((string)$value);
+        $normalized[$safeKey] = is_string($value) ? trim($value) : $value;
     }
 
     if ($normalized === [] && $fallbackVariable !== '') {
@@ -135,54 +116,71 @@ function normalize_list_step_inputs($inputs, $fallbackVariable = '')
     return $normalized;
 }
 
-foreach ($files as $file) {
-    $content = json_decode(file_get_contents($file), true);
-
-    if (!is_array($content)) {
+$items = [];
+$seen = [];
+foreach (lessons_api_data_dirs() as $saveDir) {
+    if (!is_dir($saveDir)) {
         continue;
     }
+    $files = glob($saveDir . '/*.json');
+    if (!is_array($files)) {
+        continue;
+    }
+    foreach ($files as $file) {
+        $content = json_decode(file_get_contents($file), true);
 
-    $rawSteps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
-    $normalizedSteps = [];
-    foreach ($rawSteps as $row) {
-        if (!is_array($row)) {
+        if (!is_array($content)) {
             continue;
         }
-        $rowId = lessons_api_step_script_id($row);
-        if ($rowId === '') {
+
+        $id = (string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME));
+        if ($id === '' || isset($seen[$id])) {
             continue;
         }
-        $rowVariable = trim((string)($row['variable'] ?? ''));
-        $normalizedSteps[] = [
-            'id' => $rowId,
-            'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
-            'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
-            'stepLinkCode' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string)($row['stepLinkCode'] ?? $row['stepCode'] ?? ''))),
-            'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
+        $seen[$id] = true;
+
+        $rawSteps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
+        $normalizedSteps = [];
+        foreach ($rawSteps as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $rowId = lessons_api_step_script_id($row);
+            if ($rowId === '') {
+                continue;
+            }
+            $rowVariable = trim((string)($row['variable'] ?? ''));
+            $normalizedSteps[] = [
+                'id' => $rowId,
+                'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+                'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
+                'stepLinkCode' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string)($row['stepLinkCode'] ?? $row['stepCode'] ?? ''))),
+                'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
+            ];
+        }
+
+        $items[] = [
+            'id' => $id,
+            'title' => trim((string)($content['title'] ?? '')),
+            'description' => trim((string)($content['description'] ?? '')),
+            'methodId' => trim((string)($content['methodId'] ?? (($content['method']['id'] ?? '')))),
+            'method' => is_array($content['method'] ?? null) ? $content['method'] : [
+                'id' => trim((string)($content['methodId'] ?? '')),
+                'title' => '',
+                'description' => '',
+                'imageUrl' => '',
+                'basisFile' => '',
+                'dataSource' => '',
+            ],
+            'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
+            'basisWord' => trim((string)($content['basisWord'] ?? '')),
+            'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
+            'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
+            'updatedAt' => $content['updatedAt'] ?? '',
+            'steps' => $normalizedSteps,
+            'filename' => basename($file),
         ];
     }
-
-    $items[] = [
-        'id' => $content['id'] ?? pathinfo($file, PATHINFO_FILENAME),
-        'title' => trim((string)($content['title'] ?? '')),
-        'description' => trim((string)($content['description'] ?? '')),
-        'methodId' => trim((string)($content['methodId'] ?? (($content['method']['id'] ?? '')))),
-        'method' => is_array($content['method'] ?? null) ? $content['method'] : [
-            'id' => trim((string)($content['methodId'] ?? '')),
-            'title' => '',
-            'description' => '',
-            'imageUrl' => '',
-            'basisFile' => '',
-            'dataSource' => '',
-        ],
-        'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
-        'basisWord' => trim((string)($content['basisWord'] ?? '')),
-        'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
-        'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
-        'updatedAt' => $content['updatedAt'] ?? '',
-        'steps' => $normalizedSteps,
-        'filename' => basename($file),
-    ];
 }
 
 if ($filterMethodId !== '') {

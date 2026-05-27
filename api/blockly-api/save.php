@@ -19,12 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 blockly_api_require_authentication();
 
-$saveDir = blockly_api_data_dir();
-
-if (!is_dir($saveDir)) {
-    mkdir($saveDir, 0775, true);
-}
-
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
 
@@ -62,9 +56,20 @@ if ($safeId === '') {
 }
 
 $filename = $safeId . '.json';
+$existingPath = blockly_api_find_script_path($safeId);
+$saveDir = $existingPath !== null && is_writable(dirname($existingPath))
+    ? dirname($existingPath)
+    : blockly_api_writable_data_dir();
+
+if ($saveDir === null) {
+    blockly_api_json_error('No writable Blockly data directory found.', 500, [
+        'checked' => blockly_api_data_dirs(),
+    ]);
+}
+
 $filePath = $saveDir . '/' . $filename;
 
-if (file_exists($filePath) && !$overwrite) {
+if (($existingPath !== null || file_exists($filePath)) && !$overwrite) {
     http_response_code(409);
     echo json_encode([
         'ok' => false,
@@ -90,21 +95,28 @@ $payload = [
     'meta' => $normalizedMeta,
 ];
 
+$encodedPayload = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+if (!is_string($encodedPayload)) {
+    blockly_api_json_error('Failed to encode Blockly script JSON: ' . json_last_error_msg());
+}
+
 $written = file_put_contents(
     $filePath,
-    json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    $encodedPayload,
     LOCK_EX
 );
 
 if ($written === false) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Failed to save file']);
-    exit;
+    blockly_api_json_error('Failed to save file. Check directory permissions.', 500, [
+        'path' => $filePath,
+        'directory' => $saveDir,
+        'writable' => is_writable($saveDir),
+    ]);
 }
 
 echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => 'blockly-data/' . $filename,
+    'path' => basename($saveDir) . '/' . $filename,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

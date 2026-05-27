@@ -27,7 +27,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <title>Lesson Builder - Methode</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260526-api-routes-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -209,9 +209,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     let basisFileOptions = [];
     let basisItems = [];
     let isDebugLogVisible = false;
-    const METHODS_SAVE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/save_method.php';
-    const METHODS_LIST_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/list_methods.php';
-    const METHODS_DELETE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/methods-api/delete_method.php';
+    const METHODS_SAVE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/api/methods-api/save_method.php';
+    const METHODS_LIST_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/api/methods-api/list_methods.php';
+    const METHODS_DELETE_ENDPOINT = 'https://www.tastenbraille.com/braillestudio/api/methods-api/delete_method.php';
     const METHODS_STORAGE_DIR = '/braillestudio/api/methods-data/';
 
     function setStatus(message, data = null) {
@@ -411,7 +411,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     async function loadMethodIntoForm(id) {
       appendStatus('Methode laden gestart.', {
         methodId: id,
-        endpoint: `https://www.tastenbraille.com/braillestudio/methods-api/load_method.php?id=${encodeURIComponent(id)}`
+        endpoint: `https://www.tastenbraille.com/braillestudio/api/methods-api/load_method.php?id=${encodeURIComponent(id)}`
       });
       const item = await shared.loadMethod(id);
       if (!item) throw new Error('Method not found');

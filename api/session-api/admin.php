@@ -179,6 +179,20 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                   <label class="form-label" for="soundsInput">Sounds</label>
                   <textarea id="soundsInput" class="form-control" rows="3" placeholder="b, a, l"></textarea>
                 </div>
+                <div class="col-12">
+                  <div class="border-top pt-3 mt-1">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                      <div>
+                        <div class="form-label mb-0">External variables</div>
+                        <div class="form-hint">Waarden die dit Blockly-script buiten het script beschikbaar maakt of overschrijft.</div>
+                      </div>
+                      <span id="externalVariablesStatus" class="badge bg-secondary-lt">No script selected</span>
+                    </div>
+                    <div id="externalVariablesEditor" class="row g-3">
+                      <div class="col-12 text-secondary">Kies eerst een Blockly-script.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="mt-3">
                 <label class="form-check form-check-inline">
@@ -242,13 +256,15 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
-    const ADMIN_VERSION = '2026-04-16 09:10';
-    const SCRIPT_LIST_URL = <?= $jsValue($urlFor($appBase, 'blockly-api/list.php')) ?>;
+    const ADMIN_VERSION = '2026-05-26 external-vars-1';
+    const SCRIPT_LIST_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/list.php')) ?>;
+    const SCRIPT_LOAD_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/load.php')) ?>;
     const CREATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'create-link.php')) ?>;
     const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
     const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
+    const scriptDataCache = new Map();
     let linksCache = [];
     let editingOriginalCode = '';
 
@@ -453,6 +469,266 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return list.map((item) => `<span class="badge bg-secondary-lt me-1 mb-1">${escapeHtml(item)}</span>`).join('');
     }
 
+    function collectExternalVariableNamesFromBlocks(blocklyState = {}) {
+      const names = new Set();
+      const visitBlock = (block) => {
+        if (!block || typeof block !== 'object') return;
+        if (
+          ['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'].includes(String(block.type || ''))
+        ) {
+          const name = String(block.fields?.VAR || '').trim();
+          if (name) names.add(name);
+        }
+        Object.values(block.inputs || {}).forEach((input) => {
+          visitBlock(input?.block);
+          visitBlock(input?.shadow);
+        });
+        visitBlock(block.next?.block);
+      };
+      const rootBlocks = Array.isArray(blocklyState?.blocks?.blocks)
+        ? blocklyState.blocks.blocks
+        : (Array.isArray(blocklyState?.blocks) ? blocklyState.blocks : []);
+      rootBlocks.forEach(visitBlock);
+      return Array.from(names);
+    }
+
+    function getExternalVariablesFromScriptData(data = null) {
+      const blocklyState = data?.blockly && typeof data.blockly === 'object' ? data.blockly : {};
+      const variables = [
+        data?.scriptVariables,
+        data?.variablesMetadata,
+        data?.meta?.scriptVariables,
+        data?.meta?.variables,
+        blocklyState.scriptVariables,
+        blocklyState.variablesMetadata
+      ].find((items) => Array.isArray(items)) || [];
+      const normalized = variables
+        .map((item) => {
+          const name = String(item?.name || '').trim();
+          if (!name || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          return {
+            name,
+            type: String(item?.type || 'string').trim() || 'string',
+            defaultValue: item?.defaultValue ?? '',
+            description: String(item?.description || '').trim()
+          };
+        })
+        .filter(Boolean);
+      const seen = new Set(normalized.map((variable) => variable.name));
+      collectExternalVariableNamesFromBlocks(blocklyState).forEach((name) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        normalized.push({
+          name,
+          type: 'string',
+          defaultValue: '',
+          description: 'External variable detected from Blockly blocks. Save the script again to add full metadata.'
+        });
+      });
+      return normalized;
+    }
+
+    function formatExternalVariableDefault(value) {
+      if (value == null) return '';
+      if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
+        return JSON.stringify(value, null, 2);
+      }
+      return String(value);
+    }
+
+    function parseExternalVariableDefault(variable) {
+      const type = String(variable?.type || 'string').trim();
+      const value = variable?.defaultValue;
+      if (type === 'boolean') {
+        return value === true || value === 'true' || value === 1 || value === '1';
+      }
+      if (type === 'number') {
+        const numberValue = Number(value);
+        return Number.isFinite(numberValue) ? numberValue : 0;
+      }
+      if (type === 'array') {
+        if (Array.isArray(value)) return value;
+        try {
+          const parsed = JSON.parse(String(value || '[]'));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+        }
+      }
+      if (type === 'object') {
+        if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+        try {
+          const parsed = JSON.parse(String(value || '{}'));
+          return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+      return String(value ?? '');
+    }
+
+    function coerceExternalVariableInput(value, type = 'string') {
+      const normalizedType = String(type || 'string').trim();
+      if (normalizedType === 'boolean') {
+        return value === true || value === 'true' || value === 1 || value === '1';
+      }
+      if (normalizedType === 'number') {
+        const numberValue = Number(value);
+        return Number.isFinite(numberValue) ? numberValue : 0;
+      }
+      if (normalizedType === 'array') {
+        try {
+          const parsed = JSON.parse(String(value || '[]'));
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+        }
+      }
+      if (normalizedType === 'object') {
+        try {
+          const parsed = JSON.parse(String(value || '{}'));
+          return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch {
+          return {};
+        }
+      }
+      return String(value ?? '');
+    }
+
+    async function loadScriptData(scriptId) {
+      const id = String(scriptId || '').trim();
+      if (!id) return null;
+      if (scriptDataCache.has(id)) {
+        return scriptDataCache.get(id);
+      }
+      const url = new URL(SCRIPT_LOAD_URL, window.location.origin);
+      url.searchParams.set('id', id);
+      const res = await fetch(url.toString(), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.ok === false) {
+        throw new Error(data?.error || `Could not load script ${id} (HTTP ${res.status})`);
+      }
+      scriptDataCache.set(id, data);
+      return data;
+    }
+
+    function renderExternalVariablesEditor(variables = [], values = {}) {
+      const editor = $('externalVariablesEditor');
+      const status = $('externalVariablesStatus');
+      if (!editor) return;
+      const safeValues = values && typeof values === 'object' ? values : {};
+      editor.innerHTML = '';
+      if (status) {
+        status.className = variables.length ? 'badge bg-blue-lt' : 'badge bg-secondary-lt';
+        status.textContent = variables.length ? `${variables.length} external variable(s)` : 'No external variables';
+      }
+      if (!variables.length) {
+        editor.innerHTML = '<div class="col-12 text-secondary">Dit Blockly-script heeft geen external variables.</div>';
+        return;
+      }
+      variables.forEach((variable) => {
+        const col = document.createElement('div');
+        col.className = 'col-12 col-lg-6';
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.textContent = `${variable.name} (${variable.type})`;
+        col.appendChild(label);
+
+        const hasValue = Object.prototype.hasOwnProperty.call(safeValues, variable.name);
+        const value = hasValue ? safeValues[variable.name] : parseExternalVariableDefault(variable);
+        let control;
+        if (variable.type === 'boolean') {
+          const checkLabel = document.createElement('label');
+          checkLabel.className = 'form-check';
+          control = document.createElement('input');
+          control.type = 'checkbox';
+          control.className = 'form-check-input';
+          control.checked = Boolean(value);
+          const checkText = document.createElement('span');
+          checkText.className = 'form-check-label';
+          checkText.textContent = variable.description || variable.name;
+          checkLabel.appendChild(control);
+          checkLabel.appendChild(checkText);
+          col.appendChild(checkLabel);
+        } else if (variable.type === 'number') {
+          control = document.createElement('input');
+          control.type = 'number';
+          control.className = 'form-control';
+          control.value = formatExternalVariableDefault(value);
+          col.appendChild(control);
+        } else {
+          control = document.createElement('textarea');
+          control.rows = variable.type === 'array' || variable.type === 'object' ? 3 : 2;
+          control.className = 'form-control';
+          control.value = formatExternalVariableDefault(value);
+          col.appendChild(control);
+        }
+        control.dataset.externalVariableName = variable.name;
+        control.dataset.externalVariableType = variable.type;
+        control.title = variable.description || variable.name;
+        control.addEventListener('input', renderPreview);
+        control.addEventListener('change', renderPreview);
+
+        if (variable.description && variable.type !== 'boolean') {
+          const description = document.createElement('div');
+          description.className = 'form-hint';
+          description.textContent = variable.description;
+          col.appendChild(description);
+        }
+        editor.appendChild(col);
+      });
+    }
+
+    async function renderExternalVariablesForScript(scriptId, values = {}) {
+      const id = String(scriptId || '').trim();
+      const editor = $('externalVariablesEditor');
+      const status = $('externalVariablesStatus');
+      if (!id) {
+        if (status) {
+          status.className = 'badge bg-secondary-lt';
+          status.textContent = 'No script selected';
+        }
+        if (editor) editor.innerHTML = '<div class="col-12 text-secondary">Kies eerst een Blockly-script.</div>';
+        return [];
+      }
+      if (status) {
+        status.className = 'badge bg-secondary-lt';
+        status.textContent = 'Loading...';
+      }
+      if (editor) editor.innerHTML = '<div class="col-12 text-secondary">External variables laden...</div>';
+      const scriptData = await loadScriptData(id);
+      const variables = getExternalVariablesFromScriptData(scriptData);
+      renderExternalVariablesEditor(variables, values);
+      return variables;
+    }
+
+    function readExternalVariableInputs() {
+      const values = {};
+      document.querySelectorAll('[data-external-variable-name]').forEach((control) => {
+        const name = String(control.getAttribute('data-external-variable-name') || '').trim();
+        const type = String(control.getAttribute('data-external-variable-type') || 'string').trim();
+        if (!name) return;
+        values[name] = control.type === 'checkbox'
+          ? Boolean(control.checked)
+          : coerceExternalVariableInput(control.value, type);
+      });
+      return values;
+    }
+
+    function renderExternalInputChips(stepInputs = {}) {
+      const normalKeys = new Set(['text', 'word', 'letters', 'repeat', 'sounds']);
+      const entries = Object.entries(stepInputs || {})
+        .filter(([key]) => !normalKeys.has(key))
+        .map(([key, value]) => {
+          const display = value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+          return `<span class="badge bg-blue-lt me-1 mb-1">${escapeHtml(key)}: ${escapeHtml(display || '(empty)')}</span>`;
+        });
+      return entries.length ? entries.join('') : '<span class="text-secondary">-</span>';
+    }
+
     function renderPayloadKeyValue(rows) {
       return `
         <div class="list-group list-group-flush">
@@ -504,7 +780,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           word: String($('wordInput').value || '').trim(),
           letters: parseCommaList($('lettersInput').value),
           repeat: Math.max(1, Math.floor(Number($('repeatInput').value || 1) || 1)),
-          sounds: parseCommaList($('soundsInput').value)
+          sounds: parseCommaList($('soundsInput').value),
+          ...readExternalVariableInputs()
         }
       };
 
@@ -517,7 +794,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return payload;
     }
 
-    function beginEditLink(item) {
+    async function beginEditLink(item) {
       if (!item || typeof item !== 'object') {
         return;
       }
@@ -538,6 +815,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       $('repeatInput').value = String(item?.stepInputs?.repeat ?? 1);
       $('activeInput').checked = Boolean(item.active);
       $('overwriteInput').checked = false;
+      try {
+        await renderExternalVariablesForScript(item.scriptId || '', item?.stepInputs || {});
+      } catch (err) {
+        $('externalVariablesStatus').className = 'badge bg-danger-lt';
+        $('externalVariablesStatus').textContent = 'Load failed';
+        $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
+      }
       renderEditingState();
       renderPreview();
       $('createStatus').innerHTML = statusText(`Editing step link ${editingOriginalCode}`, 'success');
@@ -586,7 +870,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                 ['Word', escapeHtml(payload.stepInputs?.word || '-')],
                 ['Letters', formatListChips(payload.stepInputs?.letters)],
                 ['Repeat', escapeHtml(payload.stepInputs?.repeat ?? 1)],
-                ['Sounds', formatListChips(payload.stepInputs?.sounds)]
+                ['Sounds', formatListChips(payload.stepInputs?.sounds)],
+                ['External variables', renderExternalInputChips(payload.stepInputs)]
               ])}
             </div>
           </div>
@@ -612,7 +897,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       });
     }
 
-    function applySelectedScriptToForm({ overwrite = false } = {}) {
+    async function applySelectedScriptToForm({ overwrite = false } = {}) {
       const select = $('scriptSelect');
       const option = select.options[select.selectedIndex];
       const scriptId = String(option?.dataset?.scriptId || '').trim();
@@ -636,6 +921,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       }
       if (overwrite || !$('instructionInput').value.trim()) {
         $('instructionInput').value = scriptInstruction || scriptDescription;
+      }
+      try {
+        await renderExternalVariablesForScript(scriptId);
+      } catch (err) {
+        $('externalVariablesStatus').className = 'badge bg-danger-lt';
+        $('externalVariablesStatus').textContent = 'Load failed';
+        $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
       }
       renderPreview();
       logLine('Applied selected script to form.', {
@@ -679,8 +971,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       logLine(`Loaded ${scriptsCache.length} script(s).`);
     }
 
-    function fillFromSelectedScript() {
-      const applied = applySelectedScriptToForm({ overwrite: true });
+    async function fillFromSelectedScript() {
+      const applied = await applySelectedScriptToForm({ overwrite: true });
       if (!applied) {
         throw new Error('Choose a script first');
       }
@@ -774,7 +1066,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                 <th>Word</th>
                 <th>Repeat</th>
                 <th>Letters</th>
-                <th>Sounds</th>
+                <th>Sounds / External</th>
                 <th>Status</th>
                 <th>Updated</th>
                 <th>Action</th>
@@ -793,7 +1085,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                   <td>${escapeHtml(item?.stepInputs?.word || '-')}</td>
                   <td>${escapeHtml(item?.stepInputs?.repeat ?? '-')}</td>
                   <td>${formatListChips(item?.stepInputs?.letters)}</td>
-                  <td>${formatListChips(item?.stepInputs?.sounds)}</td>
+                  <td>
+                    ${formatListChips(item?.stepInputs?.sounds)}
+                    <div class="mt-1">${renderExternalInputChips(item?.stepInputs || {})}</div>
+                  </td>
                   <td><span class="badge ${item.active ? 'bg-success-lt' : 'bg-secondary-lt'}">${item.active ? 'active' : 'inactive'}</span></td>
                   <td>${escapeHtml(item.updatedAt || '-')}</td>
                   <td><button type="button" class="btn btn-outline-secondary btn-sm js-edit-link">Edit</button></td>
@@ -811,7 +1106,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           if (!Number.isInteger(index) || index < 0 || !linksCache[index]) {
             return;
           }
-          beginEditLink(linksCache[index]);
+          beginEditLink(linksCache[index]).catch((err) => {
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          });
         });
       });
     }
@@ -835,6 +1132,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       $('repeatInput').value = '1';
       $('activeInput').checked = true;
       $('overwriteInput').checked = false;
+      renderExternalVariablesForScript('').catch(() => {});
       renderEditingState();
       renderPreview();
     }
@@ -885,19 +1183,30 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         }
       });
 
-      $('fillSelectedBtn').addEventListener('click', () => {
+      $('fillSelectedBtn').addEventListener('click', async () => {
         try {
-          fillFromSelectedScript();
+          await fillFromSelectedScript();
         } catch (err) {
           $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
 
-      $('scriptSelect').addEventListener('change', () => {
+      $('scriptSelect').addEventListener('change', async () => {
         try {
-          applySelectedScriptToForm();
+          await applySelectedScriptToForm();
         } catch (err) {
           $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
+        }
+      });
+
+      $('scriptIdInput').addEventListener('change', async () => {
+        try {
+          await renderExternalVariablesForScript($('scriptIdInput').value || '');
+          renderPreview();
+        } catch (err) {
+          $('externalVariablesStatus').className = 'badge bg-danger-lt';
+          $('externalVariablesStatus').textContent = 'Load failed';
+          $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
         }
       });
 

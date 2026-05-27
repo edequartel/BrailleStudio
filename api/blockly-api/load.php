@@ -16,8 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 blockly_api_require_authentication();
 
-$saveDir = blockly_api_data_dir();
-
 $id = isset($_GET['id']) ? trim((string)$_GET['id']) : '';
 
 if ($id === '') {
@@ -35,9 +33,9 @@ if ($safeId === '') {
     exit;
 }
 
-$filePath = $saveDir . '/' . $safeId . '.json';
+$filePath = blockly_api_find_script_path($safeId);
 
-if (!file_exists($filePath)) {
+if ($filePath === null) {
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Script not found']);
     exit;

@@ -16,42 +16,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 blockly_api_require_authentication();
 
-$saveDir = blockly_api_data_dir();
-
-if (!is_dir($saveDir)) {
-    echo json_encode([
-        'ok' => true,
-        'items' => []
-    ]);
-    exit;
-}
-
-$files = glob($saveDir . '/*.json');
 $items = [];
+$seen = [];
 
-foreach ($files as $file) {
-    $content = json_decode(file_get_contents($file), true);
-
-    if (!is_array($content)) {
+foreach (blockly_api_data_dirs() as $saveDir) {
+    if (!is_dir($saveDir)) {
         continue;
     }
 
-    $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
-    $normalizedMeta = [
-        'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
-        'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
-        'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
-        'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
-        'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
-    ];
+    $files = glob($saveDir . '/*.json');
+    if (!is_array($files)) {
+        continue;
+    }
 
-    $items[] = [
-        'id' => $content['id'] ?? pathinfo($file, PATHINFO_FILENAME),
-        'title' => $content['title'] ?? '',
-        'updatedAt' => $content['updatedAt'] ?? '',
-        'meta' => $normalizedMeta,
-        'filename' => basename($file),
-    ];
+    foreach ($files as $file) {
+        $content = json_decode(file_get_contents($file), true);
+
+        if (!is_array($content)) {
+            continue;
+        }
+
+        $id = (string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME));
+        if ($id === '' || isset($seen[$id])) {
+            continue;
+        }
+        $seen[$id] = true;
+
+        $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
+        $normalizedMeta = [
+            'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+            'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+            'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
+            'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
+            'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+        ];
+
+        $items[] = [
+            'id' => $id,
+            'title' => $content['title'] ?? '',
+            'updatedAt' => $content['updatedAt'] ?? '',
+            'meta' => $normalizedMeta,
+            'filename' => basename($file),
+        ];
+    }
 }
 
 usort($items, function ($a, $b) {

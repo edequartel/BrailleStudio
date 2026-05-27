@@ -25,7 +25,7 @@ $modules = [
         'theme' => 'primary',
         'links' => [
             ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
-            ['label' => 'Braille sessie', 'href' => $baseUrl . 'session-api/laptop.php', 'icon' => 'ti-device-laptop'],
+            ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.php', 'icon' => 'ti-device-laptop'],
         ],
     ],
     [
@@ -36,8 +36,8 @@ $modules = [
         'theme' => 'green',
         'links' => [
             ['label' => 'Blockly editor', 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
-            ['label' => 'Lesson Builder', 'href' => $baseUrl . 'lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
-            ['label' => 'Session Builder', 'href' => $baseUrl . 'session-api/admin.php', 'icon' => 'ti-users-group'],
+            ['label' => 'Lesson Builder', 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
+            ['label' => 'Session Builder', 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
         ],
     ],
     [

@@ -19,8 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 lessons_api_require_authentication();
 
-$saveDir = lessons_api_data_dir();
-
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
 
@@ -47,9 +45,9 @@ if ($safeId === '') {
     exit;
 }
 
-$filePath = $saveDir . '/' . $safeId . '.json';
+$filePath = lessons_api_find_lesson_path($safeId);
 
-if (!file_exists($filePath)) {
+if ($filePath === null) {
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Lesson not found']);
     exit;

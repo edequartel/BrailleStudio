@@ -75,7 +75,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
-  <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260522-17">
+  <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
 
   <style>
@@ -134,8 +134,32 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       flex-wrap: nowrap;
     }
 
-    .topbar-row--sim {
+    .topbar-row--sim,
+    .topbar-row--thumbs {
       padding-left: 0;
+    }
+
+    .topbar-row--thumbs {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      justify-content: stretch;
+    }
+
+    .thumb-controls {
+      display: inline-flex;
+      grid-column: 2;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .thumb-controls-status {
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    .topbar-row--thumbs.is-hidden {
+      display: none;
     }
 
     .topbar-row--monitor {
@@ -205,7 +229,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     }
 
     .braille-monitor-host {
-      width: 100%;
+      flex: 1 1 420px;
+      min-width: 280px;
+      width: auto;
       border-radius: 5px;
       overflow: hidden;
     }
@@ -235,21 +261,53 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       box-sizing: border-box;
     }
 
-    .status-card-bridge-status {
-      margin-bottom: 12px;
+    .topbar-bridge-status {
+      flex: 0 0 auto;
+      min-width: 0;
+      max-width: 420px;
     }
 
-    .status-card-bridge-status [data-role="test"] {
+    .topbar-bridge-status .braillebridge-status__toggle {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+
+    .topbar-bridge-status .braillebridge-status__toggle-dot {
+      margin-top: -1.1rem;
+      margin-left: 1.1rem;
+    }
+
+    .topbar-bridge-status [data-role="test"] {
       display: none;
     }
 
-    .status-card-bridge-status .braillebridge-status__body {
+    .topbar-bridge-status .braillebridge-status__body {
       align-items: flex-start;
       flex-direction: column;
     }
 
-    .status-card-bridge-status .braillebridge-status__meta {
+    .topbar-bridge-status .braillebridge-status__meta {
       justify-content: flex-start;
+    }
+
+    @media (max-width: 760px) {
+      .topbar-row--thumbs {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .thumb-controls {
+        grid-column: 1;
+        justify-self: center;
+      }
+
+      .thumb-controls-status {
+        grid-column: 2;
+      }
+
+      .topbar-bridge-status {
+        flex: 0 0 auto;
+        max-width: none;
+      }
     }
 
     .status-card-script-name {
@@ -648,6 +706,130 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       resize: vertical;
     }
 
+    .variable-panel {
+      display: grid;
+      gap: 10px;
+      padding: 10px 0 12px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+
+    .variable-panel__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .variable-panel__title {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .variable-panel__title h3 {
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .variable-panel__actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .variable-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .variable-item {
+      display: grid;
+      gap: 4px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-left-width: 4px;
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface);
+    }
+
+    .variable-item--external {
+      border-left-color: #2563EB;
+    }
+
+    .variable-item--internal {
+      border-left-color: #7C3AED;
+    }
+
+    .variable-item__top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .variable-item__name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .variable-item__meta,
+    .variable-item__description {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .variable-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 18px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .variable-badge--external {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .variable-badge--internal {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .variable-context-menu {
+      position: fixed;
+      z-index: 1080;
+      min-width: 190px;
+      display: none;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: var(--tblr-border-radius);
+      background: var(--panel);
+      box-shadow: var(--tblr-box-shadow-lg);
+    }
+
+    .variable-context-menu.is-open {
+      display: grid;
+    }
+
+    .variable-context-menu button {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
     .row {
       display: flex;
       gap: 8px;
@@ -808,18 +990,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <button id="stopBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Stop" title="Stop">
         <i class="ti ti-player-stop" aria-hidden="true"></i>
       </button>
-      <button id="simThumbLeftBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left thumb" title="Left thumb">
-        <i class="ti ti-chevrons-left" aria-hidden="true"></i>
-      </button>
-      <button id="simCursor5Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left middle thumb" title="Left middle thumb">
-        <i class="ti ti-chevron-left" aria-hidden="true"></i>
-      </button>
-      <button id="simChord1Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right middle thumb" title="Right middle thumb">
-        <i class="ti ti-chevron-right" aria-hidden="true"></i>
-      </button>
-      <button id="simThumbRightBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right thumb" title="Right thumb">
-        <i class="ti ti-chevrons-right" aria-hidden="true"></i>
-      </button>
       <div class="spacer"></div>
       <button id="gridSnapBtn" class="btn btn-outline-secondary btn-icon btn-lg active" type="button" aria-pressed="true" aria-label="Disable grid snap" title="Disable grid snap">
         <i class="ti ti-grid-dots" aria-hidden="true"></i>
@@ -838,6 +1008,33 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 
     <div id="scriptBrailleMonitorRow" class="topbar-row topbar-row--monitor">
       <div id="scriptBrailleMonitorComponent" class="braille-monitor-host"></div>
+    </div>
+
+    <div id="thumbControlsRow" class="topbar-row topbar-row--thumbs">
+      <div class="thumb-controls">
+        <button id="simThumbLeftBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left thumb" title="Left thumb">
+          <i class="ti ti-chevrons-left" aria-hidden="true"></i>
+        </button>
+        <button id="simCursor5Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left middle thumb" title="Left middle thumb">
+          <i class="ti ti-chevron-left" aria-hidden="true"></i>
+        </button>
+        <button id="simChord1Btn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right middle thumb" title="Right middle thumb">
+          <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </button>
+        <button id="simThumbRightBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Right thumb" title="Right thumb">
+          <i class="ti ti-chevrons-right" aria-hidden="true"></i>
+        </button>
+      </div>
+      <section
+        class="topbar-bridge-status thumb-controls-status"
+        data-braillebridge-status
+        data-expanded="false"
+        data-popup="true"
+        data-base-url="http://localhost:5000"
+        data-ws-url="ws://localhost:5000/ws"
+        data-launch-url="braillebridge://"
+        aria-label="BrailleBridge status"
+      ></section>
     </div>
 
     <div class="topbar-row topbar-row--scripts">
@@ -902,15 +1099,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <h3 class="card-title">Status</h3>
         </div>
         <div class="card-body">
-        <section
-          class="status-card-bridge-status"
-          data-braillebridge-status
-          data-expanded="true"
-          data-base-url="http://localhost:5000"
-          data-ws-url="ws://localhost:5000/ws"
-          data-launch-url="braillebridge://"
-          aria-label="BrailleBridge status"
-        ></section>
         <div class="status-card-script-name" title="Script-id">
           <i class="ti ti-file-code" aria-hidden="true"></i>
           <span id="statusScriptName">Geen script geopend</span>
@@ -925,6 +1113,21 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
+        <div class="variable-panel" aria-label="Script variables">
+          <div class="variable-panel__header">
+            <div class="variable-panel__title">
+              <h3>Variables</h3>
+              <div id="scriptVariableSummary" class="small">No script variables defined.</div>
+            </div>
+            <div class="variable-panel__actions">
+              <button id="addExternalVariableBtn" class="btn btn-outline-primary btn-sm" type="button">
+                <i class="ti ti-login-2 me-1" aria-hidden="true"></i>
+                Add external
+              </button>
+            </div>
+          </div>
+          <div id="variableList" class="variable-list"></div>
+        </div>
         <div id="statusBox" class="mono"></div>
         </div>
       </div>
@@ -945,6 +1148,40 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 
     </div>
   </div>
+</div>
+
+<div id="variableModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="variableModalTitle">
+    <h3 id="variableModalTitle">Variable</h3>
+    <input id="variableEditId" type="hidden">
+    <input id="variableScopeExternal" type="hidden" value="external">
+    <input id="variableNameInput" class="form-control" type="text" placeholder="Name" style="margin-bottom:8px;">
+    <select id="variableTypeInput" class="form-select" style="margin-bottom:8px;">
+      <option value="string">string</option>
+      <option value="number">number</option>
+      <option value="boolean">boolean</option>
+      <option value="array">array</option>
+      <option value="object">object</option>
+    </select>
+    <textarea id="variableDefaultInput" class="form-control meta-textarea--compact" placeholder="Default value" style="margin-bottom:8px;"></textarea>
+    <textarea id="variableDescriptionInput" class="form-control meta-textarea--compact" placeholder="Description / comment" style="margin-bottom:8px;"></textarea>
+    <div class="modal-actions">
+      <button id="variableModalDelete" class="btn btn-outline-danger me-auto" type="button">Delete</button>
+      <button id="variableModalCancel" class="btn btn-outline-secondary" type="button">Cancel</button>
+      <button id="variableModalSave" class="btn btn-primary" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="variableContextMenu" class="variable-context-menu" role="menu" aria-hidden="true">
+  <button id="variableContextEdit" class="btn btn-ghost-secondary btn-sm" type="button" role="menuitem">
+    <i class="ti ti-pencil me-2" aria-hidden="true"></i>
+    Edit variable
+  </button>
+  <button id="variableContextDelete" class="btn btn-ghost-danger btn-sm" type="button" role="menuitem">
+    <i class="ti ti-trash me-2" aria-hidden="true"></i>
+    Delete variable
+  </button>
 </div>
 
 <div id="confirmModal" class="modal-backdrop" aria-hidden="true">
@@ -1172,18 +1409,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <category name="Lesson" colour="#14B8A6">
     <block type="lesson_complete_step"></block>
     <block type="lesson_complete_lesson"></block>
-  </category>
-
-  <category name="Steps" colour="#0F766E">
-    <block type="lesson_get_step_input">
-      <field name="FIELD">text</field>
-    </block>
-    <block type="lesson_get_step_input">
-      <field name="FIELD">word</field>
-    </block>
-    <block type="lesson_get_step_input">
-      <field name="FIELD">letters</field>
-    </block>
     <block type="lesson_get_step_repeat"></block>
   </category>
 
@@ -1336,6 +1561,18 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
 
   <category name="Variables" custom="VARIABLE" colour="#EA580C"></category>
+  <category name="External Variables" colour="#2563EB">
+    <button text="Add external variable" callbackKey="ADD_EXTERNAL_VARIABLE"></button>
+    <label text="External variables are runtime input/context."></label>
+    <block type="external_variable_get"></block>
+    <block type="external_variable_set">
+      <value name="VALUE">
+        <shadow type="text">
+          <field name="TEXT"></field>
+        </shadow>
+      </value>
+    </block>
+  </category>
 </xml>
 
 <script src="./runtime.js?v=20260416-session-player-3"></script>
@@ -1396,7 +1633,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260522-step-defaults-1';
+    const assetVersion = '20260526-audio-debug-1';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {

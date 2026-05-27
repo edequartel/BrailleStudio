@@ -19,12 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 lessons_api_require_authentication();
 
-$saveDir = lessons_api_data_dir();
-
-if (!is_dir($saveDir)) {
-    mkdir($saveDir, 0775, true);
-}
-
 $raw = file_get_contents('php://input');
 $data = json_decode($raw, true);
 
@@ -143,20 +137,11 @@ function normalize_lesson_step_inputs($inputs, $fallbackVariable = '')
         }
 
         if (is_array($value)) {
-            $cleanList = [];
-            foreach ($value as $item) {
-                if (is_scalar($item) || $item === null) {
-                    $cleanItem = trim((string)$item);
-                    if ($cleanItem !== '') {
-                        $cleanList[] = $cleanItem;
-                    }
-                }
-            }
-            $normalized[$safeKey] = $cleanList;
+            $normalized[$safeKey] = $value;
             continue;
         }
 
-        $normalized[$safeKey] = trim((string)$value);
+        $normalized[$safeKey] = is_string($value) ? trim($value) : $value;
     }
 
     if ($normalized === [] && $fallbackVariable !== '') {
@@ -216,9 +201,18 @@ if ($safeId === '') {
 }
 
 $filename = $safeId . '.json';
+$existingPath = lessons_api_find_lesson_path($safeId);
+$saveDir = $existingPath !== null && is_writable(dirname($existingPath))
+    ? dirname($existingPath)
+    : lessons_api_writable_data_dir();
+if ($saveDir === null) {
+    lessons_api_json_error('No writable lessons data directory found.', 500, [
+        'checked' => lessons_api_data_dirs(),
+    ]);
+}
 $filePath = $saveDir . '/' . $filename;
 
-if (file_exists($filePath) && !$overwrite) {
+if (($existingPath !== null || file_exists($filePath)) && !$overwrite) {
     http_response_code(409);
     echo json_encode([
         'ok' => false,

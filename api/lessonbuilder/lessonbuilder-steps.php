@@ -12,7 +12,7 @@ $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/(?:api/)?lessonbuilder$~', '', $scriptDir) ?? '';
 $appBase = rtrim($appBase, '/');
 $lessonBuilderBase = $scriptDir;
-$sessionApiBase = $appBase . '/session-api';
+$sessionApiBase = $appBase . '/api/session-api';
 
 $urlFor = static function (string $base, string $path): string {
     return ($base === '' ? '' : $base) . '/' . ltrim($path, '/');
@@ -30,7 +30,108 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260526-api-routes-1')) ?>"></script>
+  <style>
+    .steps-list {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .step-card {
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface);
+    }
+
+    .step-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .875rem 1rem;
+    }
+
+    .step-card__title {
+      min-width: 0;
+    }
+
+    .step-card__actions {
+      display: flex;
+      align-items: center;
+      gap: .375rem;
+      flex: 0 0 auto;
+    }
+
+    .step-card__body {
+      border-top: var(--tblr-border-width) solid var(--tblr-border-color);
+      padding: 1rem;
+    }
+
+    .step-card__body[hidden] {
+      display: none;
+    }
+
+    .lessonbuilder-header-status {
+      flex: 0 0 auto;
+    }
+
+    .lessonbuilder-header-status.is-collapsed {
+      min-width: 0;
+      flex-basis: auto;
+    }
+
+    .lessonbuilder-header-status .braillebridge-status__body {
+      padding: .625rem .75rem;
+    }
+
+    .lessonbuilder-header-status .braillebridge-status__icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.15rem;
+    }
+
+    .thumb-controls {
+      justify-content: center;
+    }
+
+    .thumb-controls .btn {
+      min-width: 3rem;
+      font-weight: 600;
+    }
+
+    .step-settings {
+      display: grid;
+      gap: .375rem;
+      max-width: 42rem;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      padding: .625rem;
+    }
+
+    .step-variable-row {
+      display: grid;
+      grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+      align-items: start;
+      gap: .625rem;
+    }
+
+    .step-variable-row .form-label {
+      margin-bottom: 0;
+      padding-top: .25rem;
+    }
+
+    @media (max-width: 575.98px) {
+      .step-variable-row {
+        grid-template-columns: 1fr;
+        gap: .25rem;
+      }
+
+      .step-variable-row .form-label {
+        padding-top: 0;
+      }
+    }
+  </style>
 </head>
 <body class="bg-body">
   <div id="stepsLoadingScreen" class="page page-center">
@@ -56,7 +157,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           </span>
           <span>BrailleStudio</span>
         </a>
-        <div class="navbar-nav flex-row ms-auto">
+        <div class="navbar-nav flex-row align-items-center ms-auto gap-2">
           <span class="navbar-text text-secondary me-2">
             Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
           </span>
@@ -99,6 +200,18 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                 <h2 class="card-title">Braille monitor</h2>
                 <div class="card-subtitle">Monitor en thumb-input voor de actieve lesson.</div>
               </div>
+              <div class="card-actions">
+                <section
+                  class="lessonbuilder-header-status"
+                  data-braillebridge-status
+                  data-expanded="false"
+                  data-popup="true"
+                  data-base-url="http://localhost:5000"
+                  data-ws-url="ws://localhost:5000/ws"
+                  data-launch-url="braillebridge://"
+                  aria-label="BrailleBridge status"
+                ></section>
+              </div>
             </div>
             <div class="card-body">
               <div id="brailleMonitorRow">
@@ -107,11 +220,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               <div id="scriptBrailleMonitorRow">
                 <div id="scriptBrailleMonitorComponent"></div>
               </div>
-              <div class="btn-list mt-3">
-                <button id="simThumbLeftBtn" class="btn btn-outline-secondary" type="button">Left thumb</button>
-                <button id="simCursor5Btn" class="btn btn-outline-secondary" type="button">Left middle thumb</button>
-                <button id="simChord1Btn" class="btn btn-outline-secondary" type="button">Right middle thumb</button>
-                <button id="simThumbRightBtn" class="btn btn-outline-secondary" type="button">Right thumb</button>
+              <div class="btn-list thumb-controls mt-3" aria-label="Thumb keys">
+                <button id="simThumbLeftBtn" class="btn btn-outline-secondary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
+                <button id="simCursor5Btn" class="btn btn-outline-secondary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
+                <button id="simChord1Btn" class="btn btn-outline-secondary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
+                <button id="simThumbRightBtn" class="btn btn-outline-secondary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
               </div>
             </div>
           </div>
@@ -227,26 +340,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             <div class="card-header border-0">
               <div>
                 <h2 class="card-title">Steps</h2>
-                <div class="card-subtitle">Een step is een Blockly-script met extra variabele lesson-informatie zoals text, word, letters en repeat.</div>
+                <div class="card-subtitle">Een step is een Blockly-script met repeat en eventuele external variables.</div>
               </div>
             </div>
-            <div class="table-responsive">
-              <table class="table table-vcenter table-borderless card-table">
-                <thead>
-                  <tr>
-                    <th>Step</th>
-                    <th>Text</th>
-                    <th>Word</th>
-                    <th>Letters</th>
-                    <th>Repeat</th>
-                    <th class="w-1"></th>
-                    <th class="w-1"></th>
-                    <th class="w-1"></th>
-                    <th class="w-1"></th>
-                  </tr>
-                </thead>
-                <tbody id="stepsTableBody"></tbody>
-              </table>
+            <div class="card-body">
+              <div id="stepsTableBody" class="steps-list"></div>
             </div>
           </div>
 
@@ -273,6 +371,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <iframe id="lessonRunnerFrame" class="d-none" title="Lesson runner" allow="autoplay" hidden></iframe>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const stepsLoadingScreen = document.getElementById('stepsLoadingScreen');
@@ -714,6 +813,115 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         .replaceAll("'", '&#039;');
     }
 
+    function getExternalVariablesFromScriptData(data = null) {
+      const blocklyState = data?.blockly && typeof data.blockly === 'object' ? data.blockly : {};
+      const variables = [
+        data?.scriptVariables,
+        data?.variablesMetadata,
+        data?.meta?.scriptVariables,
+        data?.meta?.variables,
+        blocklyState.scriptVariables,
+        blocklyState.variablesMetadata
+      ].find((items) => Array.isArray(items)) || [];
+      const normalizedVariables = variables
+        .map((item) => {
+          const name = String(item?.name || '').trim();
+          if (!name || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          return {
+            name,
+            type: String(item?.type || 'string').trim() || 'string',
+            defaultValue: item?.defaultValue ?? '',
+            description: String(item?.description || '').trim()
+          };
+        })
+        .filter(Boolean);
+      const seen = new Set(normalizedVariables.map((variable) => variable.name));
+      collectExternalVariableNamesFromBlocks(blocklyState).forEach((name) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        normalizedVariables.push({
+          name,
+          type: 'string',
+          defaultValue: '',
+          description: 'External variable detected from Blockly blocks. Save the script again to add full metadata.'
+        });
+      });
+      return normalizedVariables;
+    }
+
+    function collectExternalVariableNamesFromBlocks(blocklyState = {}) {
+      const names = new Set();
+      const visitBlock = (block) => {
+        if (!block || typeof block !== 'object') return;
+        if (
+          ['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'].includes(String(block.type || ''))
+        ) {
+          const name = String(block.fields?.VAR || '').trim();
+          if (name) names.add(name);
+        }
+        Object.values(block.inputs || {}).forEach((input) => {
+          visitBlock(input?.block);
+          visitBlock(input?.shadow);
+        });
+        visitBlock(block.next?.block);
+      };
+      const rootBlocks = Array.isArray(blocklyState?.blocks?.blocks)
+        ? blocklyState.blocks.blocks
+        : (Array.isArray(blocklyState?.blocks) ? blocklyState.blocks : []);
+      rootBlocks.forEach(visitBlock);
+      return Array.from(names);
+    }
+
+    function formatExternalVariableDefault(value) {
+      if (value == null) return '';
+      if (typeof value === 'object') {
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return '';
+        }
+      }
+      return String(value);
+    }
+
+    function parseExternalVariableDefault(variable) {
+      const value = variable?.defaultValue;
+      const type = String(variable?.type || 'string');
+      if (type === 'number') return Number(value) || 0;
+      if (type === 'boolean') {
+        if (typeof value === 'boolean') return value;
+        return ['true', '1', 'yes', 'ja'].includes(String(value ?? '').trim().toLowerCase());
+      }
+      if (type === 'array' || type === 'object') {
+        if (value && typeof value === 'object') return value;
+        try {
+          const parsed = JSON.parse(String(value ?? '').trim() || (type === 'array' ? '[]' : '{}'));
+          return type === 'array'
+            ? (Array.isArray(parsed) ? parsed : [])
+            : (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+        } catch {
+          return type === 'array' ? [] : {};
+        }
+      }
+      return String(value ?? '');
+    }
+
+    function coerceExternalVariableInput(value, type = 'string') {
+      if (type === 'number') return Number(value) || 0;
+      if (type === 'boolean') return ['true', '1', 'yes', 'ja'].includes(String(value ?? '').trim().toLowerCase());
+      if (type === 'array' || type === 'object') {
+        try {
+          const parsed = JSON.parse(String(value ?? '').trim() || (type === 'array' ? '[]' : '{}'));
+          return type === 'array'
+            ? (Array.isArray(parsed) ? parsed : [])
+            : (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+        } catch {
+          return type === 'array' ? [] : {};
+        }
+      }
+      return String(value ?? '');
+    }
+
     function renderSelectedScriptMeta(data = null) {
       if (!scriptMetaPreview) return;
       const selectedId = String(scriptsSelect?.value || '').trim();
@@ -729,6 +937,23 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       const instruction = String(meta.instruction || '').trim();
       const status = String(meta.status || '').trim();
       const updatedAt = String(item.updatedAt || '').trim();
+      const externalVariables = getExternalVariablesFromScriptData(item);
+      const externalVariablesHtml = externalVariables.length
+        ? externalVariables.map((variable) => `
+            <div class="list-group-item border-0 px-0 py-2">
+              <div class="d-flex align-items-start justify-content-between gap-2">
+                <div>
+                  <span class="badge bg-blue-lt me-1">external</span>
+                  <strong>${escapeHtml(variable.name)}</strong>
+                  <span class="text-secondary">(${escapeHtml(variable.type)})</span>
+                </div>
+                <span class="small text-secondary">${escapeHtml(variable.type || 'string')}</span>
+              </div>
+              <div class="small text-secondary mt-1">${escapeHtml(variable.description || '-')}</div>
+              <code class="form-control text-truncate mt-1">${escapeHtml(formatExternalVariableDefault(variable.defaultValue) || '(empty)')}</code>
+            </div>
+          `).join('')
+        : '<div class="list-group-item border-0 px-0 py-2 text-secondary">No external variables defined.</div>';
 
       scriptMetaPreview.innerHTML = `
         <div class="list-group-item border-0 py-2 px-0">
@@ -758,6 +983,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               <textarea class="form-control form-control-sm" rows="2" readonly aria-readonly="true">${escapeHtml(instruction || '-')}</textarea>
             </div>
           </div>
+        </div>
+        <div class="list-group-item border-0 py-2 px-0">
+          <label class="form-label small mb-1">External variables</label>
+          <div class="list-group list-group-flush">${externalVariablesHtml}</div>
         </div>
       `;
     }
@@ -840,19 +1069,38 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       };
     }
 
+    function getExternalVariableNameSetForScript(scriptId = '') {
+      const scriptData = scriptDataCache.get(String(scriptId || '').trim()) || null;
+      return new Set(getExternalVariablesFromScriptData(scriptData).map((variable) => variable.name));
+    }
+
+    function normalizeEditableStepInputs(inputs = {}, scriptId = '') {
+      const normalized = shared.normalizeInputs(inputs || {});
+      const scriptKey = String(scriptId || '').trim();
+      if (scriptKey && !scriptDataCache.has(scriptKey)) {
+        normalized.repeat = Math.max(1, Math.floor(Number(normalized.repeat ?? 1) || 1));
+        return normalized;
+      }
+      const externalNames = getExternalVariableNameSetForScript(scriptId);
+      ['text', 'word', 'letters'].forEach((key) => {
+        if (!externalNames.has(key)) {
+          delete normalized[key];
+        }
+      });
+      normalized.repeat = Math.max(1, Math.floor(Number(normalized.repeat ?? 1) || 1));
+      return normalized;
+    }
+
     function serializeStepConfig(stepConfig) {
-      const inputs = shared.normalizeInputs(stepConfig?.inputs || {});
+      const inputs = normalizeEditableStepInputs(stepConfig?.inputs || {}, stepConfig?.id || '');
       const meta = getStepDisplayMeta(stepConfig);
+      const serializedInputs = { ...inputs };
+      serializedInputs.repeat = Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1));
       return {
         id: String(stepConfig?.id || '').trim(),
         title: meta.title,
         stepLinkCode: String(stepConfig?.stepLinkCode || '').trim(),
-        inputs: {
-          text: String(inputs.text || ''),
-          word: String(inputs.word || ''),
-          letters: Array.isArray(inputs.letters) ? inputs.letters : [],
-          repeat: Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1))
-        }
+        inputs: serializedInputs
       };
     }
 
@@ -882,9 +1130,15 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, overwrite: true })
       });
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(`Non-JSON response from ${STEP_LINK_CREATE_URL} (HTTP ${res.status})`);
+      }
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        throw new Error(data.error ? `${data.error} (${STEP_LINK_CREATE_URL})` : `HTTP ${res.status} (${STEP_LINK_CREATE_URL})`);
       }
       return data;
     }
@@ -895,9 +1149,15 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json().catch(() => ({}));
+      const raw = await res.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(`Non-JSON response from ${STEP_LINK_UPDATE_URL} (HTTP ${res.status})`);
+      }
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
+        throw new Error(data.error ? `${data.error} (${STEP_LINK_UPDATE_URL})` : `HTTP ${res.status} (${STEP_LINK_UPDATE_URL})`);
       }
       return data;
     }
@@ -919,7 +1179,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           stepId: buildStepLinkStepId(stepConfig, index),
           active: true,
           meta: buildStepLinkMeta(stepConfig, index),
-          stepInputs: shared.normalizeInputs(stepConfig.inputs || {})
+          stepInputs: normalizeEditableStepInputs(stepConfig.inputs || {}, stepConfig.id || '')
         }));
       });
 
@@ -978,20 +1238,22 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         const index = Number(row.getAttribute('data-step-index') || -1);
         const source = stepConfigs[index] || {};
         const meta = getStepDisplayMeta(source);
-        const textValue = row.querySelector('[data-field="text"]')?.value ?? '';
-        const wordValue = row.querySelector('[data-field="word"]')?.value ?? '';
-        const lettersValue = row.querySelector('[data-field="letters"]')?.value ?? '';
         const repeatRaw = row.querySelector('[data-field="repeat"]')?.value ?? '1';
+        const inputs = normalizeEditableStepInputs(source.inputs || {}, source.id || '');
+        inputs.repeat = Math.max(1, Math.floor(Number(repeatRaw) || 1));
+        row.querySelectorAll('[data-external-variable-name]').forEach((control) => {
+          const name = String(control.getAttribute('data-external-variable-name') || '').trim();
+          const type = String(control.getAttribute('data-external-variable-type') || 'string').trim();
+          if (!name) return;
+          inputs[name] = control.type === 'checkbox'
+            ? !!control.checked
+            : coerceExternalVariableInput(control.value, type);
+        });
         built.push({
           id: String(source.id || '').trim(),
           title: meta.title,
           stepLinkCode: String(source.stepLinkCode || '').trim(),
-          inputs: {
-            text: String(textValue || ''),
-            word: String(wordValue || ''),
-            letters: String(lettersValue).split(',').map((item) => item.trim()).filter(Boolean),
-            repeat: Math.max(1, Math.floor(Number(repeatRaw) || 1))
-          }
+          inputs
         });
       });
       return built.filter((item) => item.id);
@@ -1094,6 +1356,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function getStepActionIcon(kind) {
       switch (kind) {
+        case 'collapse':
+          return '<i class="ti ti-chevron-down" aria-hidden="true"></i>';
         case 'run':
           return '<i class="ti ti-player-play" aria-hidden="true"></i>';
         case 'stop':
@@ -1119,91 +1383,116 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return button;
     }
 
+    function createExternalVariablesEditor(stepConfig, index) {
+      const scriptData = scriptDataCache.get(String(stepConfig?.id || '').trim()) || null;
+      const variables = getExternalVariablesFromScriptData(scriptData);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'step-settings';
+      if (!scriptData) {
+        wrapper.innerHTML = '<div class="small text-secondary">External variables worden geladen zodra het script is opgehaald.</div>';
+        return wrapper;
+      }
+      if (!variables.length) {
+        wrapper.innerHTML = '<div class="small text-secondary">Dit Blockly script heeft geen external variables.</div>';
+        return wrapper;
+      }
+
+      const inputs = normalizeEditableStepInputs(stepConfig?.inputs || {}, stepConfig?.id || '');
+      variables.forEach((variable) => {
+        const group = document.createElement('div');
+        group.className = 'step-variable-row';
+
+        const label = document.createElement('label');
+        label.className = 'form-label small';
+        label.textContent = `${variable.name} (${variable.type})`;
+        group.appendChild(label);
+
+        const hasStepValue = Object.prototype.hasOwnProperty.call(inputs, variable.name);
+        const value = hasStepValue ? inputs[variable.name] : parseExternalVariableDefault(variable);
+        let control;
+        if (variable.type === 'boolean') {
+          control = document.createElement('input');
+          control.type = 'checkbox';
+          control.className = 'form-check-input';
+          control.checked = Boolean(value);
+        } else if (variable.type === 'number') {
+          control = document.createElement('input');
+          control.type = 'number';
+          control.className = 'form-control form-control-sm';
+          control.value = formatExternalVariableDefault(value);
+        } else {
+          control = document.createElement('textarea');
+          control.rows = variable.type === 'array' || variable.type === 'object' ? 3 : 2;
+          control.className = 'form-control form-control-sm';
+          control.value = formatExternalVariableDefault(value);
+        }
+        control.dataset.externalVariableName = variable.name;
+        control.dataset.externalVariableType = variable.type;
+        control.title = variable.description || variable.name;
+
+        const valueColumn = document.createElement('div');
+        const applyValue = () => {
+          const nextInputs = normalizeEditableStepInputs(stepConfigs[index].inputs || {}, stepConfigs[index]?.id || '');
+          nextInputs[variable.name] = control.type === 'checkbox'
+            ? !!control.checked
+            : coerceExternalVariableInput(control.value, variable.type);
+          stepConfigs[index].inputs = nextInputs;
+          updateStateStepConfigs();
+        };
+        control.addEventListener('input', applyValue);
+        control.addEventListener('change', applyValue);
+        valueColumn.appendChild(control);
+
+        if (variable.description) {
+          const description = document.createElement('div');
+          description.className = 'form-hint';
+          description.textContent = variable.description;
+          valueColumn.appendChild(description);
+        }
+
+        group.appendChild(valueColumn);
+        wrapper.appendChild(group);
+      });
+
+      return wrapper;
+    }
+
     function renderStepsTable() {
       stepsTableBody.innerHTML = '';
       if (!stepConfigs.length) {
-        stepsTableBody.innerHTML = '<tr><td class="text-secondary" colspan="9">No steps yet. Add a script from the list.</td></tr>';
+        stepsTableBody.innerHTML = '<div class="text-secondary">No steps yet. Add a script from the list.</div>';
         return;
       }
       ensureAutomaticStepLinkCodes();
       stepConfigs.forEach((cfg, index) => {
-        const inputs = shared.normalizeInputs(cfg.inputs || {});
+        const inputs = normalizeEditableStepInputs(cfg.inputs || {}, cfg.id || '');
         const meta = getStepDisplayMeta(cfg);
-        const row = document.createElement('tr');
-        row.dataset.stepIndex = String(index);
+        const card = document.createElement('section');
+        card.className = 'step-card';
+        card.dataset.stepIndex = String(index);
 
-        const script = document.createElement('td');
-        script.innerHTML = `
-          <div class="d-flex align-items-start gap-2">
-            <span class="badge bg-secondary-lt">${index + 1}</span>
-            <div>
-              <div class="fw-semibold">${meta.title || cfg.id}</div>
-              <div class="small text-secondary">${cfg.id}</div>
-            </div>
+        const header = document.createElement('div');
+        header.className = 'step-card__header';
+
+        const title = document.createElement('div');
+        title.className = 'step-card__title';
+        title.innerHTML = `
+          <div class="d-flex align-items-center flex-wrap gap-2 min-w-0">
+            <span class="badge bg-secondary-lt flex-shrink-0">${index + 1}</span>
+            <span class="fw-semibold text-truncate">${escapeHtml(meta.title || cfg.id)}</span>
+            <span class="badge bg-blue-lt">Repeat: ${escapeHtml(inputs.repeat || 1)}</span>
+            <span class="small text-secondary text-truncate">${escapeHtml(cfg.id)}</span>
           </div>
         `;
-
-        const text = document.createElement('textarea');
-        text.dataset.field = 'text';
-        text.rows = 3;
-        text.placeholder = 'Text';
-        text.className = 'form-control';
-        text.value = inputs.text;
-        text.addEventListener('input', (e) => {
-          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), text: e.target.value };
-          updateStateStepConfigs();
-        });
-
-        const word = document.createElement('input');
-        word.dataset.field = 'word';
-        word.className = 'form-control';
-        word.value = inputs.word;
-        word.addEventListener('input', (e) => {
-          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), word: e.target.value };
-          updateStateStepConfigs();
-        });
-
-        const letters = document.createElement('input');
-        letters.dataset.field = 'letters';
-        letters.type = 'text';
-        letters.placeholder = 'a, b, c';
-        letters.className = 'form-control';
-        letters.value = inputs.letters.join(', ');
-        letters.addEventListener('input', (e) => {
-          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), letters: e.target.value.split(',').map((item) => item.trim()).filter(Boolean) };
-          updateStateStepConfigs();
-        });
-
-        const repeat = document.createElement('input');
-        repeat.dataset.field = 'repeat';
-        repeat.type = 'number';
-        repeat.min = '1';
-        repeat.step = '1';
-        repeat.className = 'form-control';
-        repeat.value = String(inputs.repeat || 1);
-        const applyRepeatValue = (target) => {
-          const nextRepeat = Math.max(1, Math.floor(Number(target.value) || 1));
-          target.value = String(nextRepeat);
-          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), repeat: nextRepeat };
-          updateStateStepConfigs();
-        };
-        repeat.addEventListener('input', (e) => {
-          stepConfigs[index].inputs = { ...shared.normalizeInputs(stepConfigs[index].inputs || {}), repeat: Math.max(1, Math.floor(Number(e.target.value) || 1)) };
-        });
-        repeat.addEventListener('change', (e) => applyRepeatValue(e.target));
-        repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
-
         const stepLink = document.createElement('div');
-        stepLink.className = 'mt-2';
+        stepLink.className = 'd-flex align-items-center flex-wrap gap-2 mt-2';
         stepLink.innerHTML = `
-          <div class="btn-list">
-            <button type="button" data-copy-step-link-code class="btn btn-outline-secondary btn-icon" aria-label="Copy link code" title="Copy link code">
-              <i class="ti ti-copy" aria-hidden="true"></i>
-            </button>
-          </div>
-          <code data-step-link-code-text class="form-control text-truncate mt-2">No code yet</code>
+          <code data-step-link-code-text class="text-truncate">No code yet</code>
+          <button type="button" data-copy-step-link-code class="btn btn-outline-secondary btn-icon" aria-label="Copy link code" title="Copy link code">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
         `;
-        script.appendChild(stepLink);
+        title.appendChild(stepLink);
         renderStepLinkCodeCell(stepLink, cfg.stepLinkCode);
         stepLink.querySelector('[data-copy-step-link-code]').addEventListener('click', async () => {
           const code = String(stepConfigs[index]?.stepLinkCode || '').trim();
@@ -1215,6 +1504,47 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             setStatus(`Copy step-link error: ${err.message || String(err)}`);
           }
         });
+
+        const actions = document.createElement('div');
+        actions.className = 'step-card__actions';
+
+        const body = document.createElement('div');
+        body.className = 'step-card__body';
+        body.id = `stepCardBody${index}`;
+        body.hidden = true;
+
+        const repeat = document.createElement('input');
+        repeat.dataset.field = 'repeat';
+        repeat.type = 'number';
+        repeat.min = '1';
+        repeat.step = '1';
+        repeat.className = 'form-control';
+        repeat.value = String(inputs.repeat || 1);
+        const applyRepeatValue = (target) => {
+          const nextRepeat = Math.max(1, Math.floor(Number(target.value) || 1));
+          target.value = String(nextRepeat);
+          stepConfigs[index].inputs = { ...normalizeEditableStepInputs(stepConfigs[index].inputs || {}, stepConfigs[index]?.id || ''), repeat: nextRepeat };
+          updateStateStepConfigs();
+        };
+        repeat.addEventListener('input', (e) => {
+          stepConfigs[index].inputs = { ...normalizeEditableStepInputs(stepConfigs[index].inputs || {}, stepConfigs[index]?.id || ''), repeat: Math.max(1, Math.floor(Number(e.target.value) || 1)) };
+        });
+        repeat.addEventListener('change', (e) => applyRepeatValue(e.target));
+        repeat.addEventListener('blur', (e) => applyRepeatValue(e.target));
+
+        const repeatGroup = document.createElement('div');
+        repeatGroup.className = 'step-variable-row';
+        const repeatLabel = document.createElement('label');
+        repeatLabel.className = 'form-label small';
+        repeatLabel.textContent = 'Repeat';
+        const repeatValueColumn = document.createElement('div');
+        repeatValueColumn.appendChild(repeat);
+        repeatGroup.appendChild(repeatLabel);
+        repeatGroup.appendChild(repeatValueColumn);
+
+        const variablesEditor = createExternalVariablesEditor(cfg, index);
+        variablesEditor.prepend(repeatGroup);
+        body.appendChild(variablesEditor);
 
         const run = createStepActionButton('run', 'Run step');
         run.dataset.runStepIndex = String(index);
@@ -1255,13 +1585,27 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           renderStepsTable();
         });
 
-        [text, word, letters, repeat, run, moveUp, moveDown, remove].forEach((node) => {
-          const cell = document.createElement('td');
-          cell.appendChild(node);
-          row.appendChild(cell);
+        const collapse = createStepActionButton('collapse', 'Expand variables');
+        collapse.innerHTML = '<i class="ti ti-chevron-right" aria-hidden="true"></i>';
+        collapse.setAttribute('aria-expanded', 'false');
+        collapse.setAttribute('aria-controls', body.id);
+        collapse.addEventListener('click', () => {
+          const isExpanded = collapse.getAttribute('aria-expanded') === 'true';
+          collapse.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+          collapse.setAttribute('title', isExpanded ? 'Expand variables' : 'Collapse variables');
+          collapse.setAttribute('aria-label', isExpanded ? 'Expand variables' : 'Collapse variables');
+          collapse.innerHTML = isExpanded
+            ? '<i class="ti ti-chevron-right" aria-hidden="true"></i>'
+            : '<i class="ti ti-chevron-down" aria-hidden="true"></i>';
+          body.hidden = isExpanded;
         });
-        row.insertBefore(script, row.firstChild);
-        stepsTableBody.appendChild(row);
+
+        [run, moveUp, moveDown, remove, collapse].forEach((node) => actions.appendChild(node));
+        header.appendChild(title);
+        header.appendChild(actions);
+        card.appendChild(header);
+        card.appendChild(body);
+        stepsTableBody.appendChild(card);
       });
       renderStepRunButtons();
     }
@@ -1565,7 +1909,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         lessonData: basisItems,
         lessonMethod: method,
         index: Number(state.basisIndex ?? 0),
-        stepInputs: shared.normalizeInputs(stepConfig.inputs || {}),
+        stepInputs: normalizeEditableStepInputs(stepConfig.inputs || {}, stepConfig.id || ''),
         stepMeta: buildStepMeta(stepConfig, stepIndex),
         onLog: (line) => {
           appendStatus('Blockly log.', line);
@@ -1997,7 +2341,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       renderAddStepAvailability();
     });
 
-    addStepBtn.addEventListener('click', () => {
+    addStepBtn.addEventListener('click', async () => {
       showDebugLog();
       appendStatus('Add step clicked.', {
         selectedScriptId: String(scriptsSelect.value || '').trim(),
@@ -2008,11 +2352,25 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         return;
       }
       const selectedScript = getScriptItemById(scriptsSelect.value);
+      let externalVariables = [];
+      try {
+        const scriptData = await loadScriptData(scriptsSelect.value);
+        externalVariables = getExternalVariablesFromScriptData(scriptData);
+      } catch (err) {
+        appendStatus('Could not load selected script external variables.', {
+          scriptId: scriptsSelect.value,
+          error: err.message || String(err)
+        });
+      }
+      const inputs = { repeat: 1 };
+      externalVariables.forEach((variable) => {
+        inputs[variable.name] = parseExternalVariableDefault(variable);
+      });
       appendStatus('Before add steps length.', { length: stepConfigs.length });
       stepConfigs.push({
         id: scriptsSelect.value,
         title: String(selectedScript?.title || '').trim(),
-        inputs: { text: '', word: '', letters: [], repeat: 1 }
+        inputs
       });
       stepConfigs = serializeStepConfigs(stepConfigs);
       ensureAutomaticStepLinkCodes();

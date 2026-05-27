@@ -146,7 +146,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const START_URL = <?= $jsValue($urlFor($sessionBase, 'start-session.php')) ?>;
     const RUNTIME_STATE_URL = <?= $jsValue($urlFor($sessionBase, 'runtime-state.php')) ?>;
     const START_PAGE_URL = <?= $jsValue($urlFor($sessionBase, 'start.php')) ?>;
-    const BLOCKLY_SCRIPT_LOAD_URL = <?= $jsValue($urlFor($appBase, 'blockly-api/load.php')) ?>;
+    const BLOCKLY_SCRIPT_LOAD_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/load.php')) ?>;
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=';
     const STEP_START_NOTICE_AUDIO_URL = 'https://www.tastenbraille.com/braillestudio/sounds/ux/dahang.mp3';
 

@@ -14,6 +14,28 @@
     return JSON.stringify(String(value ?? ''));
   }
 
+  function fieldName(block, fieldName = 'VAR') {
+    return q(block.getFieldValue(fieldName) || '');
+  }
+
+  javascriptGenerator.forBlock['external_variable_get'] = function (block) {
+    return [`BrailleStudioAPI.getExternalVariable(${fieldName(block)})`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['external_variable_exists'] = function (block) {
+    return [`BrailleStudioAPI.externalVariableExists(${fieldName(block)})`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['external_variable_set'] = function (block) {
+    const valueCode = valueToCodeOr(block, 'VALUE', 'null');
+    return `BrailleStudioAPI.setExternalVariable(${fieldName(block)}, ${valueCode});\n`;
+  };
+
+  javascriptGenerator.forBlock['external_property_get'] = function (block) {
+    const propertyCode = valueToCodeOr(block, 'PROPERTY', "''");
+    return [`BrailleStudioAPI.getExternalProperty(${fieldName(block)}, ${propertyCode})`, ORDER_ATOMIC];
+  };
+
   javascriptGenerator.forBlock['list_pick_random'] = function (block) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
     return [`BrailleStudioAPI.pickRandom(${listCode})`, ORDER_ATOMIC];

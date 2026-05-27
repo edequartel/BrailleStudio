@@ -102,6 +102,7 @@
       this.httpRequestSeq = 0;
       this.wsMessageSeq = 0;
       this.expanded = boolAttr(root.dataset.expanded || "false");
+      this.popup = boolAttr(root.dataset.popup || "false");
       this.userToggled = false;
       this.renderBase();
       this.refresh = this.refresh.bind(this);
@@ -113,55 +114,62 @@
 
     renderBase() {
       this.root.classList.add("braillebridge-status");
+      this.root.classList.toggle("braillebridge-status--popup", this.popup);
       this.root.dataset.state = "checking";
       this.root.innerHTML = `
         <button class="braillebridge-status__toggle" type="button" data-role="toggle" aria-expanded="false" aria-label="BrailleBridge status openen" title="BrailleBridge status">
           <i class="ti ti-plug-connected braillebridge-status__toggle-icon" aria-hidden="true"></i>
           <span class="braillebridge-status__toggle-dot" aria-hidden="true"></span>
         </button>
-        <div class="braillebridge-status__body">
-          <div class="braillebridge-status__main">
-            <span class="braillebridge-status__icon" aria-hidden="true"><i class="ti ti-plug-connected"></i></span>
-            <div class="braillebridge-status__text">
-              <p class="braillebridge-status__title" data-role="title">BrailleBridge controleren</p>
-              <div class="braillebridge-status__subtitle" data-role="subtitle">Verbinding met localhost:5000 wordt getest.</div>
+        <div class="braillebridge-status__popup-panel" data-role="panel" role="dialog" aria-modal="true" aria-label="BrailleBridge status">
+          <button class="btn btn-icon btn-ghost-secondary braillebridge-status__popup-close" type="button" data-role="close" aria-label="BrailleBridge status sluiten" title="Sluiten">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+          <div class="braillebridge-status__body">
+            <div class="braillebridge-status__main">
+              <span class="braillebridge-status__icon" aria-hidden="true"><i class="ti ti-plug-connected"></i></span>
+              <div class="braillebridge-status__text">
+                <p class="braillebridge-status__title" data-role="title">BrailleBridge controleren</p>
+                <div class="braillebridge-status__subtitle" data-role="subtitle">Verbinding met localhost:5000 wordt getest.</div>
+              </div>
+            </div>
+            <div class="braillebridge-status__meta" aria-label="BrailleBridge status">
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="http"><span class="braillebridge-status__dot"></span>Runtime</span>
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="ws"><span class="braillebridge-status__dot"></span>WebSocket</span>
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="device"><span class="braillebridge-status__dot"></span>Leesregel</span>
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="sam"><span class="braillebridge-status__dot"></span>SAM</span>
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="version">Versie onbekend</span>
+              <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge braillebridge-status__incoming" data-role="incoming">WS inkomend: geen</span>
+              <a class="btn btn-sm btn-outline-primary braillebridge-status__action" href="${this.options.launchUrl}" data-role="start">Start</a>
+              <button class="btn btn-sm btn-outline-secondary braillebridge-status__action" type="button" data-role="test">Test</button>
+              <button class="btn btn-sm btn-outline-secondary braillebridge-status__header-toggle" type="button" data-role="header-toggle" aria-label="BrailleBridge status sluiten" title="Samenvouwen">
+                <i class="ti ti-chevron-up" aria-hidden="true"></i>
+              </button>
             </div>
           </div>
-          <div class="braillebridge-status__meta" aria-label="BrailleBridge status">
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="http"><span class="braillebridge-status__dot"></span>Runtime</span>
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="ws"><span class="braillebridge-status__dot"></span>WebSocket</span>
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="device"><span class="braillebridge-status__dot"></span>Leesregel</span>
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="sam"><span class="braillebridge-status__dot"></span>SAM</span>
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="version">Versie onbekend</span>
-            <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge braillebridge-status__incoming" data-role="incoming">WS inkomend: geen</span>
-            <a class="btn btn-sm btn-outline-primary braillebridge-status__action" href="${this.options.launchUrl}" data-role="start">Start</a>
-            <button class="btn btn-sm btn-outline-secondary braillebridge-status__action" type="button" data-role="test">Test</button>
-            <button class="btn btn-sm btn-outline-secondary braillebridge-status__header-toggle" type="button" data-role="header-toggle" aria-label="BrailleBridge status sluiten" title="Samenvouwen">
-              <i class="ti ti-chevron-up" aria-hidden="true"></i>
-            </button>
-          </div>
-        </div>
-        <div class="braillebridge-status__details">
-          <div class="braillebridge-status__detail">
-            <div class="braillebridge-status__detail-label">BrailleBridge</div>
-            <div class="braillebridge-status__detail-value" data-role="runtime-detail">Controleren</div>
-          </div>
-          <div class="braillebridge-status__detail">
-            <div class="braillebridge-status__detail-label">WebSocket</div>
-            <div class="braillebridge-status__detail-value" data-role="websocket-detail">Controleren</div>
-          </div>
-          <div class="braillebridge-status__detail">
-            <div class="braillebridge-status__detail-label">Brailleleesregel</div>
-            <div class="braillebridge-status__detail-value" data-role="display-detail">Controleren</div>
-          </div>
-          <div class="braillebridge-status__detail">
-            <div class="braillebridge-status__detail-label">SAM</div>
-            <div class="braillebridge-status__detail-value" data-role="sam-detail">Controleren</div>
+          <div class="braillebridge-status__details">
+            <div class="braillebridge-status__detail">
+              <div class="braillebridge-status__detail-label">BrailleBridge</div>
+              <div class="braillebridge-status__detail-value" data-role="runtime-detail">Controleren</div>
+            </div>
+            <div class="braillebridge-status__detail">
+              <div class="braillebridge-status__detail-label">WebSocket</div>
+              <div class="braillebridge-status__detail-value" data-role="websocket-detail">Controleren</div>
+            </div>
+            <div class="braillebridge-status__detail">
+              <div class="braillebridge-status__detail-label">Brailleleesregel</div>
+              <div class="braillebridge-status__detail-value" data-role="display-detail">Controleren</div>
+            </div>
+            <div class="braillebridge-status__detail">
+              <div class="braillebridge-status__detail-label">SAM</div>
+              <div class="braillebridge-status__detail-value" data-role="sam-detail">Controleren</div>
+            </div>
           </div>
         </div>
       `;
       this.toggleEl = this.root.querySelector('[data-role="toggle"]');
       this.headerToggleEl = this.root.querySelector('[data-role="header-toggle"]');
+      this.closeEl = this.root.querySelector('[data-role="close"]');
       this.titleEl = this.root.querySelector('[data-role="title"]');
       this.subtitleEl = this.root.querySelector('[data-role="subtitle"]');
       this.httpEl = this.root.querySelector('[data-role="http"]');
@@ -187,6 +195,13 @@
       }
       if (this.headerToggleEl) {
         this.headerToggleEl.onclick = (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          this.setExpanded(false);
+        };
+      }
+      if (this.closeEl) {
+        this.closeEl.onclick = (event) => {
           event.preventDefault();
           event.stopPropagation();
           this.setExpanded(false);
@@ -444,7 +459,7 @@
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       if (target.closest('[data-role="start"], [data-role="test"]')) return;
-      const isToggleClick = Boolean(target.closest('[data-role="toggle"], [data-role="header-toggle"]'));
+      const isToggleClick = Boolean(target.closest('[data-role="toggle"], [data-role="header-toggle"], [data-role="close"]'));
       const isCompactClick = !this.expanded && Boolean(target.closest(".braillebridge-status"));
       if (!isToggleClick && !isCompactClick) return;
       event.preventDefault();
@@ -480,7 +495,10 @@
         this.lastStateLog = stateLogKey;
         logStatus("state", stateLog);
       }
-      if (state !== "ready" && !this.userToggled) {
+      if (this.popup && !this.userToggled) {
+        this.expanded = false;
+        this.applyExpanded();
+      } else if (state !== "ready" && !this.userToggled) {
         this.expanded = true;
         this.applyExpanded();
       } else if (!this.userToggled) {
@@ -571,14 +589,19 @@
 
     applyExpanded() {
       this.root.classList.toggle("is-collapsed", !this.expanded);
+      this.root.classList.toggle("is-popup-open", this.popup && this.expanded);
       if (this.toggleEl) {
         this.toggleEl.setAttribute("aria-expanded", this.expanded ? "true" : "false");
         this.toggleEl.setAttribute("aria-label", this.expanded ? "BrailleBridge status sluiten" : "BrailleBridge status openen");
       }
       if (this.headerToggleEl) {
+        this.headerToggleEl.hidden = this.popup;
         this.headerToggleEl.setAttribute("aria-expanded", this.expanded ? "true" : "false");
         this.headerToggleEl.innerHTML = `<i class="ti ${this.expanded ? "ti-chevron-up" : "ti-chevron-down"}" aria-hidden="true"></i>`;
         this.headerToggleEl.title = this.expanded ? "Samenvouwen" : "Details openen";
+      }
+      if (this.closeEl) {
+        this.closeEl.hidden = !this.popup;
       }
     }
   }
@@ -609,18 +632,24 @@
     root.classList.toggle("is-collapsed", !isExpanded);
     const toggle = root.querySelector('[data-role="toggle"]');
     const headerToggle = root.querySelector('[data-role="header-toggle"]');
+    const close = root.querySelector('[data-role="close"]');
     if (toggle) {
       toggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
       toggle.setAttribute("aria-label", isExpanded ? "BrailleBridge status sluiten" : "BrailleBridge status openen");
     }
     if (headerToggle) {
+      headerToggle.hidden = Boolean(root.__brailleBridgeStatus?.popup);
       headerToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
       headerToggle.innerHTML = `<i class="ti ${isExpanded ? "ti-chevron-up" : "ti-chevron-down"}" aria-hidden="true"></i>`;
       headerToggle.title = isExpanded ? "Samenvouwen" : "Details openen";
     }
+    if (close) {
+      close.hidden = !Boolean(root.__brailleBridgeStatus?.popup);
+    }
     if (root.__brailleBridgeStatus) {
       root.__brailleBridgeStatus.userToggled = true;
       root.__brailleBridgeStatus.expanded = isExpanded;
+      root.__brailleBridgeStatus.applyExpanded();
     }
   }
 
@@ -664,6 +693,17 @@
   document.addEventListener("click", (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) return;
+    const openPopup = document.querySelector('[data-braillebridge-status].braillebridge-status--popup.is-popup-open');
+    if (openPopup && target === openPopup) {
+      event.preventDefault();
+      event.stopPropagation();
+      setRootExpanded(openPopup, false);
+      return;
+    }
+    if (openPopup && !target.closest('[data-braillebridge-status].braillebridge-status--popup.is-popup-open')) {
+      setRootExpanded(openPopup, false);
+      return;
+    }
     const testButton = target.closest('[data-braillebridge-status] [data-role="test"]');
     if (testButton) {
       const testRoot = testButton.closest("[data-braillebridge-status]");
@@ -678,7 +718,7 @@
     }
     if (target.closest('[data-braillebridge-status] [data-role="start"]')) return;
 
-    const headerToggle = target.closest('[data-braillebridge-status] [data-role="header-toggle"]');
+    const headerToggle = target.closest('[data-braillebridge-status] [data-role="header-toggle"], [data-braillebridge-status] [data-role="close"]');
     const toggle = target.closest('[data-braillebridge-status] [data-role="toggle"]');
     const compactRoot = target.closest('[data-braillebridge-status].is-collapsed');
     const root = headerToggle?.closest("[data-braillebridge-status]")
@@ -689,6 +729,14 @@
     event.preventDefault();
     event.stopPropagation();
     setRootExpanded(root, !headerToggle);
+  }, true);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const openPopup = document.querySelector('[data-braillebridge-status].braillebridge-status--popup.is-popup-open');
+    if (!openPopup) return;
+    event.preventDefault();
+    setRootExpanded(openPopup, false);
   }, true);
 
   if (document.readyState === "loading") {

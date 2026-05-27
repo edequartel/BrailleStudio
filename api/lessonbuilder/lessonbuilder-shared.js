@@ -1,15 +1,15 @@
 (function () {
   const SCRIPT_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/blockly-api',
-    '/braillestudio/blockly-api'
+    'https://www.tastenbraille.com/braillestudio/api/blockly-api',
+    '/braillestudio/api/blockly-api'
   ];
   const LESSON_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/lessons-api',
-    '/braillestudio/lessons-api'
+    'https://www.tastenbraille.com/braillestudio/api/lessons-api',
+    '/braillestudio/api/lessons-api'
   ];
   const METHODS_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/methods-api',
-    '/braillestudio/methods-api'
+    'https://www.tastenbraille.com/braillestudio/api/methods-api',
+    '/braillestudio/api/methods-api'
   ];
   const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
@@ -355,6 +355,10 @@
       letters: normalizeLetters(source.letters ?? []),
       repeat: repeatValue
     };
+    Object.entries(source).forEach(([key, value]) => {
+      if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+      normalized[key] = value;
+    });
     if (!normalized.text && !normalized.word && normalized.letters.length === 0 && repeatValue === 1 && String(fallbackVariable || '').trim()) {
       normalized.text = String(fallbackVariable).trim();
     }

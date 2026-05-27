@@ -24,7 +24,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>Lesson Builder - Lessons</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260520-step-id-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260526-api-routes-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -576,7 +576,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
             basisRecord: draftLesson.basisRecord,
             steps: []
           });
-          window.location.href = 'https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php';
+          window.location.href = <?= json_encode($urlFor($lessonBuilderBase, 'lessonbuilder-steps.php'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
           return;
         }
       }
@@ -593,7 +593,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
           lessonWord: resolvedWord,
           steps: shared.normalizeStepConfigs(data.steps || [])
         });
-        window.location.href = 'https://www.tastenbraille.com/braillestudio/lessonbuilder/lessonbuilder-steps.php';
+        window.location.href = <?= json_encode($urlFor($lessonBuilderBase, 'lessonbuilder-steps.php'), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
       } catch (err) {
         setStatus(`Lesson load error: ${err.message}`);
       }

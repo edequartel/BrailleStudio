@@ -64,6 +64,10 @@
   height: 2.25rem;
 }
 
+.braillebridge-status__popup-close {
+  display: none;
+}
+
 .braillebridge-status.is-collapsed {
   width: 2.75rem;
   border-color: transparent;
@@ -74,6 +78,10 @@
 
 .braillebridge-status.is-collapsed .braillebridge-status__body {
   display: none;
+}
+
+.braillebridge-status.is-collapsed .braillebridge-status__popup-panel {
+  display: contents;
 }
 
 .braillebridge-status:not(.is-collapsed) > .braillebridge-status__toggle {
@@ -89,6 +97,69 @@
 
 .braillebridge-status.is-collapsed .braillebridge-status__details {
   display: none;
+}
+
+.braillebridge-status--popup {
+  position: relative;
+}
+
+.braillebridge-status--popup.is-collapsed,
+.braillebridge-status--popup:not(.is-collapsed) {
+  width: 2.75rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.braillebridge-status--popup:not(.is-collapsed)::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  background: rgba(17, 24, 39, .35);
+}
+
+.braillebridge-status--popup:not(.is-collapsed) > .braillebridge-status__toggle {
+  display: inline-flex;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__popup-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 1061;
+  width: min(44rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: var(--tblr-border-width) solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg);
+  background: var(--tblr-bg-surface);
+  box-shadow: var(--tblr-box-shadow-lg);
+}
+
+.braillebridge-status--popup .braillebridge-status__header-toggle {
+  display: none;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__popup-close {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  z-index: 1;
+  display: inline-flex;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
+  padding-right: 3.75rem;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
+  display: flex;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__details {
+  display: grid;
 }
 
 .braillebridge-status__detail {

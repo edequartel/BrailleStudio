@@ -50,6 +50,70 @@
     };
   }
 
+  const EXTERNAL_VARIABLE_COLOUR = '#2563EB';
+  function getVariableOptions(scope) {
+    if (typeof window.BrailleBlocklyVariableOptions === 'function') {
+      const options = window.BrailleBlocklyVariableOptions(scope);
+      if (Array.isArray(options) && options.length > 0) return options;
+    }
+    return [[scope === 'external' ? 'no ext vars' : 'internal variable', '']];
+  }
+
+  function getVariableTooltip(scope, block) {
+    const name = String(block.getFieldValue('VAR') || '').trim();
+    if (typeof window.BrailleBlocklyVariableTooltip === 'function') {
+      return window.BrailleBlocklyVariableTooltip(scope, name);
+    }
+    return 'External variable supplied by the runtime context.';
+  }
+
+  Blockly.Blocks['external_variable_get'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('ext')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('external')), 'VAR');
+      this.setOutput(true);
+      this.setColour(EXTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('external', this));
+    }
+  };
+
+  Blockly.Blocks['external_variable_exists'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('external exists')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('external')), 'VAR');
+      this.setOutput(true, 'Boolean');
+      this.setColour(EXTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('external', this));
+    }
+  };
+
+  Blockly.Blocks['external_variable_set'] = {
+    init() {
+      this.appendValueInput('VALUE')
+        .appendField('set ext')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('external')), 'VAR')
+        .appendField('to');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(EXTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('external', this) + '\nSets the runtime value for this script run. Injected step input still has priority when a run starts.');
+    }
+  };
+
+  Blockly.Blocks['external_property_get'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('get external property')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('external')), 'VAR');
+      this.appendValueInput('PROPERTY').appendField('property');
+      this.setOutput(true);
+      this.setColour(EXTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('external', this) + ' Reads a property from an object or array value.');
+    }
+  };
+
   const INSTRUCTIONS_API_LIST_URLS = [
     'https://www.tastenbraille.com/braillestudio/instructions-api/instructions_list.php?status=active'
   ];

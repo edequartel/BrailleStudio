@@ -20,7 +20,7 @@ const FONEMEN_NL_JSON_URLS = [
   '../klanken/fonemen_nl_standaard.json',
   './klanken/fonemen_nl_standaard.json'
 ];
-const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/blockly-api';
+const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/blockly-api';
 const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
@@ -81,6 +81,7 @@ function createInitialRuntimeState() {
     lessonCompletion: null,
     programEndedGeneration: -1,
     programEndedCompletedGeneration: -1,
+    external: {},
     procedures: new Map()
   };
 }
@@ -273,8 +274,12 @@ function renderBrailleLine(msg) {
 function renderScriptBrailleLine() {
   const rt = getRuntime();
   const scriptRow = document.getElementById('scriptBrailleMonitorRow');
+  const thumbRow = document.getElementById('thumbControlsRow');
   if (scriptRow) {
     scriptRow.classList.toggle('is-hidden', !brailleMonitorVisible || wsConnected);
+  }
+  if (thumbRow) {
+    thumbRow.classList.toggle('is-hidden', !brailleMonitorVisible);
   }
 
   if (!scriptBrailleMonitorUi && window.BrailleMonitor && typeof window.BrailleMonitor.init === 'function') {
@@ -335,6 +340,359 @@ function readScriptMetadataFromInputs() {
     instruction: String(instructionInput?.value || '').trim(),
     prompt: String(promptInput?.value || '').trim()
   };
+}
+
+function makeVariableId(name, scope) {
+  const base = String(name || 'variable').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'variable';
+  return `${scope}_${base}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function normalizeVariableName(name) {
+  return String(name || '').trim();
+}
+
+function normalizeScriptVariable(raw = {}, fallbackScope = 'internal') {
+  const scope = 'external';
+  const type = SCRIPT_VARIABLE_TYPES.includes(String(raw.type || '').toLowerCase())
+    ? String(raw.type).toLowerCase()
+    : 'string';
+  const name = normalizeVariableName(raw.name);
+  if (!name) return null;
+  return {
+    id: String(raw.id || '').trim() || makeVariableId(name, scope),
+    name,
+    scope,
+    type,
+    defaultValue: raw.defaultValue ?? '',
+    description: String(raw.description || '')
+  };
+}
+
+function normalizeScriptVariables(items) {
+  if (!Array.isArray(items)) return [];
+  const seen = new Set();
+  return items
+    .map((item) => normalizeScriptVariable(item))
+    .filter(Boolean)
+    .filter((item) => {
+      const key = `${item.scope}:${item.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getScriptVariables(scope = '') {
+  const normalizedScope = String(scope || '').trim().toLowerCase();
+  return normalizedScope ? scriptVariables.filter((item) => item.scope === normalizedScope) : [...scriptVariables];
+}
+
+function findScriptVariable(scope, nameOrId) {
+  const key = String(nameOrId || '').trim();
+  if (!key) return null;
+  return getScriptVariables(scope).find((item) => item.name === key || item.id === key) || null;
+}
+
+function parseVariableDefaultValue(variable) {
+  const raw = variable?.defaultValue;
+  const type = String(variable?.type || 'string');
+  if (raw == null) {
+    if (type === 'number') return 0;
+    if (type === 'boolean') return false;
+    if (type === 'array') return [];
+    if (type === 'object') return {};
+    return '';
+  }
+  if (type === 'number') return Number(raw) || 0;
+  if (type === 'boolean') {
+    if (typeof raw === 'boolean') return raw;
+    return ['true', '1', 'yes', 'ja'].includes(String(raw).trim().toLowerCase());
+  }
+  if (type === 'array' || type === 'object') {
+    if (typeof raw === 'object') return structuredClone(raw);
+    try {
+      const parsed = JSON.parse(String(raw || '').trim() || (type === 'array' ? '[]' : '{}'));
+      return type === 'array' ? (Array.isArray(parsed) ? parsed : []) : (parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {});
+    } catch {
+      return type === 'array' ? [] : {};
+    }
+  }
+  return String(raw);
+}
+
+function serializeScriptVariables() {
+  return getScriptVariables().map((item) => ({ ...item }));
+}
+
+function setScriptVariables(items, { markDirty = false } = {}) {
+  scriptVariables = normalizeScriptVariables(items);
+  renderVariableList();
+  refreshVariableToolbox();
+  initializeRuntimeVariableScopes();
+  if (markDirty) setWorkspaceDirty(true);
+}
+
+function getVariableOptionLabel(variable) {
+  if (variable.scope === 'external') {
+    return variable.name;
+  }
+  const label = variable.scope === 'external' ? 'EXT' : 'INT';
+  return `${label} ${variable.name}`;
+}
+
+window.BrailleBlocklyVariableOptions = function (scope) {
+  const vars = getScriptVariables(scope);
+  if (!vars.length) {
+    return [[scope === 'external' ? 'no ext vars' : 'no internal variables', '']];
+  }
+  return vars.map((item) => [getVariableOptionLabel(item), item.name]);
+};
+
+window.BrailleBlocklyVariableTooltip = function (scope, name) {
+  const variable = findScriptVariable(scope, name);
+  if (!variable) return scope === 'external' ? 'External runtime input.' : 'Internal script state.';
+  return [
+    `${variable.scope} ${variable.type}: ${variable.name}`,
+    variable.description
+  ].filter(Boolean).join('\n');
+};
+
+function refreshVariableToolbox() {
+  const toolbox = typeof workspace?.getToolbox === 'function' ? workspace.getToolbox() : null;
+  if (toolbox && typeof toolbox.refreshSelection === 'function') {
+    toolbox.refreshSelection();
+  }
+}
+
+function formatVariableValue(value) {
+  if (value == null) return '';
+  if (typeof value === 'object') {
+    try { return JSON.stringify(value); } catch {}
+  }
+  return String(value);
+}
+
+function renderVariableList() {
+  const list = document.getElementById('variableList');
+  const summary = document.getElementById('scriptVariableSummary');
+  if (!list) return;
+  list.innerHTML = '';
+  const variables = serializeScriptVariables();
+  const externalCount = variables.filter((item) => item.scope === 'external').length;
+  if (summary) {
+    summary.textContent = variables.length
+      ? `${externalCount} external variable${externalCount === 1 ? '' : 's'}. Descriptions are saved with this script.`
+      : 'No external variables defined.';
+  }
+  variables.forEach((variable) => {
+    const item = document.createElement('div');
+    item.className = `variable-item variable-item--${variable.scope}`;
+    item.dataset.variableId = variable.id;
+    item.title = variable.description || `${variable.scope} ${variable.type}`;
+    item.tabIndex = 0;
+
+    const top = document.createElement('div');
+    top.className = 'variable-item__top';
+
+    const badge = document.createElement('span');
+    badge.className = `variable-badge variable-badge--${variable.scope}`;
+    badge.textContent = variable.scope;
+    top.appendChild(badge);
+
+    const name = document.createElement('span');
+    name.className = 'variable-item__name';
+    name.textContent = variable.name;
+    top.appendChild(name);
+
+    const editButton = document.createElement('button');
+    editButton.className = 'btn btn-outline-secondary btn-icon btn-sm ms-auto';
+    editButton.type = 'button';
+    editButton.setAttribute('aria-label', `Edit ${variable.name}`);
+    editButton.title = 'Edit variable';
+    editButton.innerHTML = '<i class="ti ti-dots-vertical" aria-hidden="true"></i>';
+    editButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openVariableContextMenu(variable.id, editButton.getBoundingClientRect().left, editButton.getBoundingClientRect().bottom);
+    });
+    top.appendChild(editButton);
+    item.appendChild(top);
+
+    const meta = document.createElement('div');
+    meta.className = 'variable-item__meta';
+    meta.textContent = `${variable.type} - default: ${formatVariableValue(variable.defaultValue) || '(empty)'}`;
+    item.appendChild(meta);
+
+    if (variable.description) {
+      const description = document.createElement('div');
+      description.className = 'variable-item__description';
+      description.textContent = variable.description;
+      item.appendChild(description);
+    }
+
+    item.addEventListener('contextmenu', (event) => {
+      event.preventDefault();
+      openVariableContextMenu(variable.id, event.clientX, event.clientY);
+    });
+    item.addEventListener('dblclick', () => openVariableModal(variable.id));
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openVariableModal(variable.id);
+      }
+      if (event.key === 'ContextMenu') {
+        event.preventDefault();
+        const rect = item.getBoundingClientRect();
+        openVariableContextMenu(variable.id, rect.left + 12, rect.bottom);
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+function getVariableModalElements() {
+  return {
+    modal: document.getElementById('variableModal'),
+    title: document.getElementById('variableModalTitle'),
+    id: document.getElementById('variableEditId'),
+    external: document.getElementById('variableScopeExternal'),
+    name: document.getElementById('variableNameInput'),
+    type: document.getElementById('variableTypeInput'),
+    defaultValue: document.getElementById('variableDefaultInput'),
+    description: document.getElementById('variableDescriptionInput'),
+    deleteButton: document.getElementById('variableModalDelete')
+  };
+}
+
+function openVariableModal(variableId = '', initialScope = 'external') {
+  const elements = getVariableModalElements();
+  if (!elements.modal) return;
+  const variable = scriptVariables.find((item) => item.id === variableId) || null;
+  const scope = 'external';
+  elements.title.textContent = variable ? 'Edit external variable' : 'Add external variable';
+  elements.id.value = variable?.id || '';
+  elements.name.value = variable?.name || '';
+  elements.type.value = variable?.type || 'string';
+  elements.defaultValue.value = formatVariableValue(variable?.defaultValue ?? '');
+  elements.description.value = variable?.description || '';
+  if (elements.deleteButton) elements.deleteButton.style.display = variable ? '' : 'none';
+  elements.modal.classList.add('is-open');
+  elements.modal.setAttribute('aria-hidden', 'false');
+  setTimeout(() => elements.name?.focus(), 0);
+}
+
+function closeVariableModal() {
+  const modal = document.getElementById('variableModal');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function saveVariableFromModal() {
+  const elements = getVariableModalElements();
+  const existingId = String(elements.id?.value || '').trim();
+  const scope = 'external';
+  const name = normalizeVariableName(elements.name?.value);
+  if (!name) {
+    elements.name?.focus();
+    elements.name?.reportValidity?.();
+    alert('Variable name is required.');
+    return;
+  }
+  const duplicate = scriptVariables.find((item) => item.id !== existingId && item.scope === scope && item.name === name);
+  if (duplicate) {
+    alert(`A ${scope} variable named "${name}" already exists.`);
+    return;
+  }
+  const variable = normalizeScriptVariable({
+    id: existingId || makeVariableId(name, scope),
+    scope: 'external',
+    name,
+    type: elements.type?.value || 'string',
+    defaultValue: elements.defaultValue?.value || '',
+    description: elements.description?.value || ''
+  }, scope);
+  if (!variable) return;
+  const next = existingId
+    ? scriptVariables.map((item) => item.id === existingId ? variable : item)
+    : [...scriptVariables, variable];
+  setScriptVariables(next, { markDirty: true });
+  closeVariableModal();
+}
+
+function deleteScriptVariable(variableId) {
+  const variable = scriptVariables.find((item) => item.id === variableId);
+  if (!variable) return;
+  if (!confirm(`Delete variable "${variable.name}"? Existing blocks that use it will return an empty value.`)) return;
+  setScriptVariables(scriptVariables.filter((item) => item.id !== variableId), { markDirty: true });
+  closeVariableContextMenu();
+  closeVariableModal();
+}
+
+function openVariableContextMenu(variableId, x, y) {
+  const menu = document.getElementById('variableContextMenu');
+  if (!menu) return;
+  activeVariableContextId = variableId;
+  menu.style.left = `${Math.max(8, Number(x) || 8)}px`;
+  menu.style.top = `${Math.max(8, Number(y) || 8)}px`;
+  menu.classList.add('is-open');
+  menu.setAttribute('aria-hidden', 'false');
+}
+
+function closeVariableContextMenu() {
+  const menu = document.getElementById('variableContextMenu');
+  if (!menu) return;
+  menu.classList.remove('is-open');
+  menu.setAttribute('aria-hidden', 'true');
+  activeVariableContextId = '';
+}
+
+function bindVariableEditorControls() {
+  const addExternalButton = document.getElementById('addExternalVariableBtn');
+  if (addExternalButton && !addExternalButton.dataset.initialized) {
+    addExternalButton.addEventListener('click', () => openVariableModal('', 'external'));
+    addExternalButton.dataset.initialized = '1';
+  }
+  const saveButton = document.getElementById('variableModalSave');
+  if (saveButton && !saveButton.dataset.initialized) {
+    saveButton.addEventListener('click', saveVariableFromModal);
+    saveButton.dataset.initialized = '1';
+  }
+  const cancelButton = document.getElementById('variableModalCancel');
+  if (cancelButton && !cancelButton.dataset.initialized) {
+    cancelButton.addEventListener('click', closeVariableModal);
+    cancelButton.dataset.initialized = '1';
+  }
+  const deleteButton = document.getElementById('variableModalDelete');
+  if (deleteButton && !deleteButton.dataset.initialized) {
+    deleteButton.addEventListener('click', () => deleteScriptVariable(String(document.getElementById('variableEditId')?.value || '').trim()));
+    deleteButton.dataset.initialized = '1';
+  }
+  const editContext = document.getElementById('variableContextEdit');
+  if (editContext && !editContext.dataset.initialized) {
+    editContext.addEventListener('click', () => {
+      const id = activeVariableContextId;
+      closeVariableContextMenu();
+      if (id) openVariableModal(id);
+    });
+    editContext.dataset.initialized = '1';
+  }
+  const deleteContext = document.getElementById('variableContextDelete');
+  if (deleteContext && !deleteContext.dataset.initialized) {
+    deleteContext.addEventListener('click', () => deleteScriptVariable(activeVariableContextId));
+    deleteContext.dataset.initialized = '1';
+  }
+  document.addEventListener('click', (event) => {
+    const menu = document.getElementById('variableContextMenu');
+    if (menu && menu.classList.contains('is-open') && !menu.contains(event.target)) {
+      closeVariableContextMenu();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeVariableContextMenu();
+      closeVariableModal();
+    }
+  });
 }
 
 function getElevenLabsAuthToken() {
@@ -898,6 +1256,7 @@ async function saveInstructionPlaylistAndInsertBlock() {
 function applyMetadataToXmlDom(xmlDom) {
   if (!xmlDom) return xmlDom;
   const meta = readScriptMetadataFromInputs();
+  const variables = serializeScriptVariables();
   if (meta.title) xmlDom.setAttribute('data-title', meta.title);
   else xmlDom.removeAttribute('data-title');
   if (meta.description) xmlDom.setAttribute('data-description', meta.description);
@@ -906,6 +1265,8 @@ function applyMetadataToXmlDom(xmlDom) {
   else xmlDom.removeAttribute('data-instruction');
   if (meta.prompt) xmlDom.setAttribute('data-prompt', meta.prompt);
   else xmlDom.removeAttribute('data-prompt');
+  if (variables.length) xmlDom.setAttribute('data-variables', JSON.stringify(variables));
+  else xmlDom.removeAttribute('data-variables');
   return xmlDom;
 }
 
@@ -953,11 +1314,15 @@ function renderBrailleMonitorToggleControl() {
   const btn = document.getElementById('monitorToggleBtn');
   const row = document.getElementById('brailleMonitorRow');
   const scriptRow = document.getElementById('scriptBrailleMonitorRow');
+  const thumbRow = document.getElementById('thumbControlsRow');
   if (!btn || !row) return;
   const isVisible = !!brailleMonitorVisible;
   row.classList.toggle('is-hidden', !isVisible || !wsConnected);
   if (scriptRow) {
     scriptRow.classList.toggle('is-hidden', !isVisible || wsConnected);
+  }
+  if (thumbRow) {
+    thumbRow.classList.toggle('is-hidden', !isVisible);
   }
   btn.classList.toggle('active', isVisible);
   btn.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
@@ -1180,6 +1545,12 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
 
 /* ---------------- Runtime state ---------------- */
 const variableValues = {};
+const SCRIPT_VARIABLE_TYPES = Object.freeze(['string', 'number', 'boolean', 'array', 'object']);
+const SCRIPT_VARIABLE_COLOURS = Object.freeze({
+  external: '#2563EB'
+});
+let scriptVariables = [];
+let activeVariableContextId = '';
 const timerHandles = new Map();
 const listNextIndex = new WeakMap();
 let soundVolume = 1;
@@ -1212,6 +1583,7 @@ const DEFAULT_LESSON_STEP_INPUTS = Object.freeze({
   letters: Object.freeze(['b', 'a', 'l']),
   repeat: 1
 });
+let lessonStepExternalOverrides = null;
 let fonemenNlJsonCache = null;
 let workspaceDirty = false;
 let lastSavedWorkspaceSignature = '';
@@ -1304,9 +1676,19 @@ function executionPhaseFromCompletionStatus(status, fallback = 'completed') {
 
 function renderStatus() {
   const rt = getRuntime();
-  const varLines = workspace
+  const legacyVarLines = workspace
     ? workspace.getAllVariables().map(v => `${v.name} = ${variableValues[v.getId()] ?? 0}`)
     : [];
+  const externalLines = getScriptVariables('external').map((variable) => {
+    const value = rt.external && Object.prototype.hasOwnProperty.call(rt.external, variable.name)
+      ? rt.external[variable.name]
+      : undefined;
+    return `[external] ${variable.name}: ${variable.type} = ${formatLogValue(value)}${variable.description ? `\n  ${variable.description}` : ''}`;
+  });
+  const varLines = [
+    ...externalLines,
+    ...legacyVarLines.map((line) => `[legacy] ${line}`)
+  ];
   const isRunning = isRuntimeActive(rt);
   const runBtn = document.getElementById('runBtn');
   const stopBtn = document.getElementById('stopBtn');
@@ -1390,7 +1772,7 @@ function applyGridSnap(enabled) {
 
 function getOnlineApiBases() {
   const dynamicCandidates = [
-    new URL('../blockly-api', window.location.href).toString().replace(/\/$/, '')
+    new URL('../api/blockly-api', window.location.href).toString().replace(/\/$/, '')
   ];
   return [...new Set([...dynamicCandidates, ONLINE_SCRIPT_API_BASE])];
 }
@@ -1595,6 +1977,16 @@ function renderOnlineScriptsSelect(items) {
   applySelectedStatusColor();
 }
 
+function renderOnlineScriptsSelectError(message) {
+  const select = document.getElementById('onlineScriptsSelect');
+  if (!select) return;
+  select.innerHTML = '';
+  const option = document.createElement('option');
+  option.value = '';
+  option.textContent = `Could not load scripts: ${String(message || 'unknown error')}`;
+  select.appendChild(option);
+}
+
 async function listOnlineScripts() {
   log('Online scripts: listing');
   const data = await onlineApiFetchJson(`/list.php?_=${Date.now()}`);
@@ -1604,10 +1996,15 @@ async function listOnlineScripts() {
 }
 
 async function refreshOnlineScripts() {
-  const items = await listOnlineScripts();
-  renderOnlineScriptsSelect(items);
-  log(`Online scripts refreshed (${items.length})`);
-  return items;
+  try {
+    const items = await listOnlineScripts();
+    renderOnlineScriptsSelect(items);
+    log(`Online scripts refreshed (${items.length})`);
+    return items;
+  } catch (err) {
+    renderOnlineScriptsSelectError(err?.message || err);
+    throw err;
+  }
 }
 
 function renderCompoundLibrarySelect(items) {
@@ -1853,30 +2250,50 @@ async function saveWorkspaceOnline({ overwrite = true } = {}) {
     });
   }
 
-  const metadata = readScriptMetadataFromInputs();
-  const payload = {
-    id,
-    title,
-    overwrite: !!overwrite,
-    blockly: Blockly.serialization.workspaces.save(workspace),
-    meta: {
-      title: metadata.title || title,
-      description: metadata.description || '',
-      instruction: metadata.instruction || '',
-      prompt: metadata.prompt || '',
-      status
-    }
+  const buildPayload = (includeVariableMetadata = true) => {
+    const metadata = readScriptMetadataFromInputs();
+    const blocklyState = Blockly.serialization.workspaces.save(workspace);
+    return {
+      id,
+      title,
+      overwrite: !!overwrite,
+      blockly: includeVariableMetadata
+        ? { ...blocklyState, scriptVariables: serializeScriptVariables() }
+        : blocklyState,
+      meta: {
+        title: metadata.title || title,
+        description: metadata.description || '',
+        instruction: metadata.instruction || '',
+        prompt: metadata.prompt || '',
+        status
+      }
+    };
   };
+  const payload = buildPayload(true);
   const blockCount = Array.isArray(payload?.blockly?.blocks?.blocks)
     ? payload.blockly.blocks.blocks.length
     : 0;
   log(`Online save requested: id=${payload.id}, overwrite=${payload.overwrite}, blocks=${blockCount}`);
 
-  const data = await onlineApiFetchJson('/save.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  let data;
+  try {
+    data = await onlineApiFetchJson('/save.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    const message = String(err?.message || err);
+    const shouldRetryLegacy = message.includes('Non-JSON response') || message.includes('HTTP 500');
+    if (!shouldRetryLegacy) throw err;
+    log(`Online save retrying with legacy Blockly payload after: ${message}`);
+    const legacyPayload = buildPayload(false);
+    data = await onlineApiFetchJson('/save.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(legacyPayload)
+    });
+  }
 
   setOnlineCurrentScript({ id: data?.id || id, title: payload.title, status });
   markWorkspaceSaved(getWorkspaceSignature());
@@ -1912,7 +2329,10 @@ async function copyWorkspaceJsonToClipboard() {
     throw new Error('Blockly workspace is not ready');
   }
 
-  const data = Blockly.serialization.workspaces.save(workspace);
+  const data = {
+    ...Blockly.serialization.workspaces.save(workspace),
+    scriptVariables: serializeScriptVariables()
+  };
   const jsonText = JSON.stringify(data, null, 2);
 
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -1970,7 +2390,8 @@ async function importWorkspaceJsonFromClipboard() {
   registerProcedures(state, runtime);
   suppressDirtyTracking++;
   workspace.clear();
-  Blockly.serialization.workspaces.load(state, workspace);
+  setScriptVariables(extractWorkspaceVariablesFromState(state), { markDirty: false });
+  Blockly.serialization.workspaces.load(getBlocklySerializableState(state), workspace);
   refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
@@ -1995,7 +2416,8 @@ async function loadWorkspaceOnline(id) {
   registerProcedures(state, runtime);
   suppressDirtyTracking++;
   workspace.clear();
-  Blockly.serialization.workspaces.load(state, workspace);
+  setScriptVariables(extractWorkspaceVariablesFromState(state, data?.meta), { markDirty: false });
+  Blockly.serialization.workspaces.load(getBlocklySerializableState(state), workspace);
   refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
@@ -2039,6 +2461,7 @@ async function deleteWorkspaceOnline(id) {
       suppressDirtyTracking++;
       workspace.clear();
       refreshProcedureRegistry(workspace);
+      setScriptVariables([], { markDirty: false });
       ensureDefaultVariable();
       initVariableValues();
       renderScriptMetadata(null);
@@ -2394,7 +2817,7 @@ async function playSound(input) {
       clearActiveAudio();
       resolveAudioStoppedWaiters();
     }
-    log('Sound failed: playback error');
+    log('Sound failed: playback error for ' + url);
     settlePlayback?.reject(new Error('Audio playback failed'));
   };
   const onAbort = () => {
@@ -3078,6 +3501,7 @@ function bindAppControls() {
     onlineSelect.dataset.initialized = '1';
   }
 
+  bindVariableEditorControls();
 }
 
 bindWsControls();
@@ -3253,6 +3677,12 @@ function registerCompoundLibraryToolboxCategory() {
   });
 }
 
+function registerVariableToolboxButtons() {
+  if (!workspace || typeof workspace.registerButtonCallback !== 'function') return;
+  workspace.registerButtonCallback('ADD_EXTERNAL_VARIABLE', () => openVariableModal('', 'external'));
+  workspace.registerButtonCallback('ADD_INTERNAL_VARIABLE', () => openVariableModal('', 'internal'));
+}
+
 function unregisterContextMenuItem(id) {
   const registry = Blockly?.ContextMenuRegistry?.registry;
   if (!registry || typeof registry.getItem !== 'function' || typeof registry.unregister !== 'function') {
@@ -3271,6 +3701,7 @@ function registerCustomContextMenuItems() {
   unregisterContextMenuItem('braille_copy_block_to_clipboard');
   unregisterContextMenuItem('braille_save_to_my_blocks');
   unregisterContextMenuItem('braille_paste_block_from_clipboard');
+  unregisterContextMenuItem('braille_edit_script_variable');
 
   registry.register({
     id: 'braille_copy_block_to_clipboard',
@@ -3319,6 +3750,31 @@ function registerCustomContextMenuItems() {
       });
     },
     weight: 205,
+  });
+
+  registry.register({
+    id: 'braille_edit_script_variable',
+    scopeType: ScopeType.BLOCK,
+    displayText: () => 'Edit Script Variable',
+    preconditionFn: (scope) => {
+      const block = scope?.block;
+      if (!block || block.isInFlyout) return 'hidden';
+      const variableBlockTypes = new Set([
+        'external_variable_get',
+        'external_variable_set',
+        'external_variable_exists',
+        'external_property_get'
+      ]);
+      return variableBlockTypes.has(block.type) ? 'enabled' : 'hidden';
+    },
+    callback: (scope) => {
+      const block = scope?.block;
+      const name = String(block?.getFieldValue?.('VAR') || '').trim();
+      const scopeName = 'external';
+      const variable = findScriptVariable(scopeName, name);
+      if (variable) openVariableModal(variable.id, scopeName);
+    },
+    weight: 204,
   });
 }
 
@@ -3394,6 +3850,7 @@ workspace = Blockly.inject('blocklyDiv', {
   }
 });
 registerCompoundLibraryToolboxCategory();
+registerVariableToolboxButtons();
 registerMyBlocksFlyoutContextMenu();
 setBootStage('workspace-injected');
 
@@ -3459,7 +3916,7 @@ workspace.addChangeListener(() => {
 
 workspace.addChangeListener((event) => {
   if (suppressDirtyTracking > 0 || !event || event.isUiEvent === true) return;
-  const dirtyEventTypes = new Set([
+    const dirtyEventTypes = new Set([
     Blockly.Events.BLOCK_CREATE,
     Blockly.Events.BLOCK_DELETE,
     Blockly.Events.BLOCK_CHANGE,
@@ -3484,6 +3941,11 @@ workspace.addChangeListener((event) => {
     'comment_move'
   ]);
   if (dirtyEventTypes.has(event.type)) {
+    if (event.type === Blockly.Events.BLOCK_CREATE || event.type === Blockly.Events.BLOCK_DELETE || event.type === Blockly.Events.BLOCK_CHANGE || event.type === 'create' || event.type === 'delete' || event.type === 'change') {
+      renderVariableList();
+      refreshVariableToolbox();
+      initializeRuntimeVariableScopes();
+    }
     setWorkspaceDirty(true);
   }
 });
@@ -3549,6 +4011,7 @@ function resetRunScopedVariables() {
   if (countId) {
     variableValues[countId] = 0;
   }
+  initializeRuntimeVariableScopes(lessonStepExternalOverrides);
   renderStatus();
 }
 
@@ -3613,6 +4076,7 @@ function loadDefaultWorkspace() {
   patchVariableFieldIds(xmlDom);
   Blockly.Xml.domToWorkspace(xmlDom, workspace);
   refreshProcedureRegistry(workspace);
+  setScriptVariables([], { markDirty: false });
   initVariableValues();
   suppressDirtyTracking--;
   markWorkspaceSaved(getWorkspaceSignature());
@@ -3690,6 +4154,29 @@ function extractWorkspaceMetadata(xmlDom, sourceName = null) {
   const instruction = String(xmlDom.getAttribute('data-instruction') || '').trim();
   const prompt = String(xmlDom.getAttribute('data-prompt') || '').trim();
   return { title, description, instruction, prompt };
+}
+
+function extractWorkspaceVariablesFromXml(xmlDom) {
+  const raw = String(xmlDom?.getAttribute?.('data-variables') || '').trim();
+  if (!raw) return [];
+  try {
+    return normalizeScriptVariables(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+function extractWorkspaceVariablesFromState(state, metadata = null) {
+  if (Array.isArray(state?.scriptVariables)) return normalizeScriptVariables(state.scriptVariables);
+  if (Array.isArray(state?.variablesMetadata)) return normalizeScriptVariables(state.variablesMetadata);
+  if (Array.isArray(metadata?.variables)) return normalizeScriptVariables(metadata.variables);
+  return [];
+}
+
+function getBlocklySerializableState(state) {
+  if (!state || typeof state !== 'object') return state;
+  const { scriptVariables: _scriptVariables, variablesMetadata: _variablesMetadata, ...blocklyState } = state;
+  return blocklyState;
 }
 
 function buildLessonDataCandidates(source) {
@@ -3881,12 +4368,17 @@ function normalizeLessonStepInputs(inputs) {
   const letters = Array.isArray(source.letters)
     ? source.letters.map((item) => String(item ?? '').trim()).filter(Boolean)
     : String(source.letters ?? '').split(',').map((item) => item.trim()).filter(Boolean);
-  return {
+  const normalized = {
     text,
     word,
     letters: letters.length ? letters : [...DEFAULT_LESSON_STEP_INPUTS.letters],
     repeat: Math.max(1, Math.floor(Number(source.repeat ?? DEFAULT_LESSON_STEP_INPUTS.repeat) || 1))
   };
+  Object.entries(source).forEach(([key, value]) => {
+    if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+    normalized[key] = value;
+  });
+  return normalized;
 }
 
 function getLessonStepInputs() {
@@ -3900,11 +4392,79 @@ function getLessonStepInputs() {
     };
 }
 
+function getExternalOverridesFromStepInputs(stepInputs = null) {
+  if (!stepInputs || typeof stepInputs !== 'object') return null;
+  const overrides = {};
+  getScriptVariables('external').forEach((variable) => {
+    if (Object.prototype.hasOwnProperty.call(stepInputs, variable.name)) {
+      overrides[variable.name] = stepInputs[variable.name];
+    }
+  });
+  return overrides;
+}
+
 function resetLessonStepRuntimeState(stepInputs = null) {
   window.lessonStepInputs = normalizeLessonStepInputs(stepInputs);
+  lessonStepExternalOverrides = getExternalOverridesFromStepInputs(stepInputs);
+  initializeRuntimeVariableScopes(lessonStepExternalOverrides);
   getRuntime().stepCompletion = null;
   getRuntime().lessonCompletion = null;
 }
+
+function initializeRuntimeVariableScopes(externalOverrides = null) {
+  const rt = getRuntime();
+  const injected = externalOverrides && typeof externalOverrides === 'object' ? externalOverrides : {};
+  const external = {};
+
+  getScriptVariables('external').forEach((variable) => {
+    const hasInjected = Object.prototype.hasOwnProperty.call(injected, variable.name);
+    external[variable.name] = hasInjected
+      ? injected[variable.name]
+      : parseVariableDefaultValue(variable);
+  });
+
+  rt.external = external;
+  renderStatus();
+}
+
+function externalVariableExists(name) {
+  const key = String(name || '').trim();
+  return !!key && Object.prototype.hasOwnProperty.call(getRuntime().external || {}, key);
+}
+
+function getExternalVariable(name) {
+  const key = String(name || '').trim();
+  return key ? getRuntime().external?.[key] : undefined;
+}
+
+function setExternalVariable(name, value) {
+  const key = String(name || '').trim();
+  if (!key) return;
+  const rt = getRuntime();
+  if (!rt.external || typeof rt.external !== 'object') rt.external = {};
+  rt.external[key] = value;
+  renderStatus();
+}
+
+function getExternalProperty(name, property) {
+  const value = getExternalVariable(name);
+  const key = String(property ?? '').trim();
+  if (!key || value == null) return undefined;
+  if (Array.isArray(value)) {
+    const index = Math.floor(Number(key));
+    return Number.isInteger(index) ? value[index] : undefined;
+  }
+  if (typeof value === 'object') return value[key];
+  return undefined;
+}
+
+window.BrailleStudioAPI = window.BrailleStudioAPI || {};
+Object.assign(window.BrailleStudioAPI, {
+  getExternalVariable,
+  setExternalVariable,
+  externalVariableExists,
+  getExternalProperty
+});
 
 function readStoredResolvedSessionPayload() {
   try {
@@ -4606,6 +5166,15 @@ async function evalValue(block) {
       return id ? (variableValues[id] ?? 0) : 0;
     }
 
+    case 'external_variable_get':
+      return getExternalVariable(block.getFieldValue('VAR'));
+
+    case 'external_variable_exists':
+      return externalVariableExists(block.getFieldValue('VAR'));
+
+    case 'external_property_get':
+      return getExternalProperty(block.getFieldValue('VAR'), await evalValue(block.getInputTargetBlock('PROPERTY')));
+
     case 'math_arithmetic': {
       const a = toNumber(await evalValue(block.getInputTargetBlock('A')));
       const b = toNumber(await evalValue(block.getInputTargetBlock('B')));
@@ -4912,7 +5481,9 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       case 'sound_play_folder_file': {
         const folder = current.getFieldValue('FOLDER');
         const file = await evalValue(current.getInputTargetBlock('FILE'));
-        await playSound(resolveFolderSoundUrl(folder, file));
+        const url = resolveFolderSoundUrl(folder, file);
+        log(`Sound folder file: folder=${String(folder || '')}, file=${String(file ?? '')}, url=${url || '(empty)'}`);
+        await playSound(url);
         break;
       }
 
@@ -4925,7 +5496,9 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       case 'sound_play_ux_file': {
         const folder = getSoundFolderFromBlockType(current.type);
         const file = await evalValue(current.getInputTargetBlock('FILE'));
-        await playSound(resolveFolderSoundUrl(folder, file));
+        const url = resolveFolderSoundUrl(folder, file);
+        log(`Sound folder file: folder=${String(folder || '')}, file=${String(file ?? '')}, url=${url || '(empty)'}`);
+        await playSound(url);
         break;
       }
 
@@ -5216,6 +5789,11 @@ async function executeChain(startBlock, generation, allowStopped = false) {
           variableValues[id] = toNumber(variableValues[id] ?? 0) + delta;
           renderStatus();
         }
+        break;
+      }
+
+      case 'external_variable_set': {
+        setExternalVariable(current.getFieldValue('VAR'), await evalValue(current.getInputTargetBlock('VALUE')));
         break;
       }
 
@@ -5649,6 +6227,7 @@ function loadWorkspaceFromText(text, sourceName = null) {
     const xmlDom = parseWorkspaceXml(text);
     suppressDirtyTracking++;
     workspace.clear();
+    setScriptVariables(extractWorkspaceVariablesFromXml(xmlDom), { markDirty: false });
     Blockly.Xml.domToWorkspace(xmlDom, workspace);
     refreshProcedureRegistry(workspace);
     ensureDefaultVariable();
@@ -5755,7 +6334,8 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
     registerProcedures(state, runtime);
     suppressDirtyTracking++;
     workspace.clear();
-    Blockly.serialization.workspaces.load(state, workspace);
+    setScriptVariables(extractWorkspaceVariablesFromState(state, metadata), { markDirty: false });
+    Blockly.serialization.workspaces.load(getBlocklySerializableState(state), workspace);
     refreshProcedureRegistry(workspace);
     ensureDefaultVariable();
     initVariableValues();
@@ -5802,6 +6382,7 @@ async function newWorkspace() {
   suppressDirtyTracking++;
   workspace.clear();
   refreshProcedureRegistry(workspace);
+  setScriptVariables([], { markDirty: false });
   ensureDefaultVariable();
   initVariableValues();
   renderScriptMetadata(null);
@@ -5813,6 +6394,7 @@ async function newWorkspace() {
 
 renderStatus();
 renderScriptMetadata(null);
+renderVariableList();
 renderStatusScriptName();
 renderInstructionTtsControl();
 renderFileState();

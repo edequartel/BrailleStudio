@@ -16,8 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 lessons_api_require_authentication();
 
-$saveDir = lessons_api_data_dir();
-
 $id = isset($_GET['id']) ? trim((string)$_GET['id']) : '';
 
 if ($id === '') {
@@ -35,9 +33,9 @@ if ($safeId === '') {
     exit;
 }
 
-$filePath = $saveDir . '/' . $safeId . '.json';
+$filePath = lessons_api_find_lesson_path($safeId);
 
-if (!file_exists($filePath)) {
+if ($filePath === null) {
     http_response_code(404);
     echo json_encode(['ok' => false, 'error' => 'Lesson not found']);
     exit;
@@ -130,17 +128,10 @@ function normalize_loaded_step_inputs($inputs, $fallbackVariable = '')
             continue;
         }
         if (is_array($value)) {
-            $cleanList = [];
-            foreach ($value as $item) {
-                $item = trim((string)$item);
-                if ($item !== '') {
-                    $cleanList[] = $item;
-                }
-            }
-            $normalized[$safeKey] = $cleanList;
+            $normalized[$safeKey] = $value;
             continue;
         }
-        $normalized[$safeKey] = trim((string)$value);
+        $normalized[$safeKey] = is_string($value) ? trim($value) : $value;
     }
 
     if ($normalized === [] && $fallbackVariable !== '') {

@@ -1,32 +1,77 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/json-guard.php';
+braillestudio_json_guard_start();
+
 require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 
 function methods_data_file(): string
 {
-    $publicFile = dirname(__DIR__, 2) . '/methods.json';
-    if (is_file($publicFile)) {
-        return $publicFile;
+    foreach (methods_data_file_candidates() as $file) {
+        if (is_file($file)) {
+            return $file;
+        }
     }
-    return __DIR__ . '/methods.json';
+    return methods_data_file_candidates()[0];
+}
+
+function methods_data_file_candidates(): array
+{
+    return array_values(array_unique([
+        dirname(__DIR__, 2) . '/methods.json',
+        dirname(__DIR__) . '/methods.json',
+        __DIR__ . '/methods.json',
+    ]));
+}
+
+function methods_save_dirs(): array
+{
+    return array_values(array_unique([
+        dirname(__DIR__, 2) . '/methods-data',
+        dirname(__DIR__) . '/methods-data',
+    ]));
 }
 
 function methods_save_dir(): string
 {
-    $publicDir = dirname(__DIR__, 2) . '/methods-data';
-    if (is_dir($publicDir)) {
-        return $publicDir;
+    foreach (methods_save_dirs() as $dir) {
+        if (is_dir($dir)) {
+            return $dir;
+        }
     }
-    return dirname(__DIR__) . '/methods-data';
+    return methods_save_dirs()[0];
+}
+
+function methods_writable_save_dir(): ?string
+{
+    foreach (methods_save_dirs() as $dir) {
+        if (is_dir($dir) && is_writable($dir)) {
+            return $dir;
+        }
+    }
+
+    foreach (methods_save_dirs() as $dir) {
+        if (is_dir($dir)) {
+            continue;
+        }
+        if (@mkdir($dir, 0775, true) && is_writable($dir)) {
+            return $dir;
+        }
+    }
+
+    return null;
 }
 
 function ensure_methods_storage_exists(): void
 {
-    $dir = methods_save_dir();
-
-    if (!is_dir($dir)) {
-        mkdir($dir, 0775, true);
+    $dir = methods_writable_save_dir();
+    if ($dir === null) {
+        methods_json_response([
+            'ok' => false,
+            'error' => 'No writable methods data directory found',
+            'checked' => methods_save_dirs(),
+        ], 500);
     }
 }
 
@@ -36,7 +81,7 @@ function ensure_methods_file_exists(): void
     ensure_methods_storage_exists();
 
     if (!file_exists($file)) {
-        file_put_contents($file, "[]", LOCK_EX);
+        @file_put_contents($file, "[]", LOCK_EX);
     }
 }
 
@@ -157,7 +202,7 @@ function methods_validate_method(array $item, array $existing = [], bool $isUpda
 
 function methods_file_path(string $id): string
 {
-    return methods_save_dir() . '/' . $id . '.json';
+    return (methods_writable_save_dir() ?? methods_save_dir()) . '/' . $id . '.json';
 }
 
 function methods_basis_dir_candidates(): array
@@ -298,7 +343,12 @@ function methods_load_legacy_all(): array
 function methods_migrate_legacy_if_needed(): void
 {
     ensure_methods_storage_exists();
-    $existingFiles = glob(methods_save_dir() . '/*.json') ?: [];
+    $existingFiles = [];
+    foreach (methods_save_dirs() as $dir) {
+        if (is_dir($dir)) {
+            $existingFiles = array_merge($existingFiles, glob($dir . '/*.json') ?: []);
+        }
+    }
     if (count($existingFiles) > 0) {
         return;
     }
@@ -323,21 +373,28 @@ function methods_load_all(): array
     ensure_methods_storage_exists();
 
     $items = [];
-    $files = glob(methods_save_dir() . '/*.json') ?: [];
-    foreach ($files as $file) {
-        $json = @file_get_contents($file);
-        if ($json === false || trim($json) === '') {
+    $seen = [];
+    foreach (methods_save_dirs() as $dir) {
+        if (!is_dir($dir)) {
             continue;
         }
+        $files = glob($dir . '/*.json') ?: [];
+        foreach ($files as $file) {
+            $json = @file_get_contents($file);
+            if ($json === false || trim($json) === '') {
+                continue;
+            }
 
-        $decoded = json_decode($json, true);
-        if (!is_array($decoded)) {
-            continue;
-        }
+            $decoded = json_decode($json, true);
+            if (!is_array($decoded)) {
+                continue;
+            }
 
-        $normalized = methods_normalize_method($decoded);
-        if ($normalized['id'] !== '') {
-            $items[] = $normalized;
+            $normalized = methods_normalize_method($decoded);
+            if ($normalized['id'] !== '' && !isset($seen[$normalized['id']])) {
+                $seen[$normalized['id']] = true;
+                $items[] = $normalized;
+            }
         }
     }
 
@@ -351,6 +408,10 @@ function methods_load_all(): array
 function methods_save_all(array $items): bool
 {
     ensure_methods_storage_exists();
+    $saveDir = methods_writable_save_dir();
+    if ($saveDir === null) {
+        return false;
+    }
     $normalized = [];
     foreach ($items as $item) {
         if (is_array($item)) {
@@ -363,7 +424,7 @@ function methods_save_all(array $items): bool
 
     $expectedPaths = [];
     foreach ($normalized as $item) {
-        $path = methods_file_path($item['id']);
+        $path = $saveDir . '/' . $item['id'] . '.json';
         $expectedPaths[$path] = true;
         $json = json_encode($item, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
@@ -374,7 +435,7 @@ function methods_save_all(array $items): bool
         }
     }
 
-    $files = glob(methods_save_dir() . '/*.json') ?: [];
+    $files = glob($saveDir . '/*.json') ?: [];
     foreach ($files as $file) {
         if (!isset($expectedPaths[$file])) {
             @unlink($file);
@@ -406,7 +467,21 @@ function methods_find_method_index_by_id(string $id, array $items): int
 
 function methods_lessons_dir(): string
 {
-    return dirname(__DIR__) . '/lessons-data';
+    $dirs = methods_lessons_dirs();
+    foreach ($dirs as $dir) {
+        if (is_dir($dir)) {
+            return $dir;
+        }
+    }
+    return $dirs[0];
+}
+
+function methods_lessons_dirs(): array
+{
+    return array_values(array_unique([
+        dirname(__DIR__, 2) . '/lessons-data',
+        dirname(__DIR__) . '/lessons-data',
+    ]));
 }
 
 function methods_load_lessons_for_method(string $methodId): array
@@ -416,40 +491,47 @@ function methods_load_lessons_for_method(string $methodId): array
         return [];
     }
 
-    $dir = methods_lessons_dir();
-    if (!is_dir($dir)) {
-        return [];
-    }
-
     $items = [];
-    $files = glob($dir . '/*.json') ?: [];
-    foreach ($files as $file) {
-        $json = @file_get_contents($file);
-        if ($json === false || trim($json) === '') {
+    $seen = [];
+    foreach (methods_lessons_dirs() as $dir) {
+        if (!is_dir($dir)) {
             continue;
         }
+        $files = glob($dir . '/*.json') ?: [];
+        foreach ($files as $file) {
+            $json = @file_get_contents($file);
+            if ($json === false || trim($json) === '') {
+                continue;
+            }
 
-        $decoded = json_decode($json, true);
-        if (!is_array($decoded)) {
-            continue;
+            $decoded = json_decode($json, true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
+            if ($lessonMethodId !== $methodId) {
+                continue;
+            }
+
+            $lessonId = methods_normalize_string($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME));
+            if ($lessonId === '' || isset($seen[$lessonId])) {
+                continue;
+            }
+            $seen[$lessonId] = true;
+
+            $items[] = [
+                'id' => $lessonId,
+                'title' => methods_normalize_string($decoded['title'] ?? ''),
+                'description' => methods_normalize_string($decoded['description'] ?? ''),
+                'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : -1,
+                'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ''),
+                'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
+                'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
+                'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : 0,
+                'filename' => basename($file),
+            ];
         }
-
-        $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
-        if ($lessonMethodId !== $methodId) {
-            continue;
-        }
-
-        $items[] = [
-            'id' => methods_normalize_string($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME)),
-            'title' => methods_normalize_string($decoded['title'] ?? ''),
-            'description' => methods_normalize_string($decoded['description'] ?? ''),
-            'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : -1,
-            'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ''),
-            'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
-            'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
-            'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : 0,
-            'filename' => basename($file),
-        ];
     }
 
     usort($items, static function ($a, $b) {
@@ -489,17 +571,14 @@ function methods_delete_lessons_for_method(string $methodId): array
         ];
     }
 
-    $dir = methods_lessons_dir();
-    if (!is_dir($dir)) {
-        return [
-            'deleted' => [],
-            'errors' => [],
-        ];
-    }
-
     $deleted = [];
     $errors = [];
-    $files = glob($dir . '/*.json') ?: [];
+    $files = [];
+    foreach (methods_lessons_dirs() as $dir) {
+        if (is_dir($dir)) {
+            $files = array_merge($files, glob($dir . '/*.json') ?: []);
+        }
+    }
 
     foreach ($files as $file) {
         $json = @file_get_contents($file);

@@ -42,12 +42,22 @@ function normalize_step_inputs($inputs): array
         $letters
     )));
 
-    return [
+    $normalized = [
         'text' => trim((string)($inputs['text'] ?? '')),
         'word' => trim((string)($inputs['word'] ?? '')),
         'letters' => $letters,
         'repeat' => max(1, (int)($inputs['repeat'] ?? 1)),
     ];
+
+    foreach ($inputs as $key => $value) {
+        $safeKey = trim((string)$key);
+        if ($safeKey === '' || in_array($safeKey, ['text', 'word', 'letters', 'repeat'], true)) {
+            continue;
+        }
+        $normalized[$safeKey] = $value;
+    }
+
+    return $normalized;
 }
 
 $rootDir = __DIR__;
@@ -60,7 +70,7 @@ $lessonDirs = [
     $rootDir . '/lessons-data',
 ];
 $defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260415-1';
-$blocklyApiBase = '/braillestudio/blockly-api';
+$blocklyApiBase = '/braillestudio/api/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
 $errorMessage = '';
@@ -175,7 +185,7 @@ $pagePayload = [
   <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css">
-  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260522-17">
+  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <style>
     body {
       min-height: 100vh;
@@ -244,23 +254,33 @@ $pagePayload = [
       white-space: nowrap;
     }
 
-    .method-header-status {
+    .method-thumb-status {
       flex: 0 1 auto;
-      min-width: min(100%, 520px);
-    }
-
-    .method-header-status.is-collapsed {
       min-width: 0;
     }
 
-    .method-header-status .braillebridge-status__body {
+    .method-thumb-status.is-collapsed {
+      min-width: 0;
+    }
+
+    .method-thumb-status .braillebridge-status__body {
       padding: .625rem .75rem;
     }
 
-    .method-header-status .braillebridge-status__icon {
+    .method-thumb-status .braillebridge-status__icon {
       width: 2.25rem;
       height: 2.25rem;
       font-size: 1.15rem;
+    }
+
+    .method-thumb-status .braillebridge-status__toggle {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+
+    .method-thumb-status .braillebridge-status__toggle-dot {
+      margin-top: -1.1rem;
+      margin-left: 1.1rem;
     }
 
     .min-w-0 {
@@ -275,6 +295,45 @@ $pagePayload = [
       align-items: center;
       gap: .5rem;
       flex-wrap: wrap;
+    }
+
+    .thumb-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .thumb-controls {
+      display: inline-flex;
+      grid-column: 2;
+      gap: .5rem;
+      justify-content: center;
+    }
+
+    .thumb-status {
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    .thumb-controls .btn {
+      min-width: 3rem;
+      font-weight: 600;
+    }
+
+    @media (max-width: 575.98px) {
+      .thumb-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .thumb-controls {
+        grid-column: 1;
+        justify-self: center;
+      }
+
+      .thumb-status {
+        grid-column: 2;
+      }
     }
 
     .indicator,
@@ -389,6 +448,37 @@ $pagePayload = [
       color: var(--tblr-muted);
     }
 
+    .external-vars {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .35rem;
+      margin-top: .5rem;
+    }
+
+    .external-var {
+      display: inline-flex;
+      align-items: center;
+      gap: .25rem;
+      max-width: 100%;
+      padding: .125rem .4rem;
+      border: var(--tblr-border-width) solid color-mix(in srgb, var(--tblr-primary) 28%, transparent);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-primary-lt);
+      color: var(--tblr-primary);
+      font-size: .75rem;
+      line-height: 1.35;
+    }
+
+    .external-var__name {
+      font-weight: 700;
+    }
+
+    .external-var__value {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      color: var(--tblr-body-color);
+    }
+
     .status-banner {
       border: var(--tblr-border-width) solid var(--tblr-border-color);
       border-radius: var(--tblr-border-radius);
@@ -500,11 +590,6 @@ $pagePayload = [
         flex-direction: column;
       }
 
-      .method-header-status {
-        flex-basis: auto;
-        min-width: 0;
-      }
-
       .lesson-grid {
         grid-template-columns: 1fr;
       }
@@ -537,16 +622,6 @@ $pagePayload = [
             <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
           </div>
         </div>
-        <?php if ($errorMessage === ''): ?>
-          <section
-            class="method-header-status"
-            data-braillebridge-status
-            data-base-url="http://localhost:5000"
-            data-ws-url="ws://localhost:5000/ws"
-            data-launch-url="braillebridge://"
-            aria-label="BrailleBridge status"
-          ></section>
-        <?php endif; ?>
       </div>
     </header>
 
@@ -564,11 +639,23 @@ $pagePayload = [
         <div id="scriptBrailleMonitorRow" class="lesson-monitor-host">
           <div id="scriptBrailleMonitorComponent"></div>
         </div>
-        <div class="sim-row">
-          <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button">Left thumb</button>
-          <button id="simCursor5Btn" class="btn btn-outline-primary" type="button">Left middle thumb</button>
-          <button id="simChord1Btn" class="btn btn-outline-primary" type="button">Right middle thumb</button>
-          <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button">Right thumb</button>
+        <div class="thumb-row" aria-label="Thumb keys">
+          <div class="thumb-controls">
+            <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
+            <button id="simCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
+            <button id="simChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
+            <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
+          </div>
+          <section
+            class="method-thumb-status thumb-status"
+            data-braillebridge-status
+            data-expanded="false"
+            data-popup="true"
+            data-base-url="http://localhost:5000"
+            data-ws-url="ws://localhost:5000/ws"
+            data-launch-url="braillebridge://"
+            aria-label="BrailleBridge status"
+          ></section>
         </div>
         </div>
       </section>
@@ -660,7 +747,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260522-17"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
@@ -1187,17 +1274,22 @@ $pagePayload = [
 
     function getStepDebugSnapshot(stepConfig, stepIndex) {
       const inputs = stepConfig?.inputs || {};
+      const normalizedInputs = {
+        text: String(inputs.text || ''),
+        word: String(inputs.word || ''),
+        letters: Array.isArray(inputs.letters) ? [...inputs.letters] : [],
+        repeat: Number(inputs.repeat || 1)
+      };
+      Object.entries(inputs).forEach(([key, value]) => {
+        if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+        normalizedInputs[key] = value;
+      });
       return {
         stepIndex,
         scriptId: String(stepConfig?.id || '').trim(),
         title: String(stepConfig?.title || '').trim(),
         description: String(stepConfig?.description || '').trim(),
-        inputs: {
-          text: String(inputs.text || ''),
-          word: String(inputs.word || ''),
-          letters: Array.isArray(inputs.letters) ? [...inputs.letters] : [],
-          repeat: Number(inputs.repeat || 1)
-        }
+        inputs: normalizedInputs
       };
     }
 
@@ -1317,15 +1409,22 @@ $pagePayload = [
         const meta = getStepDisplayMeta(step);
         const inputs = step.inputs || {};
         const parts = [];
+        const externalVariables = [];
         if (inputs.text) parts.push(`text: ${inputs.text}`);
         if (inputs.word) parts.push(`word: ${inputs.word}`);
         if (Array.isArray(inputs.letters) && inputs.letters.length) parts.push(`letters: ${inputs.letters.join(', ')}`);
         if (Number(inputs.repeat || 1) > 1) parts.push(`repeat: ${inputs.repeat}`);
+        Object.entries(inputs).forEach(([key, value]) => {
+          if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+          const displayValue = value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+          externalVariables.push({ name: key, value: displayValue });
+        });
         return {
           id: step.id,
           title: meta.title,
           description: meta.description,
-          detail: parts.length ? parts.join(' | ') : ''
+          detail: parts.length ? parts.join(' | ') : '',
+          externalVariables
         };
       });
       stepsPreview.innerHTML = preview.length
@@ -1338,6 +1437,16 @@ $pagePayload = [
               <div class="item-meta">${escapeHtml(item.id)}</div>
               ${item.description ? `<div class="item-meta">${escapeHtml(item.description)}</div>` : ''}
               <div class="item-meta">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
+              ${item.externalVariables.length ? `
+                <div class="external-vars" aria-label="External variables">
+                  ${item.externalVariables.map((variable) => `
+                    <span class="external-var" title="${escapeHtml(variable.name)}">
+                      <span class="external-var__name">${escapeHtml(variable.name)}</span>
+                      <span class="external-var__value">${escapeHtml(variable.value || '(empty)')}</span>
+                    </span>
+                  `).join('')}
+                </div>
+              ` : '<div class="item-meta">No external variables.</div>'}
             </button>
           `).join('')}`
         : '<div class="empty"><p class="empty-title">No steps.</p></div>';
@@ -1732,29 +1841,43 @@ $pagePayload = [
       };
     }
 
-	    async function waitForCompletion(app, timeoutMs = 30000, options = {}) {
+    function createStoppedCompletion() {
+      return {
+        status: 'stopped',
+        output: null,
+        analytics: {
+          score: null,
+          maxScore: null,
+          attempts: null,
+          durationMs: null,
+          isCorrect: false
+        },
+        response: {
+          answer: null,
+          expectedAnswer: null,
+          feedback: 'Stopped by user'
+        },
+        metadata: null
+      };
+    }
+
+    async function waitForStopRequest(intervalMs = 50, shouldCancel = null) {
+      while (!stopRequested) {
+        if (typeof shouldCancel === 'function' && shouldCancel()) {
+          return null;
+        }
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+      return createStoppedCompletion();
+    }
+
+    async function waitForCompletion(app, timeoutMs = 30000, options = {}) {
 	      const start = Date.now();
         let lastRuntime = null;
         const requireExplicitCompletion = Boolean(options?.requireExplicitCompletion);
 	      while (Date.now() - start < timeoutMs) {
         if (stopRequested) {
-          return {
-            status: 'stopped',
-            output: null,
-            analytics: {
-              score: null,
-              maxScore: null,
-              attempts: null,
-              durationMs: null,
-              isCorrect: false
-            },
-            response: {
-              answer: null,
-              expectedAnswer: null,
-              feedback: 'Stopped by user'
-            },
-            metadata: null
-          };
+          return createStoppedCompletion();
         }
 	        const completion = app.getStepCompletion();
 	        if (completion) {
@@ -1813,7 +1936,9 @@ $pagePayload = [
         hasBlockly: Boolean(scriptData.blockly),
         requireExplicitCompletion
       });
-      const result = await runnerApp.runWorkspaceStateHeadless({
+      const stoppedCompletion = createStoppedCompletion();
+      let stopWatcherCancelled = false;
+      const runPromise = runnerApp.runWorkspaceStateHeadless({
         state: scriptData.blockly,
         sourceName: scriptData.title || stepConfig.title || stepConfig.id,
         lessonData: basisRecords,
@@ -1834,7 +1959,39 @@ $pagePayload = [
         },
         lockInjectedRecord: true
       });
-      const completion = result?.stepCompletion || await waitForCompletion(runnerApp, 30000, { requireExplicitCompletion });
+      const stopPromise = waitForStopRequest(50, () => stopWatcherCancelled).then((completion) => {
+        if (!completion) return null;
+        return {
+          __stoppedByUser: true,
+          generation: null,
+          startedBlockCount: null,
+          currentRecordIndex: null,
+          currentRecord: null,
+          lessonMethod: method && typeof method === 'object' ? structuredClone(method) : null,
+          stepCompletion: completion,
+          lessonCompletion: null,
+          runtime: getRunnerRuntimeSnapshot(runnerApp)
+        };
+      });
+      let result = null;
+      try {
+        result = await Promise.race([runPromise, stopPromise]);
+      } finally {
+        stopWatcherCancelled = true;
+      }
+      if (result?.__stoppedByUser) {
+        runPromise.catch((err) => {
+          appendStatus('Stopped step runner settled with an error after stop.', {
+            lessonId: lesson.id,
+            stepIndex,
+            scriptId: stepConfig.id,
+            error: err?.message || String(err)
+          });
+        });
+      }
+      const completion = stopRequested
+        ? (result?.stepCompletion || stoppedCompletion)
+        : (result?.stepCompletion || await waitForCompletion(runnerApp, 30000, { requireExplicitCompletion }));
       appendStatus('runLessonStep: runner returned.', {
         lessonId: lesson.id,
         stepIndex,
@@ -1932,6 +2089,15 @@ $pagePayload = [
           lessonCompletion: result?.lessonCompletion || null,
           previousStepIndex: stepIndex
         });
+        if (stepFinishedStatus === 'stopped') {
+          setLessonStatus(lesson.id, 'stopped', 'Lesson stopped by user');
+          renderLessonsList();
+          appendStatus('Lesson run: stopped after current step.', {
+            lessonId: lesson.id,
+            stepIndex
+          });
+          break;
+        }
         if (result?.lessonCompletion) {
           setLessonStatus(lesson.id, 'completed', 'Lesson completed');
           renderLessonsList();
