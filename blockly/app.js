@@ -1446,8 +1446,27 @@ function getWorkspaceSignature() {
   return Blockly.Xml.domToPrettyText(xmlDom);
 }
 
+function isWorkspaceEmptyForNewScript() {
+  if (!workspace) return true;
+  const blocks = typeof workspace.getAllBlocks === 'function'
+    ? workspace.getAllBlocks(false).filter((block) => !block.isShadow?.())
+    : [];
+  return blocks.length === 0 && getScriptVariables().length === 0;
+}
+
+function isUntitledDraftNewScript() {
+  return !String(currentOnlineScriptId || '').trim()
+    && !String(document.getElementById('onlineScriptIdInput')?.value || '').trim()
+    && !getCurrentOnlineScriptTitle()
+    && getCurrentOnlineScriptStatus() === 'draft';
+}
+
+function isPristineNewScript() {
+  return isUntitledDraftNewScript() && isWorkspaceEmptyForNewScript();
+}
+
 function setWorkspaceDirty(isDirty) {
-  workspaceDirty = !!isDirty;
+  workspaceDirty = !!isDirty && !isPristineNewScript();
   renderFileState();
 }
 
@@ -1524,6 +1543,11 @@ async function showUnsavedChangesDialog(actionLabel) {
 }
 
 async function confirmActionWithUnsavedChanges(actionLabel) {
+  refreshWorkspaceDirtyState();
+  if (isPristineNewScript()) {
+    markWorkspaceSaved(getWorkspaceSignature());
+    return true;
+  }
   if (!workspaceDirty) return true;
   const choice = await showUnsavedChangesDialog(actionLabel);
   if (choice === 'cancel') {

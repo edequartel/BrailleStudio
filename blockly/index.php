@@ -1061,17 +1061,20 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         <button id="newBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="New script" title="New script">
           <i class="ti ti-file-plus" aria-hidden="true"></i>
         </button>
-        <button id="copyJsonBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Export script" title="Export script">
-          <i class="ti ti-file-export" aria-hidden="true"></i>
+        <button id="copyJsonBtn" class="btn btn-outline-secondary btn-lg" type="button" aria-label="Export script JSON" title="Export script JSON to clipboard">
+          <i class="ti ti-download me-2" aria-hidden="true"></i>
+          Export JSON
         </button>
-        <button id="importJsonBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Import script" title="Import script">
-          <i class="ti ti-file-import" aria-hidden="true"></i>
+        <button id="importJsonBtn" class="btn btn-outline-secondary btn-lg" type="button" aria-label="Import script JSON" title="Import script JSON from clipboard">
+          <i class="ti ti-upload me-2" aria-hidden="true"></i>
+          Import JSON
         </button>
         <button id="onlineSaveBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Save script" title="Save script">
           <i class="ti ti-device-floppy" aria-hidden="true"></i>
         </button>
-        <button id="onlineSaveAsBtn" class="btn btn-outline-primary btn-icon btn-lg" type="button" aria-label="Save script as" title="Save script as">
-          <i class="ti ti-copy-plus" aria-hidden="true"></i>
+        <button id="onlineSaveAsBtn" class="btn btn-outline-primary btn-lg" type="button" aria-label="Save script as new copy" title="Save script as new copy">
+          <i class="ti ti-copy-plus me-2" aria-hidden="true"></i>
+          Save as
         </button>
         <button id="onlineDeleteBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Delete script" title="Delete script">
           <i class="ti ti-trash" aria-hidden="true"></i>
