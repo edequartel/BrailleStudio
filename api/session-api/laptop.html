@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BrailleStudio realtime sessie</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --panel: #ffffff;
+      --border: #d7dde8;
+      --text: #172033;
+      --muted: #5f6b7a;
+      --blue: #206bc4;
+      --green: #2fb344;
+      --amber: #f59f00;
+      --red: #d63939;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .header-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 22px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #f8fafc;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--amber);
+    }
+
+    .badge.connected .dot,
+    .badge.loaded .dot {
+      background: var(--green);
+    }
+
+    .badge.error .dot {
+      background: var(--red);
+    }
+
+    main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 18px 22px 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    .status-text {
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .meta {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px;
+    }
+
+    .meta-row strong {
+      color: #334155;
+    }
+
+    code {
+      word-break: break-word;
+      color: #0f3d75;
+    }
+
+    .qr-panel {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .qr-panel img {
+      width: 220px;
+      height: 220px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 8px;
+    }
+
+    .qr-panel .caption {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .log {
+      min-height: 180px;
+      max-height: 320px;
+      overflow: auto;
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #0f172a;
+      color: #dbeafe;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      min-height: calc(100vh - 150px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      iframe {
+        min-height: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-inner">
+        <div>
+          <h1>BrailleStudio realtime sessie</h1>
+          <div class="subtitle">Luistert naar Supabase Postgres Changes op <code>public.sessions</code>.</div>
+        </div>
+        <div id="statusBadge" class="badge">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="statusBadgeText">Initialiseren</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="grid">
+        <section class="card">
+          <div class="card-body">
+            <p id="statusText" class="status-text">Sessie wordt voorbereid.</p>
+            <div class="meta">
+              <div class="meta-row"><strong>Sessie</strong><code id="sessionCodeText">-</code></div>
+              <div class="meta-row"><strong>Script</strong><code id="scriptIdText">-</code></div>
+              <div class="meta-row"><strong>Command</strong><code id="commandText">-</code></div>
+              <div class="meta-row"><strong>Status</strong><code id="rowStatusText">-</code></div>
+              <div class="meta-row"><strong>Record</strong><code id="recordIndexText">-</code></div>
+            </div>
+            <div id="qrPanel" class="qr-panel" hidden>
+              <img id="qrImage" alt="QR-code voor deze sessie">
+              <p class="caption">Scan deze QR-code om dezelfde random sessie te openen.</p>
+              <code id="laptopUrlText">-</code>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <iframe id="builderFrame" title="BrailleStudio"></iframe>
+        </section>
+
+        <section class="card">
+          <div class="card-body">
+            <pre id="logBox" class="log">Ready.</pre>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    const params = new URLSearchParams(window.location.search);
+    let activeSessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
+    const CREATE_SESSION_URL = './create-session.php';
+    const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260528-session-api-supabase';
+    const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
+
+    const $ = (id) => document.getElementById(id);
+    const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+    let supabaseClient = null;
+    let realtimeChannel = null;
+    let lastHandledSignature = '';
+
+    function log(message, data) {
+      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
+      let line = `[${timestamp}] ${String(message || '').trim()}`;
+      if (typeof data !== 'undefined') {
+        try {
+          line += `\n${JSON.stringify(data, null, 2)}`;
+        } catch {
+          line += `\n${String(data)}`;
+        }
+      }
+      const box = $('logBox');
+      box.textContent = box.textContent.trim() && box.textContent.trim() !== 'Ready.'
+        ? `${box.textContent}\n${line}`
+        : line;
+      box.scrollTop = box.scrollHeight;
+      if (typeof data === 'undefined') {
+        console.log(`[BrailleStudio session-api] ${message}`);
+      } else {
+        console.log(`[BrailleStudio session-api] ${message}`, data);
+      }
+    }
+
+    function setStatus(text, kind = '') {
+      $('statusText').textContent = text;
+      $('statusBadgeText').textContent = text;
+      $('statusBadge').className = `badge ${kind}`.trim();
+    }
+
+    function setRowMeta(row) {
+      $('sessionCodeText').textContent = row?.session_code || activeSessionCode || '-';
+      $('scriptIdText').textContent = row?.script_id || '-';
+      $('commandText').textContent = row?.command || '-';
+      $('rowStatusText').textContent = row?.status || '-';
+      $('recordIndexText').textContent = Number.isFinite(Number(row?.record_index)) ? String(row.record_index) : '-';
+    }
+
+    function renderSessionQr(config) {
+      const phoneUrl = String(config?.phone_url || config?.laptop_url || '').trim();
+      const panel = $('qrPanel');
+      if (!phoneUrl) {
+        panel.hidden = true;
+        return;
+      }
+      $('qrImage').src = `${QR_IMAGE_BASE_URL}${encodeURIComponent(phoneUrl)}`;
+      $('laptopUrlText').textContent = phoneUrl;
+      panel.hidden = false;
+    }
+
+    function updateAddressBar(config) {
+      const code = String(config?.session_code || '').trim();
+      if (!code) {
+        return;
+      }
+      activeSessionCode = code;
+      const url = new URL(window.location.href);
+      url.searchParams.set('session', code);
+      url.searchParams.delete('session_code');
+      window.history.replaceState({}, '', url.toString());
+    }
+
+    function getBuilderWindow() {
+      const frame = $('builderFrame');
+      return frame?.contentWindow || null;
+    }
+
+    async function waitForLoadWorkspaceOnline(timeoutMs = 15000) {
+      const started = Date.now();
+      while (Date.now() - started < timeoutMs) {
+        if (typeof window.loadWorkspaceOnline === 'function') {
+          return window;
+        }
+        const frameWindow = getBuilderWindow();
+        try {
+          if (frameWindow && typeof frameWindow.loadWorkspaceOnline === 'function') {
+            return frameWindow;
+          }
+        } catch (err) {
+          log('Kan het BrailleStudio iframe nog niet inspecteren.', { message: err.message || String(err) });
+        }
+        await sleep(250);
+      }
+      return null;
+    }
+
+    async function loadScript(row) {
+      setRowMeta(row);
+      setStatus(`Script ${row.script_id} laden...`, 'connected');
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      if (!targetWindow) {
+        console.error('[BrailleStudio session-api] loadWorkspaceOnline is niet beschikbaar in de pagina of het BrailleStudio iframe.');
+        setStatus('loadWorkspaceOnline niet beschikbaar', 'error');
+        return;
+      }
+      await targetWindow.loadWorkspaceOnline(row.script_id);
+      setStatus(`Script ${row.script_id} geladen`, 'loaded');
+      log('loadWorkspaceOnline aangeroepen.', { script_id: row.script_id });
+    }
+
+    function isLoadScriptCommand(row) {
+      return row
+        && row.command === 'load_script'
+        && row.status === 'pending'
+        && typeof row.script_id === 'string'
+        && row.script_id.trim() !== ''
+        && row.executed === false;
+    }
+
+    async function handleRealtimePayload(payload) {
+      const row = payload?.new || null;
+      log('Realtime UPDATE ontvangen.', payload);
+      setRowMeta(row);
+
+      if (!isLoadScriptCommand(row)) {
+        log('UPDATE genegeerd omdat deze geen pending load_script command is.', row);
+        return;
+      }
+
+      const signature = [
+        row.session_code,
+        row.script_id,
+        row.command,
+        row.status,
+        row.record_index,
+        row.updated_at
+      ].join('|');
+      if (signature === lastHandledSignature) {
+        log('Dubbele realtime payload genegeerd.', row);
+        return;
+      }
+      lastHandledSignature = signature;
+
+      await loadScript(row);
+    }
+
+    async function createOrResetSession() {
+      const url = new URL(CREATE_SESSION_URL, window.location.href);
+      if (activeSessionCode) {
+        url.searchParams.set('session_code', activeSessionCode);
+      }
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `create-session.php gaf HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    async function startRealtime(config) {
+      if (!config.supabase_url || !config.supabase_anon_key) {
+        throw new Error('Publieke Supabase URL of anon key ontbreekt.');
+      }
+
+      supabaseClient = createClient(config.supabase_url, config.supabase_anon_key, {
+        realtime: {
+          params: {
+            eventsPerSecond: 10
+          }
+        }
+      });
+
+      realtimeChannel = supabaseClient
+        .channel(`braillestudio-session-${config.session_code}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'sessions',
+          filter: `session_code=eq.${config.session_code}`
+        }, (payload) => {
+          handleRealtimePayload(payload).catch((err) => {
+            console.error('[BrailleStudio session-api] Realtime payload verwerken is mislukt.', err);
+            setStatus(err.message || String(err), 'error');
+          });
+        })
+        .subscribe((status, err) => {
+          log('Realtime kanaalstatus.', { status, error: err?.message || null });
+          if (status === 'SUBSCRIBED') {
+            setStatus('Verbonden en wacht op script', 'connected');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setStatus(`Realtime status: ${status}`, 'error');
+          }
+        });
+    }
+
+    async function bootstrap() {
+      $('builderFrame').src = BLOCKLY_URL;
+      setStatus('Random sessie wordt aangemaakt...');
+      setRowMeta({ session_code: activeSessionCode });
+      log('Laptop sessie start.', { session: activeSessionCode || '(random)' });
+      const config = await createOrResetSession();
+      updateAddressBar(config);
+      renderSessionQr(config);
+      setRowMeta({ session_code: config.session_code, status: 'waiting' });
+      log('Sessie aangemaakt of gereset.', config);
+      await startRealtime(config);
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (realtimeChannel && supabaseClient) {
+        supabaseClient.removeChannel(realtimeChannel);
+      }
+    });
+
+    bootstrap().catch((err) => {
+      console.error('[BrailleStudio session-api] Starten mislukt.', err);
+      setStatus(err.message || String(err), 'error');
+      log('Starten mislukt.', { message: err.message || String(err) });
+    });
+  </script>
+</body>
+</html>

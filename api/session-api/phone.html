@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BrailleStudio sessie starten</title>
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --panel: #ffffff;
+      --border: #d7dde8;
+      --text: #172033;
+      --muted: #5f6b7a;
+      --blue: #206bc4;
+      --green: #2fb344;
+      --red: #d63939;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      width: min(560px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    label {
+      display: block;
+      margin: 16px 0 6px;
+      font-weight: 700;
+    }
+
+    input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+    }
+
+    button {
+      width: 100%;
+      min-height: 46px;
+      margin-top: 12px;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: var(--blue);
+      color: #ffffff;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    button.secondary {
+      background: #eef4ff;
+      color: var(--blue);
+      border: 1px solid #c7d7ff;
+    }
+
+    button:disabled {
+      opacity: .65;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0f172a;
+    }
+
+    .status {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--muted);
+      background: #f8fafc;
+    }
+
+    .status.ok {
+      color: #146c2e;
+      border-color: #b7e2c1;
+      background: #eefbf1;
+    }
+
+    .status.error {
+      color: #8f2020;
+      border-color: #f0b9b9;
+      background: #fff1f1;
+    }
+
+    code {
+      word-break: break-word;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+</head>
+<body>
+  <main>
+    <section class="card">
+      <h1>Step-link scannen</h1>
+      <p>Sessie <strong id="sessionText">-</strong> is gekoppeld. Scan nu de QR-code van de step-link.</p>
+
+      <label for="codeInput">Step-link code</label>
+      <input id="codeInput" type="text" autocomplete="off" placeholder="Scan of typ de code">
+      <button id="sendBtn" type="button">Verstuur step-link</button>
+      <button id="scanBtn" class="secondary" type="button">Camera gebruiken</button>
+
+      <video id="video" playsinline muted hidden></video>
+      <canvas id="canvas" hidden></canvas>
+
+      <div id="status" class="status">Klaar om een step-link te scannen.</div>
+    </section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
+    const SEND_STEP_LINK_URL = './send-step-link.php';
+    const $ = (id) => document.getElementById(id);
+
+    let stream = null;
+    let scanTimer = null;
+    let busy = false;
+
+    function setStatus(message, kind = '') {
+      const status = $('status');
+      status.className = `status ${kind}`.trim();
+      status.textContent = message;
+    }
+
+    function normalizeStepLinkCode(rawValue) {
+      const value = String(rawValue || '').trim();
+      if (!value) return '';
+      try {
+        const url = new URL(value);
+        const fromQuery = String(url.searchParams.get('code') || url.searchParams.get('step_link') || '').trim();
+        if (fromQuery) return fromQuery;
+        const parts = url.pathname.split('/').filter(Boolean);
+        return String(parts[parts.length - 1] || '').replace(/\.json$/i, '').trim();
+      } catch {
+        return value;
+      }
+    }
+
+    async function sendStepLink(source = 'manual') {
+      if (busy) return;
+      const code = normalizeStepLinkCode($('codeInput').value);
+      if (!sessionCode) {
+        throw new Error('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.');
+      }
+      if (!code) {
+        throw new Error('Scan of typ eerst een step-link code.');
+      }
+
+      busy = true;
+      $('sendBtn').disabled = true;
+      $('codeInput').value = code;
+      setStatus('Step-link wordt verstuurd...');
+      try {
+        const response = await fetch(SEND_STEP_LINK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_code: sessionCode,
+            code
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || `HTTP ${response.status}`);
+        }
+        setStatus(`Step-link ${code} verstuurd. Script ${data.scriptId} start op de laptop.`, 'ok');
+        console.log('[BrailleStudio phone] Step-link sent.', { source, data });
+      } finally {
+        busy = false;
+        $('sendBtn').disabled = false;
+      }
+    }
+
+    function detectQrWithJsQr(video) {
+      const canvas = $('canvas');
+      if (!canvas || !video?.videoWidth || !video?.videoHeight || typeof window.jsQR !== 'function') {
+        return '';
+      }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) return '';
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const result = window.jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+      return String(result?.data || '').trim();
+    }
+
+    async function scanFrame() {
+      const video = $('video');
+      if (!video || video.readyState < 2 || busy) return;
+      let value = '';
+      if (typeof BarcodeDetector !== 'undefined') {
+        const detector = new BarcodeDetector({ formats: ['qr_code'] });
+        const barcodes = await detector.detect(video);
+        if (Array.isArray(barcodes) && barcodes.length) {
+          value = String(barcodes[0]?.rawValue || '').trim();
+        }
+      }
+      if (!value) {
+        value = detectQrWithJsQr(video);
+      }
+      if (!value) return;
+      const code = normalizeStepLinkCode(value);
+      if (!code) return;
+      $('codeInput').value = code;
+      stopScanner();
+      await sendStepLink('scanner');
+    }
+
+    async function startScanner() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera is niet beschikbaar op dit apparaat.');
+      }
+      if (typeof BarcodeDetector === 'undefined' && typeof window.jsQR !== 'function') {
+        throw new Error('QR-scannen is niet beschikbaar. Typ de code handmatig in.');
+      }
+      stopScanner();
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      const video = $('video');
+      video.srcObject = stream;
+      video.hidden = false;
+      await video.play();
+      $('scanBtn').textContent = 'Camera stoppen';
+      setStatus('Camera staat aan. Richt op de step-link QR-code.');
+      scanTimer = window.setInterval(() => {
+        scanFrame().catch((err) => setStatus(err.message || String(err), 'error'));
+      }, 500);
+    }
+
+    function stopScanner() {
+      if (scanTimer) {
+        window.clearInterval(scanTimer);
+        scanTimer = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+      }
+      const video = $('video');
+      video.pause();
+      video.srcObject = null;
+      video.hidden = true;
+      $('scanBtn').textContent = 'Camera gebruiken';
+    }
+
+    function bootstrap() {
+      $('sessionText').textContent = sessionCode || '-';
+      if (!sessionCode) {
+        setStatus('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.', 'error');
+      }
+
+      $('sendBtn').addEventListener('click', () => {
+        sendStepLink('button').catch((err) => setStatus(err.message || String(err), 'error'));
+      });
+      $('codeInput').addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        sendStepLink('enter').catch((err) => setStatus(err.message || String(err), 'error'));
+      });
+      $('scanBtn').addEventListener('click', () => {
+        if (stream) {
+          stopScanner();
+          setStatus('Camera gestopt. Je kunt een code typen of opnieuw scannen.');
+          return;
+        }
+        startScanner().catch((err) => setStatus(err.message || String(err), 'error'));
+      });
+      window.addEventListener('beforeunload', stopScanner);
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

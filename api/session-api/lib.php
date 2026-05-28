@@ -8,6 +8,7 @@ $sessionApiPublicScripts = [
     'join.php',
     'resolve.php',
     'runtime-state.php',
+    'send-step-link.php',
     'start-session.php',
     'status.php',
     'wait.php',

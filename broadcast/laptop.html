@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>BrailleStudio Broadcast Test</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .ok {
+      color: green;
+      font-weight: bold;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
+    }
+
+    .log {
+      white-space: pre-wrap;
+      background: #f5f5f5;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>BrailleStudio Broadcast Test</h1>
+
+<div class="card">
+  <p>Sessie: <strong id="session"></strong></p>
+  <p id="status">Verbinden...</p>
+</div>
+
+<div class="card">
+  <h2>Laatste realtime payload</h2>
+  <div id="log" class="log">Nog geen berichten ontvangen.</div>
+</div>
+
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+  const SUPABASE_URL = "https://fcanjaueqwyonfuaacpj.supabase.co";
+
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZjYW5qYXVlcXd5b25mdWFhY3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NDQxMjQsImV4cCI6MjA5NTUyMDEyNH0.Q7kJWyPXN0C-ngZiiM5O5BTiWJ5i6BEb7FUo1Yto8_k";
+
+  const supabase = createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  const params = new URLSearchParams(window.location.search);
+  const sessionCode = params.get("session") || "ABC123";
+
+  const sessionEl = document.getElementById("session");
+  const statusEl = document.getElementById("status");
+  const logEl = document.getElementById("log");
+
+  sessionEl.textContent = sessionCode;
+  statusEl.textContent = "Realtime verbinden...";
+
+  supabase
+    .channel("session-" + sessionCode)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "sessions",
+        filter: "session_code=eq." + sessionCode
+      },
+      payload => {
+        console.log("REALTIME PAYLOAD:", payload);
+
+        const row = payload.new;
+
+        statusEl.innerHTML =
+          '<span class="ok">Realtime bericht ontvangen</span>';
+
+        logEl.textContent =
+          JSON.stringify(payload, null, 2);
+
+        if (
+          row &&
+          row.command === "load_script" &&
+          row.script_id &&
+          row.status === "pending" &&
+          row.executed === false
+        ) {
+          console.log("SCRIPT START:", row.script_id);
+
+          alert("SCRIPT START: " + row.script_id);
+
+          // Later hier BrailleStudio starten:
+          // loadWorkspaceOnline(row.script_id);
+        }
+      }
+    )
+    .subscribe(status => {
+      console.log("Realtime status:", status);
+
+      if (status === "SUBSCRIBED") {
+        statusEl.innerHTML =
+          'Realtime status: <strong class="ok">SUBSCRIBED</strong>';
+      } else if (status === "CHANNEL_ERROR") {
+        statusEl.innerHTML =
+          '<span class="error">Realtime fout: CHANNEL_ERROR</span>';
+      } else {
+        statusEl.innerHTML =
+          "Realtime status: <strong>" + status + "</strong>";
+      }
+    });
+</script>
+
+</body>
+</html>

@@ -41,7 +41,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         </a>
         <div class="navbar-nav flex-row ms-auto">
           <div class="nav-item">
-            <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($sessionBase, 'laptop.php')) ?>">
+            <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($sessionBase, 'laptop.html')) ?>">
               <i class="ti ti-device-laptop me-2" aria-hidden="true"></i>
               Open session resolver
             </a>

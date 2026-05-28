@@ -25,7 +25,7 @@ $modules = [
         'theme' => 'primary',
         'links' => [
             ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
-            ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.php', 'icon' => 'ti-device-laptop'],
+            ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
         ],
     ],
     [
