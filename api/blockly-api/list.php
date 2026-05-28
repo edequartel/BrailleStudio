@@ -16,6 +16,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 blockly_api_require_authentication();
 
+function blockly_api_walk_blocks($block, &$externalNames): void
+{
+    if (!is_array($block)) {
+        return;
+    }
+
+    $type = isset($block['type']) ? (string)$block['type'] : '';
+    if (in_array($type, ['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'], true)) {
+        $name = isset($block['fields']['VAR']) ? trim((string)$block['fields']['VAR']) : '';
+        if ($name !== '') {
+            $externalNames[$name] = true;
+        }
+    }
+
+    $inputs = isset($block['inputs']) && is_array($block['inputs']) ? $block['inputs'] : [];
+    foreach ($inputs as $input) {
+        if (!is_array($input)) {
+            continue;
+        }
+        if (isset($input['block'])) {
+            blockly_api_walk_blocks($input['block'], $externalNames);
+        }
+        if (isset($input['shadow'])) {
+            blockly_api_walk_blocks($input['shadow'], $externalNames);
+        }
+    }
+
+    if (isset($block['next']['block'])) {
+        blockly_api_walk_blocks($block['next']['block'], $externalNames);
+    }
+}
+
+function blockly_api_external_variable_names(array $content): array
+{
+    $externalNames = [];
+    $blocks = $content['blockly']['blocks']['blocks'] ?? [];
+    if (is_array($blocks)) {
+        foreach ($blocks as $block) {
+            blockly_api_walk_blocks($block, $externalNames);
+        }
+    }
+    return array_keys($externalNames);
+}
+
+function blockly_api_has_legacy_variable_format(array $content): bool
+{
+    $externalNames = blockly_api_external_variable_names($content);
+    if (count($externalNames) === 0) {
+        return false;
+    }
+
+    $scriptVariables = $content['blockly']['scriptVariables'] ?? null;
+    if (!is_array($scriptVariables)) {
+        return true;
+    }
+
+    $metadataNames = [];
+    foreach ($scriptVariables as $variable) {
+        if (!is_array($variable)) {
+            continue;
+        }
+        $name = isset($variable['name']) ? trim((string)$variable['name']) : '';
+        $scope = isset($variable['scope']) ? strtolower(trim((string)$variable['scope'])) : '';
+        if ($name !== '' && $scope === 'external') {
+            $metadataNames[$name] = true;
+            $id = isset($variable['id']) ? trim((string)$variable['id']) : '';
+            $nameSlug = strtolower(trim(preg_replace('/[^a-z0-9_]+/', '_', $name), '_'));
+            $expectedPrefix = 'external_' . $nameSlug . '_';
+            if ($nameSlug !== '' && $id !== '' && strpos($id, $expectedPrefix) !== 0) {
+                return true;
+            }
+        }
+    }
+
+    foreach ($externalNames as $name) {
+        if (!isset($metadataNames[$name])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 $items = [];
 $seen = [];
 
@@ -57,6 +140,7 @@ foreach (blockly_api_data_dirs() as $saveDir) {
             'updatedAt' => $content['updatedAt'] ?? '',
             'meta' => $normalizedMeta,
             'filename' => basename($file),
+            'legacyVariableFormat' => blockly_api_has_legacy_variable_format($content),
         ];
     }
 }

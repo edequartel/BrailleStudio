@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brailleles starten</title>
+  <script>
+    const target = new URL('./start.php', window.location.href);
+    target.search = window.location.search;
+    target.hash = window.location.hash;
+    window.location.replace(target.toString());
+  </script>
+</head>
+<body>
+  <a href="./start.php">Brailleles starten</a>
+</body>
+</html>

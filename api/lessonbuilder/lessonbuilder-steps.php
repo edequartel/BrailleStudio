@@ -1064,8 +1064,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function getStepDisplayMeta(stepConfig) {
       const script = getScriptItemById(stepConfig?.id);
+      const scriptMeta = script?.meta && typeof script.meta === 'object' ? script.meta : {};
       return {
-        title: String(stepConfig?.title || script?.title || '').trim()
+        title: String(stepConfig?.title || scriptMeta.title || script?.title || '').trim(),
+        description: String(stepConfig?.description || scriptMeta.description || script?.description || '').trim(),
+        instruction: String(stepConfig?.instruction || scriptMeta.instruction || '').trim(),
+        exists: Boolean(script)
       };
     }
 
@@ -1099,6 +1103,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return {
         id: String(stepConfig?.id || '').trim(),
         title: meta.title,
+        description: meta.description,
+        instruction: meta.instruction,
         stepLinkCode: String(stepConfig?.stepLinkCode || '').trim(),
         inputs: serializedInputs
       };
@@ -1252,6 +1258,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         built.push({
           id: String(source.id || '').trim(),
           title: meta.title,
+          description: meta.description,
+          instruction: meta.instruction,
           stepLinkCode: String(source.stepLinkCode || '').trim(),
           inputs
         });
@@ -1262,9 +1270,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function hydrateStepConfigsWithScriptMetadata(items = stepConfigs) {
       const hydrated = shared.normalizeStepConfigs(items).map((cfg) => {
         const script = getScriptItemById(cfg.id);
+        const scriptMeta = script?.meta && typeof script.meta === 'object' ? script.meta : {};
         return {
           ...cfg,
-          title: cfg.title || String(script?.title || '').trim()
+          title: cfg.title || String(scriptMeta.title || script?.title || '').trim(),
+          description: String(cfg.description || scriptMeta.description || script?.description || '').trim(),
+          instruction: String(cfg.instruction || scriptMeta.instruction || '').trim()
         };
       });
       if (items === stepConfigs) {
@@ -1386,14 +1397,43 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function createExternalVariablesEditor(stepConfig, index) {
       const scriptData = scriptDataCache.get(String(stepConfig?.id || '').trim()) || null;
       const variables = getExternalVariablesFromScriptData(scriptData);
+      const meta = getStepDisplayMeta(stepConfig);
       const wrapper = document.createElement('div');
       wrapper.className = 'step-settings';
+      const appendReadonlyTextRow = (labelText, value, rows = 2) => {
+        const group = document.createElement('div');
+        group.className = 'step-variable-row';
+        const label = document.createElement('label');
+        label.className = 'form-label small';
+        label.textContent = labelText;
+        const valueColumn = document.createElement('div');
+        const control = document.createElement('textarea');
+        control.className = 'form-control form-control-sm';
+        control.rows = rows;
+        control.readOnly = true;
+        control.setAttribute('aria-readonly', 'true');
+        control.value = String(value || '');
+        valueColumn.appendChild(control);
+        group.appendChild(label);
+        group.appendChild(valueColumn);
+        wrapper.appendChild(group);
+      };
+
+      appendReadonlyTextRow('Description', meta.description || '-', 2);
+      appendReadonlyTextRow('Instruction', meta.instruction || '-', 2);
+
       if (!scriptData) {
-        wrapper.innerHTML = '<div class="small text-secondary">External variables worden geladen zodra het script is opgehaald.</div>';
+        const message = document.createElement('div');
+        message.className = 'small text-secondary';
+        message.textContent = 'External variables worden geladen zodra het script is opgehaald.';
+        wrapper.appendChild(message);
         return wrapper;
       }
       if (!variables.length) {
-        wrapper.innerHTML = '<div class="small text-secondary">Dit Blockly script heeft geen external variables.</div>';
+        const message = document.createElement('div');
+        message.className = 'small text-secondary';
+        message.textContent = 'Dit Blockly script heeft geen external variables.';
+        wrapper.appendChild(message);
         return wrapper;
       }
 
@@ -1479,8 +1519,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         title.innerHTML = `
           <div class="d-flex align-items-center flex-wrap gap-2 min-w-0">
             <span class="badge bg-secondary-lt flex-shrink-0">${index + 1}</span>
+            ${meta.exists ? '' : '<i class="ti ti-alert-triangle text-danger" aria-hidden="true" title="Script bestaat niet meer"></i><span class="visually-hidden">Script bestaat niet meer</span>'}
             <span class="fw-semibold text-truncate">${escapeHtml(meta.title || cfg.id)}</span>
-            <span class="badge bg-blue-lt">Repeat: ${escapeHtml(inputs.repeat || 1)}</span>
             <span class="small text-secondary text-truncate">${escapeHtml(cfg.id)}</span>
           </div>
         `;

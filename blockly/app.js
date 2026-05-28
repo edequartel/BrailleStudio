@@ -347,6 +347,11 @@ function makeVariableId(name, scope) {
   return `${scope}_${base}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function variableIdMatchesName(id, name, scope) {
+  const base = String(name || 'variable').trim().toLowerCase().replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '') || 'variable';
+  return String(id || '').startsWith(`${scope}_${base}_`);
+}
+
 function normalizeVariableName(name) {
   return String(name || '').trim();
 }
@@ -358,8 +363,9 @@ function normalizeScriptVariable(raw = {}, fallbackScope = 'internal') {
     : 'string';
   const name = normalizeVariableName(raw.name);
   if (!name) return null;
+  const rawId = String(raw.id || '').trim();
   return {
-    id: String(raw.id || '').trim() || makeVariableId(name, scope),
+    id: rawId && variableIdMatchesName(rawId, name, scope) ? rawId : makeVariableId(name, scope),
     name,
     scope,
     type,
@@ -1984,14 +1990,21 @@ function renderOnlineScriptsSelect(items) {
     const id = String(item?.id || '').trim();
     if (!id) continue;
     const title = String(item?.title || '').trim();
+    const filename = String(item?.filename || '').trim();
     const status = normalizeStatus(item?.meta?.status);
+    const hasLegacyVariableFormat = Boolean(item?.legacyVariableFormat);
+    const displayTitle = title || filename || '(untitled)';
+    const migrationPrefix = hasLegacyVariableFormat ? '⚠\u00A0' : '';
+    const migrationSuffix = hasLegacyVariableFormat ? '\u00A0\u00A0⚠' : '';
     const option = document.createElement('option');
     option.value = id;
     option.dataset.title = title;
     option.dataset.status = status;
-    option.textContent = title
-      ? `${statusDot(status)}\u00A0\u00A0${title}`
-      : `${statusDot(status)}\u00A0\u00A0(untitled)`;
+    option.dataset.legacyVariableFormat = hasLegacyVariableFormat ? '1' : '0';
+    option.title = hasLegacyVariableFormat
+      ? `${filename || id}: oude external-variable indeling. Wordt bij opslaan omgezet naar de nieuwe indeling.`
+      : (filename || '');
+    option.textContent = `${statusDot(status)}\u00A0\u00A0${migrationPrefix}${displayTitle}${migrationSuffix}`;
     select.appendChild(option);
   }
 
@@ -4190,11 +4203,75 @@ function extractWorkspaceVariablesFromXml(xmlDom) {
   }
 }
 
+function getSerializedShadowDefaultValue(shadow) {
+  if (!shadow || typeof shadow !== 'object') return undefined;
+  const type = String(shadow.type || '').trim();
+  if (type === 'text') return String(shadow.fields?.TEXT ?? '');
+  if (type === 'math_number') return Number(shadow.fields?.NUM ?? 0) || 0;
+  if (type === 'logic_boolean') return String(shadow.fields?.BOOL || '').toUpperCase() === 'TRUE';
+  return undefined;
+}
+
+function collectExternalVariablesFromState(state) {
+  const variablesByName = new Map();
+  const externalBlockTypes = new Set([
+    'external_variable_get',
+    'external_variable_set',
+    'external_variable_exists',
+    'external_property_get'
+  ]);
+  const addExternalVariable = (name, defaultValue) => {
+    const normalizedName = String(name || '').trim();
+    if (!normalizedName || variablesByName.has(normalizedName)) return;
+    variablesByName.set(normalizedName, normalizeScriptVariable({
+      name: normalizedName,
+      scope: 'external',
+      type: typeof defaultValue === 'number'
+        ? 'number'
+        : (typeof defaultValue === 'boolean' ? 'boolean' : 'string'),
+      defaultValue: defaultValue ?? '',
+      description: 'External variable detected from legacy Blockly blocks. Save the script to store the new metadata format.'
+    }));
+  };
+
+  const visitBlock = (block, defaultValue = undefined) => {
+    if (!block || typeof block !== 'object') return;
+    if (externalBlockTypes.has(String(block.type || ''))) {
+      addExternalVariable(block.fields?.VAR, defaultValue);
+    }
+    Object.values(block.inputs || {}).forEach((input) => {
+      if (!input || typeof input !== 'object') return;
+      const shadowDefault = getSerializedShadowDefaultValue(input.shadow);
+      visitBlock(input.block, shadowDefault);
+      visitBlock(input.shadow);
+    });
+    visitBlock(block.next?.block);
+  };
+
+  const blocks = state?.blocks?.blocks;
+  if (Array.isArray(blocks)) {
+    blocks.forEach((block) => visitBlock(block));
+  }
+  return Array.from(variablesByName.values()).filter(Boolean);
+}
+
+function mergeWorkspaceVariablesWithDetectedExternalVariables(variables, state) {
+  const normalized = normalizeScriptVariables(variables);
+  const seen = new Set(normalized.map((item) => `${item.scope}:${item.name}`));
+  collectExternalVariablesFromState(state).forEach((variable) => {
+    const key = `${variable.scope}:${variable.name}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    normalized.push(variable);
+  });
+  return normalized;
+}
+
 function extractWorkspaceVariablesFromState(state, metadata = null) {
-  if (Array.isArray(state?.scriptVariables)) return normalizeScriptVariables(state.scriptVariables);
-  if (Array.isArray(state?.variablesMetadata)) return normalizeScriptVariables(state.variablesMetadata);
-  if (Array.isArray(metadata?.variables)) return normalizeScriptVariables(metadata.variables);
-  return [];
+  if (Array.isArray(state?.scriptVariables)) return mergeWorkspaceVariablesWithDetectedExternalVariables(state.scriptVariables, state);
+  if (Array.isArray(state?.variablesMetadata)) return mergeWorkspaceVariablesWithDetectedExternalVariables(state.variablesMetadata, state);
+  if (Array.isArray(metadata?.variables)) return mergeWorkspaceVariablesWithDetectedExternalVariables(metadata.variables, state);
+  return mergeWorkspaceVariablesWithDetectedExternalVariables([], state);
 }
 
 function getBlocklySerializableState(state) {
