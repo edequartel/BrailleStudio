@@ -77,9 +77,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <script src="https://unpkg.com/blockly/msg/en.js"></script>
   <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
   <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
-  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
 
   <style>
     :root {
@@ -1632,16 +1632,16 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     await loadScript('./blocks.js?v=20260529-external-debug-2');
     await loadScript('./generators.js?v=20260529-external-debug-2');
     await loadScriptCandidates([
-      '../components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-      '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-      'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
+      '../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+      '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+      'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
     ], { required: false });
     await loadScriptCandidates([
       '../components/braillebridge-status/braillebridge-status.js',
       '/braillestudio/components/braillebridge-status/braillebridge-status.js',
       'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
-    await loadScript('./app.js?v=20260529-external-debug-2');
+    await loadScript('./app.js?v=20260529-session-audio-handler-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

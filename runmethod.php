@@ -184,7 +184,7 @@ $pagePayload = [
   <title><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></title>
   <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
   <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <style>
     body {
@@ -1495,8 +1495,8 @@ $pagePayload = [
       if (brailleMonitorUi) return brailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
@@ -1514,8 +1514,8 @@ $pagePayload = [
       if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BrailleStudio realtime sessie</title>
   <link rel="stylesheet" href="../../tabler/core/dist/css/tabler.min.css">
-  <link rel="stylesheet" href="../../components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="../../components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
   <link rel="stylesheet" href="../../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <style>
     :root {
@@ -194,6 +194,145 @@
     .braille-monitor-standard-card .card-body {
       display: grid;
       gap: .75rem;
+    }
+
+    .audio-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      min-height: 3.25rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .625rem .75rem;
+      background: #f8fafc;
+      color: var(--muted);
+    }
+
+    .audio-indicator__main {
+      display: flex;
+      align-items: center;
+      gap: .625rem;
+      min-width: 0;
+    }
+
+    .audio-indicator__dot {
+      width: .75rem;
+      height: .75rem;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #94a3b8;
+    }
+
+    .audio-indicator__text {
+      min-width: 0;
+    }
+
+    .audio-indicator__title {
+      display: block;
+      color: var(--text);
+      font-size: .875rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .audio-indicator__detail {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
+      color: var(--muted);
+      font-size: .8125rem;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .audio-indicator__badge {
+      flex: 0 0 auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: .25rem .55rem;
+      background: #ffffff;
+      color: #475569;
+      font-size: .75rem;
+      font-weight: 800;
+    }
+
+    .audio-indicator__action {
+      display: none;
+      flex: 0 0 auto;
+      border: 1px solid #f59e0b;
+      border-radius: 999px;
+      padding: .375rem .7rem;
+      background: #f59e0b;
+      color: #111827;
+      font-size: .75rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .audio-indicator__action:focus-visible {
+      outline: 3px solid rgba(245, 159, 0, .35);
+      outline-offset: 2px;
+    }
+
+    .audio-indicator.is-playing {
+      border-color: #93c5fd;
+      background: #eff6ff;
+    }
+
+    .audio-indicator.is-playing .audio-indicator__dot {
+      background: var(--blue);
+      box-shadow: 0 0 0 .35rem rgba(32, 107, 196, .16);
+      animation: audioPulse 1s ease-in-out infinite;
+    }
+
+    .audio-indicator.is-playing .audio-indicator__badge {
+      border-color: #93c5fd;
+      background: #dbeafe;
+      color: #0f3d75;
+    }
+
+    .audio-indicator.is-ended {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+
+    .audio-indicator.is-ended .audio-indicator__dot {
+      background: var(--green);
+    }
+
+    .audio-indicator.is-error {
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+
+    .audio-indicator.is-error .audio-indicator__dot {
+      background: var(--red);
+    }
+
+    .audio-indicator.is-blocked {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+
+    .audio-indicator.is-blocked .audio-indicator__dot {
+      background: var(--amber);
+    }
+
+    .audio-indicator.is-blocked .audio-indicator__badge {
+      border-color: #f59e0b;
+      background: #fef3c7;
+      color: #78350f;
+    }
+
+    .audio-indicator.is-blocked .audio-indicator__action {
+      display: inline-flex;
+    }
+
+    @keyframes audioPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: .7; }
     }
 
     .braille-monitor-standard-host {
@@ -403,6 +542,17 @@
         <section id="playerPanel" hidden>
           <div class="card braille-monitor-standard-card">
             <div class="card-body">
+              <div id="audioIndicator" class="audio-indicator is-idle" aria-live="polite">
+                <div class="audio-indicator__main">
+                  <span class="audio-indicator__dot" aria-hidden="true"></span>
+                  <span class="audio-indicator__text">
+                    <strong id="audioIndicatorTitle" class="audio-indicator__title">Audio</strong>
+                    <span id="audioIndicatorDetail" class="audio-indicator__detail">Nog geen audio afgespeeld.</span>
+                  </span>
+                </div>
+                <span id="audioIndicatorBadge" class="audio-indicator__badge">stil</span>
+                <button id="audioEnableBtn" class="audio-indicator__action" type="button">Geluid inschakelen</button>
+              </div>
               <div id="sessionBrailleMonitorComponent" class="braille-monitor-standard-host"></div>
               <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
                 <div class="braille-monitor-thumb-controls">
@@ -455,7 +605,7 @@
     </main>
   </div>
 
-  <script src="../../components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1"></script>
+  <script src="../../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1"></script>
   <script src="../../components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3"></script>
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -466,9 +616,9 @@
     const DELETE_SESSION_URL = './delete-session.php';
     const LIST_LINKS_URL = './list-links.php';
     const SCRIPT_META_URL = './script-meta.php';
-    const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260528-session-api-supabase';
+    const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260529-session-audio-handler-1';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
-    const BRAILLE_MONITOR_PLACEHOLDER = 'Wacht op de step-link...';
+    const BRAILLE_MONITOR_PLACEHOLDER = '';
     const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
     const $ = (id) => document.getElementById(id);
@@ -480,6 +630,11 @@
     let brailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
+    let lastAudioSignature = '';
+    let audioIndicatorTimer = null;
+    let activeSessionAudio = null;
+    let activeSessionAudioCleanup = null;
+    let pendingBlockedAudio = null;
     let idleCleanupTimer = null;
     let sessionDeleted = false;
 
@@ -517,6 +672,216 @@
 
     function setRowMeta(row) {
       $('sessionCodeText').textContent = row?.session_code || activeSessionCode || '-';
+    }
+
+    function audioFileLabel(url) {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+      try {
+        const parsed = new URL(raw, window.location.href);
+        return decodeURIComponent(parsed.pathname.split('/').filter(Boolean).pop() || raw);
+      } catch {
+        return raw.split('/').filter(Boolean).pop() || raw;
+      }
+    }
+
+    function setAudioIndicator(state = 'idle', detail = '', url = '') {
+      const indicator = $('audioIndicator');
+      if (!indicator) return;
+      if (audioIndicatorTimer) {
+        window.clearTimeout(audioIndicatorTimer);
+        audioIndicatorTimer = null;
+      }
+      const normalized = String(state || 'idle').trim().toLowerCase();
+      const titleMap = {
+        idle: 'Audio',
+        queued: 'Audio wordt gestart',
+        playing: 'Audio speelt nu',
+        ended: 'Audio klaar',
+        error: 'Audio fout',
+        blocked: 'Audio geblokkeerd'
+      };
+      const badgeMap = {
+        idle: 'stil',
+        queued: 'start',
+        playing: 'speelt',
+        ended: 'klaar',
+        error: 'fout',
+        blocked: 'klik nodig'
+      };
+      indicator.className = `audio-indicator is-${normalized}`;
+      $('audioIndicatorTitle').textContent = titleMap[normalized] || titleMap.idle;
+      $('audioIndicatorBadge').textContent = badgeMap[normalized] || badgeMap.idle;
+      const file = audioFileLabel(url);
+      $('audioIndicatorDetail').textContent = String(detail || file || 'Nog geen audio afgespeeld.');
+      if (url) {
+        indicator.title = url;
+      } else {
+        indicator.removeAttribute('title');
+      }
+      if (normalized === 'ended') {
+        audioIndicatorTimer = window.setTimeout(() => {
+          setAudioIndicator('idle', file ? `Laatste audio: ${file}` : 'Geen audio actief.', url);
+        }, 5000);
+      }
+    }
+
+    function cleanupActiveSessionAudio() {
+      if (activeSessionAudioCleanup) {
+        try {
+          activeSessionAudioCleanup();
+        } catch {
+          // ignore cleanup errors
+        }
+        activeSessionAudioCleanup = null;
+      }
+      activeSessionAudio = null;
+    }
+
+    function stopActiveSessionAudio() {
+      if (!activeSessionAudio) return;
+      try {
+        activeSessionAudio.pause();
+        activeSessionAudio.currentTime = 0;
+      } catch {
+        // ignore audio stop errors
+      }
+      cleanupActiveSessionAudio();
+    }
+
+    function isAutoplayBlockedError(err) {
+      const message = String(err?.message || err || '').toLowerCase();
+      const name = String(err?.name || '').toLowerCase();
+      return name === 'notallowederror'
+        || message.includes('not allowed')
+        || message.includes('denied permission')
+        || message.includes('user agent')
+        || message.includes('platform in the current context');
+    }
+
+    async function playSessionAudioNow(url) {
+      const target = String(url || '').trim();
+      if (!target) return;
+      stopActiveSessionAudio();
+      setAudioIndicator('playing', `Speelt: ${audioFileLabel(target) || target}`, target);
+      const audio = new Audio(target);
+      activeSessionAudio = audio;
+      const playbackDone = new Promise((resolve) => {
+        const cleanup = () => {
+          audio.removeEventListener('ended', onEnded);
+          audio.removeEventListener('error', onError);
+          audio.removeEventListener('abort', onAbort);
+        };
+        const finish = (state, detail) => {
+          if (activeSessionAudio === audio) {
+            cleanupActiveSessionAudio();
+          } else {
+            cleanup();
+          }
+          setAudioIndicator(state, detail, target);
+          resolve();
+        };
+        const onEnded = () => finish('ended', `Afgespeeld: ${audioFileLabel(target) || target}`);
+        const onError = () => finish('error', `Audio kan niet worden afgespeeld: ${audioFileLabel(target) || target}`);
+        const onAbort = () => finish('ended', `Afgebroken: ${audioFileLabel(target) || target}`);
+        audio.addEventListener('ended', onEnded);
+        audio.addEventListener('error', onError);
+        audio.addEventListener('abort', onAbort);
+        activeSessionAudioCleanup = cleanup;
+      });
+      try {
+        await audio.play();
+      } catch (err) {
+        cleanupActiveSessionAudio();
+        throw err;
+      }
+      await playbackDone;
+    }
+
+    async function playSessionAudio(url) {
+      const target = String(url || '').trim();
+      if (!target) return;
+      lastAudioSignature = `playing:${target}`;
+      try {
+        await playSessionAudioNow(target);
+      } catch (err) {
+        if (!isAutoplayBlockedError(err)) {
+          setAudioIndicator('error', err.message || String(err), target);
+          return;
+        }
+        setAudioIndicator('blocked', `macOS/browser blokkeert automatisch afspelen. Klik op Geluid inschakelen voor ${audioFileLabel(target) || target}.`, target);
+        await new Promise((resolve) => {
+          pendingBlockedAudio = { url: target, resolve };
+        });
+      }
+    }
+
+    async function enablePendingAudio() {
+      const pending = pendingBlockedAudio;
+      if (!pending) {
+        setAudioIndicator('idle', 'Geluid is ingeschakeld. Wacht op audio...');
+        return;
+      }
+      pendingBlockedAudio = null;
+      try {
+        await playSessionAudioNow(pending.url);
+      } catch (err) {
+        setAudioIndicator('error', err.message || String(err), pending.url);
+      } finally {
+        pending.resolve();
+      }
+    }
+
+    function handleRunnerLogLine(line) {
+      const text = String(line || '').replace(/^\[[^\]]+\]\s*/, '').trim();
+      log(`Runner: ${text}`);
+      const audioUrlMatch = text.match(/^Audio URL:\s*(.+)$/i);
+      if (audioUrlMatch) {
+        const url = audioUrlMatch[1].trim();
+        lastAudioSignature = `playing:${url}`;
+        setAudioIndicator('playing', `Speelt: ${audioFileLabel(url) || url}`, url);
+        return;
+      }
+      const soundPlayMatch = text.match(/^Sound play:\s*(.+)$/i);
+      if (soundPlayMatch) {
+        const url = soundPlayMatch[1].trim();
+        lastAudioSignature = `queued:${url}`;
+        setAudioIndicator('queued', `Start: ${audioFileLabel(url) || url}`, url);
+        return;
+      }
+      if (/^Sound ended$/i.test(text)) {
+        const snapshot = getBuilderWindow()?.BrailleBlocklyApp?.getRuntimeSnapshot?.();
+        const url = String(snapshot?.lastSound || '').trim();
+        lastAudioSignature = `ended:${url}:${Date.now()}`;
+        setAudioIndicator('ended', url ? `Afgespeeld: ${audioFileLabel(url) || url}` : 'Audio is afgespeeld.', url);
+        return;
+      }
+      if (/^Sound failed:/i.test(text)) {
+        if (isAutoplayBlockedError(text) && pendingBlockedAudio) {
+          return;
+        }
+        const snapshot = getBuilderWindow()?.BrailleBlocklyApp?.getRuntimeSnapshot?.();
+        const url = String(snapshot?.lastSound || '').trim();
+        lastAudioSignature = `error:${url}:${Date.now()}`;
+        setAudioIndicator('error', text, url);
+      }
+    }
+
+    function syncAudioIndicatorFromRuntime(runtime) {
+      const url = String(runtime?.lastSound || '').trim();
+      const hasActiveAudio = Boolean(runtime?.hasActiveAudio);
+      if (hasActiveAudio) {
+        const signature = `playing:${url}`;
+        if (signature !== lastAudioSignature) {
+          lastAudioSignature = signature;
+          setAudioIndicator('playing', url ? `Speelt: ${audioFileLabel(url) || url}` : 'Audio speelt nu.', url);
+        }
+        return;
+      }
+      if (url && lastAudioSignature.startsWith('playing:')) {
+        lastAudioSignature = `ended:${url}:${Date.now()}`;
+        setAudioIndicator('ended', `Afgespeeld: ${audioFileLabel(url) || url}`, url);
+      }
     }
 
     function renderSessionQr(config) {
@@ -642,8 +1007,8 @@
         containerId: 'sessionBrailleMonitorComponent',
         showInfo: false
       });
-      brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
-      lastBrailleSnapshot = JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER });
+      brailleMonitorUi.clear?.();
+      lastBrailleSnapshot = JSON.stringify({ empty: true });
       return brailleMonitorUi;
     }
 
@@ -653,6 +1018,7 @@
         const app = getBuilderWindow()?.BrailleBlocklyApp || null;
         if (!app || typeof app.getRuntimeSnapshot !== 'function') return;
         const runtime = app.getRuntimeSnapshot();
+        syncAudioIndicatorFromRuntime(runtime);
         const brailleUnicode = String(runtime?.brailleUnicode || '');
         const sourceText = String(runtime?.text || '');
         const signature = JSON.stringify({
@@ -665,7 +1031,7 @@
         if (signature === lastBrailleSnapshot) return;
         lastBrailleSnapshot = signature;
         if (!brailleUnicode && !sourceText) {
-          monitor.setText(BRAILLE_MONITOR_PLACEHOLDER);
+          monitor.clear?.();
           return;
         }
         monitor.setBrailleUnicode(brailleUnicode, sourceText, {
@@ -682,6 +1048,26 @@
       if (brailleMonitorSyncTimer) return;
       brailleMonitorSyncTimer = window.setInterval(syncBrailleMonitorFromRunner, 250);
       syncBrailleMonitorFromRunner();
+    }
+
+    async function prepareBrailleBridgeForRun(app) {
+      if (!app || typeof app.ensureBrailleBridgeConnection !== 'function') {
+        log('BrailleBridge voorbereiding overgeslagen: runner API ontbreekt.');
+        return false;
+      }
+      setStatus('BrailleBridge wordt gecontroleerd voordat de step-link start...', 'connected', 'Leesregel controleren');
+      try {
+        const connected = await app.ensureBrailleBridgeConnection(3000);
+        log('BrailleBridge voorbereiding klaar.', { connected });
+        if (!connected) {
+          setStatus('Geen fysieke leesregelverbinding gevonden. De step-link draait in simulatie.', 'connected', 'Simulatie actief');
+        }
+        return Boolean(connected);
+      } catch (err) {
+        log('BrailleBridge voorbereiding mislukt.', { message: err.message || String(err) });
+        setStatus('BrailleBridge kon niet worden gecontroleerd. De step-link draait in simulatie.', 'connected', 'Simulatie actief');
+        return false;
+      }
     }
 
     async function dispatchRunnerInput(event) {
@@ -794,19 +1180,51 @@
       }
 
       const app = targetWindow.BrailleBlocklyApp || {};
+      if (typeof app.setLogHandler === 'function') {
+        app.setLogHandler(handleRunnerLogLine);
+      }
+      if (typeof app.setPlayHandler === 'function') {
+        app.setPlayHandler(playSessionAudio);
+      }
+      setAudioIndicator('idle', 'Step-link gestart. Wacht op audio...');
       if (typeof app.applyResolvedSessionPayload === 'function') {
-        await app.applyResolvedSessionPayload(payload, { autoRun: true, force: true });
+        await prepareBrailleBridgeForRun(app);
+        await app.applyResolvedSessionPayload(payload, { autoRun: false, force: true });
+        const api = targetWindow.BrailleStudioAPI || {};
+        Object.entries(payload.stepInputs || {}).forEach(([name, value]) => {
+          if (String(name || '').trim() && typeof api.setExternalVariable === 'function') {
+            api.setExternalVariable(name, value);
+          }
+        });
         startBrailleMonitorSync();
         setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
         log('Step-link met opgeslagen externe variabelen gestart.', payload);
+        if (typeof app.runCurrentWorkspace === 'function') {
+          await app.runCurrentWorkspace();
+        } else if (typeof targetWindow.onRunClicked === 'function') {
+          await targetWindow.onRunClicked();
+        } else {
+          throw new Error('Start API is niet beschikbaar.');
+        }
         return;
       }
 
       if (typeof targetWindow.applyResolvedSessionPayload === 'function') {
-        await targetWindow.applyResolvedSessionPayload(payload, { autoRun: true, force: true });
+        await targetWindow.applyResolvedSessionPayload(payload, { autoRun: false, force: true });
+        const api = targetWindow.BrailleStudioAPI || {};
+        Object.entries(payload.stepInputs || {}).forEach(([name, value]) => {
+          if (String(name || '').trim() && typeof api.setExternalVariable === 'function') {
+            api.setExternalVariable(name, value);
+          }
+        });
         startBrailleMonitorSync();
         setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
         log('Step-link met opgeslagen externe variabelen gestart.', payload);
+        if (typeof targetWindow.onRunClicked === 'function') {
+          await targetWindow.onRunClicked();
+        } else {
+          throw new Error('Start API is niet beschikbaar.');
+        }
         return;
       }
 
@@ -979,6 +1397,11 @@
       });
       $('simChord1Btn')?.addEventListener('click', () => {
         dispatchRunnerInput({ type: 'thumbKey', key: 'right-middle' }).catch((err) => log('Right middle thumb mislukt.', { message: err.message || String(err) }));
+      });
+      $('audioEnableBtn')?.addEventListener('click', () => {
+        enablePendingAudio().catch((err) => {
+          setAudioIndicator('error', err.message || String(err), pendingBlockedAudio?.url || '');
+        });
       });
 
       ['click', 'keydown', 'touchstart'].forEach((eventName) => {

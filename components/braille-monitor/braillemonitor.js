@@ -279,6 +279,12 @@
       const wrapper = document.createElement("div");
       wrapper.className = "braille-monitor-component";
 
+      const modeBadge = document.createElement("div");
+      modeBadge.className = "braille-monitor-mode braille-monitor-mode--simulated";
+      modeBadge.setAttribute("aria-live", "polite");
+      modeBadge.textContent = "Simulatie";
+      wrapper.appendChild(modeBadge);
+
       const monitorP = document.createElement("div");
       monitorP.id = monitorId;
       monitorP.className = "mono-box braille-monitor-cells";
@@ -309,8 +315,57 @@
         return currentText.substring(start, end + 1).trim();
       }
 
+      function updateModeBadge() {
+        if (!modeBadge) return;
+        modeBadge.classList.toggle("braille-monitor-mode--physical", renderFromSsoc);
+        modeBadge.classList.toggle("braille-monitor-mode--simulated", !renderFromSsoc);
+        modeBadge.textContent = renderFromSsoc ? "Leesregel / SSOC" : "Simulatie";
+        modeBadge.title = renderFromSsoc
+          ? "Weergave komt uit BrailleBridge SSOC van een fysieke brailleleesregel."
+          : "Weergave wordt lokaal gesimuleerd vanuit tekst.";
+      }
+
+      function appendCell(index, ch, brailleCell) {
+        const sourceChar = ch == null ? "" : String(ch);
+        const cell = document.createElement("span");
+        cell.className = "monitor-cell monitor-cell--stack";
+        cell.dataset.index = String(index);
+        cell.setAttribute("role", "option");
+        cell.setAttribute("aria-selected", "false");
+        cell.setAttribute("aria-label", "Cel " + index + " teken " + (sourceChar || "(geen teken)"));
+
+        if (currentCaretVisible && currentCaretPosition === index) {
+          cell.classList.add("monitor-cell--caret");
+          cell.setAttribute("aria-selected", "true");
+        }
+        if (currentCaretVisible && currentTextCaretPosition === index) {
+          cell.classList.add("monitor-cell--text-caret");
+        }
+
+        const brailleEl = document.createElement("span");
+        brailleEl.className = "monitor-cell__braille";
+        brailleEl.textContent = brailleCell || BRAILLE_BLANK;
+        cell.appendChild(brailleEl);
+
+        const printEl = document.createElement("span");
+        printEl.className = "monitor-cell__print";
+        printEl.textContent = sourceChar ? visiblePrintChar(sourceChar) : "\u00a0";
+        cell.appendChild(printEl);
+
+        monitorP.appendChild(cell);
+      }
+
+      function renderPlaceholderCells() {
+        const placeholderText = "leeg";
+        const placeholderCells = textToBrailleCells(placeholderText, { lang: currentLang });
+        for (let i = 0; i < placeholderText.length; i++) {
+          appendCell(i, placeholderText[i] || " ", placeholderCells[i] || BRAILLE_BLANK);
+        }
+      }
+
       function rebuildCells() {
         monitorP.innerHTML = "";
+        updateModeBadge();
 
         const sourceIsEmpty = !String(currentText ?? "").trim();
         const brailleChars = Array.from(String(currentBrailleUnicode ?? ""));
@@ -320,44 +375,7 @@
         const ssocLooksEmpty = renderFromSsoc && sourceIsEmpty && brailleIsEmpty;
 
         if ((!currentText && !currentBrailleUnicode) || ssocLooksEmpty) {
-          if (renderFromSsoc) {
-            const placeholderText = "leeg";
-            const placeholderCells = textToBrailleCells(placeholderText, { lang: currentLang });
-
-            for (let i = 0; i < placeholderText.length; i++) {
-              const ch = placeholderText[i] || " ";
-              const brailleCell = placeholderCells[i] || BRAILLE_BLANK;
-
-              const cell = document.createElement("span");
-              cell.className = "monitor-cell monitor-cell--stack";
-              cell.dataset.index = String(i);
-              cell.setAttribute("role", "option");
-              cell.setAttribute("aria-selected", "false");
-              cell.setAttribute("aria-label", "Cel " + i + " teken " + ch);
-
-              if (currentCaretVisible && currentCaretPosition === i) {
-                cell.classList.add("monitor-cell--caret");
-                cell.setAttribute("aria-selected", "true");
-              }
-              if (currentCaretVisible && currentTextCaretPosition === i) {
-                cell.classList.add("monitor-cell--text-caret");
-              }
-
-              const brailleEl = document.createElement("span");
-              brailleEl.className = "monitor-cell__braille";
-              brailleEl.textContent = brailleCell;
-              cell.appendChild(brailleEl);
-
-              const printEl = document.createElement("span");
-              printEl.className = "monitor-cell__print";
-              printEl.textContent = visiblePrintChar(ch);
-              cell.appendChild(printEl);
-
-              monitorP.appendChild(cell);
-            }
-            return;
-          }
-          monitorP.textContent = "leeg";
+          renderPlaceholderCells();
           return;
         }
 
@@ -375,35 +393,8 @@
         for (let i = 0; i < renderLen; i++) {
           const hasSourceChar = i < currentText.length;
           const ch = hasSourceChar ? (currentText[i] || " ") : "";
-          const printChar = hasSourceChar ? visiblePrintChar(ch) : "";
           const brailleCell = brailleCells[i] || BRAILLE_BLANK;
-
-          const cell = document.createElement("span");
-          cell.className = "monitor-cell monitor-cell--stack";
-          cell.dataset.index = String(i);
-          cell.setAttribute("role", "option");
-          cell.setAttribute("aria-selected", "false");
-          cell.setAttribute("aria-label", "Cel " + i + " teken " + (ch || "(geen teken)"));
-
-          if (currentCaretVisible && currentCaretPosition === i) {
-            cell.classList.add("monitor-cell--caret");
-            cell.setAttribute("aria-selected", "true");
-          }
-          if (currentCaretVisible && currentTextCaretPosition === i) {
-            cell.classList.add("monitor-cell--text-caret");
-          }
-
-          const brailleEl = document.createElement("span");
-          brailleEl.className = "monitor-cell__braille";
-          brailleEl.textContent = brailleCell; // 1..2 unicode braille chars
-          cell.appendChild(brailleEl);
-
-          const printEl = document.createElement("span");
-          printEl.className = "monitor-cell__print";
-          printEl.textContent = printChar;
-          cell.appendChild(printEl);
-
-          monitorP.appendChild(cell);
+          appendCell(i, ch, brailleCell);
         }
       }
 

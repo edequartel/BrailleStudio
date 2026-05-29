@@ -29,7 +29,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <title>Lesson Builder - Steps</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
   <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260526-api-routes-1')) ?>"></script>
   <style>
@@ -1749,8 +1749,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       if (brailleMonitorUi) return brailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
@@ -1768,8 +1768,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {

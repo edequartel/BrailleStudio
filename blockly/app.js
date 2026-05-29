@@ -1588,6 +1588,7 @@ let activeAudio = null;
 let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
 let instructionPreviewAudio = null;
+let externalAudioPlayHandler = null;
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const SOUND_FOLDER_URLS = {
   speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
@@ -2831,6 +2832,18 @@ async function playSound(input) {
   const url = resolveSoundUrl(input);
   if (!url) {
     log('Sound skipped: empty filename/url');
+    return;
+  }
+  if (typeof externalAudioPlayHandler === 'function') {
+    stopSound('replaced');
+    runtime.lastSound = url;
+    renderStatus();
+    log('Audio URL: ' + url);
+    try {
+      await externalAudioPlayHandler(url);
+    } catch (err) {
+      log('Sound failed: ' + (err?.message || String(err)));
+    }
     return;
   }
   stopSound('replaced');
@@ -6840,6 +6853,7 @@ window.BrailleBlocklyApp = {
     externalLogHandler = typeof fn === 'function' ? fn : null;
   },
   setPlayHandler(fn) {
+    externalAudioPlayHandler = typeof fn === 'function' ? fn : null;
     if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.setPlayHandler === 'function') {
       window.BrailleStudioAPI.setPlayHandler(fn);
     }

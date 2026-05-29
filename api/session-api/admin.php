@@ -28,7 +28,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <title>Step Link Admin</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
   <style>
     .script-selection-card .card-body {
@@ -371,7 +371,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   </div>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
-  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1')) ?>"></script>
   <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3')) ?>"></script>
   <script>
     const ADMIN_VERSION = '2026-05-29 rebuilt-step-link-admin-debug-4';
@@ -381,7 +381,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
     const DELETE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'delete-link.php')) ?>;
     const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
-    const BLOCKLY_URL = <?= $jsValue($urlFor($appBase, 'blockly/index.php?embed=session-player&v=20260529-admin-step-link-debug-2')) ?>;
+    const BLOCKLY_URL = <?= $jsValue($urlFor($appBase, 'blockly/index.php?embed=session-player&v=20260529-session-audio-handler-1')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
     let linksCache = [];
