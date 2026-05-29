@@ -3,7 +3,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../auth/bootstrap.php';
 
-$authUser = bs_auth_require_login(['admin', 'docent']);
+$isSessionPlayerEmbed = (string)($_GET['embed'] ?? '') === 'session-player';
+$authUser = $isSessionPlayerEmbed
+    ? ['display' => 'Sessie', 'role' => 'session']
+    : bs_auth_require_login(['admin', 'docent']);
 
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
@@ -706,40 +709,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       resize: vertical;
     }
 
-    .variable-panel {
-      display: grid;
-      gap: 10px;
-      padding: 10px 0 12px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 10px;
-    }
-
-    .variable-panel__header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .variable-panel__title {
-      display: grid;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .variable-panel__title h3 {
-      margin: 0;
-      line-height: 1.2;
-    }
-
-    .variable-panel__actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: flex-end;
-    }
-
     .variable-list {
       display: grid;
       gap: 6px;
@@ -968,6 +937,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <input id="fileInput" type="file" accept=".blockly">
 
       <div class="btn-list ms-auto flex-nowrap">
+        <?php if (!$isSessionPlayerEmbed): ?>
         <span class="navbar-text text-secondary d-none d-lg-inline">
           Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
         </span>
@@ -980,6 +950,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
             Uitloggen
           </button>
         </form>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -1116,21 +1087,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
-        <div class="variable-panel" aria-label="Script variables">
-          <div class="variable-panel__header">
-            <div class="variable-panel__title">
-              <h3>Variables</h3>
-              <div id="scriptVariableSummary" class="small">No script variables defined.</div>
-            </div>
-            <div class="variable-panel__actions">
-              <button id="addExternalVariableBtn" class="btn btn-outline-primary btn-sm" type="button">
-                <i class="ti ti-login-2 me-1" aria-hidden="true"></i>
-                Add external
-              </button>
-            </div>
-          </div>
-          <div id="variableList" class="variable-list"></div>
-        </div>
         <div id="statusBox" class="mono"></div>
         </div>
       </div>
@@ -1673,19 +1629,19 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js');
-    await loadScript('./generators.js');
+    await loadScript('./blocks.js?v=20260529-external-debug-2');
+    await loadScript('./generators.js?v=20260529-external-debug-2');
     await loadScriptCandidates([
-      '../components/braille-monitor/braillemonitor.js',
-      '/braillestudio/components/braille-monitor/braillemonitor.js',
-      'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+      '../components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+      '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+      'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
     ], { required: false });
     await loadScriptCandidates([
       '../components/braillebridge-status/braillebridge-status.js',
       '/braillestudio/components/braillebridge-status/braillebridge-status.js',
       'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
-    await loadScript('./app.js');
+    await loadScript('./app.js?v=20260529-external-debug-2');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

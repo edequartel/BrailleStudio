@@ -37,12 +37,11 @@ $code = $requestedCode !== ''
     : $originalCode;
 
 $active = array_key_exists('active', $input) ? (bool)$input['active'] : (bool)($existing['active'] ?? true);
-$meta = isset($input['meta']) && is_array($input['meta'])
-    ? $input['meta']
-    : (is_array($existing['meta'] ?? null) ? $existing['meta'] : []);
+$meta = session_api_normalize_step_link_meta(isset($input['meta']) && is_array($input['meta']) ? $input['meta'] : []);
 $stepInputs = isset($input['stepInputs']) && is_array($input['stepInputs'])
     ? $input['stepInputs']
     : (is_array($existing['stepInputs'] ?? null) ? $existing['stepInputs'] : []);
+$stepInputs = session_api_normalize_step_inputs($stepInputs);
 
 $targetPath = $code === $originalCode ? $originalPath : session_api_step_link_file($code, $methodId);
 if ($code !== $originalCode) {
@@ -79,3 +78,15 @@ session_api_respond([
     'methodId' => $methodId,
     'record' => $record,
 ]);
+
+function session_api_normalize_step_inputs(array $stepInputs): array
+{
+    unset($stepInputs['repeat']);
+    return $stepInputs;
+}
+
+function session_api_normalize_step_link_meta(array $meta): array
+{
+    $info = trim((string)($meta['info'] ?? ''));
+    return $info !== '' ? ['info' => $info] : [];
+}

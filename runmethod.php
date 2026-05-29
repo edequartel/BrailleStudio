@@ -69,7 +69,7 @@ $lessonDirs = [
     $rootDir . '/api/lessons-data',
     $rootDir . '/lessons-data',
 ];
-$defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260415-1';
+$defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260529-external-debug-2';
 $blocklyApiBase = '/braillestudio/api/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -1495,8 +1495,8 @@ $pagePayload = [
       if (brailleMonitorUi) return brailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
@@ -1514,8 +1514,8 @@ $pagePayload = [
       if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {

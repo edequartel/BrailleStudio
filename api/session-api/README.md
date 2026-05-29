@@ -19,11 +19,8 @@ De laptoppagina:
 - reset of maakt de sessierij via `create-session.php`;
 - gebruikt alleen de publieke Supabase anon key in de browser;
 - luistert naar `UPDATE` events op `public.sessions` met filter `session_code=eq.<code>`;
-- roept `loadWorkspaceOnline(row.script_id)` aan bij:
-  - `command === "load_script"`
-  - `status === "pending"`
-  - `script_id` gevuld
-  - `executed === false`
+- roept `loadWorkspaceOnline(row.script_id)` aan bij gewone script-opdrachten;
+- haalt bij `command === "load_step_link:<code>[:methodId]"` de actuele step-link op en past de opgeslagen `stepInputs` toe voordat de step-link start.
 
 Je kunt ook direct een bekende code openen:
 
@@ -39,7 +36,7 @@ Scan de QR-code op de laptop. Die opent:
 ./api/session-api/phone.html?session=<random>
 ```
 
-Daarna scan je op de telefoon de step-link QR-code uit het boek. De telefoon stuurt de code naar `send-step-link.php`. Dat endpoint resolve't de step-link naar `scriptId` en patcht `public.sessions`.
+Daarna scan je op de telefoon de step-link QR-code uit het boek. De telefoon stuurt de code naar `send-step-link.php`. Dat endpoint resolve't de step-link naar `scriptId` en patcht `public.sessions` met `load_step_link:<code>[:methodId]`, zodat de laptop de actuele externe variabelen kan ophalen.
 
 ## Script sturen
 
@@ -50,6 +47,18 @@ Test tijdelijk met GET:
 ```
 
 Productie kan POST gebruiken met `session_code`, `script_id` en optioneel `record_index`.
+
+## Inactieve sessies opruimen
+
+Een laptoppagina verwijdert de actieve sessie automatisch na 30 minuten zonder activiteit. Daarnaast ruimt `create-session.php` bij het starten van een nieuwe sessie oude rijen op uit `public.sessions`, gebaseerd op `updated_at`.
+
+Voor echte achtergrond-cleanup zonder open browser kan een cronjob of Supabase scheduled job dit endpoint periodiek aanroepen:
+
+```text
+./api/session-api/cleanup-sessions.php
+```
+
+Dat verwijdert sessies waarvan `updated_at` ouder is dan 30 minuten.
 
 ## Config
 

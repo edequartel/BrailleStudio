@@ -151,6 +151,7 @@
     const params = new URLSearchParams(window.location.search);
     const sessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
     const SEND_STEP_LINK_URL = './send-step-link.php';
+    const MARK_SESSION_OPEN_URL = './mark-session-open.php';
     const $ = (id) => document.getElementById(id);
 
     let stream = null;
@@ -210,6 +211,20 @@
         busy = false;
         $('sendBtn').disabled = false;
       }
+    }
+
+    async function markSessionOpen() {
+      if (!sessionCode) return;
+      const response = await fetch(MARK_SESSION_OPEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_code: sessionCode })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      setStatus('Sessie is gestart. Scan nu de step-link.');
     }
 
     function detectQrWithJsQr(video) {
@@ -294,6 +309,8 @@
       $('sessionText').textContent = sessionCode || '-';
       if (!sessionCode) {
         setStatus('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.', 'error');
+      } else {
+        markSessionOpen().catch((err) => setStatus(err.message || String(err), 'error'));
       }
 
       $('sendBtn').addEventListener('click', () => {

@@ -470,8 +470,8 @@
       }
 
       function setBrailleUnicode(unicodeText, sourceText, options) {
-        renderFromSsoc = true;
         currentBrailleUnicode = unicodeText != null ? String(unicodeText) : "";
+        renderFromSsoc = Array.from(currentBrailleUnicode).length > 0;
         const caretCandidate =
           typeof options === "number"
             ? options
@@ -494,6 +494,10 @@
         } else {
           const len = Array.from(currentBrailleUnicode).length;
           currentText = len > 0 ? " ".repeat(len) : "";
+        }
+
+        if (!renderFromSsoc && currentText) {
+          currentBrailleUnicode = "";
         }
 
         rebuildCells();

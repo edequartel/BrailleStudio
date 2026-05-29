@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 const SESSION_API_SUPABASE_CONFIG = '/home3/kydjgrmy/private/supabase_config.php';
+const SESSION_API_SUPABASE_IDLE_TTL_SECONDS = 1800;
 
 session_api_send_headers();
 
@@ -18,6 +19,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'POST'], true)) {
 }
 
 $config = session_api_load_supabase_config();
+$cleanup = session_api_cleanup_expired_supabase_sessions($config);
 $input = session_api_read_input();
 
 $sessionCode = session_api_normalize_session_code((string)($input['session_code'] ?? ''));
@@ -70,6 +72,7 @@ session_api_json([
     'send_url' => $sendUrl,
     'supabase_url' => $config['SUPABASE_URL'],
     'supabase_anon_key' => $config['SUPABASE_ANON_KEY'],
+    'cleanup' => $cleanup,
     'supabase_response' => $response['body_json'] ?? $response['body'],
     'curl_error' => $response['curl_error'] ?: null,
 ], $status);
@@ -183,6 +186,24 @@ function session_api_public_base_url(): string
     $host = (string)($_SERVER['HTTP_HOST'] ?? 'localhost');
     $dir = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/api/session-api/create-session.php'))), '/');
     return $scheme . '://' . $host . $dir;
+}
+
+function session_api_cleanup_expired_supabase_sessions(array $config): array
+{
+    $cutoff = gmdate('c', time() - SESSION_API_SUPABASE_IDLE_TTL_SECONDS);
+    $endpoint = rtrim($config['SUPABASE_URL'], '/') . '/rest/v1/sessions?updated_at=lt.' . rawurlencode($cutoff);
+    $response = session_api_supabase_request('DELETE', $endpoint, $config['SUPABASE_SERVICE_ROLE_KEY'], [], [
+        'Prefer: return=representation',
+    ]);
+
+    return [
+        'ok' => $response['curl_error'] === '' && $response['http_code'] >= 200 && $response['http_code'] < 300,
+        'http_code' => $response['http_code'],
+        'idle_ttl_seconds' => SESSION_API_SUPABASE_IDLE_TTL_SECONDS,
+        'cutoff' => $cutoff,
+        'deleted' => is_array($response['body_json'] ?? null) ? count($response['body_json']) : null,
+        'curl_error' => $response['curl_error'] ?: null,
+    ];
 }
 
 function session_api_supabase_request(string $method, string $endpoint, string $serviceRoleKey, array $payload, array $extraHeaders = []): array

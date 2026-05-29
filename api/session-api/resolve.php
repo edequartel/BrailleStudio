@@ -14,15 +14,17 @@ $methodIdRaw = trim((string)($input['methodId'] ?? ''));
 $methodId = $methodIdRaw !== '' ? session_api_normalize_token($methodIdRaw, 'methodId', 3, 128) : '';
 
 $stepLink = session_api_load_step_link_or_fail($code, $methodId);
+$scriptId = (string)$stepLink['scriptId'];
+$scriptMeta = session_api_load_blockly_script_meta($scriptId);
 
 $resolvedAt = session_api_now_iso();
 $resolvedPayload = [
     'code' => $code,
     'methodId' => (string)($stepLink['methodId'] ?? $methodId),
     'stepId' => (string)$stepLink['stepId'],
-    'scriptId' => (string)$stepLink['scriptId'],
-    'meta' => is_array($stepLink['meta'] ?? null) ? $stepLink['meta'] : new stdClass(),
-    'stepInputs' => is_array($stepLink['stepInputs'] ?? null) ? $stepLink['stepInputs'] : new stdClass(),
+    'scriptId' => $scriptId,
+    'meta' => $scriptMeta,
+    'stepInputs' => is_array($stepLink['stepInputs'] ?? null) ? session_api_strip_deprecated_step_inputs($stepLink['stepInputs']) : new stdClass(),
     'resolvedAt' => $resolvedAt,
 ];
 
@@ -73,3 +75,47 @@ session_api_respond([
     'sessionId' => $sessionId,
     ...$resolvedPayload,
 ]);
+
+function session_api_strip_deprecated_step_inputs(array $stepInputs): array
+{
+    unset($stepInputs['repeat']);
+    return $stepInputs;
+}
+
+function session_api_load_blockly_script_meta(string $scriptId): array
+{
+    $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $scriptId);
+    $safeId = trim((string)$safeId, '-_');
+    if ($safeId === '') {
+        return [];
+    }
+
+    foreach (session_api_blockly_script_dirs() as $dir) {
+        $path = $dir . '/' . $safeId . '.json';
+        if (!is_file($path)) {
+            continue;
+        }
+        $content = json_decode((string)file_get_contents($path), true);
+        if (!is_array($content)) {
+            return [];
+        }
+        $meta = is_array($content['meta'] ?? null) ? $content['meta'] : [];
+        return [
+            'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+            'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+            'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
+            'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
+            'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+        ];
+    }
+
+    return [];
+}
+
+function session_api_blockly_script_dirs(): array
+{
+    return array_values(array_unique([
+        dirname(__DIR__, 2) . '/blockly-data',
+        dirname(__DIR__) . '/blockly-data',
+    ]));
+}

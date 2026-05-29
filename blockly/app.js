@@ -24,7 +24,7 @@ const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/
 const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
-const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/elevenlabs-api/tts.php';
+const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/api/elevenlabs-api/tts.php';
 const BRAILLE_BLOCKLY_AUTH_CONFIG = window.BrailleBlocklyAuth || {};
 const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || '/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authBridgePageUrl || '/braillestudio/authentication.php?mode=bridge';
@@ -4496,6 +4496,10 @@ function getLessonStepInputs() {
 function getExternalOverridesFromStepInputs(stepInputs = null) {
   if (!stepInputs || typeof stepInputs !== 'object') return null;
   const overrides = {};
+  Object.entries(stepInputs).forEach(([key, value]) => {
+    const name = normalizeVariableName(key);
+    if (name) overrides[name] = value;
+  });
   getScriptVariables('external').forEach((variable) => {
     if (Object.prototype.hasOwnProperty.call(stepInputs, variable.name)) {
       overrides[variable.name] = stepInputs[variable.name];
@@ -4514,28 +4518,83 @@ function resetLessonStepRuntimeState(stepInputs = null) {
 
 function initializeRuntimeVariableScopes(externalOverrides = null) {
   const rt = getRuntime();
-  const injected = externalOverrides && typeof externalOverrides === 'object' ? externalOverrides : {};
-  const external = {};
+  const shouldPreserveActiveStepOverrides = externalOverrides == null
+    && !rt.stopped
+    && lessonStepExternalOverrides
+    && typeof lessonStepExternalOverrides === 'object';
+  const injectedSource = shouldPreserveActiveStepOverrides ? lessonStepExternalOverrides : externalOverrides;
+  const injected = injectedSource && typeof injectedSource === 'object' ? injectedSource : {};
+  const external = { ...injected };
+  const debug = {
+    injected,
+    preservedActiveStepOverrides: shouldPreserveActiveStepOverrides,
+    variables: []
+  };
 
   getScriptVariables('external').forEach((variable) => {
-    const hasInjected = Object.prototype.hasOwnProperty.call(injected, variable.name);
-    external[variable.name] = hasInjected
-      ? injected[variable.name]
+    const keys = [variable.name, variable.id].map((item) => String(item || '').trim()).filter(Boolean);
+    const injectedKey = keys.find((key) => Object.prototype.hasOwnProperty.call(injected, key));
+    const value = injectedKey
+      ? injected[injectedKey]
       : parseVariableDefaultValue(variable);
+    keys.forEach((key) => {
+      external[key] = value;
+    });
+    external[variable.name] = value;
+    debug.variables.push({
+      name: variable.name,
+      id: variable.id,
+      keys,
+      injectedKey: injectedKey || '',
+      value
+    });
   });
 
   rt.external = external;
+  log(`External runtime initialized: ${JSON.stringify({
+    injectedKeys: Object.keys(injected),
+    externalKeys: Object.keys(external),
+    preservedActiveStepOverrides: debug.preservedActiveStepOverrides,
+    variables: debug.variables
+  })}`);
   renderStatus();
 }
 
-function externalVariableExists(name) {
+function findExternalRuntimeKey(name) {
   const key = String(name || '').trim();
-  return !!key && Object.prototype.hasOwnProperty.call(getRuntime().external || {}, key);
+  if (!key) return '';
+  const external = getRuntime().external || {};
+  if (Object.prototype.hasOwnProperty.call(external, key)) return key;
+  const variable = findScriptVariable('external', key);
+  const keys = [variable?.name, variable?.id].map((item) => String(item || '').trim()).filter(Boolean);
+  const direct = keys.find((item) => Object.prototype.hasOwnProperty.call(external, item));
+  if (direct) return direct;
+  const lower = key.toLowerCase();
+  const matchedKey = Object.keys(external).find((item) => String(item).toLowerCase() === lower);
+  if (matchedKey) return matchedKey;
+  const matchedVariableKey = keys.find((item) => {
+    const itemLower = item.toLowerCase();
+    return Object.keys(external).some((externalKey) => String(externalKey).toLowerCase() === itemLower);
+  });
+  return matchedVariableKey || '';
+}
+
+function externalVariableExists(name) {
+  const key = findExternalRuntimeKey(name);
+  log(`External exists: requested=${JSON.stringify(String(name || ''))} resolved=${JSON.stringify(key)} exists=${key !== ''}`);
+  return key !== '';
 }
 
 function getExternalVariable(name) {
-  const key = String(name || '').trim();
-  return key ? getRuntime().external?.[key] : undefined;
+  const key = findExternalRuntimeKey(name);
+  if (!key) {
+    log(`External get: requested=${JSON.stringify(String(name || ''))} resolved="" value=undefined`);
+    return undefined;
+  }
+  const external = getRuntime().external || {};
+  const value = external[key];
+  log(`External get: requested=${JSON.stringify(String(name || ''))} resolved=${JSON.stringify(key)} value=${formatLogValue(value)}`);
+  return value;
 }
 
 function setExternalVariable(name, value) {
@@ -4544,6 +4603,12 @@ function setExternalVariable(name, value) {
   const rt = getRuntime();
   if (!rt.external || typeof rt.external !== 'object') rt.external = {};
   rt.external[key] = value;
+  const variable = findScriptVariable('external', key);
+  [variable?.name, variable?.id].forEach((alias) => {
+    const aliasKey = String(alias || '').trim();
+    if (aliasKey) rt.external[aliasKey] = value;
+  });
+  log(`External set: requested=${JSON.stringify(key)} aliases=${JSON.stringify([variable?.name, variable?.id].filter(Boolean))} value=${formatLogValue(value)}`);
   renderStatus();
 }
 

@@ -28,6 +28,179 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <title>Step Link Admin</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
+  <style>
+    .script-selection-card .card-body {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .script-selection-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(18rem, .9fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .script-meta-preview {
+      display: grid;
+      gap: .75rem;
+      align-content: start;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      padding: .875rem;
+      background: var(--tblr-bg-surface-secondary);
+    }
+
+    .script-meta-preview__grid {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .script-meta-preview__label {
+      display: flex;
+      align-items: center;
+      gap: .375rem;
+      margin-bottom: .375rem;
+      color: var(--tblr-body-color);
+      font-size: .75rem;
+      font-weight: 700;
+    }
+
+    .script-meta-preview__value {
+      min-height: 3.25rem;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      padding: .625rem .75rem;
+      background: var(--tblr-bg-surface);
+      color: var(--tblr-body-color);
+      font-size: .8125rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .step-link-settings {
+      display: grid;
+      gap: .75rem;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      padding: .75rem;
+      background: var(--tblr-bg-surface);
+    }
+
+    .step-link-variable-row {
+      display: grid;
+      grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+      align-items: start;
+      gap: .625rem;
+    }
+
+    .step-link-variable-row .form-label {
+      margin-bottom: 0;
+      padding-top: .25rem;
+    }
+
+    .braille-monitor-standard-card .card-body {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .braille-monitor-standard-host {
+      overflow: hidden;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-standard-host .braille-monitor-component,
+    .braille-monitor-standard-host .braille-monitor-cells,
+    .braille-monitor-standard-host .braille-monitor-cell-container {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-thumb-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .braille-monitor-thumb-controls {
+      display: inline-flex;
+      grid-column: 2;
+      gap: .5rem;
+      justify-content: center;
+    }
+
+    .braille-monitor-thumb-controls .btn {
+      min-width: 3rem;
+      font-weight: 600;
+    }
+
+    .braille-monitor-run-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      justify-content: flex-end;
+    }
+
+    .braille-monitor-bridge-status {
+      grid-column: 3;
+      justify-self: end;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status.is-collapsed {
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__body {
+      padding: .625rem .75rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__icon,
+    .braille-monitor-bridge-status .braillebridge-status__toggle {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.15rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__toggle-dot {
+      margin-top: -1.1rem;
+      margin-left: 1.1rem;
+    }
+
+    .runner-frame {
+      position: absolute;
+      left: -10000px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @media (max-width: 767.98px) {
+      .script-selection-layout,
+      .step-link-variable-row {
+        grid-template-columns: 1fr;
+      }
+
+      .braille-monitor-thumb-row {
+        grid-template-columns: 1fr;
+      }
+
+      .braille-monitor-thumb-controls,
+      .braille-monitor-bridge-status {
+        grid-column: 1;
+        justify-self: center;
+      }
+    }
+  </style>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -39,13 +212,19 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           </span>
           <span>BrailleStudio</span>
         </a>
-        <div class="navbar-nav flex-row ms-auto">
-          <div class="nav-item">
-            <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($sessionBase, 'laptop.html')) ?>">
-              <i class="ti ti-device-laptop me-2" aria-hidden="true"></i>
-              Open session resolver
-            </a>
-          </div>
+        <div class="navbar-nav flex-row ms-auto align-items-center">
+          <span class="navbar-text text-secondary me-3">
+            Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
+          </span>
+          <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
+            <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+            <input type="hidden" name="action" value="logout">
+            <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="ti ti-logout me-2" aria-hidden="true"></i>
+              Uitloggen
+            </button>
+          </form>
         </div>
       </div>
     </header>
@@ -57,24 +236,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             <div class="col">
               <div class="page-pretitle">BrailleStudio</div>
               <h1 class="page-title">Step Link Admin</h1>
-              <div class="text-secondary mt-2">Create short QR step links by choosing an existing Blockly online script and adding lesson-step input data.</div>
+              <div class="text-secondary mt-2">Create and manage session step-links.</div>
               <div class="text-secondary small mt-2" id="pageVersion">Version pending...</div>
-            </div>
-            <div class="col-auto">
-              <div class="btn-list">
-                <span class="navbar-text text-secondary">
-                  Ingelogd als <?= $html($authUser['display']) ?> (<?= $html($authUser['role']) ?>)
-                </span>
-                <form method="post" action="<?= $htmlUrl($urlFor($appBase, 'authentication.php')) ?>" class="mb-0">
-                  <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
-                  <input type="hidden" name="action" value="logout">
-                  <input type="hidden" name="returnTo" value="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
-                  <button class="btn btn-outline-secondary" type="submit">
-                    <i class="ti ti-logout me-2" aria-hidden="true"></i>
-                    Uitloggen
-                  </button>
-                </form>
-              </div>
             </div>
           </div>
         </div>
@@ -83,141 +246,86 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       <div class="page-body">
         <div class="container-xl">
           <div class="row row-cards">
-            <div class="col-12 col-xl-6">
-              <div class="card h-100">
-                <div class="card-header">
-                  <h2 class="card-title">1. Script Selection</h2>
-                </div>
+            <div class="col-12">
+              <div class="card braille-monitor-standard-card">
                 <div class="card-body">
-                  <div class="mb-3">
-                    <label class="form-label" for="scriptSelect">Online script</label>
-                    <select id="scriptSelect" class="form-select">
-                      <option value="">-- load scripts first --</option>
-                    </select>
-                  </div>
-                  <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="scriptIdInput">Script id</label>
-                      <input id="scriptIdInput" class="form-control" type="text" placeholder="listen-and-type-001">
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="stepIdInput">Step id</label>
-                      <input id="stepIdInput" class="form-control" type="text" placeholder="lesson-1-step-3">
-                    </div>
-                    <div class="col-12">
-                      <label class="form-label" for="codeInput">Short code</label>
-                      <input id="codeInput" class="form-control" type="text" placeholder="leave empty to auto-generate">
+                  <div class="row g-3 align-items-center">
+                    <div class="col">
+                      <div id="sessionSendStatus" class="form-hint">Gebruik de speelknop bij een step-link om deze direct te starten.</div>
                     </div>
                   </div>
-                  <div class="btn-list mt-3">
-                    <button id="loadScriptsBtn" class="btn btn-primary" type="button">Load scripts</button>
-                    <button id="fillSelectedBtn" class="btn btn-outline-secondary" type="button">Copy selected script id</button>
+                  <div id="adminBrailleMonitorComponent" class="braille-monitor-standard-host"></div>
+                  <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
+                    <div class="braille-monitor-thumb-controls">
+                      <button id="adminThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
+                      <button id="adminCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
+                      <button id="adminChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
+                      <button id="adminThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
+                    </div>
+                    <div
+                      class="braille-monitor-bridge-status"
+                      data-braillebridge-status
+                      data-collapsible="true"
+                      data-expanded="false"
+                      data-popup="true"
+                      data-show-launch="true"
+                      data-launch-url="braillebridge://"
+                    ></div>
                   </div>
-                  <div id="scriptsStatus" class="form-hint mt-2">Scripts not loaded yet.</div>
                 </div>
               </div>
             </div>
 
-            <div class="col-12 col-xl-6">
-              <div class="card h-100">
-                <div class="card-header">
-                  <h2 class="card-title">2. Meta</h2>
-                </div>
+            <div class="col-12">
+              <div class="card script-selection-card">
                 <div class="card-body">
-                  <div class="row g-3">
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="titleInput">Title</label>
-                      <input id="titleInput" class="form-control" type="text" placeholder="luister naar het woord">
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="orderInput">Order</label>
-                      <input id="orderInput" class="form-control" type="number" min="1" step="1" placeholder="3">
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="bookInput">Book</label>
-                      <input id="bookInput" class="form-control" type="text" placeholder="method-1">
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <label class="form-label" for="pageInput">Page</label>
-                      <input id="pageInput" class="form-control" type="text" placeholder="12">
-                    </div>
-                    <div class="col-12">
-                      <label class="form-label" for="descriptionInput">Description</label>
-                      <textarea id="descriptionInput" class="form-control" rows="3" placeholder="omschrijving van het script of de step"></textarea>
-                    </div>
-                    <div class="col-12">
-                      <label class="form-label" for="instructionInput">Instruction</label>
-                      <textarea id="instructionInput" class="form-control" rows="3" placeholder="luister naar het woord en typ het"></textarea>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card mt-3">
-            <div class="card-header">
-              <h2 class="card-title">3. Step Inputs</h2>
-            </div>
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="textInput">Text</label>
-                  <textarea id="textInput" class="form-control" rows="4" placeholder="bal"></textarea>
-                </div>
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="wordInput">Word</label>
-                  <input id="wordInput" class="form-control" type="text" placeholder="bal">
-                  <label class="form-label mt-3" for="repeatInput">Repeat</label>
-                  <input id="repeatInput" class="form-control" type="number" min="1" step="1" value="1">
-                </div>
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="lettersInput">Letters</label>
-                  <textarea id="lettersInput" class="form-control" rows="3" placeholder="b, a, l"></textarea>
-                </div>
-                <div class="col-12 col-lg-6">
-                  <label class="form-label" for="soundsInput">Sounds</label>
-                  <textarea id="soundsInput" class="form-control" rows="3" placeholder="b, a, l"></textarea>
-                </div>
-                <div class="col-12">
-                  <div class="border-top pt-3 mt-1">
-                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-                      <div>
-                        <div class="form-label mb-0">External variables</div>
-                        <div class="form-hint">Waarden die dit Blockly-script buiten het script beschikbaar maakt of overschrijft.</div>
+                  <div class="script-selection-layout">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label" for="scriptSelect">Online script</label>
+                        <select id="scriptSelect" class="form-select">
+                          <option value="">Scripts laden...</option>
+                        </select>
                       </div>
-                      <span id="externalVariablesStatus" class="badge bg-secondary-lt">No script selected</span>
+                      <div class="col-12 col-md-6">
+                        <label class="form-label" for="codeInput">Short code</label>
+                        <input id="codeInput" class="form-control" type="text" placeholder="leave empty to auto-generate">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label" for="infoInput">Info</label>
+                        <textarea id="infoInput" class="form-control" rows="2" placeholder="interne notitie bij deze step-link"></textarea>
+                      </div>
+                      <div class="col-12">
+                        <button id="createLinkBtn" class="btn btn-success" type="button">Create step link</button>
+                      </div>
                     </div>
-                    <div id="externalVariablesEditor" class="row g-3">
-                      <div class="col-12 text-secondary">Kies eerst een Blockly-script.</div>
+
+                    <div class="script-meta-preview" aria-label="Scriptgegevens">
+                      <div class="script-meta-preview__grid">
+                        <div>
+                          <div class="script-meta-preview__label">
+                            <i class="ti ti-notes" aria-hidden="true"></i>
+                            <span>Omschrijving</span>
+                          </div>
+                          <div id="descriptionText" class="script-meta-preview__value">-</div>
+                        </div>
+                        <div>
+                          <div class="script-meta-preview__label">
+                            <i class="ti ti-list-check" aria-hidden="true"></i>
+                            <span>Instructie</span>
+                          </div>
+                          <div id="instructionText" class="script-meta-preview__value">-</div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
+
+                  <div>
+                    <div id="scriptsStatus" class="form-hint">Scripts worden geladen.</div>
+                    <div id="createStatus" class="form-hint mt-1">Ready to create a step link.</div>
                   </div>
                 </div>
               </div>
-              <div class="mt-3">
-                <label class="form-check form-check-inline">
-                  <input id="activeInput" class="form-check-input" type="checkbox" checked>
-                  <span class="form-check-label">Active</span>
-                </label>
-                <label class="form-check form-check-inline">
-                  <input id="overwriteInput" class="form-check-input" type="checkbox">
-                  <span class="form-check-label">Overwrite if code exists</span>
-                </label>
-              </div>
-              <div class="btn-list mt-3">
-                <button id="createLinkBtn" class="btn btn-success" type="button">Create step link</button>
-                <button id="resetFormBtn" class="btn btn-outline-danger" type="button">Reset form</button>
-              </div>
-              <div id="createStatus" class="form-hint mt-2">Ready to create a step link.</div>
-            </div>
-          </div>
-
-          <div class="card mt-3">
-            <div class="card-header">
-              <h2 class="card-title">Preview Payload</h2>
-            </div>
-            <div class="card-body">
-              <div id="previewBox" class="row row-cards"></div>
             </div>
           </div>
 
@@ -225,7 +333,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             <div class="card-header">
               <h2 class="card-title">Existing Step Links</h2>
               <div class="card-actions">
-                <button id="refreshLinksBtn" class="btn btn-primary btn-sm" type="button">Refresh links</button>
+                <div class="btn-list">
+                  <button id="deleteOldLinksBtn" class="btn btn-outline-danger btn-sm" type="button" disabled>
+                    <i class="ti ti-trash me-1" aria-hidden="true"></i>
+                    Delete old step-links
+                  </button>
+                  <button id="refreshLinksBtn" class="btn btn-primary btn-sm" type="button">Refresh links</button>
+                </div>
               </div>
             </div>
             <div class="card-body">
@@ -249,28 +363,38 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               <pre id="logBox" class="form-control font-monospace mb-0">Ready.</pre>
             </div>
           </div>
+
+          <iframe id="adminBuilderFrame" class="runner-frame" title="BrailleStudio runner" allow="autoplay"></iframe>
         </div>
       </div>
     </main>
   </div>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3')) ?>"></script>
   <script>
-    const ADMIN_VERSION = '2026-05-26 external-vars-1';
+    const ADMIN_VERSION = '2026-05-29 rebuilt-step-link-admin-debug-4';
     const SCRIPT_LIST_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/list.php')) ?>;
     const SCRIPT_LOAD_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/load.php')) ?>;
     const CREATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'create-link.php')) ?>;
     const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
+    const DELETE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'delete-link.php')) ?>;
     const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
+    const BLOCKLY_URL = <?= $jsValue($urlFor($appBase, 'blockly/index.php?embed=session-player&v=20260529-admin-step-link-debug-2')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
-    const scriptDataCache = new Map();
     let linksCache = [];
-    let editingOriginalCode = '';
+    let pendingCopiedPlacement = null;
+    let adminBrailleMonitorUi = null;
+    let adminBrailleMonitorSyncTimer = null;
+    let lastBrailleSnapshot = '';
+    let activeStepLinkCode = '';
+    let pendingStepLinkCode = '';
+    const scriptDataCache = new Map();
 
     function logLine(message, data) {
       const box = $('logBox');
-      if (!box) return;
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
       let line = `[${timestamp}] ${String(message || '').trim()}`;
       if (typeof data !== 'undefined') {
@@ -280,166 +404,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           line += `\n${String(data)}`;
         }
       }
-      box.textContent = box.textContent.trim()
+      box.textContent = box.textContent.trim() && box.textContent.trim() !== 'Ready.'
         ? `${box.textContent}\n${line}`
         : line;
       box.scrollTop = box.scrollHeight;
-    }
-
-    async function copyLogToClipboard() {
-      const text = String($('logBox')?.textContent || '').trim();
-      if (!text) {
-        throw new Error('Log is empty');
-      }
-      await navigator.clipboard.writeText(text);
-      logLine('Log copied to clipboard.');
-    }
-
-    function setLogVisibility(visible) {
-      const body = $('logBody');
-      const button = $('toggleLogBtn');
-      if (!body || !button) return;
-      body.hidden = !visible;
-      body.classList.toggle('d-none', !visible);
-      button.textContent = visible ? 'Hide log' : 'Unhide log';
-    }
-
-    function getAuthToken() {
-      return '';
-    }
-
-    function setAuthToken(token) {
-      const normalized = String(token || '').trim();
-      if (normalized) {
-        sessionStorage.setItem('braillestudioAuthToken', normalized);
-        localStorage.setItem('braillestudioAuthToken', normalized);
-        sessionStorage.setItem('elevenlabsAuthToken', normalized);
-        localStorage.setItem('elevenlabsAuthToken', normalized);
-      } else {
-        sessionStorage.removeItem('braillestudioAuthToken');
-        localStorage.removeItem('braillestudioAuthToken');
-        sessionStorage.removeItem('elevenlabsAuthToken');
-        localStorage.removeItem('elevenlabsAuthToken');
-      }
-      logLine(normalized ? 'Authentication token stored.' : 'Authentication token cleared.');
-    }
-
-    function buildHomepageAuthUrl(returnTo = window.location.href) {
-      const url = new URL(AUTH_LOGIN_URL, window.location.origin);
-      const target = String(returnTo || '').trim();
-      if (target) {
-        url.searchParams.set('returnTo', target);
-      }
-      return url.toString();
-    }
-
-    function openAuthenticationPopup() {
-      return new Promise((resolve, reject) => {
-        const currentOrigin = String(window.location.origin || '').trim();
-        const useSameOriginStorageFlow = currentOrigin === 'https://www.tastenbraille.com';
-        const authUrl = new URL(
-          useSameOriginStorageFlow
-            ? AUTH_LOGIN_URL
-            : AUTH_BRIDGE_URL,
-          window.location.origin
-        );
-        if (!useSameOriginStorageFlow) {
-          authUrl.searchParams.set('origin', currentOrigin);
-        }
-        const initialToken = getAuthToken();
-        const popup = window.open(
-          authUrl.toString(),
-          'braillestudioAuthBridge',
-          'width=560,height=720,resizable=yes,scrollbars=yes'
-        );
-        if (!popup) {
-          logLine('Authentication popup blocked.');
-          reject(new Error('Popup blocked'));
-          return;
-        }
-        try {
-          popup.focus();
-        } catch {}
-
-        let settled = false;
-        const cleanup = () => {
-          window.removeEventListener('message', onMessage);
-          if (pollTimer) window.clearInterval(pollTimer);
-        };
-
-        const onMessage = (event) => {
-          if (event.origin !== 'https://www.tastenbraille.com') return;
-          if (event.data?.type !== 'braillestudio-auth-token') return;
-          const token = String(event.data?.token || '').trim();
-          if (!token) return;
-          setAuthToken(token);
-          logLine('Authentication token received from popup message.');
-          settled = true;
-          cleanup();
-          resolve(token);
-        };
-
-        window.addEventListener('message', onMessage);
-
-        const pollTimer = window.setInterval(() => {
-          const currentToken = getAuthToken();
-          if (!settled && currentToken && currentToken !== initialToken) {
-            logLine('Authentication token detected through storage polling.');
-            settled = true;
-            cleanup();
-            try {
-              popup.close();
-            } catch {}
-            resolve(currentToken);
-            return;
-          }
-          if (popup.closed && !settled) {
-            cleanup();
-            logLine('Authentication popup closed before token was received.');
-            reject(new Error('Authentication popup closed'));
-          }
-        }, 250);
-      });
-    }
-
-    function isAuthenticated() {
-      return true;
-    }
-
-    function requireAuthentication() {
-      return true;
-    }
-
-    function renderAuthenticationState() {
-      const pill = $('authStatePill');
-      if (pill) {
-        pill.textContent = 'Authenticated';
-        pill.className = 'badge bg-success-lt';
-      }
-      $('loadScriptsBtn').disabled = false;
-      $('createLinkBtn').disabled = false;
-      $('refreshLinksBtn').disabled = false;
-      $('scriptsStatus').textContent = 'Authenticated. You can load scripts and create links.';
-      logLine('Authentication state: active.');
-    }
-
-    function renderEditingState() {
-      $('createLinkBtn').textContent = editingOriginalCode ? 'Update step link' : 'Create step link';
-      $('resetFormBtn').textContent = editingOriginalCode ? 'Cancel edit' : 'Reset form';
-      $('createStatus').textContent = editingOriginalCode
-        ? `Editing existing step link: ${editingOriginalCode}`
-        : 'Ready to create a step link.';
-    }
-
-    function parseCommaList(value) {
-      return String(value || '')
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-
-    function safeJson(value) {
-      return JSON.stringify(value, null, 2);
     }
 
     function escapeHtml(value) {
@@ -461,23 +429,450 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return `<span class="${classes[tone] || classes.secondary}">${escapeHtml(message)}</span>`;
     }
 
-    function formatListChips(items) {
-      const list = Array.isArray(items) ? items.filter(Boolean) : [];
-      if (!list.length) {
-        return '<span class="text-secondary">-</span>';
+    function slugifyStepPart(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+    }
+
+    function buildAutoStepId(scriptId) {
+      const base = slugifyStepPart(scriptId);
+      return base ? `${base}-step-1` : '';
+    }
+
+    function formatStepLinkDateTime(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '-';
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) return raw;
+      const pad = (number) => String(number).padStart(2, '0');
+      return [
+        pad(date.getDate()),
+        pad(date.getMonth() + 1),
+        pad(date.getFullYear() % 100)
+      ].join('-') + ' ' + [
+        pad(date.getHours()),
+        pad(date.getMinutes())
+      ].join(':');
+    }
+
+    function getSelectedScriptId() {
+      const select = $('scriptSelect');
+      const option = select.options[select.selectedIndex];
+      return String(option?.dataset?.scriptId || option?.value || '').trim();
+    }
+
+    function setScriptMetaPreview(meta = {}) {
+      $('descriptionText').textContent = String(meta.description || meta.prompt || '').trim() || '-';
+      $('instructionText').textContent = String(meta.instruction || '').trim() || '-';
+    }
+
+    function setSessionSendStatus(message, tone = 'secondary') {
+      const target = $('sessionSendStatus');
+      if (!target) return;
+      target.innerHTML = statusText(message, tone);
+    }
+
+    function initAdminBrailleMonitor() {
+      if (adminBrailleMonitorUi) return adminBrailleMonitorUi;
+      if (window.BrailleMonitor && typeof window.BrailleMonitor.init === 'function') {
+        adminBrailleMonitorUi = window.BrailleMonitor.init({
+          containerId: 'adminBrailleMonitorComponent',
+          showInfo: false
+        });
+        adminBrailleMonitorUi.clear?.();
       }
-      return list.map((item) => `<span class="badge bg-secondary-lt me-1 mb-1">${escapeHtml(item)}</span>`).join('');
+      if (window.BrailleBridgeStatus && typeof window.BrailleBridgeStatus.initAll === 'function') {
+        window.BrailleBridgeStatus.initAll();
+      }
+      return adminBrailleMonitorUi;
+    }
+
+    function clearAdminBrailleMonitor() {
+      const monitor = initAdminBrailleMonitor();
+      if (monitor && typeof monitor.clear === 'function') {
+        monitor.clear();
+      } else if (monitor && typeof monitor.setText === 'function') {
+        monitor.setText('');
+      }
+    }
+
+    function getBuilderWindow() {
+      const frame = $('adminBuilderFrame');
+      return frame?.contentWindow || null;
+    }
+
+    async function waitForLoadWorkspaceOnline(timeoutMs = 15000) {
+      const started = Date.now();
+      while (Date.now() - started < timeoutMs) {
+        const frameWindow = getBuilderWindow();
+        if (frameWindow && typeof frameWindow.loadWorkspaceOnline === 'function') {
+          return frameWindow;
+        }
+        if (frameWindow?.BrailleBlocklyApp && typeof frameWindow.BrailleBlocklyApp.applyResolvedSessionPayload === 'function') {
+          return frameWindow;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 150));
+      }
+      return null;
+    }
+
+    function syncBrailleMonitorFromRunner() {
+      try {
+        const monitor = initAdminBrailleMonitor();
+        const app = getBuilderWindow()?.BrailleBlocklyApp || null;
+        if (!monitor || !app || typeof app.getRuntimeSnapshot !== 'function') return;
+        const runtime = app.getRuntimeSnapshot();
+        const brailleUnicode = String(runtime?.brailleUnicode || '');
+        const sourceText = String(runtime?.text || '');
+        const signature = JSON.stringify({
+          brailleUnicode,
+          sourceText,
+          cellCaret: runtime?.cellCaret ?? null,
+          textCaret: runtime?.textCaret ?? null,
+          caretVisible: runtime?.caretVisible ?? true
+        });
+        if (signature === lastBrailleSnapshot) return;
+        lastBrailleSnapshot = signature;
+        if (!brailleUnicode && !sourceText) {
+          clearAdminBrailleMonitor();
+          return;
+        }
+        monitor.setBrailleUnicode(brailleUnicode, sourceText, {
+          caretPosition: Number.isInteger(runtime?.cellCaret) ? runtime.cellCaret : undefined,
+          textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
+          caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
+        });
+      } catch (err) {
+        logLine('BrailleMonitor sync mislukt.', { message: err.message || String(err) });
+      }
+    }
+
+    function rememberRunnerMonitorSnapshot(targetWindow) {
+      try {
+        const app = targetWindow?.BrailleBlocklyApp || null;
+        if (!app || typeof app.getRuntimeSnapshot !== 'function') return;
+        const runtime = app.getRuntimeSnapshot();
+        lastBrailleSnapshot = JSON.stringify({
+          brailleUnicode: String(runtime?.brailleUnicode || ''),
+          sourceText: String(runtime?.text || ''),
+          cellCaret: runtime?.cellCaret ?? null,
+          textCaret: runtime?.textCaret ?? null,
+          caretVisible: runtime?.caretVisible ?? true
+        });
+      } catch (err) {
+        logLine('BrailleMonitor snapshot onthouden mislukt.', { message: err.message || String(err) });
+      }
+    }
+
+    function startBrailleMonitorSync(options = {}) {
+      if (adminBrailleMonitorSyncTimer) return;
+      adminBrailleMonitorSyncTimer = window.setInterval(syncBrailleMonitorFromRunner, 250);
+      if (options.immediate !== false) {
+        syncBrailleMonitorFromRunner();
+      }
+    }
+
+    function stopBrailleMonitorSync() {
+      if (!adminBrailleMonitorSyncTimer) return;
+      window.clearInterval(adminBrailleMonitorSyncTimer);
+      adminBrailleMonitorSyncTimer = null;
+    }
+
+    function forceBrailleMonitorSyncFromRunner() {
+      lastBrailleSnapshot = '';
+      syncBrailleMonitorFromRunner();
+    }
+
+    function updateRunToggleButtons() {
+      document.querySelectorAll('.js-run-toggle-link').forEach((button) => {
+        const code = String(button.getAttribute('data-link-code') || '').trim();
+        const isPlaying = code !== '' && (code === activeStepLinkCode || code === pendingStepLinkCode);
+        button.classList.toggle('btn-outline-primary', !isPlaying);
+        button.classList.toggle('btn-outline-danger', isPlaying);
+        button.setAttribute('title', isPlaying ? 'Stop step-link' : 'Start step-link');
+        button.setAttribute('aria-label', `${isPlaying ? 'Stop' : 'Start'} step link ${code}`);
+        button.innerHTML = isPlaying
+          ? '<i class="ti ti-player-stop" aria-hidden="true"></i>'
+          : '<i class="ti ti-player-play" aria-hidden="true"></i>';
+      });
+    }
+
+    async function dispatchRunnerInput(event) {
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      if (app && typeof app.dispatchRuntimeEvent === 'function') {
+        await app.dispatchRuntimeEvent(event);
+        return;
+      }
+      throw new Error('Runner input API is niet beschikbaar.');
+    }
+
+    function getRunnerDebugSnapshot(targetWindow, payload = null) {
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      const api = targetWindow?.BrailleStudioAPI || null;
+      const runtime = app && typeof app.getRuntimeSnapshot === 'function'
+        ? app.getRuntimeSnapshot()
+        : null;
+      const stepInputs = payload?.stepInputs && typeof payload.stepInputs === 'object' ? payload.stepInputs : {};
+      const external = runtime?.external && typeof runtime.external === 'object' ? runtime.external : {};
+      const requestedExternal = {};
+      Object.keys(stepInputs).forEach((name) => {
+        requestedExternal[name] = {
+          requested: stepInputs[name],
+          runtimeValue: external[name],
+          apiValue: api && typeof api.getExternalVariable === 'function' ? api.getExternalVariable(name) : undefined,
+          exists: api && typeof api.externalVariableExists === 'function' ? api.externalVariableExists(name) : undefined
+        };
+      });
+      return {
+        hasFrame: Boolean(targetWindow),
+        hasApp: Boolean(app),
+        hasApi: Boolean(api),
+        capabilities: {
+          applyResolvedSessionPayload: typeof app?.applyResolvedSessionPayload === 'function',
+          runCurrentWorkspace: typeof app?.runCurrentWorkspace === 'function',
+          stopProgram: typeof app?.stopProgram === 'function',
+          getRuntimeSnapshot: typeof app?.getRuntimeSnapshot === 'function',
+          setExternalVariable: typeof api?.setExternalVariable === 'function',
+          getExternalVariable: typeof api?.getExternalVariable === 'function',
+          externalVariableExists: typeof api?.externalVariableExists === 'function'
+        },
+        runtime: runtime ? {
+          stopped: runtime.stopped,
+          isActive: runtime.isActive,
+          text: runtime.text,
+          brailleUnicode: runtime.brailleUnicode,
+          external,
+          stepCompletion: runtime.stepCompletion,
+          lessonCompletion: runtime.lessonCompletion
+        } : null,
+        requestedExternal
+      };
+    }
+
+    function readPlayableStepInputs(item, index = -1) {
+      const container = Number.isInteger(index) && index >= 0
+        ? document.querySelector(`[data-inline-link-index="${index}"]`)
+        : null;
+      if (container) {
+        const inputs = readInlineStepInputs(container, item);
+        logLine('Step-link inputs gelezen uit open editor.', {
+          index,
+          code: item?.code || '',
+          inputKeys: Object.keys(inputs),
+          inputs
+        });
+        return inputs;
+      }
+      const inputs = stripDeprecatedStepInputs(item?.stepInputs);
+      logLine('Step-link inputs gelezen uit opgeslagen record.', {
+        index,
+        code: item?.code || '',
+        inputKeys: Object.keys(inputs),
+        inputs
+      });
+      return inputs;
+    }
+
+    function buildResolvedStepLinkPayload(item, index = -1) {
+      const code = String(item?.code || '').trim();
+      if (!code) throw new Error('Missing step link code');
+      return {
+        code,
+        methodId: String(item?.methodId || '').trim(),
+        stepId: String(item?.stepId || '').trim(),
+        scriptId: String(item?.scriptId || '').trim(),
+        meta: getScriptDisplayMeta(item),
+        stepInputs: readPlayableStepInputs(item, index)
+      };
+    }
+
+    async function playStepLink(item, index = -1) {
+      const payload = buildResolvedStepLinkPayload(item, index);
+      if (!payload.scriptId) throw new Error('Step-link heeft geen scriptId.');
+      if (activeStepLinkCode && activeStepLinkCode !== payload.code) {
+        logLine('Andere step-link wordt gestart; huidige runtime wordt eerst gestopt.', {
+          activeStepLinkCode,
+          nextCode: payload.code
+        });
+        await stopCurrentStepLink({ silent: true, reason: 'switch-step-link', preservePending: true });
+        pendingStepLinkCode = payload.code;
+        updateRunToggleButtons();
+      }
+      const inputNames = Object.keys(payload.stepInputs || {});
+      logLine('Step-link play payload opgebouwd.', {
+        code: payload.code,
+        scriptId: payload.scriptId,
+        stepId: payload.stepId,
+        methodId: payload.methodId,
+        inputNames,
+        stepInputs: payload.stepInputs,
+        meta: payload.meta
+      });
+      setSessionSendStatus(inputNames.length
+        ? `Step-link ${payload.code} wordt direct gestart met ${inputNames.length} externe waarde(n)...`
+        : `Step-link ${payload.code} wordt direct gestart...`);
+      stopBrailleMonitorSync();
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      if (!targetWindow) {
+        throw new Error('Blockly runner is nog niet beschikbaar.');
+      }
+      const app = targetWindow.BrailleBlocklyApp || {};
+      if (typeof app.setLogHandler === 'function') {
+        app.setLogHandler((line) => {
+          logLine(`Runner: ${String(line || '').replace(/^\[[^\]]+\]\s*/, '')}`);
+        });
+      }
+      logLine('Runner gevonden voor step-link play.', getRunnerDebugSnapshot(targetWindow, payload));
+      if (typeof app.applyResolvedSessionPayload === 'function') {
+        await app.applyResolvedSessionPayload(payload, { autoRun: false, force: true });
+      } else if (typeof targetWindow.applyResolvedSessionPayload === 'function') {
+        await targetWindow.applyResolvedSessionPayload(payload, { autoRun: false, force: true });
+      } else {
+        await targetWindow.loadWorkspaceOnline(payload.scriptId);
+      }
+      logLine('Runner state na applyResolvedSessionPayload/loadWorkspaceOnline.', getRunnerDebugSnapshot(targetWindow, payload));
+      const api = targetWindow.BrailleStudioAPI || {};
+      Object.entries(payload.stepInputs || {}).forEach(([name, value]) => {
+        if (String(name || '').trim() && typeof api.setExternalVariable === 'function') {
+          api.setExternalVariable(name, value);
+        }
+      });
+      logLine('Runner state na expliciete external variable injectie.', getRunnerDebugSnapshot(targetWindow, payload));
+      activeStepLinkCode = payload.code;
+      pendingStepLinkCode = '';
+      updateRunToggleButtons();
+      setSessionSendStatus(`Step-link ${payload.code} is gestart.`, 'success');
+      $('linksStatus').innerHTML = statusText(`Step link ${payload.code} started.`, 'success');
+      rememberRunnerMonitorSnapshot(targetWindow);
+      let runPromise = null;
+      if (typeof app.runCurrentWorkspace === 'function') {
+        runPromise = app.runCurrentWorkspace();
+      } else if (typeof targetWindow.onRunClicked === 'function') {
+        runPromise = targetWindow.onRunClicked();
+      } else {
+        throw new Error('Start API is niet beschikbaar.');
+      }
+      startBrailleMonitorSync({ immediate: false });
+      window.setTimeout(forceBrailleMonitorSyncFromRunner, 350);
+      Promise.resolve(runPromise).then(() => {
+        logLine('Runner state na run completion.', getRunnerDebugSnapshot(targetWindow, payload));
+        if (activeStepLinkCode === payload.code || pendingStepLinkCode === payload.code) {
+          activeStepLinkCode = '';
+          pendingStepLinkCode = '';
+          updateRunToggleButtons();
+          setSessionSendStatus(`Step-link ${payload.code} is klaar.`, 'success');
+          $('linksStatus').innerHTML = statusText(`Step link ${payload.code} finished.`, 'success');
+        }
+      }).catch((err) => {
+        logLine('Step-link run mislukt.', {
+          code: payload.code,
+          message: err.message || String(err)
+        });
+        const isCurrentRun = activeStepLinkCode === payload.code || pendingStepLinkCode === payload.code;
+        if (isCurrentRun) {
+          activeStepLinkCode = '';
+          pendingStepLinkCode = '';
+          updateRunToggleButtons();
+          setSessionSendStatus(err.message || String(err), 'danger');
+          $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+        }
+      });
+      logLine('Runner state direct na start-aanroep.', getRunnerDebugSnapshot(targetWindow, payload));
+      window.setTimeout(() => {
+        logLine('Runner state 500ms na start.', getRunnerDebugSnapshot(targetWindow, payload));
+      }, 500);
+      logLine('Step-link direct gestart vanuit admin.', payload);
+    }
+
+    async function stopCurrentStepLink(options = {}) {
+      const silent = Boolean(options.silent);
+      if (!silent) setSessionSendStatus('Script wordt gestopt...');
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      if (app && typeof app.stopProgram === 'function') {
+        await app.stopProgram();
+      } else if (app && typeof app.stopAudio === 'function') {
+        await app.stopAudio();
+      } else {
+        throw new Error('Stop API is niet beschikbaar.');
+      }
+      stopBrailleMonitorSync();
+      clearAdminBrailleMonitor();
+      const stoppedCode = activeStepLinkCode;
+      activeStepLinkCode = '';
+      if (!options.preservePending) {
+        pendingStepLinkCode = '';
+      }
+      updateRunToggleButtons();
+      if (!silent) {
+        setSessionSendStatus('Script gestopt.', 'success');
+        $('linksStatus').innerHTML = statusText('Script stopped.', 'success');
+      }
+      logLine('Step-link runtime gestopt vanuit admin.', {
+        stoppedCode,
+        reason: options.reason || 'manual'
+      });
+    }
+
+    function getScriptDisplayMeta(itemOrScriptId = {}) {
+      const scriptId = typeof itemOrScriptId === 'string'
+        ? String(itemOrScriptId || '').trim()
+        : String(itemOrScriptId?.scriptId || '').trim();
+      const scriptData = scriptDataCache.get(scriptId) || null;
+      const scriptListItem = scriptsCache.find((script) => String(script?.id || '').trim() === scriptId) || null;
+      const meta = scriptData?.meta && typeof scriptData.meta === 'object'
+        ? scriptData.meta
+        : (scriptListItem?.meta && typeof scriptListItem.meta === 'object' ? scriptListItem.meta : {});
+      return {
+        title: String(meta.title || scriptData?.title || scriptListItem?.title || scriptId || '').trim(),
+        description: String(meta.description || meta.prompt || '').trim(),
+        instruction: String(meta.instruction || '').trim(),
+        prompt: String(meta.prompt || '').trim()
+      };
+    }
+
+    function getStepLinkInfo(item = {}) {
+      const meta = item?.meta && typeof item.meta === 'object' ? item.meta : {};
+      return String(meta.info || '').trim();
+    }
+
+    function buildStepLinkMeta(info = '') {
+      const value = String(info || '').trim();
+      return value ? { info: value } : {};
+    }
+
+    function stripDeprecatedStepInputs(stepInputs = {}) {
+      const normalized = stepInputs && typeof stepInputs === 'object' ? { ...stepInputs } : {};
+      delete normalized.repeat;
+      return normalized;
+    }
+
+    function getStoredStepLinkMetaKeys(item = {}) {
+      const meta = item?.meta && typeof item.meta === 'object' ? item.meta : {};
+      return Object.entries(meta)
+        .filter(([key]) => key !== 'info')
+        .filter(([, value]) => {
+          if (value == null) return false;
+          if (typeof value === 'string') return value.trim() !== '';
+          if (Array.isArray(value)) return value.length > 0;
+          if (typeof value === 'object') return Object.keys(value).length > 0;
+          return true;
+        })
+        .map(([key]) => key);
     }
 
     function collectExternalVariableNamesFromBlocks(blocklyState = {}) {
       const names = new Set();
       const visitBlock = (block) => {
         if (!block || typeof block !== 'object') return;
-        if (
-          ['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'].includes(String(block.type || ''))
-        ) {
+        if (['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'].includes(String(block.type || ''))) {
           const name = String(block.fields?.VAR || '').trim();
-          if (name) names.add(name);
+          if (name && name !== 'repeat') names.add(name);
         }
         Object.values(block.inputs || {}).forEach((input) => {
           visitBlock(input?.block);
@@ -505,7 +900,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       const normalized = variables
         .map((item) => {
           const name = String(item?.name || '').trim();
-          if (!name || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          if (!name || name === 'repeat' || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
           return {
             name,
             type: String(item?.type || 'string').trim() || 'string',
@@ -528,6 +923,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return normalized;
     }
 
+    function isOldStepLink(item = {}) {
+      const stepInputs = item?.stepInputs && typeof item.stepInputs === 'object' ? item.stepInputs : {};
+      return getStoredStepLinkMetaKeys(item).length > 0
+        || Object.prototype.hasOwnProperty.call(stepInputs, 'repeat')
+        || ['word', 'text', 'letters', 'sounds'].some((key) => Object.prototype.hasOwnProperty.call(stepInputs, key));
+    }
+
     function formatExternalVariableDefault(value) {
       if (value == null) return '';
       if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
@@ -539,9 +941,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function parseExternalVariableDefault(variable) {
       const type = String(variable?.type || 'string').trim();
       const value = variable?.defaultValue;
-      if (type === 'boolean') {
-        return value === true || value === 'true' || value === 1 || value === '1';
-      }
+      if (type === 'boolean') return value === true || value === 'true' || value === 1 || value === '1';
       if (type === 'number') {
         const numberValue = Number(value);
         return Number.isFinite(numberValue) ? numberValue : 0;
@@ -569,9 +969,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function coerceExternalVariableInput(value, type = 'string') {
       const normalizedType = String(type || 'string').trim();
-      if (normalizedType === 'boolean') {
-        return value === true || value === 'true' || value === 1 || value === '1';
-      }
+      if (normalizedType === 'boolean') return value === true || value === 'true' || value === 1 || value === '1';
       if (normalizedType === 'number') {
         const numberValue = Number(value);
         return Number.isFinite(numberValue) ? numberValue : 0;
@@ -598,9 +996,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     async function loadScriptData(scriptId) {
       const id = String(scriptId || '').trim();
       if (!id) return null;
-      if (scriptDataCache.has(id)) {
-        return scriptDataCache.get(id);
-      }
+      if (scriptDataCache.has(id)) return scriptDataCache.get(id);
       const url = new URL(SCRIPT_LOAD_URL, window.location.origin);
       url.searchParams.set('id', id);
       const res = await fetch(url.toString(), {
@@ -615,445 +1011,315 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       return data;
     }
 
-    function renderExternalVariablesEditor(variables = [], values = {}) {
-      const editor = $('externalVariablesEditor');
-      const status = $('externalVariablesStatus');
-      if (!editor) return;
-      const safeValues = values && typeof values === 'object' ? values : {};
-      editor.innerHTML = '';
-      if (status) {
-        status.className = variables.length ? 'badge bg-blue-lt' : 'badge bg-secondary-lt';
-        status.textContent = variables.length ? `${variables.length} external variable(s)` : 'No external variables';
-      }
-      if (!variables.length) {
-        editor.innerHTML = '<div class="col-12 text-secondary">Dit Blockly-script heeft geen external variables.</div>';
-        return;
-      }
-      variables.forEach((variable) => {
-        const col = document.createElement('div');
-        col.className = 'col-12 col-lg-6';
-        const label = document.createElement('label');
-        label.className = 'form-label';
-        label.textContent = `${variable.name} (${variable.type})`;
-        col.appendChild(label);
-
-        const hasValue = Object.prototype.hasOwnProperty.call(safeValues, variable.name);
-        const value = hasValue ? safeValues[variable.name] : parseExternalVariableDefault(variable);
-        let control;
-        if (variable.type === 'boolean') {
-          const checkLabel = document.createElement('label');
-          checkLabel.className = 'form-check';
-          control = document.createElement('input');
-          control.type = 'checkbox';
-          control.className = 'form-check-input';
-          control.checked = Boolean(value);
-          const checkText = document.createElement('span');
-          checkText.className = 'form-check-label';
-          checkText.textContent = variable.description || variable.name;
-          checkLabel.appendChild(control);
-          checkLabel.appendChild(checkText);
-          col.appendChild(checkLabel);
-        } else if (variable.type === 'number') {
-          control = document.createElement('input');
-          control.type = 'number';
-          control.className = 'form-control';
-          control.value = formatExternalVariableDefault(value);
-          col.appendChild(control);
-        } else {
-          control = document.createElement('textarea');
-          control.rows = variable.type === 'array' || variable.type === 'object' ? 3 : 2;
-          control.className = 'form-control';
-          control.value = formatExternalVariableDefault(value);
-          col.appendChild(control);
-        }
-        control.dataset.externalVariableName = variable.name;
-        control.dataset.externalVariableType = variable.type;
-        control.title = variable.description || variable.name;
-        control.addEventListener('input', renderPreview);
-        control.addEventListener('change', renderPreview);
-
-        if (variable.description && variable.type !== 'boolean') {
-          const description = document.createElement('div');
-          description.className = 'form-hint';
-          description.textContent = variable.description;
-          col.appendChild(description);
-        }
-        editor.appendChild(col);
-      });
-    }
-
-    async function renderExternalVariablesForScript(scriptId, values = {}) {
-      const id = String(scriptId || '').trim();
-      const editor = $('externalVariablesEditor');
-      const status = $('externalVariablesStatus');
-      if (!id) {
-        if (status) {
-          status.className = 'badge bg-secondary-lt';
-          status.textContent = 'No script selected';
-        }
-        if (editor) editor.innerHTML = '<div class="col-12 text-secondary">Kies eerst een Blockly-script.</div>';
-        return [];
-      }
-      if (status) {
-        status.className = 'badge bg-secondary-lt';
-        status.textContent = 'Loading...';
-      }
-      if (editor) editor.innerHTML = '<div class="col-12 text-secondary">External variables laden...</div>';
-      const scriptData = await loadScriptData(id);
-      const variables = getExternalVariablesFromScriptData(scriptData);
-      renderExternalVariablesEditor(variables, values);
-      return variables;
-    }
-
-    function readExternalVariableInputs() {
-      const values = {};
-      document.querySelectorAll('[data-external-variable-name]').forEach((control) => {
-        const name = String(control.getAttribute('data-external-variable-name') || '').trim();
-        const type = String(control.getAttribute('data-external-variable-type') || 'string').trim();
-        if (!name) return;
-        values[name] = control.type === 'checkbox'
-          ? Boolean(control.checked)
-          : coerceExternalVariableInput(control.value, type);
-      });
-      return values;
-    }
-
-    function renderExternalInputChips(stepInputs = {}) {
-      const normalKeys = new Set(['text', 'word', 'letters', 'repeat', 'sounds']);
-      const entries = Object.entries(stepInputs || {})
-        .filter(([key]) => !normalKeys.has(key))
-        .map(([key, value]) => {
-          const display = value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
-          return `<span class="badge bg-blue-lt me-1 mb-1">${escapeHtml(key)}: ${escapeHtml(display || '(empty)')}</span>`;
-        });
-      return entries.length ? entries.join('') : '<span class="text-secondary">-</span>';
-    }
-
-    function renderPayloadKeyValue(rows) {
-      return `
-        <div class="list-group list-group-flush">
-          ${rows.map(([label, value]) => `
-            <div class="list-group-item">
-              <div class="row g-2">
-                <div class="col-12 col-md-4 fw-semibold">${escapeHtml(label)}</div>
-                <div class="col text-break">${value}</div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-
-    function slugifyStepPart(value) {
-      return String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .replace(/-{2,}/g, '-');
-    }
-
-    function buildAutoStepId(scriptId) {
-      const base = slugifyStepPart(scriptId);
-      return base ? `${base}-step-1` : '';
-    }
-
-    function buildPayload() {
-      const orderRaw = String($('orderInput').value || '').trim();
-      const orderValue = orderRaw === '' ? null : Number(orderRaw);
+    function buildPayload({ overwrite = false } = {}) {
+      const scriptId = getSelectedScriptId();
       const payload = {
         code: String($('codeInput').value || '').trim() || undefined,
-        scriptId: String($('scriptIdInput').value || '').trim(),
-        stepId: String($('stepIdInput').value || '').trim(),
-        active: Boolean($('activeInput').checked),
-        overwrite: Boolean($('overwriteInput').checked),
-        meta: {
-          title: String($('titleInput').value || '').trim(),
-          description: String($('descriptionInput').value || '').trim(),
-          instruction: String($('instructionInput').value || '').trim(),
-          book: String($('bookInput').value || '').trim(),
-          page: String($('pageInput').value || '').trim(),
-          order: Number.isFinite(orderValue) ? orderValue : null
-        },
-        stepInputs: {
-          text: String($('textInput').value || '').trim(),
-          word: String($('wordInput').value || '').trim(),
-          letters: parseCommaList($('lettersInput').value),
-          repeat: Math.max(1, Math.floor(Number($('repeatInput').value || 1) || 1)),
-          sounds: parseCommaList($('soundsInput').value),
-          ...readExternalVariableInputs()
-        }
+        scriptId,
+        stepId: buildAutoStepId(scriptId),
+        active: true,
+        meta: buildStepLinkMeta($('infoInput').value),
+        stepInputs: {}
       };
-
-      if (!payload.code) {
-        delete payload.code;
-      }
-      if (payload.meta.order == null) {
-        delete payload.meta.order;
-      }
+      if (!payload.code) delete payload.code;
+      if (overwrite) payload.overwrite = true;
       return payload;
     }
 
-    async function beginEditLink(item) {
-      if (!item || typeof item !== 'object') {
-        return;
-      }
-      editingOriginalCode = String(item.code || '').trim();
-      $('codeInput').value = String(item.code || '');
-      $('scriptIdInput').value = String(item.scriptId || '');
-      $('stepIdInput').value = String(item.stepId || '');
-      $('titleInput').value = String(item?.meta?.title || '');
-      $('descriptionInput').value = String(item?.meta?.description || '');
-      $('instructionInput').value = String(item?.meta?.instruction || '');
-      $('bookInput').value = String(item?.meta?.book || '');
-      $('pageInput').value = String(item?.meta?.page || '');
-      $('orderInput').value = item?.meta?.order ?? '';
-      $('textInput').value = String(item?.stepInputs?.text || '');
-      $('wordInput').value = String(item?.stepInputs?.word || '');
-      $('lettersInput').value = Array.isArray(item?.stepInputs?.letters) ? item.stepInputs.letters.join(', ') : '';
-      $('soundsInput').value = Array.isArray(item?.stepInputs?.sounds) ? item.stepInputs.sounds.join(', ') : '';
-      $('repeatInput').value = String(item?.stepInputs?.repeat ?? 1);
-      $('activeInput').checked = Boolean(item.active);
-      $('overwriteInput').checked = false;
-      try {
-        await renderExternalVariablesForScript(item.scriptId || '', item?.stepInputs || {});
-      } catch (err) {
-        $('externalVariablesStatus').className = 'badge bg-danger-lt';
-        $('externalVariablesStatus').textContent = 'Load failed';
-        $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
-      }
-      renderEditingState();
-      renderPreview();
-      $('createStatus').innerHTML = statusText(`Editing step link ${editingOriginalCode}`, 'success');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      logLine('Editing existing step link.', { code: editingOriginalCode, item });
+    async function loadScripts() {
+      $('scriptsStatus').textContent = 'Loading scripts...';
+      const res = await fetch(SCRIPT_LIST_URL, {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      scriptsCache = Array.isArray(data.items) ? data.items : (Array.isArray(data.scripts) ? data.scripts : []);
+      const select = $('scriptSelect');
+      select.innerHTML = '<option value="">-- choose a script --</option>';
+      scriptsCache.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = String(item.id || '');
+        const metaTitle = String(item?.meta?.title || '').trim();
+        const title = String(item.title || metaTitle || item.id || '').trim();
+        option.textContent = `${title} (${item.id})`;
+        option.dataset.scriptId = String(item.id || '');
+        select.appendChild(option);
+      });
+      $('scriptsStatus').textContent = `${scriptsCache.length} script(s) loaded.`;
     }
 
-    function renderPreview() {
-      const payload = buildPayload();
-      $('previewBox').innerHTML = `
-        <div class="col-12 col-lg-4">
-          <div class="card h-100">
-            <div class="card-header"><h3 class="card-title">Basis</h3></div>
-            <div class="card-body p-0">
-              ${renderPayloadKeyValue([
-                ['Script id', escapeHtml(payload.scriptId || '-')],
-                ['Step id', escapeHtml(payload.stepId || '-')],
-                ['Short code', escapeHtml(payload.code || 'auto-generate')],
-                ['Active', payload.active ? '<span class="badge bg-success-lt">Yes</span>' : '<span class="badge bg-secondary-lt">No</span>'],
-                ['Overwrite', payload.overwrite ? '<span class="badge bg-warning-lt">Yes</span>' : '<span class="badge bg-secondary-lt">No</span>']
-              ])}
+    async function applySelectedScriptToForm() {
+      const scriptId = getSelectedScriptId();
+      if (!scriptId) {
+        setScriptMetaPreview();
+        return;
+      }
+      await loadScriptData(scriptId).catch(() => null);
+      setScriptMetaPreview(getScriptDisplayMeta(scriptId));
+    }
+
+    async function sendStepLinkSaveRequest(payload) {
+      const res = await fetch(CREATE_LINK_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      return { res, data };
+    }
+
+    async function saveLink({ overwrite = false } = {}) {
+      const payload = buildPayload({ overwrite });
+      if (!payload.scriptId) throw new Error('Choose an online script first.');
+      if (!payload.stepId) throw new Error('stepId could not be derived.');
+      $('createStatus').textContent = overwrite ? 'Overwriting step link...' : 'Creating step link...';
+      const { res, data } = await sendStepLinkSaveRequest(payload);
+      if (res.status === 409 && !overwrite) {
+        const code = String(data?.code || payload.code || '').trim();
+        if (window.confirm(code ? `Step-link ${code} bestaat al. Overschrijven?` : 'Deze step-link bestaat al. Overschrijven?')) {
+          await saveLink({ overwrite: true });
+        } else {
+          $('createStatus').innerHTML = statusText('Overschrijven geannuleerd.', 'secondary');
+        }
+        return;
+      }
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      $('createStatus').innerHTML = statusText(`Step link created: ${data.code}`, 'success');
+      $('codeInput').value = String(data.code || '');
+      await loadLinks();
+    }
+
+    function buildLinkMutationPayload(item, overrides = {}) {
+      return {
+        methodId: String(item?.methodId || '').trim(),
+        scriptId: String(item?.scriptId || '').trim(),
+        stepId: String(item?.stepId || '').trim(),
+        active: Boolean(item?.active),
+        meta: buildStepLinkMeta(getStepLinkInfo(item)),
+        stepInputs: stripDeprecatedStepInputs(item?.stepInputs),
+        ...overrides
+      };
+    }
+
+    async function updateLink(payload) {
+      const res = await fetch(UPDATE_LINK_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    async function updateStepLinkActive(item, active) {
+      const code = String(item?.code || '').trim();
+      if (!code) throw new Error('Missing step link code');
+      await updateLink(buildLinkMutationPayload(item, { originalCode: code, code, active }));
+      $('linksStatus').innerHTML = statusText(`Step link ${code} is ${active ? 'active' : 'inactive'}.`, 'success');
+      await loadLinks();
+    }
+
+    async function copyStepLink(item) {
+      const sourceCode = String(item?.code || '').trim();
+      if (!sourceCode) throw new Error('Missing step link code');
+      const res = await fetch(CREATE_LINK_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildLinkMutationPayload(item))
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      pendingCopiedPlacement = {
+        sourceCode,
+        copiedCode: String(data.code || data?.record?.code || '').trim()
+      };
+      $('linksStatus').innerHTML = statusText(`Step link ${sourceCode} copied to ${pendingCopiedPlacement.copiedCode}.`, 'success');
+      await loadLinks();
+    }
+
+    async function deleteLink(item) {
+      const code = String(item?.code || '').trim();
+      const methodId = String(item?.methodId || '').trim();
+      if (!code) throw new Error('Missing step link code');
+      if (!window.confirm(`Delete step link ${code}? This cannot be undone.`)) return;
+      const res = await fetch(DELETE_LINK_URL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, methodId })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      $('linksStatus').innerHTML = statusText(`Step link ${code} deleted.`, 'success');
+      await loadLinks();
+    }
+
+    async function deleteOldLinks() {
+      const oldLinks = linksCache.filter(isOldStepLink);
+      if (!oldLinks.length) {
+        $('linksStatus').innerHTML = statusText('No old step-links found.', 'secondary');
+        return;
+      }
+      const codes = oldLinks.map((item) => String(item?.code || '').trim()).filter(Boolean);
+      if (!window.confirm(`Delete ${codes.length} old step-link(s)? This cannot be undone.\n\n${codes.join(', ')}`)) return;
+      for (const item of oldLinks) {
+        const code = String(item?.code || '').trim();
+        const methodId = String(item?.methodId || '').trim();
+        if (!code) continue;
+        const res = await fetch(DELETE_LINK_URL, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, methodId })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      $('linksStatus').innerHTML = statusText(`${codes.length} old step-link(s) deleted.`, 'success');
+      await loadLinks();
+    }
+
+    function renderInlineStepLinkEditor(item, index) {
+      const scriptMeta = getScriptDisplayMeta(item);
+      const stepInputs = item?.stepInputs && typeof item.stepInputs === 'object' ? item.stepInputs : {};
+      const externalVariables = getExternalVariablesFromScriptData(scriptDataCache.get(String(item?.scriptId || '').trim()) || null);
+      const variablesHtml = externalVariables.length
+        ? externalVariables.map((variable) => {
+            const hasValue = Object.prototype.hasOwnProperty.call(stepInputs, variable.name);
+            const value = hasValue ? stepInputs[variable.name] : parseExternalVariableDefault(variable);
+            const valueText = variable.type === 'boolean'
+              ? (Boolean(value) ? 'checked' : '')
+              : `value="${escapeHtml(formatExternalVariableDefault(value))}"`;
+            const controlHtml = variable.type === 'boolean'
+              ? `<input type="checkbox" class="form-check-input" data-external-variable-name="${escapeHtml(variable.name)}" data-external-variable-type="${escapeHtml(variable.type)}" ${valueText}>`
+              : variable.type === 'number'
+                ? `<input type="number" class="form-control form-control-sm" data-external-variable-name="${escapeHtml(variable.name)}" data-external-variable-type="${escapeHtml(variable.type)}" ${valueText}>`
+                : `<textarea rows="${variable.type === 'array' || variable.type === 'object' ? 3 : 2}" class="form-control form-control-sm" data-external-variable-name="${escapeHtml(variable.name)}" data-external-variable-type="${escapeHtml(variable.type)}">${escapeHtml(formatExternalVariableDefault(value))}</textarea>`;
+            return `
+              <div class="step-link-variable-row">
+                <label class="form-label small">${escapeHtml(variable.name)} (${escapeHtml(variable.type)})</label>
+                <div>
+                  ${variable.description ? `<div class="form-hint">${escapeHtml(variable.description)}</div>` : ''}
+                  ${controlHtml}
+                </div>
+              </div>
+            `;
+          }).join('')
+        : '<div class="text-secondary small">Geen variabelen voor dit script.</div>';
+
+      return `
+        <div class="card bg-body-tertiary">
+          <div class="card-body" data-inline-link-index="${index}">
+            <div class="step-link-settings">
+              <div>
+                <label class="form-label small" for="inlineInfo${index}">Info</label>
+                <textarea id="inlineInfo${index}" class="form-control form-control-sm" rows="2" data-field="info">${escapeHtml(getStepLinkInfo(item))}</textarea>
+              </div>
+              <div class="script-meta-preview" aria-label="Scriptgegevens">
+                <div class="script-meta-preview__grid">
+                  <div>
+                    <div class="script-meta-preview__label">
+                      <i class="ti ti-notes" aria-hidden="true"></i>
+                      <span>Omschrijving</span>
+                    </div>
+                    <div class="script-meta-preview__value">${escapeHtml(scriptMeta.description || scriptMeta.prompt || '-')}</div>
+                  </div>
+                  <div>
+                    <div class="script-meta-preview__label">
+                      <i class="ti ti-list-check" aria-hidden="true"></i>
+                      <span>Instructie</span>
+                    </div>
+                    <div class="script-meta-preview__value">${escapeHtml(scriptMeta.instruction || '-')}</div>
+                  </div>
+                </div>
+              </div>
+              ${variablesHtml}
             </div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card h-100">
-            <div class="card-header"><h3 class="card-title">Meta</h3></div>
-            <div class="card-body p-0">
-              ${renderPayloadKeyValue([
-                ['Title', escapeHtml(payload.meta?.title || '-')],
-                ['Description', payload.meta?.description ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.meta.description)}</pre>` : '<span class="text-secondary">-</span>'],
-                ['Instruction', payload.meta?.instruction ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.meta.instruction)}</pre>` : '<span class="text-secondary">-</span>'],
-                ['Book', escapeHtml(payload.meta?.book || '-')],
-                ['Page', escapeHtml(payload.meta?.page || '-')],
-                ['Order', escapeHtml(payload.meta?.order ?? '-')]
-              ])}
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card h-100">
-            <div class="card-header"><h3 class="card-title">Step inputs</h3></div>
-            <div class="card-body p-0">
-              ${renderPayloadKeyValue([
-                ['Text', payload.stepInputs?.text ? `<pre class="form-control font-monospace mb-0">${escapeHtml(payload.stepInputs.text)}</pre>` : '<span class="text-secondary">-</span>'],
-                ['Word', escapeHtml(payload.stepInputs?.word || '-')],
-                ['Letters', formatListChips(payload.stepInputs?.letters)],
-                ['Repeat', escapeHtml(payload.stepInputs?.repeat ?? 1)],
-                ['Sounds', formatListChips(payload.stepInputs?.sounds)],
-                ['External variables', renderExternalInputChips(payload.stepInputs)]
-              ])}
+            <div class="btn-list mt-3">
+              <button type="button" class="btn btn-primary btn-sm js-save-inline-link" data-inline-action-index="${index}">
+                <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>
+                Save
+              </button>
             </div>
           </div>
         </div>
       `;
     }
 
-    function renderScriptsSelect(items) {
-      const select = $('scriptSelect');
-      select.innerHTML = '<option value="">-- choose a script --</option>';
-      items.forEach((item) => {
-        const option = document.createElement('option');
-        option.value = String(item.id || '');
-        const metaTitle = String(item?.meta?.title || '').trim();
-        const metaDescription = String(item?.meta?.description || '').trim();
-        const title = String(item.title || metaTitle || item.id || '').trim();
-        option.textContent = `${title} (${item.id})`;
-        option.dataset.scriptId = String(item.id || '');
-        option.dataset.scriptTitle = title;
-        option.dataset.scriptDescription = metaDescription;
-        option.dataset.scriptInstruction = String(item?.meta?.instruction || '').trim();
-        select.appendChild(option);
+    function readInlineStepInputs(container, item) {
+      const currentInputs = item?.stepInputs && typeof item.stepInputs === 'object' ? item.stepInputs : {};
+      const nextInputs = stripDeprecatedStepInputs(currentInputs);
+      container.querySelectorAll('[data-external-variable-name]').forEach((control) => {
+        const name = String(control.getAttribute('data-external-variable-name') || '').trim();
+        const type = String(control.getAttribute('data-external-variable-type') || 'string').trim();
+        if (!name) return;
+        nextInputs[name] = control.type === 'checkbox'
+          ? Boolean(control.checked)
+          : coerceExternalVariableInput(control.value, type);
       });
+      return nextInputs;
     }
 
-    async function applySelectedScriptToForm({ overwrite = false } = {}) {
-      const select = $('scriptSelect');
-      const option = select.options[select.selectedIndex];
-      const scriptId = String(option?.dataset?.scriptId || '').trim();
-      const scriptTitle = String(option?.dataset?.scriptTitle || '').trim();
-      const scriptDescription = String(option?.dataset?.scriptDescription || '').trim();
-      const scriptInstruction = String(option?.dataset?.scriptInstruction || '').trim();
-      if (!scriptId) {
-        return false;
-      }
-
-      $('scriptIdInput').value = scriptId;
-      const autoStepId = buildAutoStepId(scriptId);
-      if (autoStepId && (overwrite || !$('stepIdInput').value.trim())) {
-        $('stepIdInput').value = autoStepId;
-      }
-      if (overwrite || !$('titleInput').value.trim()) {
-        $('titleInput').value = scriptTitle;
-      }
-      if (overwrite || !$('descriptionInput').value.trim()) {
-        $('descriptionInput').value = scriptDescription;
-      }
-      if (overwrite || !$('instructionInput').value.trim()) {
-        $('instructionInput').value = scriptInstruction || scriptDescription;
-      }
-      try {
-        await renderExternalVariablesForScript(scriptId);
-      } catch (err) {
-        $('externalVariablesStatus').className = 'badge bg-danger-lt';
-        $('externalVariablesStatus').textContent = 'Load failed';
-        $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
-      }
-      renderPreview();
-      logLine('Applied selected script to form.', {
-        scriptId,
-        stepId: $('stepIdInput').value.trim(),
-        title: scriptTitle,
-        description: scriptDescription,
-        instruction: scriptInstruction
+    async function saveInlineLinkVariables(item, row) {
+      const index = Number(row?.dataset?.linkIndex ?? -1);
+      const container = document.querySelector(`[data-inline-link-index="${index}"]`);
+      if (!item || !container) throw new Error('Inline editor not found');
+      const code = String(item?.code || '').trim();
+      if (!code) throw new Error('Missing step link code');
+      await updateLink({
+        originalCode: code,
+        code,
+        methodId: String(item?.methodId || '').trim(),
+        scriptId: String(item?.scriptId || '').trim(),
+        stepId: String(item?.stepId || '').trim(),
+        active: Boolean(item?.active),
+        meta: buildStepLinkMeta(container.querySelector('[data-field="info"]')?.value || ''),
+        stepInputs: readInlineStepInputs(container, item)
       });
-      return true;
-    }
-
-    async function loadScripts() {
-      requireAuthentication();
-      $('scriptsStatus').textContent = 'Loading scripts...';
-      logLine('Loading script list.', { url: SCRIPT_LIST_URL });
-      const res = await fetch(SCRIPT_LIST_URL, {
-        credentials: 'same-origin',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      const data = await res.json().catch(() => ({}));
-      logLine('Script list response received.', {
-        status: res.status,
-        ok: Boolean(res.ok),
-        itemCount: Array.isArray(data.items) ? data.items.length : null,
-        keys: Object.keys(data || {})
-      });
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
-      scriptsCache = Array.isArray(data.items)
-        ? data.items
-        : Array.isArray(data.scripts)
-          ? data.scripts
-          : [];
-      renderScriptsSelect(scriptsCache);
-      $('scriptsStatus').textContent = `${scriptsCache.length} script(s) loaded.`;
-      logLine(`Loaded ${scriptsCache.length} script(s).`);
-    }
-
-    async function fillFromSelectedScript() {
-      const applied = await applySelectedScriptToForm({ overwrite: true });
-      if (!applied) {
-        throw new Error('Choose a script first');
-      }
-    }
-
-    async function saveLink() {
-      requireAuthentication();
-      const payload = buildPayload();
-      if (!payload.scriptId) {
-        throw new Error('scriptId is required');
-      }
-      if (!payload.stepId) {
-        throw new Error('stepId is required');
-      }
-
-      const isEditing = Boolean(editingOriginalCode);
-      $('createStatus').textContent = isEditing ? 'Updating step link...' : 'Creating step link...';
-      logLine(isEditing ? 'Updating step link.' : 'Creating step link.', {
-        originalCode: editingOriginalCode || null,
-        payload
-      });
-      const requestUrl = isEditing ? UPDATE_LINK_URL : CREATE_LINK_URL;
-      const requestPayload = isEditing
-        ? { originalCode: editingOriginalCode, ...payload }
-        : payload;
-      const res = await fetch(requestUrl, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestPayload)
-      });
-      const data = await res.json().catch(() => ({}));
-      logLine(`${isEditing ? 'Update' : 'Create'} step link response received.`, {
-        status: res.status,
-        ok: Boolean(res.ok),
-        response: data
-      });
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
-      $('createStatus').innerHTML = statusText(`Step link ${isEditing ? 'updated' : 'created'}: ${data.code}`, 'success');
-      $('codeInput').value = String(data.code || '');
-      editingOriginalCode = '';
-      renderEditingState();
-      renderPreview();
+      $('linksStatus').innerHTML = statusText(`Step link ${code} saved.`, 'success');
       await loadLinks();
     }
 
     async function loadLinks() {
-      requireAuthentication();
       $('linksStatus').textContent = 'Loading links...';
-      logLine('Loading existing step links.', { url: LIST_LINKS_URL });
       const res = await fetch(LIST_LINKS_URL, {
         credentials: 'same-origin',
-        headers: {
-          'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
       });
       const data = await res.json().catch(() => ({}));
-      logLine('Existing links response received.', {
-        status: res.status,
-        ok: Boolean(res.ok),
-        itemCount: Array.isArray(data.items) ? data.items.length : null
-      });
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-      const items = Array.isArray(data.items) ? data.items : [];
+      let items = Array.isArray(data.items) ? data.items : [];
+      await Promise.all(items.map((item) => loadScriptData(item?.scriptId || '').catch(() => null)));
+      if (pendingCopiedPlacement?.sourceCode && pendingCopiedPlacement?.copiedCode) {
+        const sourceIndex = items.findIndex((item) => String(item?.code || '').trim() === pendingCopiedPlacement.sourceCode);
+        const copiedIndex = items.findIndex((item) => String(item?.code || '').trim() === pendingCopiedPlacement.copiedCode);
+        if (sourceIndex >= 0 && copiedIndex >= 0 && copiedIndex !== sourceIndex + 1) {
+          const copied = items[copiedIndex];
+          items = items.filter((_, index) => index !== copiedIndex);
+          const adjustedSourceIndex = items.findIndex((item) => String(item?.code || '').trim() === pendingCopiedPlacement.sourceCode);
+          items.splice(adjustedSourceIndex + 1, 0, copied);
+        }
+        pendingCopiedPlacement = null;
+      }
+      linksCache = items;
+      const oldLinkCount = items.filter(isOldStepLink).length;
+      $('deleteOldLinksBtn').disabled = oldLinkCount === 0;
+      $('deleteOldLinksBtn').innerHTML = `
+        <i class="ti ti-trash me-1" aria-hidden="true"></i>
+        Delete old step-links${oldLinkCount ? ` (${oldLinkCount})` : ''}
+      `;
       $('linksStatus').textContent = `${items.length} link(s) loaded.`;
       const list = $('linksList');
-      list.innerHTML = '';
-
       if (!items.length) {
         list.innerHTML = '<div class="empty"><div class="empty-title">No step links yet.</div></div>';
         return;
       }
-
       list.innerHTML = `
         <div class="table-responsive">
           <table class="table table-vcenter card-table">
@@ -1061,155 +1327,188 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               <tr>
                 <th>Code</th>
                 <th>Script</th>
-                <th>Step</th>
                 <th>Title</th>
-                <th>Word</th>
-                <th>Repeat</th>
-                <th>Letters</th>
-                <th>Sounds / External</th>
                 <th>Status</th>
+                <th>Info</th>
                 <th>Updated</th>
-                <th>Action</th>
+                <th class="text-end"></th>
               </tr>
             </thead>
             <tbody>
-              ${items.map((item, index) => `
-                <tr data-link-index="${index}">
-                  <td><span class="badge bg-primary-lt">${escapeHtml(item.code || '-')}</span></td>
+              ${items.map((item, index) => {
+                const scriptMeta = getScriptDisplayMeta(item);
+                const formatWarning = isOldStepLink(item);
+                return `
+                <tr data-link-index="${index}" aria-controls="linkEditorRow${index}">
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-primary-lt">${escapeHtml(item.code || '-')}</span>
+                      ${formatWarning ? '<i class="ti ti-alert-triangle text-warning" aria-hidden="true" title="Old step-link"></i><span class="visually-hidden">Old step-link</span>' : ''}
+                    </div>
+                  </td>
                   <td>${escapeHtml(item.scriptId || '-')}</td>
-                  <td>${escapeHtml(item.stepId || '-')}</td>
-                  <td>
-                    <div><strong>${escapeHtml(item?.meta?.title || '-')}</strong></div>
-                    ${item?.meta?.instruction ? `<div class="text-secondary small mt-1">${escapeHtml(item.meta.instruction)}</div>` : ''}
-                  </td>
-                  <td>${escapeHtml(item?.stepInputs?.word || '-')}</td>
-                  <td>${escapeHtml(item?.stepInputs?.repeat ?? '-')}</td>
-                  <td>${formatListChips(item?.stepInputs?.letters)}</td>
-                  <td>
-                    ${formatListChips(item?.stepInputs?.sounds)}
-                    <div class="mt-1">${renderExternalInputChips(item?.stepInputs || {})}</div>
-                  </td>
+                  <td><strong>${escapeHtml(scriptMeta.title || '-')}</strong></td>
                   <td><span class="badge ${item.active ? 'bg-success-lt' : 'bg-secondary-lt'}">${item.active ? 'active' : 'inactive'}</span></td>
-                  <td>${escapeHtml(item.updatedAt || '-')}</td>
-                  <td><button type="button" class="btn btn-outline-secondary btn-sm js-edit-link">Edit</button></td>
+                  <td>${escapeHtml(getStepLinkInfo(item) || '-')}</td>
+                  <td>${escapeHtml(formatStepLinkDateTime(item.updatedAt))}</td>
+                  <td class="text-end">
+                    <div class="btn-list flex-nowrap justify-content-end">
+                      <button type="button" class="btn btn-icon btn-outline-primary js-run-toggle-link" data-link-code="${escapeHtml(item.code || '')}" title="Start step-link" aria-label="Start step link ${escapeHtml(item.code || '')}">
+                        <i class="ti ti-player-play" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="btn btn-icon ${item.active ? 'btn-outline-warning' : 'btn-outline-success'} js-toggle-active-link" title="${item.active ? 'Make inactive' : 'Make active'}" aria-label="${item.active ? 'Make step link inactive' : 'Make step link active'}">
+                        <i class="ti ${item.active ? 'ti-toggle-right' : 'ti-toggle-left'}" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="btn btn-icon btn-outline-secondary js-copy-link" title="Copy step link" aria-label="Copy step link ${escapeHtml(item.code || '')}">
+                        <i class="ti ti-copy" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="btn btn-icon btn-outline-secondary js-toggle-inline-link" title="Expand details" aria-label="Expand details" aria-expanded="false" aria-controls="linkEditorRow${index}">
+                        <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                      </button>
+                      <button type="button" class="btn btn-icon btn-outline-danger js-delete-link" title="Delete step link" aria-label="Delete step link ${escapeHtml(item.code || '')}">
+                        <i class="ti ti-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              `).join('')}
+                <tr id="linkEditorRow${index}" class="d-none" hidden>
+                  <td colspan="7">${renderInlineStepLinkEditor(item, index)}</td>
+                </tr>
+              `;
+              }).join('')}
             </tbody>
           </table>
         </div>
       `;
-      linksCache = items;
-      list.querySelectorAll('.js-edit-link').forEach((button) => {
+      bindLinkListEvents(list);
+      updateRunToggleButtons();
+    }
+
+    function bindLinkListEvents(list) {
+      list.querySelectorAll('.js-toggle-inline-link').forEach((button) => {
         button.addEventListener('click', () => {
           const row = button.closest('tr[data-link-index]');
           const index = Number(row?.dataset?.linkIndex ?? -1);
-          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) {
-            return;
+          const editorRow = $(`linkEditorRow${index}`);
+          if (!editorRow) return;
+          const isExpanded = button.getAttribute('aria-expanded') === 'true';
+          button.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
+          button.setAttribute('title', isExpanded ? 'Expand details' : 'Collapse details');
+          button.innerHTML = isExpanded
+            ? '<i class="ti ti-chevron-right" aria-hidden="true"></i>'
+            : '<i class="ti ti-chevron-down" aria-hidden="true"></i>';
+          editorRow.hidden = isExpanded;
+          editorRow.classList.toggle('d-none', isExpanded);
+        });
+      });
+      list.querySelectorAll('.js-save-inline-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const index = Number(button?.dataset?.inlineActionIndex ?? -1);
+          const row = list.querySelector(`tr[data-link-index="${index}"]`);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) return;
+          saveInlineLinkVariables(linksCache[index], row).catch((err) => {
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          });
+        });
+      });
+      list.querySelectorAll('.js-toggle-active-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) return;
+          updateStepLinkActive(linksCache[index], !Boolean(linksCache[index].active)).catch((err) => {
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          });
+        });
+      });
+      list.querySelectorAll('.js-run-toggle-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) return;
+          const item = linksCache[index];
+          const code = String(item?.code || '').trim();
+          const isCurrent = code && (code === activeStepLinkCode || code === pendingStepLinkCode);
+          const action = isCurrent ? 'stop' : 'play';
+          if (action === 'play') {
+            pendingStepLinkCode = code;
+            updateRunToggleButtons();
           }
-          beginEditLink(linksCache[index]).catch((err) => {
+          logLine('Run-toggle knop in step-link rij gebruikt.', {
+            action,
+            index,
+            code,
+            scriptId: item?.scriptId || '',
+            activeStepLinkCode,
+            pendingStepLinkCode
+          });
+          const task = action === 'stop'
+            ? stopCurrentStepLink({ reason: 'row-toggle' })
+            : playStepLink(item, index);
+          task.catch((err) => {
+            if (pendingStepLinkCode === code) {
+              pendingStepLinkCode = '';
+            }
+            if (activeStepLinkCode === code) {
+              activeStepLinkCode = '';
+            }
+            setSessionSendStatus(err.message || String(err), 'danger');
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+            updateRunToggleButtons();
+          });
+        });
+      });
+      list.querySelectorAll('.js-copy-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) return;
+          copyStepLink(linksCache[index]).catch((err) => {
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          });
+        });
+      });
+      list.querySelectorAll('.js-delete-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index]) return;
+          deleteLink(linksCache[index]).catch((err) => {
             $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
           });
         });
       });
     }
 
-    function resetForm() {
-      editingOriginalCode = '';
-      $('scriptSelect').value = '';
-      $('scriptIdInput').value = '';
-      $('stepIdInput').value = '';
-      $('codeInput').value = '';
-      $('titleInput').value = '';
-      $('instructionInput').value = '';
-      $('descriptionInput').value = '';
-      $('bookInput').value = '';
-      $('pageInput').value = '';
-      $('orderInput').value = '';
-      $('textInput').value = '';
-      $('wordInput').value = '';
-      $('lettersInput').value = '';
-      $('soundsInput').value = '';
-      $('repeatInput').value = '1';
-      $('activeInput').checked = true;
-      $('overwriteInput').checked = false;
-      renderExternalVariablesForScript('').catch(() => {});
-      renderEditingState();
-      renderPreview();
+    function setLogVisibility(visible) {
+      const body = $('logBody');
+      body.hidden = !visible;
+      body.classList.toggle('d-none', !visible);
+      $('toggleLogBtn').textContent = visible ? 'Hide log' : 'Unhide log';
     }
 
-    function bindPreviewFields() {
-      [
-        'scriptSelect',
-        'scriptIdInput',
-        'stepIdInput',
-        'codeInput',
-        'titleInput',
-        'descriptionInput',
-        'instructionInput',
-        'bookInput',
-        'pageInput',
-        'orderInput',
-        'textInput',
-        'wordInput',
-        'lettersInput',
-        'soundsInput',
-        'repeatInput',
-        'activeInput',
-        'overwriteInput'
-      ].forEach((id) => {
-        const node = $(id);
-        if (!node) return;
-        node.addEventListener('input', renderPreview);
-        node.addEventListener('change', renderPreview);
-      });
+    async function copyLogToClipboard() {
+      const text = String($('logBox')?.textContent || '').trim();
+      if (!text) throw new Error('Log is empty.');
+      await navigator.clipboard.writeText(text);
     }
 
     function bootstrap() {
-      bindPreviewFields();
-      renderPreview();
-      renderAuthenticationState();
       $('pageVersion').textContent = `Admin version ${ADMIN_VERSION}`;
-      logLine('Admin page bootstrapped.', {
-        version: ADMIN_VERSION,
-        scriptListUrl: SCRIPT_LIST_URL,
-        linksUrl: LIST_LINKS_URL
+      $('adminBuilderFrame').src = BLOCKLY_URL;
+      initAdminBrailleMonitor();
+      $('adminThumbLeftBtn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'left' }).catch((err) => setSessionSendStatus(err.message || String(err), 'danger'));
       });
-
-      $('loadScriptsBtn').addEventListener('click', async () => {
-        try {
-          await loadScripts();
-        } catch (err) {
-          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
-        }
+      $('adminThumbRightBtn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'right' }).catch((err) => setSessionSendStatus(err.message || String(err), 'danger'));
       });
-
-      $('fillSelectedBtn').addEventListener('click', async () => {
-        try {
-          await fillFromSelectedScript();
-        } catch (err) {
-          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
-        }
+      $('adminCursor5Btn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'left-middle' }).catch((err) => setSessionSendStatus(err.message || String(err), 'danger'));
       });
-
-      $('scriptSelect').addEventListener('change', async () => {
-        try {
-          await applySelectedScriptToForm();
-        } catch (err) {
-          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
-        }
+      $('adminChord1Btn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'right-middle' }).catch((err) => setSessionSendStatus(err.message || String(err), 'danger'));
       });
-
-      $('scriptIdInput').addEventListener('change', async () => {
-        try {
-          await renderExternalVariablesForScript($('scriptIdInput').value || '');
-          renderPreview();
-        } catch (err) {
-          $('externalVariablesStatus').className = 'badge bg-danger-lt';
-          $('externalVariablesStatus').textContent = 'Load failed';
-          $('externalVariablesEditor').innerHTML = `<div class="col-12 text-danger">${escapeHtml(err.message || String(err))}</div>`;
-        }
-      });
-
       $('createLinkBtn').addEventListener('click', async () => {
         try {
           await saveLink();
@@ -1217,7 +1516,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           $('createStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
-
+      $('scriptSelect').addEventListener('change', async () => {
+        try {
+          await applySelectedScriptToForm();
+        } catch (err) {
+          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
+        }
+      });
       $('refreshLinksBtn').addEventListener('click', async () => {
         try {
           await loadLinks();
@@ -1225,75 +1530,32 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
-
-      $('resetFormBtn').addEventListener('click', resetForm);
-      setLogVisibility(false);
-      renderEditingState();
+      $('deleteOldLinksBtn').addEventListener('click', async () => {
+        try {
+          await deleteOldLinks();
+        } catch (err) {
+          $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+        }
+      });
       $('toggleLogBtn').addEventListener('click', () => {
-        const visible = Boolean($('logBody')?.hidden);
-        setLogVisibility(visible);
+        setLogVisibility(Boolean($('logBody')?.hidden));
       });
       $('copyLogBtn').addEventListener('click', async () => {
         try {
           await copyLogToClipboard();
         } catch (err) {
-          const message = err.message || String(err);
-          $('linksStatus').innerHTML = statusText(message, 'danger');
+          $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
         }
       });
       $('clearLogBtn').addEventListener('click', () => {
         $('logBox').textContent = 'Log cleared.';
       });
-
-      $('authBtn')?.addEventListener('click', async () => {
-        try {
-          $('authStatus').textContent = 'Opening authentication popup...';
-          logLine('Authentication popup requested.');
-          await openAuthenticationPopup();
-          renderAuthenticationState();
-          $('authStatus').className = 'alert alert-success mt-3 mb-0';
-          $('authStatus').textContent = 'Authentication completed.';
-          $('linksStatus').textContent = 'Authentication completed.';
-          await loadScripts();
-          await loadLinks();
-        } catch (err) {
-          const message = err.message || String(err);
-          logLine('Authentication failed.', { message });
-          const isPopupIssue = /popup blocked|popup closed/i.test(message);
-          if (isPopupIssue) {
-            const authUrl = buildHomepageAuthUrl(window.location.href);
-            $('authStatus').className = 'alert alert-danger mt-3 mb-0';
-            $('authStatus').innerHTML = `${escapeHtml(message)}. <a class="alert-link" href="${escapeHtml(authUrl)}" target="_blank" rel="noopener noreferrer">Open login page</a>`;
-          } else {
-            $('authStatus').className = 'alert alert-danger mt-3 mb-0';
-            $('authStatus').textContent = message;
-          }
-          $('linksStatus').innerHTML = statusText(message, 'danger');
-        }
-      });
-
-      window.addEventListener('storage', (event) => {
-        if (event.key === 'braillestudioAuthToken' || event.key === 'elevenlabsAuthToken') {
-          logLine('Authentication storage updated from another window.', {
-            key: event.key,
-            hasValue: Boolean(String(event.newValue || '').trim())
-          });
-          renderAuthenticationState();
-        }
-      });
-
-      if (isAuthenticated()) {
-        loadScripts().catch((err) => {
-          const message = err.message || String(err);
-          $('scriptsStatus').innerHTML = statusText(message, 'danger');
-          logLine('Automatic script load failed.', { message });
+      setLogVisibility(false);
+      loadScripts()
+        .then(() => loadLinks())
+        .catch((err) => {
+          $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
         });
-        loadLinks().catch((err) => {
-          const message = err.message || String(err);
-          $('linksStatus').innerHTML = statusText(message, 'danger');
-          logLine('Automatic link load failed.', { message });
-        });
-      }
     }
 
     bootstrap();

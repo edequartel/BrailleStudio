@@ -19,8 +19,8 @@ $code = $requestedCode !== ''
 
 $active = array_key_exists('active', $input) ? (bool)$input['active'] : true;
 $overwrite = array_key_exists('overwrite', $input) ? (bool)$input['overwrite'] : false;
-$meta = isset($input['meta']) && is_array($input['meta']) ? $input['meta'] : [];
-$stepInputs = isset($input['stepInputs']) && is_array($input['stepInputs']) ? $input['stepInputs'] : [];
+$meta = session_api_normalize_step_link_meta(isset($input['meta']) && is_array($input['meta']) ? $input['meta'] : []);
+$stepInputs = session_api_normalize_step_inputs(isset($input['stepInputs']) && is_array($input['stepInputs']) ? $input['stepInputs'] : []);
 $methodIdRaw = trim((string)($input['methodId'] ?? ($meta['methodId'] ?? '')));
 $methodId = $methodIdRaw !== '' ? session_api_normalize_token($methodIdRaw, 'methodId', 3, 128) : '';
 
@@ -52,3 +52,15 @@ session_api_respond([
     'created' => !is_array($existing),
     'record' => $record,
 ]);
+
+function session_api_normalize_step_inputs(array $stepInputs): array
+{
+    unset($stepInputs['repeat']);
+    return $stepInputs;
+}
+
+function session_api_normalize_step_link_meta(array $meta): array
+{
+    $info = trim((string)($meta['info'] ?? ''));
+    return $info !== '' ? ['info' => $info] : [];
+}

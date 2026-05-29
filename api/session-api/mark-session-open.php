@@ -13,66 +13,16 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'POST'], true)) {
 
 $input = session_api_read_request_input();
 $sessionCode = session_api_normalize_public_session_code((string)($input['session_code'] ?? ($input['session'] ?? '')));
-$code = session_api_normalize_token((string)($input['code'] ?? ($input['step_link'] ?? '')), 'code', 3, 64);
-$methodIdRaw = trim((string)($input['methodId'] ?? ($input['method_id'] ?? '')));
-$methodId = $methodIdRaw !== '' ? session_api_normalize_token($methodIdRaw, 'methodId', 3, 128) : '';
-
 if ($sessionCode === '') {
     session_api_error('session_code ontbreekt.', 400);
 }
 
-$stepLink = session_api_load_step_link_or_fail($code, $methodId);
-$resolvedMethodId = trim((string)($stepLink['methodId'] ?? $methodId));
-$stepLinkCommand = 'load_step_link:' . $code;
-if ($resolvedMethodId !== '') {
-    $stepLinkCommand .= ':' . $resolvedMethodId;
-}
 $config = session_api_load_supabase_config();
-
-if (($stepLink['active'] ?? true) === false) {
-    $sent = [
-        'script_id' => null,
-        'command' => 'step_link_inactive:' . $code,
-        'status' => 'step_link_inactive',
-        'record_index' => null,
-        'executed' => false,
-        'updated_at' => gmdate('c'),
-    ];
-    if ($resolvedMethodId !== '') {
-        $sent['command'] .= ':' . $resolvedMethodId;
-    }
-    $endpoint = rtrim($config['SUPABASE_URL'], '/') . '/rest/v1/sessions?session_code=eq.' . rawurlencode($sessionCode);
-    $response = session_api_supabase_request('PATCH', $endpoint, $config['SUPABASE_SERVICE_ROLE_KEY'], $sent);
-    session_api_respond([
-        'ok' => false,
-        'error' => 'Step-link is niet actief.',
-        'step' => $response['curl_error'] === '' ? 'supabase_patch_inactive' : 'curl',
-        'http_code' => $response['http_code'],
-        'session_code' => $sessionCode,
-        'code' => $code,
-        'methodId' => $resolvedMethodId,
-        'sent' => $sent,
-        'supabase_response' => $response['body_json'] ?? $response['body'],
-        'curl_error' => $response['curl_error'] ?: null,
-    ], 409);
-}
-
-$scriptId = trim((string)($stepLink['scriptId'] ?? ''));
-if ($scriptId === '') {
-    session_api_error('Step-link heeft geen scriptId.', 500, ['code' => $code]);
-}
-$scriptMeta = session_api_load_blockly_script_meta($scriptId);
-
-$recordIndex = null;
-if (isset($stepLink['meta']['order']) && is_numeric($stepLink['meta']['order'])) {
-    $recordIndex = (int)$stepLink['meta']['order'];
-}
-
 $sent = [
-    'script_id' => $scriptId,
-    'command' => $stepLinkCommand,
-    'status' => 'pending',
-    'record_index' => $recordIndex,
+    'script_id' => null,
+    'command' => 'phone_connected',
+    'status' => 'phone_connected',
+    'record_index' => null,
     'executed' => false,
     'updated_at' => gmdate('c'),
 ];
@@ -88,60 +38,10 @@ session_api_respond([
     'step' => $response['curl_error'] === '' ? 'supabase_patch' : 'curl',
     'http_code' => $response['http_code'],
     'session_code' => $sessionCode,
-    'code' => $code,
-    'methodId' => $resolvedMethodId,
-    'stepId' => (string)($stepLink['stepId'] ?? ''),
-    'scriptId' => $scriptId,
-    'meta' => $scriptMeta,
-    'stepInputs' => is_array($stepLink['stepInputs'] ?? null) ? session_api_strip_deprecated_step_inputs($stepLink['stepInputs']) : new stdClass(),
     'sent' => $sent,
     'supabase_response' => $response['body_json'] ?? $response['body'],
     'curl_error' => $response['curl_error'] ?: null,
 ], $status);
-
-function session_api_strip_deprecated_step_inputs(array $stepInputs): array
-{
-    unset($stepInputs['repeat']);
-    return $stepInputs;
-}
-
-function session_api_load_blockly_script_meta(string $scriptId): array
-{
-    $safeId = preg_replace('/[^a-zA-Z0-9_-]/', '-', $scriptId);
-    $safeId = trim((string)$safeId, '-_');
-    if ($safeId === '') {
-        return [];
-    }
-
-    foreach (session_api_blockly_script_dirs() as $dir) {
-        $path = $dir . '/' . $safeId . '.json';
-        if (!is_file($path)) {
-            continue;
-        }
-        $content = json_decode((string)file_get_contents($path), true);
-        if (!is_array($content)) {
-            return [];
-        }
-        $meta = is_array($content['meta'] ?? null) ? $content['meta'] : [];
-        return [
-            'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
-            'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
-            'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
-            'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
-            'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
-        ];
-    }
-
-    return [];
-}
-
-function session_api_blockly_script_dirs(): array
-{
-    return array_values(array_unique([
-        dirname(__DIR__, 2) . '/blockly-data',
-        dirname(__DIR__) . '/blockly-data',
-    ]));
-}
 
 function session_api_read_request_input(): array
 {

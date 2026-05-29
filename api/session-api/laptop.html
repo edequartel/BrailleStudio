@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BrailleStudio realtime sessie</title>
+  <link rel="stylesheet" href="../../tabler/core/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="../../components/braille-monitor/braillemonitor.css">
+  <link rel="stylesheet" href="../../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <style>
     :root {
       --bg: #f7f9fc;
@@ -29,12 +32,6 @@
       color: var(--text);
     }
 
-    .page {
-      display: grid;
-      grid-template-rows: auto 1fr;
-      min-height: 100vh;
-    }
-
     header {
       border-bottom: 1px solid var(--border);
       background: var(--panel);
@@ -46,7 +43,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      max-width: 1180px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 18px 22px;
     }
@@ -85,25 +82,26 @@
     }
 
     .badge.connected .dot,
-    .badge.loaded .dot {
+    .badge.loaded .dot,
+    .flow-card.connected .dot,
+    .flow-card.loaded .dot {
       background: var(--green);
     }
 
-    .badge.error .dot {
+    .badge.error .dot,
+    .flow-card.error .dot {
       background: var(--red);
     }
 
     main {
-      width: min(1180px, 100%);
+      width: min(960px, 100%);
       margin: 0 auto;
       padding: 18px 22px 24px;
     }
 
-    .grid {
+    .flow {
       display: grid;
-      grid-template-columns: 340px 1fr;
       gap: 18px;
-      align-items: start;
     }
 
     .card {
@@ -117,16 +115,38 @@
       padding: 18px;
     }
 
+    .flow-card .card-body {
+      display: grid;
+      gap: 14px;
+    }
+
     .status-text {
-      margin: 0 0 14px;
+      margin: 0;
       color: var(--muted);
       line-height: 1.45;
+    }
+
+    .flow-status {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .flow-status .dot {
+      flex: 0 0 auto;
+      margin-top: 6px;
+    }
+
+    .flow-status strong {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--text);
+      font-size: 17px;
     }
 
     .meta {
       display: grid;
       gap: 8px;
-      margin-top: 12px;
       font-size: 14px;
     }
 
@@ -171,36 +191,174 @@
       text-align: center;
     }
 
-    .log {
-      min-height: 180px;
-      max-height: 320px;
-      overflow: auto;
-      margin: 0;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      background: #0f172a;
-      color: #dbeafe;
-      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      white-space: pre-wrap;
+    .braille-monitor-standard-card .card-body {
+      display: grid;
+      gap: .75rem;
     }
 
-    iframe {
-      display: block;
+    .braille-monitor-standard-host {
+      overflow: hidden;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-standard-host .braille-monitor-component,
+    .braille-monitor-standard-host .braille-monitor-cells,
+    .braille-monitor-standard-host .braille-monitor-cell-container {
       width: 100%;
-      min-height: calc(100vh - 150px);
+      max-width: 100%;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-thumb-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .braille-monitor-thumb-controls {
+      display: inline-flex;
+      grid-column: 2;
+      gap: .5rem;
+      justify-content: center;
+    }
+
+    .braille-monitor-thumb-controls .btn {
+      min-width: 3rem;
+      font-weight: 600;
+    }
+
+    .braille-monitor-bridge-status {
+      grid-column: 3;
+      justify-self: end;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status.is-collapsed {
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__body {
+      padding: .625rem .75rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__icon,
+    .braille-monitor-bridge-status .braillebridge-status__toggle {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.15rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__toggle-dot {
+      margin-top: -1.1rem;
+      margin-left: 1.1rem;
+    }
+
+    .step-detail {
+      display: grid;
+      gap: 16px;
+    }
+
+    .step-detail__header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step-detail__eyebrow {
+      margin: 0 0 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .step-detail h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.25;
+    }
+
+    .step-detail__badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border: 1px solid #b6d4fe;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #e7f1ff;
+      color: #0f3d75;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .step-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .readonly-field {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-width: 0;
       border: 1px solid var(--border);
       border-radius: 8px;
-      background: #ffffff;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .readonly-field label {
+      color: #334155;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .readonly-box {
+      min-height: 78px;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .runner-frame {
+      position: absolute;
+      left: -10000px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      border: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    [hidden] {
+      display: none !important;
     }
 
     @media (max-width: 900px) {
-      .grid {
+      .braille-monitor-thumb-row {
         grid-template-columns: 1fr;
       }
 
-      iframe {
-        min-height: 620px;
+      .braille-monitor-thumb-controls,
+      .braille-monitor-bridge-status {
+        grid-column: 1;
+        justify-self: center;
+      }
+
+      .step-info-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -210,8 +368,8 @@
     <header>
       <div class="header-inner">
         <div>
-          <h1>BrailleStudio realtime sessie</h1>
-          <div class="subtitle">Luistert naar Supabase Postgres Changes op <code>public.sessions</code>.</div>
+          <h1>BrailleStudio sessie</h1>
+          <div class="subtitle">Scan de sessie-QR met de mobiel en scan daarna de step-link.</div>
         </div>
         <div id="statusBadge" class="badge">
           <span class="dot" aria-hidden="true"></span>
@@ -221,46 +379,97 @@
     </header>
 
     <main>
-      <div class="grid">
-        <section class="card">
+      <div class="flow">
+        <section id="sessionCard" class="card flow-card">
           <div class="card-body">
-            <p id="statusText" class="status-text">Sessie wordt voorbereid.</p>
-            <div class="meta">
+            <div class="flow-status">
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <strong id="flowTitle">Sessie wordt voorbereid</strong>
+                <p id="statusText" class="status-text">Er wordt een sessiecode aangemaakt.</p>
+              </div>
+            </div>
+            <div class="meta" aria-label="Sessiegegevens">
               <div class="meta-row"><strong>Sessie</strong><code id="sessionCodeText">-</code></div>
-              <div class="meta-row"><strong>Script</strong><code id="scriptIdText">-</code></div>
-              <div class="meta-row"><strong>Command</strong><code id="commandText">-</code></div>
-              <div class="meta-row"><strong>Status</strong><code id="rowStatusText">-</code></div>
-              <div class="meta-row"><strong>Record</strong><code id="recordIndexText">-</code></div>
             </div>
             <div id="qrPanel" class="qr-panel" hidden>
               <img id="qrImage" alt="QR-code voor deze sessie">
-              <p class="caption">Scan deze QR-code om dezelfde random sessie te openen.</p>
+              <p class="caption">Scan deze QR-code met de mobiel. Daarna wacht deze pagina op de step-link die op de mobiel wordt gescand.</p>
               <code id="laptopUrlText">-</code>
             </div>
           </div>
         </section>
 
-        <section>
-          <iframe id="builderFrame" title="BrailleStudio"></iframe>
-        </section>
-
-        <section class="card">
-          <div class="card-body">
-            <pre id="logBox" class="log">Ready.</pre>
+        <section id="playerPanel" hidden>
+          <div class="card braille-monitor-standard-card">
+            <div class="card-body">
+              <div id="sessionBrailleMonitorComponent" class="braille-monitor-standard-host"></div>
+              <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
+                <div class="braille-monitor-thumb-controls">
+                  <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
+                  <button id="simCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
+                  <button id="simChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
+                  <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
+                </div>
+                <div
+                  class="braille-monitor-bridge-status"
+                  data-braillebridge-status
+                  data-collapsible="true"
+                  data-expanded="false"
+                  data-popup="true"
+                  data-show-launch="true"
+                  data-launch-url="braillebridge://"
+                ></div>
+              </div>
+            </div>
           </div>
         </section>
+
+        <section id="stepDetailCard" class="card" hidden>
+          <div class="card-body">
+            <div class="step-detail">
+              <div class="step-detail__header">
+                <div>
+                  <p class="step-detail__eyebrow">Step-link informatie</p>
+                  <h2 id="stepTitle">Step-link</h2>
+                </div>
+                <span class="step-detail__badge">Automatisch gestart</span>
+              </div>
+              <div class="step-info-grid">
+                <div class="readonly-field">
+                  <label for="stepDescriptionText">Omschrijving</label>
+                  <div id="stepDescriptionText" class="readonly-box">-</div>
+                </div>
+                <div class="readonly-field">
+                  <label for="stepInstructionText">Instructie</label>
+                  <div id="stepInstructionText" class="readonly-box">-</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <iframe id="builderFrame" class="runner-frame" title="BrailleStudio runner" allow="autoplay"></iframe>
+        <pre id="logBox" hidden>Ready.</pre>
       </div>
     </main>
   </div>
 
+  <script src="../../components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1"></script>
+  <script src="../../components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3"></script>
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const params = new URLSearchParams(window.location.search);
     let activeSessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
     const CREATE_SESSION_URL = './create-session.php';
+    const DELETE_SESSION_URL = './delete-session.php';
+    const LIST_LINKS_URL = './list-links.php';
+    const SCRIPT_META_URL = './script-meta.php';
     const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260528-session-api-supabase';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
+    const BRAILLE_MONITOR_PLACEHOLDER = 'Wacht op de step-link...';
+    const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
     const $ = (id) => document.getElementById(id);
     const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -268,6 +477,11 @@
     let supabaseClient = null;
     let realtimeChannel = null;
     let lastHandledSignature = '';
+    let brailleMonitorUi = null;
+    let brailleMonitorSyncTimer = null;
+    let lastBrailleSnapshot = '';
+    let idleCleanupTimer = null;
+    let sessionDeleted = false;
 
     function log(message, data) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
@@ -291,18 +505,18 @@
       }
     }
 
-    function setStatus(text, kind = '') {
+    function setStatus(text, kind = '', title = '') {
+      if (title) {
+        $('flowTitle').textContent = title;
+      }
       $('statusText').textContent = text;
-      $('statusBadgeText').textContent = text;
+      $('statusBadgeText').textContent = title || text;
       $('statusBadge').className = `badge ${kind}`.trim();
+      $('sessionCard').className = `card flow-card ${kind}`.trim();
     }
 
     function setRowMeta(row) {
       $('sessionCodeText').textContent = row?.session_code || activeSessionCode || '-';
-      $('scriptIdText').textContent = row?.script_id || '-';
-      $('commandText').textContent = row?.command || '-';
-      $('rowStatusText').textContent = row?.status || '-';
-      $('recordIndexText').textContent = Number.isFinite(Number(row?.record_index)) ? String(row.record_index) : '-';
     }
 
     function renderSessionQr(config) {
@@ -329,6 +543,72 @@
       window.history.replaceState({}, '', url.toString());
     }
 
+    function stopRealtime() {
+      if (realtimeChannel && supabaseClient) {
+        supabaseClient.removeChannel(realtimeChannel);
+      }
+      realtimeChannel = null;
+    }
+
+    async function deleteCurrentSession(reason = 'idle-timeout') {
+      if (!activeSessionCode || sessionDeleted) {
+        return;
+      }
+      sessionDeleted = true;
+      if (idleCleanupTimer) {
+        window.clearTimeout(idleCleanupTimer);
+        idleCleanupTimer = null;
+      }
+
+      const body = JSON.stringify({
+        session_code: activeSessionCode,
+        reason
+      });
+
+      try {
+        const response = await fetch(DELETE_SESSION_URL, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body,
+          cache: 'no-store',
+          keepalive: true
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || `delete-session.php gaf HTTP ${response.status}`);
+        }
+        log('Sessie verwijderd na inactiviteit.', data);
+      } catch (err) {
+        sessionDeleted = false;
+        resetSessionIdleTimer();
+        log('Sessie verwijderen na inactiviteit is mislukt.', { message: err.message || String(err) });
+        throw err;
+      }
+    }
+
+    function resetSessionIdleTimer() {
+      if (!activeSessionCode || sessionDeleted) {
+        return;
+      }
+      if (idleCleanupTimer) {
+        window.clearTimeout(idleCleanupTimer);
+      }
+      idleCleanupTimer = window.setTimeout(() => {
+        deleteCurrentSession('idle-timeout')
+          .then(() => {
+            stopRealtime();
+            setStatus('De sessie is na 30 minuten zonder actie verwijderd.', 'error', 'Sessie verlopen');
+            $('qrPanel').hidden = true;
+          })
+          .catch((err) => {
+            setStatus(err.message || String(err), 'error');
+          });
+      }, SESSION_IDLE_TIMEOUT_MS);
+    }
+
     function getBuilderWindow() {
       const frame = $('builderFrame');
       return frame?.contentWindow || null;
@@ -353,7 +633,194 @@
       return null;
     }
 
+    function ensureBrailleMonitorReady() {
+      if (brailleMonitorUi) return brailleMonitorUi;
+      if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
+        throw new Error('BrailleMonitor component is niet beschikbaar.');
+      }
+      brailleMonitorUi = window.BrailleMonitor.init({
+        containerId: 'sessionBrailleMonitorComponent',
+        showInfo: false
+      });
+      brailleMonitorUi.setText(BRAILLE_MONITOR_PLACEHOLDER);
+      lastBrailleSnapshot = JSON.stringify({ placeholder: BRAILLE_MONITOR_PLACEHOLDER });
+      return brailleMonitorUi;
+    }
+
+    function syncBrailleMonitorFromRunner() {
+      try {
+        const monitor = ensureBrailleMonitorReady();
+        const app = getBuilderWindow()?.BrailleBlocklyApp || null;
+        if (!app || typeof app.getRuntimeSnapshot !== 'function') return;
+        const runtime = app.getRuntimeSnapshot();
+        const brailleUnicode = String(runtime?.brailleUnicode || '');
+        const sourceText = String(runtime?.text || '');
+        const signature = JSON.stringify({
+          brailleUnicode,
+          sourceText,
+          cellCaret: runtime?.cellCaret ?? null,
+          textCaret: runtime?.textCaret ?? null,
+          caretVisible: runtime?.caretVisible ?? true
+        });
+        if (signature === lastBrailleSnapshot) return;
+        lastBrailleSnapshot = signature;
+        if (!brailleUnicode && !sourceText) {
+          monitor.setText(BRAILLE_MONITOR_PLACEHOLDER);
+          return;
+        }
+        monitor.setBrailleUnicode(brailleUnicode, sourceText, {
+          caretPosition: Number.isInteger(runtime?.cellCaret) ? runtime.cellCaret : undefined,
+          textCaretPosition: Number.isInteger(runtime?.textCaret) ? runtime.textCaret : undefined,
+          caretVisible: typeof runtime?.caretVisible === 'boolean' ? runtime.caretVisible : true
+        });
+      } catch (err) {
+        log('BrailleMonitor sync mislukt.', { message: err.message || String(err) });
+      }
+    }
+
+    function startBrailleMonitorSync() {
+      if (brailleMonitorSyncTimer) return;
+      brailleMonitorSyncTimer = window.setInterval(syncBrailleMonitorFromRunner, 250);
+      syncBrailleMonitorFromRunner();
+    }
+
+    async function dispatchRunnerInput(event) {
+      resetSessionIdleTimer();
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      if (app && typeof app.dispatchRuntimeEvent === 'function') {
+        await app.dispatchRuntimeEvent(event);
+        return;
+      }
+      throw new Error('Runner input API is niet beschikbaar.');
+    }
+
+    function renderStepDetails(payload) {
+      const meta = payload?.meta && typeof payload.meta === 'object' ? payload.meta : {};
+      const title = String(meta.title || payload?.code || 'Step-link').trim();
+      const description = String(meta.description || meta.prompt || '').trim();
+      const instruction = String(meta.instruction || '').trim();
+      $('stepTitle').textContent = title || 'Step-link';
+      $('stepDescriptionText').textContent = description || '-';
+      $('stepInstructionText').textContent = instruction || '-';
+      $('stepDetailCard').hidden = false;
+    }
+
+    function stripDeprecatedStepInputs(stepInputs = {}) {
+      const normalized = stepInputs && typeof stepInputs === 'object' ? { ...stepInputs } : {};
+      delete normalized.repeat;
+      return normalized;
+    }
+
+    function getStepLinkCommand(row) {
+      const command = String(row?.command || '').trim();
+      const prefix = 'load_step_link:';
+      if (!command.startsWith(prefix)) {
+        return null;
+      }
+      const parts = command.slice(prefix.length).split(':');
+      return {
+        code: String(parts[0] || '').trim(),
+        methodId: String(parts[1] || '').trim()
+      };
+    }
+
+    async function fetchStepLink(stepLinkCommand) {
+      const code = String(stepLinkCommand?.code || '').trim();
+      const methodId = String(stepLinkCommand?.methodId || '').trim();
+      const url = new URL(LIST_LINKS_URL, window.location.href);
+      url.searchParams.set('code', code);
+      if (methodId) {
+        url.searchParams.set('methodId', methodId);
+      }
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `list-links.php gaf HTTP ${response.status}`);
+      }
+      const item = Array.isArray(data.items) ? data.items[0] : null;
+      if (!item) {
+        throw new Error(`Step-link ${code} niet gevonden.`);
+      }
+      return item;
+    }
+
+    async function fetchScriptMeta(scriptId) {
+      const id = String(scriptId || '').trim();
+      if (!id) return {};
+      const url = new URL(SCRIPT_META_URL, window.location.href);
+      url.searchParams.set('id', id);
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `script-meta.php gaf HTTP ${response.status}`);
+      }
+      return data.meta && typeof data.meta === 'object' ? data.meta : {};
+    }
+
+    async function applyStepLink(row) {
+      const stepLinkCommand = getStepLinkCommand(row);
+      const item = await fetchStepLink(stepLinkCommand);
+      const scriptId = String(item.scriptId || row.script_id || '').trim();
+      const scriptMeta = await fetchScriptMeta(scriptId);
+      const payload = {
+        code: item.code || stepLinkCommand.code,
+        methodId: item.methodId || '',
+        stepId: item.stepId || '',
+        scriptId,
+        meta: scriptMeta,
+        stepInputs: stripDeprecatedStepInputs(item.stepInputs)
+      };
+
+      setRowMeta({ ...row, script_id: scriptId });
+      $('qrPanel').hidden = true;
+      $('playerPanel').hidden = false;
+      ensureBrailleMonitorReady();
+      renderStepDetails(payload);
+      setStatus(`Step-link ${payload.code} wordt geladen en automatisch gestart.`, 'connected', 'Step-link ontvangen');
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      if (!targetWindow) {
+        console.error('[BrailleStudio session-api] loadWorkspaceOnline is niet beschikbaar in de pagina of het BrailleStudio iframe.');
+        setStatus('loadWorkspaceOnline niet beschikbaar', 'error');
+        return;
+      }
+
+      const app = targetWindow.BrailleBlocklyApp || {};
+      if (typeof app.applyResolvedSessionPayload === 'function') {
+        await app.applyResolvedSessionPayload(payload, { autoRun: true, force: true });
+        startBrailleMonitorSync();
+        setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
+        log('Step-link met opgeslagen externe variabelen gestart.', payload);
+        return;
+      }
+
+      if (typeof targetWindow.applyResolvedSessionPayload === 'function') {
+        await targetWindow.applyResolvedSessionPayload(payload, { autoRun: true, force: true });
+        startBrailleMonitorSync();
+        setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
+        log('Step-link met opgeslagen externe variabelen gestart.', payload);
+        return;
+      }
+
+      await targetWindow.loadWorkspaceOnline(scriptId);
+      setStatus(`Script ${scriptId} geladen zonder step-link variabelen`, 'loaded');
+      log('Fallback gebruikt: applyResolvedSessionPayload is niet beschikbaar.', payload);
+    }
+
     async function loadScript(row) {
+      if (getStepLinkCommand(row)) {
+        await applyStepLink(row);
+        return;
+      }
+
       setRowMeta(row);
       setStatus(`Script ${row.script_id} laden...`, 'connected');
       const targetWindow = await waitForLoadWorkspaceOnline();
@@ -368,21 +835,51 @@
     }
 
     function isLoadScriptCommand(row) {
+      const command = String(row?.command || '').trim();
       return row
-        && row.command === 'load_script'
+        && (command === 'load_script' || command.startsWith('load_step_link:'))
         && row.status === 'pending'
         && typeof row.script_id === 'string'
         && row.script_id.trim() !== ''
         && row.executed === false;
     }
 
+    function isPhoneConnectedCommand(row) {
+      return row
+        && (row.command === 'phone_connected' || row.status === 'phone_connected')
+        && row.executed === false;
+    }
+
+    function isInactiveStepLinkCommand(row) {
+      const command = String(row?.command || '').trim();
+      return row
+        && (command.startsWith('step_link_inactive:') || row.status === 'step_link_inactive')
+        && row.executed === false;
+    }
+
     async function handleRealtimePayload(payload) {
       const row = payload?.new || null;
+      resetSessionIdleTimer();
       log('Realtime UPDATE ontvangen.', payload);
       setRowMeta(row);
 
+      if (isPhoneConnectedCommand(row)) {
+        $('qrPanel').hidden = true;
+        setStatus('De mobiele telefoon is gekoppeld. Scan nu de step-link op de mobiel.', 'connected', 'Sessie gestart');
+        log('Mobiele sessie gekoppeld.', row);
+        return;
+      }
+
+      if (isInactiveStepLinkCommand(row)) {
+        const code = String(row?.command || '').replace(/^step_link_inactive:/, '').split(':')[0] || 'deze step-link';
+        $('qrPanel').hidden = true;
+        setStatus(`Step-link ${code} is inactief en kan niet worden gestart.`, 'error', 'Step-link inactief');
+        log('Inactieve step-link gescand.', row);
+        return;
+      }
+
       if (!isLoadScriptCommand(row)) {
-        log('UPDATE genegeerd omdat deze geen pending load_script command is.', row);
+        log('UPDATE genegeerd omdat deze geen pending laadopdracht is.', row);
         return;
       }
 
@@ -450,7 +947,7 @@
         .subscribe((status, err) => {
           log('Realtime kanaalstatus.', { status, error: err?.message || null });
           if (status === 'SUBSCRIBED') {
-            setStatus('Verbonden en wacht op script', 'connected');
+            setStatus('Scan de sessie-QR met de mobiel om de sessie te starten.', 'connected', 'Wacht op mobiel');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             setStatus(`Realtime status: ${status}`, 'error');
           }
@@ -459,21 +956,38 @@
 
     async function bootstrap() {
       $('builderFrame').src = BLOCKLY_URL;
-      setStatus('Random sessie wordt aangemaakt...');
+      setStatus('Er wordt een sessiecode aangemaakt.', '', 'Sessie wordt voorbereid');
       setRowMeta({ session_code: activeSessionCode });
       log('Laptop sessie start.', { session: activeSessionCode || '(random)' });
       const config = await createOrResetSession();
       updateAddressBar(config);
+      resetSessionIdleTimer();
       renderSessionQr(config);
       setRowMeta({ session_code: config.session_code, status: 'waiting' });
+      setStatus('Scan de sessie-QR met de mobiel om de sessie te starten.', 'connected', 'Wacht op mobiel');
       log('Sessie aangemaakt of gereset.', config);
       await startRealtime(config);
+
+      $('simThumbLeftBtn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'left' }).catch((err) => log('Left thumb mislukt.', { message: err.message || String(err) }));
+      });
+      $('simThumbRightBtn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'right' }).catch((err) => log('Right thumb mislukt.', { message: err.message || String(err) }));
+      });
+      $('simCursor5Btn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'left-middle' }).catch((err) => log('Left middle thumb mislukt.', { message: err.message || String(err) }));
+      });
+      $('simChord1Btn')?.addEventListener('click', () => {
+        dispatchRunnerInput({ type: 'thumbKey', key: 'right-middle' }).catch((err) => log('Right middle thumb mislukt.', { message: err.message || String(err) }));
+      });
+
+      ['click', 'keydown', 'touchstart'].forEach((eventName) => {
+        window.addEventListener(eventName, resetSessionIdleTimer, { passive: true });
+      });
     }
 
     window.addEventListener('beforeunload', () => {
-      if (realtimeChannel && supabaseClient) {
-        supabaseClient.removeChannel(realtimeChannel);
-      }
+      stopRealtime();
     });
 
     bootstrap().catch((err) => {

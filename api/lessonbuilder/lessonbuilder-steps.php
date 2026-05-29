@@ -469,9 +469,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function resolveRunnerUrl() {
       const host = String(window.location.hostname || '').toLowerCase();
       if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.php?v=20260415-1';
+        return 'http://127.0.0.1:5500/blockly/index.php?v=20260529-external-debug-2';
       }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.php?v=20260415-1';
+      return 'https://www.tastenbraille.com/braillestudio/blockly/index.php?v=20260529-external-debug-2';
     }
 
     const RUNNER_URL = resolveRunnerUrl();
@@ -1749,8 +1749,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       if (brailleMonitorUi) return brailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {
@@ -1768,8 +1768,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       if (scriptBrailleMonitorUi) return scriptBrailleMonitorUi;
       if (!window.BrailleMonitor) {
         await loadScriptCandidates([
-          '/braillestudio/components/braille-monitor/braillemonitor.js',
-          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js'
+          '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1',
+          'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1'
         ]);
       }
       if (!window.BrailleMonitor || typeof window.BrailleMonitor.init !== 'function') {

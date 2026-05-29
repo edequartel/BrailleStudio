@@ -61,7 +61,7 @@ $modules = [
             ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
             ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
-            ['label' => 'QR-code', 'href' => $baseUrl . 'qr-api/qr.php', 'icon' => 'ti-qrcode'],
+            ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
             ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
         ],
     ],

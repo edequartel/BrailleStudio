@@ -5,10 +5,15 @@ require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
 
 $sessionApiScript = str_replace('\\', '/', (string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
 $sessionApiPublicScripts = [
+    'cleanup-sessions.php',
+    'delete-session.php',
     'join.php',
+    'list-links.php',
+    'mark-session-open.php',
     'resolve.php',
     'runtime-state.php',
     'send-step-link.php',
+    'script-meta.php',
     'start-session.php',
     'status.php',
     'wait.php',

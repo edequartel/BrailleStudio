@@ -15,20 +15,64 @@ $html = static function (string $value): string {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 };
 
-$downloads = [
-    [
-        'title' => 'BrailleBridge',
-        'description' => 'Windows-app om BrailleStudio met een brailleleesregel te verbinden.',
-        'file' => 'setup_braillebridge_v20.exe',
-        'icon' => 'ti-plug-connected',
-    ],
-    [
-        'title' => 'SAM 299 full',
-        'description' => 'Installatiebestand voor SAM 299 full.',
-        'file' => 'setup_SAM_299_full.exe',
-        'icon' => 'ti-package',
-    ],
-];
+$formatBytes = static function (int $bytes): string {
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $value = (float)$bytes;
+    foreach ($units as $index => $unit) {
+        if ($value < 1024 || $index === count($units) - 1) {
+            return ($index === 0 ? (string)(int)$value : number_format($value, 1, ',', '.')) . ' ' . $unit;
+        }
+        $value /= 1024;
+    }
+    return $bytes . ' B';
+};
+
+$titleFromFile = static function (string $file): string {
+    $name = pathinfo($file, PATHINFO_FILENAME);
+    $name = preg_replace('/[_-]+/', ' ', $name) ?? $name;
+    $name = trim($name);
+    return $name !== '' ? ucwords(strtolower($name)) : $file;
+};
+
+$iconForFile = static function (string $file): string {
+    return match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+        'exe', 'msi' => 'ti-brand-windows',
+        'zip', '7z', 'rar' => 'ti-file-zip',
+        'pdf' => 'ti-file-type-pdf',
+        'dmg', 'pkg' => 'ti-package',
+        default => 'ti-file-download',
+    };
+};
+
+$downloadDir = dirname(__DIR__) . '/downloads';
+$downloads = [];
+if (is_dir($downloadDir) && is_readable($downloadDir)) {
+    $entries = scandir($downloadDir) ?: [];
+    foreach ($entries as $entry) {
+        if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
+            continue;
+        }
+        $path = $downloadDir . '/' . $entry;
+        if (!is_file($path) || !is_readable($path)) {
+            continue;
+        }
+        $downloads[] = [
+            'title' => $titleFromFile($entry),
+            'file' => $entry,
+            'size' => $formatBytes((int)filesize($path)),
+            'modified' => date('d-m-Y H:i', (int)filemtime($path)),
+            'icon' => $iconForFile($entry),
+        ];
+    }
+}
+
+usort($downloads, static function (array $a, array $b): int {
+    return strnatcasecmp((string)$a['title'], (string)$b['title']);
+});
+
+$downloadUrl = static function (string $file) use ($urlFor, $appBase): string {
+    return $urlFor($appBase, 'downloads/' . rawurlencode($file));
+};
 ?>
 <!doctype html>
 <html lang="nl">
@@ -73,27 +117,40 @@ $downloads = [
                 Download de beschikbare installatiebestanden voor BrailleStudio en bijbehorende hulpmiddelen.
               </p>
             </div>
-            <div class="list-group list-group-flush">
-              <?php foreach ($downloads as $download): ?>
-                <a
-                  class="list-group-item list-group-item-action d-flex align-items-center"
-                  href="<?= $html($urlFor($appBase, 'downloads/' . $download['file'])) ?>"
-                >
-                  <span class="avatar bg-primary-lt text-primary me-3">
-                    <i class="ti <?= $html($download['icon']) ?>" aria-hidden="true"></i>
-                  </span>
-                  <span class="me-3">
-                    <span class="fw-semibold d-block"><?= $html($download['title']) ?></span>
-                    <span class="text-secondary small d-block"><?= $html($download['description']) ?></span>
-                    <span class="text-secondary small font-monospace d-block"><?= $html($download['file']) ?></span>
-                  </span>
-                  <span class="btn btn-primary ms-auto">
-                    <i class="ti ti-download me-2" aria-hidden="true"></i>
-                    Download
-                  </span>
-                </a>
-              <?php endforeach; ?>
-            </div>
+            <?php if ($downloads): ?>
+              <div class="list-group list-group-flush">
+                <?php foreach ($downloads as $download): ?>
+                  <div class="list-group-item d-flex flex-column flex-md-row align-items-md-center gap-3">
+                    <div class="d-flex align-items-center flex-fill min-w-0">
+                      <span class="avatar bg-primary-lt text-primary me-3">
+                        <i class="ti <?= $html($download['icon']) ?>" aria-hidden="true"></i>
+                      </span>
+                      <span class="min-w-0">
+                        <span class="fw-semibold d-block text-truncate"><?= $html($download['title']) ?></span>
+                        <span class="text-secondary small font-monospace d-block text-truncate"><?= $html($download['file']) ?></span>
+                        <span class="text-secondary small d-block"><?= $html($download['size']) ?> · gewijzigd <?= $html($download['modified']) ?></span>
+                      </span>
+                    </div>
+                    <a class="btn btn-primary ms-md-auto" href="<?= $html($downloadUrl($download['file'])) ?>" download>
+                      <i class="ti ti-download me-2" aria-hidden="true"></i>
+                      Download
+                    </a>
+                  </div>
+                <?php endforeach; ?>
+              </div>
+            <?php else: ?>
+              <div class="card-body border-top">
+                <div class="empty">
+                  <div class="empty-icon">
+                    <i class="ti ti-folder-open"></i>
+                  </div>
+                  <p class="empty-title">Geen downloads gevonden</p>
+                  <p class="empty-subtitle text-secondary">
+                    Plaats bestanden in de map <code>downloads</code> om ze hier te tonen.
+                  </p>
+                </div>
+              </div>
+            <?php endif; ?>
           </div>
         </div>
       </div>

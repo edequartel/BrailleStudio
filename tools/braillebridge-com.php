@@ -19,6 +19,92 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>BrailleBridge tool</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
+  <style>
+    .braille-monitor-standard-card .card-body {
+      display: grid;
+      gap: .75rem;
+    }
+
+    .braille-monitor-standard-host {
+      overflow: hidden;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-standard-host .braille-monitor-component,
+    .braille-monitor-standard-host .braille-monitor-cells,
+    .braille-monitor-standard-host .braille-monitor-cell-container {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 5px;
+    }
+
+    .braille-monitor-thumb-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .braille-monitor-thumb-controls {
+      display: inline-flex;
+      grid-column: 2;
+      gap: .5rem;
+      justify-content: center;
+    }
+
+    .braille-monitor-thumb-controls .btn {
+      min-width: 3rem;
+      font-weight: 600;
+    }
+
+    .braille-monitor-bridge-status {
+      grid-column: 3;
+      justify-self: end;
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status.is-collapsed {
+      min-width: 0;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__body {
+      padding: .625rem .75rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__icon {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 1.15rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__toggle {
+      width: 2.25rem;
+      height: 2.25rem;
+    }
+
+    .braille-monitor-bridge-status .braillebridge-status__toggle-dot {
+      margin-top: -1.1rem;
+      margin-left: 1.1rem;
+    }
+
+    @media (max-width: 575.98px) {
+      .braille-monitor-thumb-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .braille-monitor-thumb-controls {
+        grid-column: 1;
+        justify-self: center;
+      }
+
+      .braille-monitor-bridge-status {
+        grid-column: 2;
+      }
+    }
+  </style>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -61,15 +147,27 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         <div class="container-xl">
           <div class="row row-cards">
             <div class="col-12">
-              <section class="card">
-                <div class="card-header">
-                  <h2 class="card-title">BrailleMonitor</h2>
-                  <div class="card-actions">
-                    <span class="badge bg-danger-lt" id="brailleMonitorWsDot">offline</span>
-                  </div>
-                </div>
+              <section class="card braille-monitor-standard-card">
                 <div class="card-body">
-                  <div id="brailleMonitorComponent" class="form-control font-monospace min-vh-25"></div>
+                  <div id="brailleMonitorComponent" class="braille-monitor-standard-host"></div>
+                  <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
+                    <div class="braille-monitor-thumb-controls">
+                      <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
+                      <button id="simCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
+                      <button id="simChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
+                      <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
+                    </div>
+                    <div
+                      class="braille-monitor-bridge-status"
+                      data-braillebridge-status
+                      data-expanded="false"
+                      data-popup="true"
+                      data-base-url="http://localhost:5000"
+                      data-ws-url="ws://localhost:5000/ws"
+                      data-launch-url="braillebridge://"
+                      aria-label="BrailleBridge status"
+                    ></div>
+                  </div>
                 </div>
               </section>
             </div>
@@ -274,7 +372,8 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   </div>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
-  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js?v=20260529-ssoc-fallback-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3')) ?>"></script>
   <script>
     (function () {
       const el = (id) => document.getElementById(id);
@@ -296,7 +395,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const httpDot = el("httpDot");
       const httpStatusText = el("httpStatusText");
       const wsDot = el("wsDot");
-      const brailleMonitorWsDot = el("brailleMonitorWsDot");
       const wsStatusText = el("wsStatusText");
       const wsConnectBtn = el("wsConnectBtn");
       const wsDisconnectBtn = el("wsDisconnectBtn");
@@ -365,6 +463,10 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
       const copyLogBtn = el("copyLogBtn");
       const clearLogBtn = el("clearLogBtn");
+      const simThumbLeftBtn = el("simThumbLeftBtn");
+      const simThumbRightBtn = el("simThumbRightBtn");
+      const simCursor5Btn = el("simCursor5Btn");
+      const simChord1Btn = el("simChord1Btn");
       const monitor = window.BrailleMonitor && typeof window.BrailleMonitor.init === "function"
         ? window.BrailleMonitor.init({ containerId: "brailleMonitorComponent", showInfo: false })
         : null;
@@ -449,10 +551,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         if (wsDot) {
           wsDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
           wsDot.textContent = ok ? "connected" : "offline";
-        }
-        if (brailleMonitorWsDot) {
-          brailleMonitorWsDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
-          brailleMonitorWsDot.textContent = ok ? "connected" : "offline";
         }
         if (wsStatusText) wsStatusText.textContent = text;
       }
@@ -762,6 +860,9 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         wsSendJson({ type: "command", command: "setEditorInsertMode", enabled: !!enabled }, "setEditorInsertMode");
         setInsertModeStatus(!!enabled);
       }
+      function wsSendThumbKey(key) {
+        wsSendJson({ type: "command", command: "thumbKey", key }, `thumbKey ${key}`);
+      }
 
       function toNonNegativeInt(value, fallback = 0) {
         const n = Number(value);
@@ -953,6 +1054,10 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       wsCursorRoutingBtn.addEventListener("click", () => {
         wsSendJson({ type: "cursorRouting", cellIndex: toNonNegativeInt(wsCaretCellIndex?.value, 0) }, "cursorRouting");
       });
+      simThumbLeftBtn?.addEventListener("click", () => wsSendThumbKey("left"));
+      simThumbRightBtn?.addEventListener("click", () => wsSendThumbKey("right"));
+      simCursor5Btn?.addEventListener("click", () => wsSendThumbKey("left-middle"));
+      simChord1Btn?.addEventListener("click", () => wsSendThumbKey("right-middle"));
       wsCaretToBeginBtn.addEventListener("click", () => wsSendJson({ type: "setCaretToBegin" }, "setCaretToBegin"));
       wsCaretToEndBtn.addEventListener("click", () => wsSendJson({ type: "setCaretToEnd" }, "setCaretToEnd"));
       wsCaretVisibleOnBtn.addEventListener("click", () => wsSendJson({ type: "setCaretVisibility", visible: true }, "setCaretVisibility"));
