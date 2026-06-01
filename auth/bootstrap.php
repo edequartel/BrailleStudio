@@ -185,6 +185,7 @@ function bs_auth_role_map(): array
     bs_auth_require_vendor();
     return [
         'admin' => \Delight\Auth\Role::ADMIN,
+        'developer' => \Delight\Auth\Role::DEVELOPER,
         'docent' => \Delight\Auth\Role::EDITOR,
         'leerling' => \Delight\Auth\Role::SUBSCRIBER,
     ];
@@ -193,7 +194,7 @@ function bs_auth_role_map(): array
 function bs_auth_default_role(): string
 {
     $role = trim((string)((bs_auth_config()['auth']['default_role'] ?? 'leerling')));
-    return in_array($role, ['admin', 'docent', 'leerling'], true) ? $role : 'leerling';
+    return in_array($role, ['admin', 'developer', 'docent', 'leerling'], true) ? $role : 'leerling';
 }
 
 function bs_auth_admin_emails(): array
@@ -263,7 +264,7 @@ function bs_auth_user_role_by_id(int $userId): string
 
 function bs_auth_set_user_role(int $userId, string $role): void
 {
-    $role = in_array($role, ['admin', 'docent', 'leerling'], true) ? $role : bs_auth_default_role();
+    $role = in_array($role, ['admin', 'developer', 'docent', 'leerling'], true) ? $role : bs_auth_default_role();
     $admin = bs_auth()->admin();
     foreach (bs_auth_role_map() as $mask) {
         if ($admin->doesUserHaveRole($userId, $mask)) {

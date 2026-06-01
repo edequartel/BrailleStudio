@@ -41,6 +41,7 @@ Roles are mapped to PHP-Auth roles:
 
 ```text
 admin    -> Delight\Auth\Role::ADMIN
+developer -> Delight\Auth\Role::DEVELOPER
 docent   -> Delight\Auth\Role::EDITOR
 leerling -> Delight\Auth\Role::SUBSCRIBER
 ```

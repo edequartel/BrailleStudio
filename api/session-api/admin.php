@@ -338,6 +338,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                     <i class="ti ti-trash me-1" aria-hidden="true"></i>
                     Delete old step-links
                   </button>
+                  <a class="btn btn-outline-secondary btn-sm" href="<?= $htmlUrl($urlFor($sessionBase, 'step-links-pdf.php?active=1')) ?>">
+                    <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>
+                    QR PDF
+                  </a>
                   <button id="refreshLinksBtn" class="btn btn-primary btn-sm" type="button">Refresh links</button>
                 </div>
               </div>

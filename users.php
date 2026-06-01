@@ -22,6 +22,47 @@ function users_fetch_all(): array
     return $stmt->fetchAll();
 }
 
+function users_update_profile(int $userId, string $email, string $username): void
+{
+    if ($userId <= 0) {
+        throw new RuntimeException('Onbekende gebruiker.');
+    }
+
+    $email = strtolower(trim($email));
+    $username = trim($username);
+    $usernameValue = $username !== '' ? $username : null;
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new \Delight\Auth\InvalidEmailException();
+    }
+
+    $pdo = bs_auth_pdo();
+    $table = users_table_name();
+
+    $stmt = $pdo->prepare('SELECT id FROM ' . $table . ' WHERE id = ?');
+    $stmt->execute([$userId]);
+    if ($stmt->fetch() === false) {
+        throw new \Delight\Auth\UnknownIdException();
+    }
+
+    $stmt = $pdo->prepare('SELECT id FROM ' . $table . ' WHERE email = ? AND id <> ? LIMIT 1');
+    $stmt->execute([$email, $userId]);
+    if ($stmt->fetch() !== false) {
+        throw new \Delight\Auth\UserAlreadyExistsException();
+    }
+
+    if ($usernameValue !== null) {
+        $stmt = $pdo->prepare('SELECT id FROM ' . $table . ' WHERE username = ? AND id <> ? LIMIT 1');
+        $stmt->execute([$usernameValue, $userId]);
+        if ($stmt->fetch() !== false) {
+            throw new RuntimeException('Deze gebruikersnaam is al in gebruik.');
+        }
+    }
+
+    $stmt = $pdo->prepare('UPDATE ' . $table . ' SET email = ?, username = ? WHERE id = ?');
+    $stmt->execute([$email, $usernameValue, $userId]);
+}
+
 $notice = '';
 $error = '';
 
@@ -29,7 +70,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!bs_auth_verify_csrf($_POST['csrf'] ?? null)) {
         $error = 'De sessie is verlopen. Probeer opnieuw.';
     } else {
-        $action = trim((string)($_POST['action'] ?? ''));
+        $action = isset($_POST['delete_user']) ? 'delete' : trim((string)($_POST['action'] ?? ''));
         try {
             if ($action === 'create') {
                 $email = trim((string)($_POST['email'] ?? ''));
@@ -44,6 +85,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $role = trim((string)($_POST['role'] ?? 'leerling'));
                 bs_auth_set_user_role($userId, $role);
                 $notice = 'Rol bijgewerkt.';
+            } elseif ($action === 'profile') {
+                $userId = (int)($_POST['user_id'] ?? 0);
+                $email = (string)($_POST['email'] ?? '');
+                $username = (string)($_POST['username'] ?? '');
+                $role = trim((string)($_POST['role'] ?? 'leerling'));
+                $password = (string)($_POST['password'] ?? '');
+                users_update_profile($userId, $email, $username);
+                bs_auth_set_user_role($userId, $role);
+                if ($password !== '') {
+                    bs_auth()->admin()->changePasswordForUserById($userId, $password);
+                }
+                if ($userId === (int)$currentUser['id']) {
+                    bs_auth_start_session();
+                    $_SESSION[\Delight\Auth\UserManager::SESSION_FIELD_EMAIL] = strtolower(trim($email));
+                    $_SESSION[\Delight\Auth\UserManager::SESSION_FIELD_USERNAME] = trim($username) !== '' ? trim($username) : null;
+                    $_SESSION[\Delight\Auth\UserManager::SESSION_FIELD_ROLES] = bs_auth_role_map()[$role] ?? bs_auth_role_map()[bs_auth_default_role()];
+                    $currentUser = bs_auth_current_user() ?? $currentUser;
+                }
+                $notice = $password !== '' ? 'Gebruiker en wachtwoord opgeslagen.' : 'Gebruiker opgeslagen.';
             } elseif ($action === 'delete') {
                 $userId = (int)($_POST['user_id'] ?? 0);
                 if ($userId === (int)$currentUser['id']) {
@@ -141,6 +201,7 @@ try {
                   <select id="newRole" class="form-select" name="role">
                     <option value="leerling">leerling</option>
                     <option value="docent">docent</option>
+                    <option value="developer">developer</option>
                     <option value="admin">admin</option>
                   </select>
                 </div>
@@ -155,64 +216,71 @@ try {
           </div>
 
           <div class="col-12 col-lg-8">
-            <div class="card">
-              <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Gebruiker</th>
-                      <th>Rol</th>
-                      <th>Status</th>
-                      <th class="w-1"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach ($users as $user): ?>
-                      <?php $role = bs_auth_user_role_by_id((int)$user['id']); ?>
-                      <tr>
-                        <td class="text-secondary"><?= (int)$user['id'] ?></td>
-                        <td>
-                          <div class="fw-semibold"><?= $html((string)($user['username'] ?: $user['email'])) ?></div>
-                          <div class="text-secondary"><?= $html((string)$user['email']) ?></div>
-                        </td>
-                        <td>
-                          <form class="d-flex gap-2" method="post">
-                            <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
-                            <input type="hidden" name="action" value="role">
-                            <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                            <select class="form-select" name="role" aria-label="Rol">
-                              <?php foreach (['leerling', 'docent', 'admin'] as $option): ?>
-                                <option value="<?= $html($option) ?>"<?= $role === $option ? ' selected' : '' ?>><?= $html($option) ?></option>
-                              <?php endforeach; ?>
-                            </select>
-                            <button class="btn btn-outline-primary" type="submit" title="Rol opslaan">
-                              <i class="ti ti-device-floppy" aria-hidden="true"></i>
+            <div class="accordion" id="usersAccordion">
+              <?php foreach ($users as $user): ?>
+                <?php
+                  $userId = (int)$user['id'];
+                  $role = bs_auth_user_role_by_id($userId);
+                  $isCurrentUser = $userId === (int)$currentUser['id'];
+                  $collapseId = 'userPanel' . $userId;
+                  $headingId = 'userHeading' . $userId;
+                ?>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="<?= $html($headingId) ?>">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $html($collapseId) ?>" aria-expanded="false" aria-controls="<?= $html($collapseId) ?>">
+                      <span class="me-3 fw-semibold"><?= $html((string)($user['username'] ?: $user['email'])) ?></span>
+                      <span class="text-secondary me-3"><?= $html((string)$user['email']) ?></span>
+                      <span class="badge bg-blue-lt me-2"><?= $html($role) ?></span>
+                      <span class="badge bg-<?= ((int)$user['verified'] === 1) ? 'green' : 'yellow' ?>-lt">
+                        <?= ((int)$user['verified'] === 1) ? 'geverifieerd' : 'actief' ?>
+                      </span>
+                    </button>
+                  </h2>
+                  <div id="<?= $html($collapseId) ?>" class="accordion-collapse collapse" aria-labelledby="<?= $html($headingId) ?>" data-bs-parent="#usersAccordion">
+                    <div class="accordion-body">
+                      <form method="post">
+                        <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
+                        <input type="hidden" name="action" value="profile">
+                        <input type="hidden" name="user_id" value="<?= $userId ?>">
+
+                        <div class="mb-3">
+                          <label class="form-label" for="username<?= $userId ?>">Gebruikersnaam</label>
+                          <input id="username<?= $userId ?>" class="form-control" name="username" type="text" value="<?= $html((string)($user['username'] ?? '')) ?>" autocomplete="off">
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label" for="email<?= $userId ?>">E-mail</label>
+                          <input id="email<?= $userId ?>" class="form-control" name="email" type="email" value="<?= $html((string)$user['email']) ?>" autocomplete="off" required>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label" for="role<?= $userId ?>">Rol</label>
+                          <select id="role<?= $userId ?>" class="form-select" name="role">
+                            <?php foreach (['leerling', 'docent', 'developer', 'admin'] as $option): ?>
+                              <option value="<?= $html($option) ?>"<?= $role === $option ? ' selected' : '' ?>><?= $html($option) ?></option>
+                            <?php endforeach; ?>
+                          </select>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label" for="password<?= $userId ?>">Nieuw wachtwoord</label>
+                          <input id="password<?= $userId ?>" class="form-control" name="password" type="password" autocomplete="new-password" placeholder="Leeg laten om niet te wijzigen">
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                          <button class="btn btn-primary" type="submit">
+                            <i class="ti ti-device-floppy me-2" aria-hidden="true"></i>
+                            Opslaan
+                          </button>
+                          <?php if (!$isCurrentUser): ?>
+                            <button class="btn btn-outline-danger" type="submit" name="delete_user" value="1" onclick="return confirm('Deze gebruiker verwijderen?');">
+                              <i class="ti ti-trash me-2" aria-hidden="true"></i>
+                              Verwijderen
                             </button>
-                          </form>
-                        </td>
-                        <td>
-                          <span class="badge bg-<?= ((int)$user['verified'] === 1) ? 'green' : 'yellow' ?>-lt">
-                            <?= ((int)$user['verified'] === 1) ? 'geverifieerd' : 'actief' ?>
-                          </span>
-                        </td>
-                        <td>
-                          <?php if ((int)$user['id'] !== (int)$currentUser['id']): ?>
-                            <form method="post" onsubmit="return confirm('Deze gebruiker verwijderen?');">
-                              <input type="hidden" name="csrf" value="<?= $html(bs_auth_csrf_token()) ?>">
-                              <input type="hidden" name="action" value="delete">
-                              <input type="hidden" name="user_id" value="<?= (int)$user['id'] ?>">
-                              <button class="btn btn-outline-danger" type="submit" title="Verwijderen">
-                                <i class="ti ti-trash" aria-hidden="true"></i>
-                              </button>
-                            </form>
                           <?php endif; ?>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
             </div>
           </div>
         </div>

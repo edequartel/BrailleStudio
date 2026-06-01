@@ -8,5 +8,6 @@
 --
 -- BrailleStudio roles are mapped onto PHP-Auth roles:
 --   admin    -> Delight\Auth\Role::ADMIN
+--   developer -> Delight\Auth\Role::DEVELOPER
 --   docent   -> Delight\Auth\Role::EDITOR
 --   leerling -> Delight\Auth\Role::SUBSCRIBER

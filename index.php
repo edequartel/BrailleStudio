@@ -47,7 +47,6 @@ $modules = [
         'icon' => 'ti-volume',
         'theme' => 'orange',
         'links' => [
-            ['label' => 'Fonemen', 'href' => $baseUrl . 'phonemes-api/index.php', 'icon' => 'ti-wave-saw-tool'],
             ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.php', 'icon' => 'ti-music'],
         ],
     ],
@@ -57,9 +56,11 @@ $modules = [
         'description' => 'Koppel leesregels, bekijk tabellen en gebruik hulpmiddelen voor testen en beheer.',
         'icon' => 'ti-tools',
         'theme' => 'purple',
+        'roles' => ['developer'],
         'links' => [
             ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
             ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],
+            ['label' => 'Fonemen', 'href' => $baseUrl . 'api/phonemes-api/index.php', 'icon' => 'ti-wave-saw-tool'],
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
             ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
             ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
@@ -285,6 +286,7 @@ function e(string $value): string
                 <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($modules as $module): ?>
+                            <?php if (isset($module['roles']) && ($authUser === null || !in_array($authUser['role'], $module['roles'], true))) { continue; } ?>
                             <div class="col-12 col-md-6 col-xl-3">
                                 <article class="card module-card h-100">
                                     <div class="card-body">
