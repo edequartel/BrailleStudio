@@ -31,7 +31,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-local-api-2')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-steps-debug-1')) ?>"></script>
   <style>
     .steps-list {
       display: grid;
@@ -143,6 +143,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           </div>
           <h1 class="h2 mb-2">Steps laden</h1>
           <p id="stepsLoadingMessage" class="text-secondary mb-0">De lesson steps worden voorbereid.</p>
+          <pre id="stepsLoadingDebugLog" class="form-control font-monospace text-start mt-4 mb-0" style="max-height: 16rem; overflow: auto; white-space: pre-wrap;"></pre>
         </div>
       </div>
     </div>
@@ -376,6 +377,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const shared = window.LessonBuilderShared;
     const stepsLoadingScreen = document.getElementById('stepsLoadingScreen');
     const stepsLoadingMessage = document.getElementById('stepsLoadingMessage');
+    const stepsLoadingDebugLog = document.getElementById('stepsLoadingDebugLog');
     const stepsAppPage = document.getElementById('stepsAppPage');
     const lessonIdInput = document.getElementById('lessonIdInput');
     const lessonTitleInput = document.getElementById('lessonTitleInput');
@@ -432,6 +434,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     let lastScriptBrailleSnapshot = '';
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
+    const pageStartedAt = performance.now();
 
     function setLoadingMessage(message) {
       if (stepsLoadingMessage) {
@@ -464,6 +467,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         stepsLoadingMessage.classList.remove('text-secondary');
         stepsLoadingMessage.classList.add('text-danger');
       }
+      if (stepsLoadingDebugLog) {
+        stepsLoadingDebugLog.hidden = false;
+        stepsLoadingDebugLog.classList.remove('d-none');
+      }
     }
 
     function resolveRunnerUrl() {
@@ -480,6 +487,34 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function formatDebugData(value) {
       if (value == null) return '';
       if (typeof value === 'string') return value;
+      if (Array.isArray(value)) {
+        return value.map((item, index) => {
+          if (item && typeof item === 'object') {
+            return `${index + 1}. ${formatDebugData(item).replaceAll('\n', '\n   ')}`;
+          }
+          return `${index + 1}. ${String(item ?? '')}`;
+        }).join('\n');
+      }
+      if (typeof value === 'object') {
+        return Object.entries(value).map(([key, item]) => {
+          if (Array.isArray(item)) {
+            return `${key}: ${item.map((entry) => {
+              if (entry && typeof entry === 'object') {
+                try {
+                  return JSON.stringify(entry);
+                } catch {
+                  return String(entry);
+                }
+              }
+              return String(entry ?? '');
+            }).join(', ')}`;
+          }
+          if (item && typeof item === 'object') {
+            return `${key}:\n  ${formatDebugData(item).replaceAll('\n', '\n  ')}`;
+          }
+          return `${key}: ${String(item ?? '')}`;
+        }).join('\n');
+      }
       try {
         return JSON.stringify(value, null, 2);
       } catch (err) {
@@ -496,8 +531,47 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       const block = data
         ? `[${timestamp}] ${message}\n${formatDebugData(data)}`
         : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
+      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n${block}` : block;
       statusBox.scrollTop = statusBox.scrollHeight;
+      if (stepsLoadingDebugLog) {
+        stepsLoadingDebugLog.textContent = stepsLoadingDebugLog.textContent ? `${stepsLoadingDebugLog.textContent}\n${block}` : block;
+        stepsLoadingDebugLog.scrollTop = stepsLoadingDebugLog.scrollHeight;
+      }
+    }
+
+    window.LessonBuilderSharedDebugLog = appendStatus;
+
+    window.addEventListener('error', (event) => {
+      appendStatus('Browser error.', {
+        message: event.message || '',
+        source: event.filename || '',
+        line: event.lineno || 0,
+        column: event.colno || 0
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      appendStatus('Unhandled promise rejection.', {
+        reason: event.reason?.message || String(event.reason || '')
+      });
+    });
+
+    async function timeStep(label, fn) {
+      const startedAt = performance.now();
+      appendStatus(`${label} started.`);
+      try {
+        const result = await fn();
+        appendStatus(`${label} completed.`, {
+          durationMs: Number((performance.now() - startedAt).toFixed(1))
+        });
+        return result;
+      } catch (err) {
+        appendStatus(`${label} failed.`, {
+          durationMs: Number((performance.now() - startedAt).toFixed(1)),
+          error: err.message || String(err)
+        });
+        throw err;
+      }
     }
 
     function showDebugLog() {
@@ -701,6 +775,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       let lastError = null;
       for (const src of candidates) {
         try {
+          const startedAt = performance.now();
+          appendStatus('Dynamic script load started.', { src });
           await new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = src;
@@ -708,8 +784,16 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             script.onerror = () => reject(new Error(`Failed to load ${src}`));
             document.head.appendChild(script);
           });
+          appendStatus('Dynamic script load completed.', {
+            src,
+            durationMs: Number((performance.now() - startedAt).toFixed(1))
+          });
           return;
         } catch (err) {
+          appendStatus('Dynamic script load failed.', {
+            src,
+            error: err.message || String(err)
+          });
           lastError = err;
         }
       }
@@ -2187,9 +2271,20 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     async function init() {
       try {
         setLoadingMessage('Methodegegevens laden.');
-        appendStatus('Initial preload started.');
+        appendStatus('Initial preload started.', {
+          href: window.location.href,
+          runnerUrl: RUNNER_URL,
+          pageAgeMs: Number((performance.now() - pageStartedAt).toFixed(1)),
+          sharedLoaded: Boolean(shared)
+        });
         state = shared.loadState();
         const method = shared.getDraftMethodMeta(state);
+        appendStatus('Draft method state loaded.', {
+          method,
+          stateKeys: Object.keys(state || {}),
+          lessonId: state.lessonId || '',
+          basisIndex: state.basisIndex ?? null
+        });
         const runnerWarmupPromise = waitForRunnerReady(15000).catch((err) => {
           appendStatus('Runner warmup failed during init.', {
             error: err.message || String(err),
@@ -2198,11 +2293,32 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           return null;
         });
         setLoadingMessage('Basisdata laden.');
-        basisItems = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
+        basisItems = await timeStep('Basisdata load', async () => {
+          const items = await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL);
+          appendStatus('Basisdata loaded.', {
+            source: method.dataSource || shared.DEFAULT_BASIS_DATA_URL,
+            count: Array.isArray(items) ? items.length : 0
+          });
+          return items;
+        });
         setLoadingMessage('Blockly scripts laden.');
-        scriptsCache = await shared.listScripts();
+        scriptsCache = await timeStep('Blockly scripts list', async () => {
+          const items = await shared.listScripts();
+          appendStatus('Blockly scripts loaded.', {
+            count: Array.isArray(items) ? items.length : 0,
+            ids: Array.isArray(items) ? items.slice(0, 8).map((item) => item?.id || '') : []
+          });
+          return items;
+        });
         setLoadingMessage('Lessons laden.');
-        await refreshLessonsCache();
+        await timeStep('Lessons list', async () => {
+          const items = await refreshLessonsCache();
+          appendStatus('Lessons loaded.', {
+            methodId: getCurrentMethodId(),
+            count: Array.isArray(items) ? items.length : 0
+          });
+          return items;
+        });
         renderScriptsSelect(scriptsCache);
         if (scriptsSummary) {
           scriptsSummary.textContent = `${scriptsCache.length} online script(s) beschikbaar.`;
@@ -2223,7 +2339,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         if (state.lessonId) {
           try {
             setLoadingMessage('Lesson steps laden.');
-            const loadedLesson = await shared.loadLesson(state.lessonId);
+            const loadedLesson = await timeStep('Current lesson load', () => shared.loadLesson(state.lessonId));
             state = shared.updateState({
               lessonId: loadedLesson.id || state.lessonId,
               lessonTitle: loadedLesson.title || state.lessonTitle || '',
@@ -2253,10 +2369,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         state = shared.updateState({ steps: stepConfigs });
         renderCopyLessonSelect();
         setLoadingMessage('Blockly scripts voor de steps voorbereiden.');
-        const preloadSummary = await preloadReferencedScriptData(stepConfigs);
+        const preloadSummary = await timeStep('Referenced scripts preload', () => preloadReferencedScriptData(stepConfigs));
         setLoadingMessage('Editor klaarzetten.');
-        await refreshSelectedScriptMeta();
-        await runnerWarmupPromise;
+        await timeStep('Selected script metadata refresh', () => refreshSelectedScriptMeta());
+        await timeStep('Runner warmup wait', () => runnerWarmupPromise);
         renderStepsTable();
         renderDebugLogVisibility();
         renderAuthenticationState();
@@ -2311,6 +2427,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         });
         hideLoadingScreen();
       } catch (err) {
+        appendStatus('Initial preload failed.', {
+          error: err.message || String(err),
+          stack: err.stack || '',
+          runnerState: getRunnerDebugState()
+        });
         setStatus(`Init error: ${err.message}`);
         showLoadingError(`Init error: ${err.message}`);
       }
@@ -2476,8 +2597,32 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     });
 
     copyDebugLogBtn.addEventListener('click', async () => {
+      const text = statusBox.textContent || stepsLoadingDebugLog?.textContent || '';
       try {
-        await navigator.clipboard.writeText(statusBox.textContent || '');
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+            appendStatus('Debug log copied to clipboard.');
+            return;
+          } catch (err) {
+            appendStatus('Clipboard API copy failed, trying textarea fallback.', {
+              error: err.message || String(err)
+            });
+          }
+        }
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        if (!copied) {
+          throw new Error('textarea copy fallback failed');
+        }
         appendStatus('Debug log copied to clipboard.');
       } catch (err) {
         setStatus(`Copy log error: ${err.message || String(err)}`);

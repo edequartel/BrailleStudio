@@ -1,5 +1,5 @@
 (function () {
-  const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/data/klanken/aanvankelijklijst.json';
+  const DEFAULT_BASIS_DATA_URL = new URL('../../klanken/aanvankelijklijst.json', window.location.href).toString();
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
@@ -14,6 +14,22 @@
     'medeklinkerclusters',
     'drietekenklanken'
   ];
+
+  function debugLog(message, data = null) {
+    const logger = window.LessonBuilderSharedDebugLog;
+    if (typeof logger === 'function') {
+      logger(message, data);
+      return;
+    }
+    if (window.console && typeof window.console.debug === 'function') {
+      window.console.debug(`[LessonBuilderShared] ${message}`, data || '');
+    }
+  }
+
+  function formatDuration(startedAt) {
+    const elapsed = performance.now() - startedAt;
+    return `${elapsed.toFixed(elapsed >= 100 ? 0 : 1)}ms`;
+  }
 
   function getAuthToken() {
     for (const key of AUTH_TOKEN_KEYS) {
@@ -137,12 +153,17 @@
   async function apiFetchJson(path, options = {}, kind = 'lesson') {
     const bases = getApiBases(kind);
     const requestOptions = withAuthHeaders(options);
+    const method = String(requestOptions.method || 'GET').toUpperCase();
     let lastError = null;
     for (const base of bases) {
       const url = `${base}${path}`;
       try {
+        const startedAt = performance.now();
+        debugLog(`API -> ${method} ${url}`, { kind, path });
         const res = await fetch(url, requestOptions);
+        const responseAt = performance.now();
         const raw = await res.text();
+        const bodyAt = performance.now();
         let data = null;
         try {
           data = JSON.parse(raw);
@@ -151,11 +172,24 @@
             throw new Error(`Non-JSON response from ${url} (HTTP ${res.status})`);
           }
         }
+        const parsedAt = performance.now();
         if (!res.ok) {
           throw new Error((data && data.error) ? data.error : `HTTP ${res.status}`);
         }
+        debugLog(`API <- ${res.status} ${method} ${url}`, {
+          kind,
+          total: formatDuration(startedAt),
+          responseMs: Number((responseAt - startedAt).toFixed(1)),
+          bodyMs: Number((bodyAt - responseAt).toFixed(1)),
+          parseMs: Number((parsedAt - bodyAt).toFixed(1)),
+          bytes: raw.length
+        });
         return data;
       } catch (err) {
+        debugLog(`API failed: ${method} ${url}`, {
+          kind,
+          error: err.message || String(err)
+        });
         lastError = err;
       }
     }
@@ -190,7 +224,7 @@
   function resolveBasisFileUrl(fileName = '') {
     const safeName = String(fileName || '').trim();
     if (!safeName) return DEFAULT_BASIS_DATA_URL;
-    return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(safeName)}`;
+    return new URL(`../../klanken/${encodeURIComponent(safeName)}`, window.location.href).toString();
   }
 
   function remoteFetchProxyUrl(url) {
@@ -292,23 +326,40 @@
   async function loadBasisData(dataSource) {
     const source = String(dataSource || '').trim();
     if (!source) return [];
-    if (basisDataCache.has(source)) return basisDataCache.get(source) || [];
+    if (basisDataCache.has(source)) {
+      debugLog('Basis data cache hit.', { source, count: (basisDataCache.get(source) || []).length });
+      return basisDataCache.get(source) || [];
+    }
 
     const fileName = source.split('/').pop() || 'aanvankelijklijst.json';
     const candidates = [
+      new URL(`../../klanken/${encodeURIComponent(fileName)}`, window.location.href).toString(),
       remoteFetchProxyUrl(source),
       remoteFetchProxyUrl(`https://www.tastenbraille.com/braillestudio/data/klanken/${fileName}`)
     ];
     let lastError = null;
     for (const candidate of [...new Set(candidates)]) {
       try {
+        const startedAt = performance.now();
+        debugLog(`Basis data -> GET ${candidate}`, { source, fileName });
         const res = await fetch(candidate, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const raw = await res.json();
         const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : []);
         basisDataCache.set(source, items);
+        debugLog(`Basis data <- ${res.status} GET ${candidate}`, {
+          source,
+          fileName,
+          count: items.length,
+          total: formatDuration(startedAt)
+        });
         return items;
       } catch (err) {
+        debugLog(`Basis data failed: GET ${candidate}`, {
+          source,
+          fileName,
+          error: err.message || String(err)
+        });
         lastError = err;
       }
     }
