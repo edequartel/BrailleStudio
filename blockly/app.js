@@ -13,8 +13,9 @@ let scriptBrailleMonitorUi = null;
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
-const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/data/klanken/aanvankelijklijst.json';
+const DEFAULT_LESSON_DATA_URL = '../klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URLS = [
+  '../klanken/fonemen_nl_standaard.json',
   'https://www.tastenbraille.com/braillestudio/data/klanken/fonemen_nl_standaard.json'
 ];
 const COMPOUND_LIBRARY_API_BASES = [
@@ -141,16 +142,36 @@ async function copyLogBox() {
     return;
   }
 
+  const copyFromTextarea = () => {
+    if (!box) return false;
+    const previousSelectionStart = box.selectionStart;
+    const previousSelectionEnd = box.selectionEnd;
+    const previousActive = document.activeElement;
+    box.focus();
+    box.select();
+    const ok = document.execCommand('copy');
+    box.setSelectionRange(previousSelectionStart || 0, previousSelectionEnd || 0);
+    if (previousActive instanceof HTMLElement && previousActive !== box) {
+      previousActive.focus();
+    }
+    return ok;
+  };
+
   try {
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else if (box) {
-      box.focus();
-      box.select();
-      document.execCommand('copy');
-      box.setSelectionRange(0, 0);
+      try {
+        await navigator.clipboard.writeText(text);
+        log('Log copied to clipboard');
+        return;
+      } catch (err) {
+        log('Clipboard API copy failed, trying textarea fallback: ' + (err?.message || String(err)));
+      }
     }
-    log('Log copied to clipboard');
+    if (copyFromTextarea()) {
+      log('Log copied to clipboard');
+      return;
+    }
+    throw new Error('textarea copy fallback failed');
   } catch (err) {
     log('Log copy failed: ' + (err?.message || String(err)));
   }
@@ -166,6 +187,11 @@ function formatLogValue(value) {
   } catch {
     return String(value);
   }
+}
+
+function formatDurationMs(startTime) {
+  const elapsed = performance.now() - startTime;
+  return `${elapsed.toFixed(elapsed >= 100 ? 0 : 1)}ms`;
 }
 
 function formatTextJoinValue(value) {
@@ -801,21 +827,70 @@ function renderElevenLabsAuthStatus(message = '') {
   loginBtn.title = message || (token ? 'Authenticated.' : 'Not authenticated.');
 }
 
+function applyEmbeddedSessionPlayerControls() {
+  if (!IS_EMBEDDED_SESSION_PLAYER) return;
+  const controls = [
+    'onlineScriptsSelect',
+    'onlineScriptStatusInput',
+    'onlineRefreshBtn',
+    'onlineSaveBtn',
+    'onlineSaveAsBtn',
+    'onlineDeleteBtn'
+  ];
+  for (const id of controls) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.disabled = true;
+    el.setAttribute('aria-disabled', 'true');
+    el.title = 'Online scripts are disabled in session player mode.';
+  }
+}
+
 async function refreshOnlineScriptsIfAuthenticated(reason = 'state-change') {
+  const state = refreshState.onlineScripts;
+  const now = Date.now();
+  if (state.promise) {
+    log(`Online scripts refresh skipped (${reason}): already running`);
+    await state.promise;
+    return;
+  }
+  if (now - state.completedAt < REFRESH_DEDUPE_MS) {
+    log(`Online scripts refresh skipped (${reason}): recently refreshed`);
+    return;
+  }
   try {
     log(`Refreshing online scripts (${reason})`);
-    await refreshOnlineScripts();
+    state.promise = refreshOnlineScripts();
+    await state.promise;
+    state.completedAt = Date.now();
   } catch (err) {
     log(`Online scripts refresh failed (${reason}): ${err.message}`);
+  } finally {
+    state.promise = null;
   }
 }
 
 async function refreshCompoundLibraryIfAuthenticated(reason = 'state-change') {
+  const state = refreshState.compoundLibrary;
+  const now = Date.now();
+  if (state.promise) {
+    log(`Compound library refresh skipped (${reason}): already running`);
+    await state.promise;
+    return;
+  }
+  if (now - state.completedAt < REFRESH_DEDUPE_MS) {
+    log(`Compound library refresh skipped (${reason}): recently refreshed`);
+    return;
+  }
   try {
     log(`Refreshing compound library (${reason})`);
-    await refreshCompoundLibrary();
+    state.promise = refreshCompoundLibrary();
+    await state.promise;
+    state.completedAt = Date.now();
   } catch (err) {
     log(`Compound library refresh failed (${reason}): ${err.message}`);
+  } finally {
+    state.promise = null;
   }
 }
 
@@ -1460,8 +1535,10 @@ function renderFileState() {
     saveBtn.classList.toggle('is-dirty', workspaceDirty);
     saveBtn.classList.toggle('btn-outline-secondary', !workspaceDirty);
     saveBtn.classList.toggle('btn-primary', workspaceDirty);
-    saveBtn.setAttribute('aria-label', workspaceDirty ? 'Save script with unsaved changes' : 'Save script');
-    saveBtn.title = workspaceDirty ? 'Save script with unsaved changes' : 'Save script';
+    if (!IS_EMBEDDED_SESSION_PLAYER) {
+      saveBtn.setAttribute('aria-label', workspaceDirty ? 'Save script with unsaved changes' : 'Save script');
+      saveBtn.title = workspaceDirty ? 'Save script with unsaved changes' : 'Save script';
+    }
   }
 }
 
@@ -1608,6 +1685,7 @@ let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
 let instructionPreviewAudio = null;
 let externalAudioPlayHandler = null;
+const REFRESH_DEDUPE_MS = 1500;
 const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
 const SOUND_FOLDER_URLS = {
   speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
@@ -1620,8 +1698,31 @@ const SOUND_FOLDER_URLS = {
 };
 const lessonDataCache = new Map();
 const SESSION_RESOLVED_PAYLOAD_STORAGE_KEY = 'braillestudio_session_api_last_resolved';
-const EMBED_MODE = new URLSearchParams(window.location.search).get('embed') || '';
+const BRAILLE_BLOCKLY_MODE_CONFIG = window.BrailleBlocklyMode || {};
+const IS_HEADLESS_SESSION_PLAYER = window.BrailleBlocklyHeadless === true;
+function resolveEmbedMode() {
+  const queryMode = new URLSearchParams(window.location.search).get('embed') || '';
+  if (queryMode) return queryMode;
+  const configuredMode = String(BRAILLE_BLOCKLY_MODE_CONFIG.embedMode || '').trim();
+  if (configuredMode) return configuredMode;
+  if (!IS_HEADLESS_SESSION_PLAYER) {
+    try {
+      window.sessionStorage.removeItem('brailleBlocklyEmbedMode');
+    } catch {}
+    return '';
+  }
+  try {
+    return String(window.sessionStorage.getItem('brailleBlocklyEmbedMode') || '').trim();
+  } catch {
+    return '';
+  }
+}
+const EMBED_MODE = resolveEmbedMode();
 const IS_EMBEDDED_SESSION_PLAYER = EMBED_MODE === 'session-player';
+const refreshState = {
+  onlineScripts: { promise: null, completedAt: 0 },
+  compoundLibrary: { promise: null, completedAt: 0 }
+};
 let lastAppliedResolvedSessionSignature = '';
 window.BrailleBlocklyDefaultLessonPlaceholders = window.BrailleBlocklyDefaultLessonPlaceholders || {
   word: 'bal',
@@ -1765,7 +1866,9 @@ function renderStatus() {
     stopBtn.title = label;
   }
 
-  document.getElementById('statusBox').textContent =
+  const statusBox = document.getElementById('statusBox');
+  if (statusBox) {
+    statusBox.textContent =
 `ws connected     : ${wsConnected}
 text             : ${rt.text}
 braille unicode  : ${rt.brailleUnicode}
@@ -1793,6 +1896,7 @@ stopped          : ${rt.stopped}
 
 variables:
 ${varLines.length ? varLines.join('\n') : '(none)'}`;
+  }
 
   renderScriptBrailleLine();
 }
@@ -1845,20 +1949,24 @@ async function apiFetchJsonFromBases(bases, path, options = {}, logLabel = 'API'
   for (const base of bases) {
     const url = `${base}${path}`;
     try {
+      const requestStartedAt = performance.now();
       log(`${logLabel} -> ${method} ${url}`);
       const res = await fetch(url, requestOptions);
+      const responseReceivedAt = performance.now();
       const raw = await res.text();
+      const bodyReadAt = performance.now();
       let data = null;
       try {
         data = JSON.parse(raw);
       } catch {
         throw new Error(`Non-JSON response for ${method} ${url} (HTTP ${res.status})`);
       }
+      const parsedAt = performance.now();
       if (!res.ok || (data && data.ok === false)) {
         const msg = data && data.error ? data.error : `HTTP ${res.status}`;
         throw new Error(`${msg} (${method} ${url})`);
       }
-      log(`${logLabel} <- ${res.status} ${method} ${url}`);
+      log(`${logLabel} <- ${res.status} ${method} ${url} total=${formatDurationMs(requestStartedAt)} response=${(responseReceivedAt - requestStartedAt).toFixed(1)}ms body=${(bodyReadAt - responseReceivedAt).toFixed(1)}ms parse=${(parsedAt - bodyReadAt).toFixed(1)}ms bytes=${raw.length}`);
       return data;
     } catch (err) {
       log(`${logLabel} failed: ${method} ${url} :: ${err.message}`);
@@ -1973,6 +2081,7 @@ function setOnlineCurrentScript({ id = '', title = '', status = 'draft' } = {}) 
 }
 
 function renderOnlineScriptsSelect(items) {
+  const renderStartedAt = performance.now();
   const select = document.getElementById('onlineScriptsSelect');
   if (!select) return;
 
@@ -1981,7 +2090,10 @@ function renderOnlineScriptsSelect(items) {
 
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = '-- Select online script --';
+  placeholder.disabled = false;
+  placeholder.textContent = normalized.length > 0
+    ? `Select online script (${normalized.length})`
+    : 'No online scripts found';
   select.appendChild(placeholder);
 
   const normalizeStatus = (value) => {
@@ -1991,13 +2103,6 @@ function renderOnlineScriptsSelect(items) {
     if (raw === 'approved') return 'approved';
     return 'draft';
   };
-  const statusDot = (status) => {
-    if (status === 'started') return '🟡';
-    if (status === 'in review') return '🔵';
-    if (status === 'approved') return '🟢';
-    return '⚪';
-  };
-
   const applySelectedStatusColor = () => {
     const selected = select.selectedOptions && select.selectedOptions[0]
       ? select.selectedOptions[0]
@@ -2005,15 +2110,16 @@ function renderOnlineScriptsSelect(items) {
     select.style.removeProperty('color');
   };
 
+  let renderedCount = 0;
   for (const item of normalized) {
-    const id = String(item?.id || '').trim();
+    const fallbackId = String(item?.filename || item?.name || item?.title || '').replace(/\.json$/i, '');
+    const id = String(item?.id || fallbackId).trim();
     if (!id) continue;
     const title = String(item?.title || '').trim();
     const filename = String(item?.filename || '').trim();
     const status = normalizeStatus(item?.meta?.status);
     const hasLegacyVariableFormat = Boolean(item?.legacyVariableFormat);
     const displayTitle = title || filename || '(untitled)';
-    const migrationPrefix = hasLegacyVariableFormat ? '⚠\u00A0' : '';
     const migrationSuffix = hasLegacyVariableFormat ? '\u00A0\u00A0⚠' : '';
     const option = document.createElement('option');
     option.value = id;
@@ -2023,14 +2129,20 @@ function renderOnlineScriptsSelect(items) {
     option.title = hasLegacyVariableFormat
       ? `${filename || id}: oude external-variable indeling. Wordt bij opslaan omgezet naar de nieuwe indeling.`
       : (filename || '');
-    option.textContent = `${statusDot(status)}\u00A0\u00A0${migrationPrefix}${displayTitle}${migrationSuffix}`;
+    option.textContent = `${displayTitle}${migrationSuffix}`;
     select.appendChild(option);
+    renderedCount += 1;
   }
 
   if (currentOnlineScriptId) {
     select.value = currentOnlineScriptId;
   }
+  select.dataset.loadedCount = String(renderedCount);
+  select.title = renderedCount > 0
+    ? `${renderedCount} online scripts loaded`
+    : 'No online scripts loaded';
   applySelectedStatusColor();
+  log(`Online scripts select rendered (${renderedCount}) in ${formatDurationMs(renderStartedAt)}`);
 }
 
 function renderOnlineScriptsSelectError(message) {
@@ -2044,21 +2156,31 @@ function renderOnlineScriptsSelectError(message) {
 }
 
 async function listOnlineScripts() {
-  log('Online scripts: listing');
+  const startedAt = performance.now();
+  log('Online scripts: listing started');
   const data = await onlineApiFetchJson(`/list.php?_=${Date.now()}`);
+  const receivedAt = performance.now();
   const count = Array.isArray(data?.items) ? data.items.length : 0;
-  log(`Online scripts: list received (${count})`);
+  const legacyCount = Array.isArray(data?.items)
+    ? data.items.filter((item) => Boolean(item?.legacyVariableFormat)).length
+    : 0;
+  log(`Online scripts: list received count=${count} legacy=${legacyCount} in ${formatDurationMs(startedAt)} api=${(receivedAt - startedAt).toFixed(1)}ms`);
   return Array.isArray(data?.items) ? data.items : [];
 }
 
 async function refreshOnlineScripts() {
+  const startedAt = performance.now();
+  log('Online scripts refresh: started');
   try {
     const items = await listOnlineScripts();
+    const listedAt = performance.now();
     renderOnlineScriptsSelect(items);
-    log(`Online scripts refreshed (${items.length})`);
+    const renderedAt = performance.now();
+    log(`Online scripts refresh: done count=${items.length} total=${formatDurationMs(startedAt)} list=${(listedAt - startedAt).toFixed(1)}ms render=${(renderedAt - listedAt).toFixed(1)}ms`);
     return items;
   } catch (err) {
     renderOnlineScriptsSelectError(err?.message || err);
+    log(`Online scripts refresh: failed after ${formatDurationMs(startedAt)} (${err?.message || err})`);
     throw err;
   }
 }
@@ -2459,25 +2581,36 @@ async function importWorkspaceJsonFromClipboard() {
 
 async function loadWorkspaceOnline(id) {
   if (!workspace) throw new Error('Blockly workspace is not ready');
+  const startedAt = performance.now();
   const targetId = String(id || '').trim();
   if (!targetId) throw new Error('Online script id is required');
   log(`Online load requested: id=${targetId}`);
 
   const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}&_=${Date.now()}`);
+  const apiLoadedAt = performance.now();
   const state = data?.blockly;
   if (!state || typeof state !== 'object') {
     throw new Error('Loaded script does not contain valid Blockly JSON');
   }
+  const blockCount = Array.isArray(state?.blocks?.blocks) ? state.blocks.blocks.length : 0;
+  const variableCount = Array.isArray(state?.variables) ? state.variables.length : 0;
+  const scriptVariableCount = Array.isArray(state?.scriptVariables) ? state.scriptVariables.length : 0;
+  log(`Online script load: payload received id=${targetId} blocks=${blockCount} variables=${variableCount} scriptVariables=${scriptVariableCount} api=${(apiLoadedAt - startedAt).toFixed(1)}ms`);
 
   registerProcedures(state, runtime);
+  const proceduresRegisteredAt = performance.now();
   suppressDirtyTracking++;
   workspace.clear();
+  const workspaceClearedAt = performance.now();
   setScriptVariables(extractWorkspaceVariablesFromState(state, data?.meta), { markDirty: false });
+  const variablesLoadedAt = performance.now();
   Blockly.serialization.workspaces.load(getBlocklySerializableState(state), workspace);
+  const workspaceLoadedAt = performance.now();
   refreshProcedureRegistry(workspace);
   ensureDefaultVariable();
   initVariableValues();
   suppressDirtyTracking--;
+  const runtimeInitializedAt = performance.now();
 
   const meta = data?.meta && typeof data.meta === 'object' ? data.meta : {};
   renderScriptMetadata({
@@ -2486,13 +2619,15 @@ async function loadWorkspaceOnline(id) {
     instruction: String(meta.instruction || ''),
     prompt: String(meta.prompt || '')
   });
+  const metadataRenderedAt = performance.now();
   setOnlineCurrentScript({
     id: String(data?.id || targetId),
     title: String(data?.title || ''),
     status: String(meta.status || 'draft')
   });
   markWorkspaceSaved(getWorkspaceSignature());
-  log(`Online script loaded: ${targetId}`);
+  const savedAt = performance.now();
+  log(`Online script loaded: ${targetId} total=${formatDurationMs(startedAt)} procedures=${(proceduresRegisteredAt - apiLoadedAt).toFixed(1)}ms clear=${(workspaceClearedAt - proceduresRegisteredAt).toFixed(1)}ms variables=${(variablesLoadedAt - workspaceClearedAt).toFixed(1)}ms workspace=${(workspaceLoadedAt - variablesLoadedAt).toFixed(1)}ms runtime=${(runtimeInitializedAt - workspaceLoadedAt).toFixed(1)}ms metadata=${(metadataRenderedAt - runtimeInitializedAt).toFixed(1)}ms saveState=${(savedAt - metadataRenderedAt).toFixed(1)}ms`);
   return data;
 }
 
@@ -3316,6 +3451,10 @@ function bindAppControls() {
   });
   bind('newBtn', 'click', newWorkspace);
   bind('onlineRefreshBtn', 'click', async () => {
+    if (IS_EMBEDDED_SESSION_PLAYER) {
+      log('Online refresh skipped: session player mode');
+      return;
+    }
     try {
       await refreshOnlineScripts();
     } catch (err) {
@@ -3324,6 +3463,10 @@ function bindAppControls() {
     }
   });
   bind('onlineSaveBtn', 'click', async () => {
+    if (IS_EMBEDDED_SESSION_PLAYER) {
+      log('Online save skipped: session player mode');
+      return;
+    }
     try {
       await saveWorkspaceOnline({ overwrite: true });
     } catch (err) {
@@ -3348,6 +3491,10 @@ function bindAppControls() {
     }
   });
   bind('onlineSaveAsBtn', 'click', async () => {
+    if (IS_EMBEDDED_SESSION_PLAYER) {
+      log('Online Save As skipped: session player mode');
+      return;
+    }
     try {
       await saveWorkspaceOnlineAs();
     } catch (err) {
@@ -3356,6 +3503,10 @@ function bindAppControls() {
     }
   });
   bind('onlineLoadBtn', 'click', async () => {
+    if (IS_EMBEDDED_SESSION_PLAYER) {
+      log('Online load skipped: session player mode');
+      return;
+    }
     const select = document.getElementById('onlineScriptsSelect');
     const id = String(select?.value || '').trim() || currentOnlineScriptId;
     if (!id) {
@@ -3371,6 +3522,10 @@ function bindAppControls() {
     }
   });
   bind('onlineDeleteBtn', 'click', async () => {
+    if (IS_EMBEDDED_SESSION_PLAYER) {
+      log('Online delete skipped: session player mode');
+      return;
+    }
     const select = document.getElementById('onlineScriptsSelect');
     const id = String(select?.value || '').trim() || currentOnlineScriptId;
     if (!id) {
@@ -3892,41 +4047,51 @@ async function preloadLessonToolboxPlaceholders() {
   } catch {}
 }
 
-preloadLessonToolboxPlaceholders();
-ensureProcedureToolboxCategory();
+if (!IS_HEADLESS_SESSION_PLAYER) {
+  preloadLessonToolboxPlaceholders();
+  ensureProcedureToolboxCategory();
+}
 verifyProcedureBlocksAvailable();
-registerCustomContextMenuItems();
+if (!IS_HEADLESS_SESSION_PLAYER) {
+  registerCustomContextMenuItems();
+}
 
 setBootStage('before-workspace-inject');
-workspace = Blockly.inject('blocklyDiv', {
-  toolbox: document.getElementById('toolbox'),
-  trashcan: true,
-  renderer: 'geras',
-  move: { drag: true, wheel: true, scrollbars: true },
-  zoom: {
-    controls: true,
-    wheel: true,
-    startScale: 1,
-    maxScale: 2,
-    minScale: 0.5,
-    scaleSpeed: 1.1
-  },
-  grid: {
-    spacing: 20,
-    length: 3,
-    colour: '#d1d5db',
-    snap: true
-  }
-});
-registerCompoundLibraryToolboxCategory();
-registerVariableToolboxButtons();
-registerMyBlocksFlyoutContextMenu();
+workspace = IS_HEADLESS_SESSION_PLAYER
+  ? new Blockly.Workspace()
+  : Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      trashcan: true,
+      renderer: 'geras',
+      move: { drag: true, wheel: true, scrollbars: true },
+      zoom: {
+        controls: true,
+        wheel: true,
+        startScale: 1,
+        maxScale: 2,
+        minScale: 0.5,
+        scaleSpeed: 1.1
+      },
+      grid: {
+        spacing: 20,
+        length: 3,
+        colour: '#d1d5db',
+        snap: true
+      }
+    });
+if (!IS_HEADLESS_SESSION_PLAYER) {
+  registerCompoundLibraryToolboxCategory();
+  registerVariableToolboxButtons();
+  registerMyBlocksFlyoutContextMenu();
+}
 setBootStage('workspace-injected');
 
-applyGridSnap(localStorage.getItem(BLOCKLY_GRID_SNAP_KEY) !== 'false');
+if (!IS_HEADLESS_SESSION_PLAYER) {
+  applyGridSnap(localStorage.getItem(BLOCKLY_GRID_SNAP_KEY) !== 'false');
+}
 
 function resizeBlockly() {
-  if (!workspace) return;
+  if (!workspace || IS_HEADLESS_SESSION_PLAYER) return;
   Blockly.svgResize(workspace);
 }
 
@@ -3957,10 +4122,13 @@ function blurToolboxFocusAfterPointerSelection() {
 window.addEventListener('resize', resizeBlockly);
 if (window.ResizeObserver) {
   const ro = new ResizeObserver(() => resizeBlockly());
-  ro.observe(document.getElementById('workspaceWrap'));
+  const workspaceWrap = document.getElementById('workspaceWrap');
+  if (workspaceWrap) ro.observe(workspaceWrap);
 }
-setTimeout(resizeBlockly, 0);
-setTimeout(blurToolboxFocusAfterPointerSelection, 0);
+if (!IS_HEADLESS_SESSION_PLAYER) {
+  setTimeout(resizeBlockly, 0);
+  setTimeout(blurToolboxFocusAfterPointerSelection, 0);
+}
 
 function ensureDefaultVariable() {
   const names = workspace.getAllVariables().map(v => v.name);
@@ -4036,6 +4204,7 @@ setBootStage('workspace-ready');
 
 setTimeout(() => {
   log(`Embedded mode: ${EMBED_MODE || 'none'}${IS_EMBEDDED_SESSION_PLAYER ? ' (session-player)' : ''}`);
+  log(`Embedded mode source: query="${new URLSearchParams(window.location.search).get('embed') || ''}", configured="${String(BRAILLE_BLOCKLY_MODE_CONFIG.embedMode || '')}", stored="${(() => { try { return window.sessionStorage.getItem('brailleBlocklyEmbedMode') || ''; } catch { return ''; } })()}"`);
   const token = getValidElevenLabsAuthToken();
   log(`Legacy authentication token at startup: ${token ? 'present' : 'missing'}`);
   if (IS_EMBEDDED_SESSION_PLAYER) return;
@@ -6593,16 +6762,7 @@ renderStatusScriptName();
 renderInstructionTtsControl();
 renderFileState();
 setWsBadge(false);
-
-if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.preloadAudioList === 'function') {
-  window.BrailleStudioAPI.preloadAudioList({ folder: 'speech' })
-    .then((items) => {
-      log(`Speech library preloaded (${Array.isArray(items) ? items.length : 0})`);
-    })
-    .catch((err) => {
-      log(`Speech library preload failed: ${err?.message || err}`);
-    });
-}
+applyEmbeddedSessionPlayerControls();
 
 window.BrailleBlocklyApp = {
   loadWorkspaceFromText,

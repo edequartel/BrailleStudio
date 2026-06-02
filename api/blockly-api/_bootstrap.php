@@ -35,6 +35,11 @@ function blockly_api_is_canonical_host(): bool
     return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
 }
 
+function blockly_api_should_prefer_local_data(): bool
+{
+    return !blockly_api_is_canonical_host();
+}
+
 function blockly_api_is_http_url(string $value): bool
 {
     return preg_match('~^https?://~i', trim($value)) === 1;
@@ -99,7 +104,19 @@ function blockly_api_remote_script_url(string $safeId): string
 
 function blockly_api_load_remote_script(string $safeId): ?array
 {
-    return blockly_api_fetch_json_url(blockly_api_remote_script_url($safeId));
+    if (blockly_api_should_prefer_local_data()) {
+        $local = blockly_api_load_local_script($safeId);
+        if (is_array($local)) {
+            return $local;
+        }
+    }
+
+    $remote = blockly_api_fetch_json_url(blockly_api_remote_script_url($safeId));
+    if (is_array($remote)) {
+        return $remote;
+    }
+
+    return blockly_api_load_local_script($safeId);
 }
 
 function blockly_api_remote_manifest_urls(): array
@@ -111,6 +128,13 @@ function blockly_api_remote_manifest_urls(): array
 
 function blockly_api_load_remote_manifest(): ?array
 {
+    if (blockly_api_should_prefer_local_data()) {
+        $local = blockly_api_load_local_manifest();
+        if (is_array($local)) {
+            return $local;
+        }
+    }
+
     foreach (blockly_api_remote_manifest_urls() as $url) {
         $manifest = blockly_api_fetch_json_url($url);
         if (is_array($manifest)) {
@@ -143,10 +167,79 @@ function blockly_api_data_dir(): string
 
 function blockly_api_data_dirs(): array
 {
-    return array_values(array_unique([
-        dirname(__DIR__, 2) . '/data/blockly',
-        dirname(__DIR__) . '/data/blockly',
-    ]));
+    $envDir = trim((string)getenv('BRAILLESTUDIO_BLOCKLY_DATA_DIR'));
+    $dirs = [];
+    if ($envDir !== '') {
+        $dirs[] = $envDir;
+    }
+    $dirs[] = dirname(__DIR__, 2) . '/data/blockly';
+    $dirs[] = dirname(__DIR__) . '/data/blockly';
+    $dirs[] = dirname(__DIR__, 2) . '/XXX data/blockly';
+
+    return array_values(array_unique($dirs));
+}
+
+function blockly_api_load_local_script(string $safeId): ?array
+{
+    $filePath = blockly_api_find_script_path($safeId);
+    if ($filePath === null) {
+        return null;
+    }
+    $content = json_decode((string)@file_get_contents($filePath), true);
+    return is_array($content) ? $content : null;
+}
+
+function blockly_api_load_local_manifest(): ?array
+{
+    $manifest = json_decode((string)@file_get_contents(blockly_api_manifest_file()), true);
+    if (is_array($manifest)) {
+        return $manifest;
+    }
+
+    foreach (blockly_api_data_dirs() as $dir) {
+        if (is_dir($dir)) {
+            return blockly_api_build_manifest_from_dir($dir);
+        }
+    }
+
+    return null;
+}
+
+function blockly_api_build_manifest_from_dir(string $dir): array
+{
+    $dir = rtrim($dir, '/');
+    $items = [];
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (str_starts_with($name, '._')) {
+            continue;
+        }
+        $content = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($content)) {
+            continue;
+        }
+        $id = trim((string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME)));
+        $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
+        if ($safeId === '') {
+            continue;
+        }
+        $items[] = [
+            'id' => $safeId,
+            'title' => trim((string)($content['title'] ?? '')),
+            'updatedAt' => trim((string)($content['updatedAt'] ?? '')),
+            'filename' => $safeId . '.json',
+            'meta' => blockly_api_normalize_meta($content),
+        ];
+    }
+
+    usort($items, static fn(array $a, array $b): int => strcmp((string)($b['updatedAt'] ?? ''), (string)($a['updatedAt'] ?? '')));
+    return [
+        'ok' => true,
+        'updatedAt' => gmdate('c'),
+        'items' => $items,
+    ];
 }
 
 function blockly_api_find_script_path(string $safeId): ?string
@@ -199,38 +292,7 @@ function blockly_api_rebuild_manifest(string $dir): bool
         return false;
     }
 
-    $items = [];
-    $files = glob($dir . '/*.json') ?: [];
-    sort($files);
-    foreach ($files as $file) {
-        $name = basename($file);
-        if (str_starts_with($name, '._')) {
-            continue;
-        }
-        $content = json_decode((string)@file_get_contents($file), true);
-        if (!is_array($content)) {
-            continue;
-        }
-        $id = trim((string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME)));
-        $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
-        if ($safeId === '') {
-            continue;
-        }
-        $items[] = [
-            'id' => $safeId,
-            'title' => trim((string)($content['title'] ?? '')),
-            'updatedAt' => trim((string)($content['updatedAt'] ?? '')),
-            'filename' => $safeId . '.json',
-            'meta' => blockly_api_normalize_meta($content),
-        ];
-    }
-
-    usort($items, static fn(array $a, array $b): int => strcmp((string)($b['updatedAt'] ?? ''), (string)($a['updatedAt'] ?? '')));
-    $manifest = [
-        'ok' => true,
-        'updatedAt' => gmdate('c'),
-        'items' => $items,
-    ];
+    $manifest = blockly_api_build_manifest_from_dir($dir);
     $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (!is_string($encoded)) {
         return false;

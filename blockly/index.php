@@ -4,6 +4,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/../auth/bootstrap.php';
 
 $isSessionPlayerEmbed = (string)($_GET['embed'] ?? '') === 'session-player';
+if ($isSessionPlayerEmbed) {
+    $redirectParams = $_GET;
+    unset($redirectParams['embed']);
+    $redirectTarget = './session-player.php';
+    if ($redirectParams !== []) {
+        $redirectTarget .= '?' . http_build_query($redirectParams);
+    }
+    header('Location: ' . $redirectTarget, true, 302);
+    exit;
+}
+
 $authUser = $isSessionPlayerEmbed
     ? ['display' => 'Sessie', 'role' => 'session']
     : bs_auth_require_login(['admin', 'docent']);
@@ -33,6 +44,18 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       authBridgePageUrl: <?= $jsValue($urlFor($appBase, 'authentication.php?mode=bridge')) ?>,
       homepageOrigin: 'https://www.tastenbraille.com'
     };
+
+    window.BrailleBlocklyMode = {
+      embedMode: <?= $jsValue($isSessionPlayerEmbed ? 'session-player' : '') ?>,
+      isSessionPlayerEmbed: <?= $isSessionPlayerEmbed ? 'true' : 'false' ?>
+    };
+
+    try {
+      const requestedEmbedMode = new URLSearchParams(window.location.search).get('embed') || window.BrailleBlocklyMode.embedMode || '';
+      if (requestedEmbedMode === 'session-player') {
+        window.sessionStorage.setItem('brailleBlocklyEmbedMode', 'session-player');
+      }
+    } catch {}
 
     window.BrailleBlocklyBoot = {
       stage: 'index-html',
@@ -71,15 +94,14 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     });
   </script>
 
-  <script src="https://unpkg.com/blockly/blockly_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/blocks_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
-  <script src="https://unpkg.com/blockly/msg/en.js"></script>
+  <script src="./vendor/blockly-12.5.1/blockly_compressed.js"></script>
+  <script src="./vendor/blockly-12.5.1/blocks_compressed.js"></script>
+  <script src="./vendor/blockly-12.5.1/javascript_compressed.js"></script>
+  <script src="./vendor/blockly-12.5.1/en.js"></script>
   <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
   <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
-  <link rel="stylesheet" href="/braillestudio/components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
 
   <style>
     :root {
@@ -1644,7 +1666,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       '/braillestudio/components/braillebridge-status/braillebridge-status.js',
       'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
-    await loadScript('./app.js?v=20260602-copy-log-1');
+    await loadScript('./app.js?v=20260602-online-load-timing-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

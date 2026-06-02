@@ -317,6 +317,26 @@ function bs_auth_safe_return_to(?string $raw): string
     if ($value[0] !== '/') {
         $value = '/' . ltrim($value, '/');
     }
+    $path = parse_url($value, PHP_URL_PATH);
+    if (is_string($path) && $path !== '') {
+        $normalizedPath = preg_replace('~/+~', '/', $path) ?? $path;
+        $segments = [];
+        foreach (explode('/', $normalizedPath) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                array_pop($segments);
+                continue;
+            }
+            $segments[] = $segment;
+        }
+        $value = '/' . implode('/', $segments);
+        $query = parse_url($raw, PHP_URL_QUERY);
+        if (is_string($query) && $query !== '') {
+            $value .= '?' . $query;
+        }
+    }
     return $value;
 }
 
