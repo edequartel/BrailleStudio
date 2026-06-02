@@ -24,7 +24,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>Lesson Builder - Lessons</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260526-api-routes-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-local-api-2')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">

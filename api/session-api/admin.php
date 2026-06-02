@@ -385,7 +385,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const UPDATE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'update-link.php')) ?>;
     const DELETE_LINK_URL = <?= $jsValue($urlFor($sessionBase, 'delete-link.php')) ?>;
     const LIST_LINKS_URL = <?= $jsValue($urlFor($sessionBase, 'list-links.php')) ?>;
-    const BLOCKLY_URL = <?= $jsValue($urlFor($appBase, 'blockly/index.php?embed=session-player&v=20260529-session-audio-handler-1')) ?>;
+    const BLOCKLY_URL = <?= $jsValue($urlFor($appBase, 'blockly/index.php?embed=session-player&v=20260602-copy-log-1')) ?>;
     const $ = (id) => document.getElementById(id);
     let scriptsCache = [];
     let linksCache = [];

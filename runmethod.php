@@ -21,6 +21,128 @@ function read_json_file(string $path): ?array
     return is_array($decoded) ? $decoded : null;
 }
 
+function is_http_url(string $value): bool
+{
+    return preg_match('~^https?://~i', trim($value)) === 1;
+}
+
+function read_url(string $url): ?string
+{
+    if (!is_http_url($url)) {
+        return null;
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 8,
+            'ignore_errors' => true,
+            'header' => "User-Agent: BrailleStudioRunMethod/1.0\r\n",
+        ],
+    ]);
+    $raw = @file_get_contents($url, false, $context);
+    if (is_string($raw) && trim($raw) !== '') {
+        return $raw;
+    }
+
+    if (!function_exists('curl_init')) {
+        return null;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_USERAGENT => 'BrailleStudioRunMethod/1.0',
+    ]);
+    $result = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    if (PHP_VERSION_ID < 80500) {
+        curl_close($ch);
+    }
+
+    if (!is_string($result) || trim($result) === '' || $status >= 400) {
+        return null;
+    }
+    return $result;
+}
+
+function read_json_url(string $url): ?array
+{
+    $raw = read_url($url);
+    if ($raw === null) {
+        return null;
+    }
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+function read_json_source(string $source): ?array
+{
+    if (is_http_url($source)) {
+        return read_json_url($source);
+    }
+    return read_json_file($source);
+}
+
+function canonical_remote_base_url(): string
+{
+    return 'https://www.tastenbraille.com/braillestudio';
+}
+
+function canonical_remote_data_url(string $path = ''): string
+{
+    $path = ltrim($path, '/');
+    return canonical_remote_base_url() . '/data' . ($path !== '' ? '/' . $path : '');
+}
+
+function is_running_on_canonical_remote(): bool
+{
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
+}
+
+function read_remote_runmethod_payload(string $methodId): ?array
+{
+    if ($methodId === '' || is_running_on_canonical_remote()) {
+        return null;
+    }
+
+    $url = canonical_remote_base_url() . '/runmethod.php?id=' . rawurlencode($methodId);
+    $html = read_url($url);
+    if ($html === null) {
+        return null;
+    }
+
+    if (!preg_match('/window\.RunMethodBootstrap\s*=\s*(\{.*?\});\s*<\/script>/s', $html, $matches)) {
+        return null;
+    }
+
+    $payload = json_decode($matches[1], true);
+    if (!is_array($payload) || (string)($payload['error'] ?? '') !== '') {
+        return null;
+    }
+    return $payload;
+}
+
+function read_remote_method(string $methodId): ?array
+{
+    $methodId = normalize_id($methodId);
+    if ($methodId === '') {
+        return null;
+    }
+    $method = read_json_url(canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'));
+    if (is_array($method) && isset($method['dataSource'])) {
+        $method['dataSource'] = str_replace(
+            canonical_remote_base_url() . '/klanken/',
+            canonical_remote_data_url('klanken') . '/',
+            (string)$method['dataSource']
+        );
+    }
+    return $method;
+}
+
 function normalize_id(string $value): string
 {
     $value = trim($value);
@@ -60,108 +182,66 @@ function normalize_step_inputs($inputs): array
     return $normalized;
 }
 
-$rootDir = __DIR__;
-$methodDirs = [
-    $rootDir . '/api/methods-data',
-    $rootDir . '/methods-data',
-];
-$lessonDirs = [
-    $rootDir . '/api/lessons-data',
-    $rootDir . '/lessons-data',
-];
 $defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260529-external-debug-2';
-$blocklyApiBase = '/braillestudio/api/blockly-api';
+$blocklyApiBase = './api/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
 $errorMessage = '';
 $method = null;
 $basisRecords = [];
 $lessons = [];
+$remotePayload = null;
 
 if ($methodId === '') {
     $errorMessage = 'Missing method id. Use runmethod.php?id=your-method-id';
 } else {
-    $method = null;
-    foreach ($methodDirs as $methodsDir) {
-        $methodPath = $methodsDir . '/' . $methodId . '.json';
-        $method = read_json_file($methodPath);
-        if (is_array($method)) {
-            break;
-        }
+    $remotePayload = read_remote_runmethod_payload($methodId);
+    if (is_array($remotePayload)) {
+        $method = is_array($remotePayload['method'] ?? null) ? $remotePayload['method'] : null;
+        $basisRecords = is_array($remotePayload['basisRecords'] ?? null) ? array_values($remotePayload['basisRecords']) : [];
+        $lessons = is_array($remotePayload['lessons'] ?? null) ? array_values($remotePayload['lessons']) : [];
     }
+
+    if (!$method) {
+        $method = read_remote_method($methodId);
+    }
+
     if (!$method) {
         $errorMessage = 'Method not found.';
-    } else {
+    } elseif (count($basisRecords) === 0) {
         $basisFile = trim((string)($method['basisFile'] ?? ''));
         $dataSource = trim((string)($method['dataSource'] ?? ''));
-        $basisPath = '';
-        if ($basisFile !== '') {
-            $basisPath = $rootDir . '/klanken/' . basename($basisFile);
-        } elseif ($dataSource !== '') {
-            $basisPath = $rootDir . '/klanken/' . basename(parse_url($dataSource, PHP_URL_PATH) ?: '');
+        $basisSources = [];
+        if ($dataSource !== '') {
+            $basisSources[] = $dataSource;
         }
-        $basisData = read_json_file($basisPath);
+        if ($basisFile !== '') {
+            $basisSources[] = canonical_remote_data_url('klanken/' . rawurlencode(basename($basisFile)));
+        }
+
+        $basisData = null;
+        foreach (array_values(array_unique(array_filter($basisSources))) as $basisSource) {
+            $basisData = read_json_source($basisSource);
+            if (is_array($basisData)) {
+                break;
+            }
+        }
         if (!is_array($basisData)) {
             $errorMessage = 'Basisbestand kon niet geladen worden.';
         } else {
             $basisRecords = array_values($basisData);
-            foreach ($lessonDirs as $lessonsDir) {
-                $lessonFiles = glob($lessonsDir . '/*.json') ?: [];
-                foreach ($lessonFiles as $lessonFile) {
-                    $lesson = read_json_file($lessonFile);
-                    if (!is_array($lesson)) {
-                        continue;
-                    }
-                    $lessonMethodId = trim((string)($lesson['methodId'] ?? ($lesson['method']['id'] ?? '')));
-                    if ($lessonMethodId !== $methodId) {
-                        continue;
-                    }
+        }
+    }
 
-                    $rawSteps = is_array($lesson['steps'] ?? null) ? $lesson['steps'] : [];
-                    $steps = [];
-                    foreach ($rawSteps as $row) {
-                        if (!is_array($row)) {
-                            continue;
-                        }
-                        $stepId = trim((string)($row['id'] ?? ''));
-                        if ($stepId === '') {
-                            continue;
-                        }
-                        $steps[] = [
-                            'id' => $stepId,
-                            'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
-                            'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
-                            'instruction' => trim((string)($row['instruction'] ?? $row['scriptInstruction'] ?? ($row['meta']['instruction'] ?? ''))),
-                            'inputs' => normalize_step_inputs($row['inputs'] ?? []),
-                        ];
-                    }
-
-                    $lessonId = trim((string)($lesson['id'] ?? pathinfo($lessonFile, PATHINFO_FILENAME)));
-                    if ($lessonId !== '' && isset($lessons[$lessonId])) {
-                        continue;
-                    }
-                    $lessons[$lessonId] = [
-                        'id' => $lessonId,
-                        'title' => trim((string)($lesson['title'] ?? '')),
-                        'description' => trim((string)($lesson['description'] ?? '')),
-                        'basisIndex' => array_key_exists('basisIndex', $lesson) ? (int)$lesson['basisIndex'] : -1,
-                        'basisWord' => trim((string)($lesson['basisWord'] ?? '')),
-                        'lessonNumber' => array_key_exists('lessonNumber', $lesson) ? (int)$lesson['lessonNumber'] : 1,
-                        'basisRecord' => is_array($lesson['basisRecord'] ?? null) ? $lesson['basisRecord'] : [],
-                        'steps' => $steps,
-                    ];
-                }
+    if ($errorMessage === '' && is_array($method) && count($lessons) === 0) {
+        $remotePayload = $remotePayload ?? read_remote_runmethod_payload($methodId);
+        if (is_array($remotePayload)) {
+            if (count($basisRecords) === 0 && is_array($remotePayload['basisRecords'] ?? null)) {
+                $basisRecords = array_values($remotePayload['basisRecords']);
             }
-
-            $lessons = array_values($lessons);
-
-            usort($lessons, static function (array $a, array $b): int {
-                $indexCompare = ((int)$a['basisIndex']) <=> ((int)$b['basisIndex']);
-                if ($indexCompare !== 0) {
-                    return $indexCompare;
-                }
-                return ((int)$a['lessonNumber']) <=> ((int)$b['lessonNumber']);
-            });
+            if (is_array($remotePayload['lessons'] ?? null)) {
+                $lessons = array_values($remotePayload['lessons']);
+            }
         }
     }
 }

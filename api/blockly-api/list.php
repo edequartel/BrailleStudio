@@ -99,50 +99,58 @@ function blockly_api_has_legacy_variable_format(array $content): bool
     return false;
 }
 
+$manifest = blockly_api_load_remote_manifest();
+if (!is_array($manifest)) {
+    blockly_api_json_error('Remote Blockly data manifest not found', 404, [
+        'source' => blockly_api_remote_data_base_url(),
+        'expected' => blockly_api_remote_manifest_urls(),
+    ]);
+}
+
+$rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
 $items = [];
 $seen = [];
 
-foreach (blockly_api_data_dirs() as $saveDir) {
-    if (!is_dir($saveDir)) {
+foreach ($rawItems as $item) {
+    if (is_string($item) || is_numeric($item)) {
+        $item = ['id' => (string)$item];
+    }
+    if (!is_array($item)) {
         continue;
     }
-
-    $files = glob($saveDir . '/*.json');
-    if (!is_array($files)) {
+    $id = trim((string)($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME)));
+    $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
+    if ($safeId === '' || isset($seen[$safeId])) {
         continue;
     }
+    $seen[$safeId] = true;
 
-    foreach ($files as $file) {
-        $content = json_decode(file_get_contents($file), true);
-
-        if (!is_array($content)) {
-            continue;
+    $content = $item;
+    if (!isset($content['blockly'])) {
+        $remoteContent = blockly_api_load_remote_script($safeId);
+        if (is_array($remoteContent)) {
+            $content = array_replace_recursive($remoteContent, $item);
         }
-
-        $id = (string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME));
-        if ($id === '' || isset($seen[$id])) {
-            continue;
-        }
-        $seen[$id] = true;
-
-        $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
-        $normalizedMeta = [
-            'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
-            'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
-            'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
-            'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
-            'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
-        ];
-
-        $items[] = [
-            'id' => $id,
-            'title' => $content['title'] ?? '',
-            'updatedAt' => $content['updatedAt'] ?? '',
-            'meta' => $normalizedMeta,
-            'filename' => basename($file),
-            'legacyVariableFormat' => blockly_api_has_legacy_variable_format($content),
-        ];
     }
+
+    $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
+    $normalizedMeta = [
+        'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+        'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+        'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
+        'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
+        'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+    ];
+
+    $items[] = [
+        'id' => $safeId,
+        'title' => $content['title'] ?? $normalizedMeta['title'],
+        'updatedAt' => $content['updatedAt'] ?? '',
+        'meta' => $normalizedMeta,
+        'filename' => basename((string)($content['filename'] ?? ($safeId . '.json'))),
+        'url' => blockly_api_remote_script_url($safeId),
+        'legacyVariableFormat' => isset($content['blockly']) ? blockly_api_has_legacy_variable_format($content) : false,
+    ];
 }
 
 usort($items, function ($a, $b) {

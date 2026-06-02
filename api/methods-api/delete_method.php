@@ -60,4 +60,5 @@ methods_json_response([
         'title' => $deleted['title']
     ],
     'deletedLessons' => $deletedLessons['deleted'],
+    'manifest' => 'temp/manifests/methods.json',
 ]);

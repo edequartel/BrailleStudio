@@ -59,5 +59,9 @@ if (!methods_save_all($items)) {
 methods_json_response([
     'ok' => true,
     'action' => $action,
-    'item' => $record
+    'item' => $record + [
+        'url' => methods_remote_method_url($record['id']),
+        'filename' => $record['id'] . '.json',
+    ],
+    'manifest' => 'temp/manifests/methods.json',
 ]);

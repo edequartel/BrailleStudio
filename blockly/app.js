@@ -13,14 +13,10 @@ let scriptBrailleMonitorUi = null;
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
-const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
+const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio/data/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URLS = [
-  'https://www.tastenbraille.com/braillestudio/klanken/fonemen_nl_standaard.json',
-  '/braillestudio/klanken/fonemen_nl_standaard.json',
-  '../klanken/fonemen_nl_standaard.json',
-  './klanken/fonemen_nl_standaard.json'
+  'https://www.tastenbraille.com/braillestudio/data/klanken/fonemen_nl_standaard.json'
 ];
-const ONLINE_SCRIPT_API_BASE = 'https://www.tastenbraille.com/braillestudio/api/blockly-api';
 const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
@@ -135,6 +131,29 @@ log(`Page protocol: ${window.location.protocol || '(none)'}`);
 function clearLogBox() {
   const box = document.getElementById('logBox');
   if (box) box.value = '';
+}
+
+async function copyLogBox() {
+  const box = document.getElementById('logBox');
+  const text = String(box?.value || '');
+  if (text === '') {
+    log('Log copy skipped: log is empty');
+    return;
+  }
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else if (box) {
+      box.focus();
+      box.select();
+      document.execCommand('copy');
+      box.setSelectionRange(0, 0);
+    }
+    log('Log copied to clipboard');
+  } catch (err) {
+    log('Log copy failed: ' + (err?.message || String(err)));
+  }
 }
 
 function formatLogValue(value) {
@@ -1802,10 +1821,9 @@ function applyGridSnap(enabled) {
 }
 
 function getOnlineApiBases() {
-  const dynamicCandidates = [
+  return [
     new URL('../api/blockly-api', window.location.href).toString().replace(/\/$/, '')
   ];
-  return [...new Set([...dynamicCandidates, ONLINE_SCRIPT_API_BASE])];
 }
 
 function getCompoundLibraryApiBases() {
@@ -3406,6 +3424,7 @@ function bindAppControls() {
     await resumeSound();
   });
   bind('stopSoundBtn', 'click', stopSound);
+  bind('copyLogBtn', 'click', copyLogBox);
   bind('clearLogBtn', 'click', clearLogBox);
   bind('saveInstructionTtsBtn', 'click', async () => {
     try {
@@ -4298,11 +4317,7 @@ function buildLessonDataCandidates(source) {
   const fileName = normalizedSource.split('/').pop() || 'aanvankelijklijst.json';
   const candidates = [
     normalizedSource,
-    `../klanken/${fileName}`,
-    `./klanken/${fileName}`,
-    `/braillestudio/klanken/${fileName}`,
-    `/klanken/${fileName}`,
-    `https://www.tastenbraille.com/braillestudio/klanken/${fileName}`
+    `https://www.tastenbraille.com/braillestudio/data/klanken/${fileName}`
   ].filter(Boolean);
 
   return [...new Set(candidates)];

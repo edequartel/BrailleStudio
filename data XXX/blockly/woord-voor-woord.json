@@ -1,0 +1,763 @@
+{
+    "id": "woord-voor-woord",
+    "title": "woord voor woord",
+    "updatedAt": "2026-04-14T17:17:13+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": "start_evt_words",
+                    "x": 48,
+                    "y": 40,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "bb_set_text",
+                                "id": "clear_line",
+                                "inputs": {
+                                    "TEXT": {
+                                        "shadow": {
+                                            "type": "text",
+                                            "id": "empty_text",
+                                            "fields": {
+                                                "TEXT": ""
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "procedures_callnoreturn",
+                                        "id": "call_instruction",
+                                        "extraState": {
+                                            "name": "instructie"
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "bb_wait",
+                                                "id": "wait_after_instruction",
+                                                "inputs": {
+                                                    "SECONDS": {
+                                                        "shadow": {
+                                                            "type": "math_number",
+                                                            "id": "wait_seconds",
+                                                            "fields": {
+                                                                "NUM": 1
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "next": {
+                                                    "block": {
+                                                        "type": "variables_set",
+                                                        "id": "set_words",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_words"
+                                                            }
+                                                        },
+                                                        "inputs": {
+                                                            "VALUE": {
+                                                                "block": {
+                                                                    "type": "list_from_text_items",
+                                                                    "id": "words_list",
+                                                                    "inputs": {
+                                                                        "TEXT": {
+                                                                            "shadow": {
+                                                                                "type": "text",
+                                                                                "id": "words_text",
+                                                                                "fields": {
+                                                                                    "TEXT": "bal,kam,aap,boom"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "variables_set",
+                                                                "id": "set_index_zero",
+                                                                "fields": {
+                                                                    "VAR": {
+                                                                        "id": "var_index"
+                                                                    }
+                                                                },
+                                                                "inputs": {
+                                                                    "VALUE": {
+                                                                        "block": {
+                                                                            "type": "math_number",
+                                                                            "id": "index_zero",
+                                                                            "fields": {
+                                                                                "NUM": 0
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "next": {
+                                                                    "block": {
+                                                                        "type": "variables_set",
+                                                                        "id": "set_chain_start",
+                                                                        "fields": {
+                                                                            "VAR": {
+                                                                                "id": "var_chain"
+                                                                            }
+                                                                        },
+                                                                        "inputs": {
+                                                                            "VALUE": {
+                                                                                "block": {
+                                                                                    "type": "list_get_item",
+                                                                                    "id": "get_first_word",
+                                                                                    "inputs": {
+                                                                                        "INDEX": {
+                                                                                            "block": {
+                                                                                                "type": "variables_get",
+                                                                                                "id": "get_index_start",
+                                                                                                "fields": {
+                                                                                                    "VAR": {
+                                                                                                        "id": "var_index"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        },
+                                                                                        "LIST": {
+                                                                                            "block": {
+                                                                                                "type": "variables_get",
+                                                                                                "id": "get_words_start",
+                                                                                                "fields": {
+                                                                                                    "VAR": {
+                                                                                                        "id": "var_words"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "next": {
+                                                                            "block": {
+                                                                                "type": "variables_set",
+                                                                                "id": "set_started_zero",
+                                                                                "fields": {
+                                                                                    "VAR": {
+                                                                                        "id": "var_started"
+                                                                                    }
+                                                                                },
+                                                                                "inputs": {
+                                                                                    "VALUE": {
+                                                                                        "block": {
+                                                                                            "type": "math_number",
+                                                                                            "id": "started_zero",
+                                                                                            "fields": {
+                                                                                                "NUM": 0
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "next": {
+                                                                                    "block": {
+                                                                                        "type": "bb_set_text",
+                                                                                        "id": "show_wait_message",
+                                                                                        "inputs": {
+                                                                                            "TEXT": {
+                                                                                                "shadow": {
+                                                                                                    "type": "text",
+                                                                                                    "id": "wait_message_text",
+                                                                                                    "fields": {
+                                                                                                        "TEXT": "druk rechterduimtoets"
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_thumb_key",
+                    "id": "next_word_evt",
+                    "x": 863,
+                    "y": 40,
+                    "fields": {
+                        "KEY": "right"
+                    },
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "controls_if",
+                                "id": "if_started_already",
+                                "extraState": {
+                                    "hasElse": true
+                                },
+                                "inputs": {
+                                    "IF0": {
+                                        "block": {
+                                            "type": "logic_compare",
+                                            "id": "cmp_started_zero",
+                                            "fields": {
+                                                "OP": "EQ"
+                                            },
+                                            "inputs": {
+                                                "A": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_started_value",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_started"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "B": {
+                                                    "block": {
+                                                        "type": "math_number",
+                                                        "id": "started_zero_compare",
+                                                        "fields": {
+                                                            "NUM": 0
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO0": {
+                                        "block": {
+                                            "type": "variables_set",
+                                            "id": "set_started_one",
+                                            "fields": {
+                                                "VAR": {
+                                                    "id": "var_started"
+                                                }
+                                            },
+                                            "inputs": {
+                                                "VALUE": {
+                                                    "block": {
+                                                        "type": "math_number",
+                                                        "id": "started_one",
+                                                        "fields": {
+                                                            "NUM": 1
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "next": {
+                                                "block": {
+                                                    "type": "bb_set_text",
+                                                    "id": "show_first_word",
+                                                    "inputs": {
+                                                        "TEXT": {
+                                                            "block": {
+                                                                "type": "variables_get",
+                                                                "id": "get_chain_first_show",
+                                                                "fields": {
+                                                                    "VAR": {
+                                                                        "id": "var_chain"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    "next": {
+                                                        "block": {
+                                                            "type": "procedures_callnoreturn",
+                                                            "id": "call_speak_first",
+                                                            "extraState": {
+                                                                "name": "spreekHuidigWoord"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "ELSE": {
+                                        "block": {
+                                            "type": "controls_if",
+                                            "id": "if_has_next_word",
+                                            "extraState": {
+                                                "hasElse": true
+                                            },
+                                            "inputs": {
+                                                "IF0": {
+                                                    "block": {
+                                                        "type": "logic_compare",
+                                                        "id": "cmp_index_has_next",
+                                                        "fields": {
+                                                            "OP": "LT"
+                                                        },
+                                                        "inputs": {
+                                                            "A": {
+                                                                "block": {
+                                                                    "type": "variables_get",
+                                                                    "id": "get_index_before_next",
+                                                                    "fields": {
+                                                                        "VAR": {
+                                                                            "id": "var_index"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "B": {
+                                                                "block": {
+                                                                    "type": "math_arithmetic",
+                                                                    "id": "last_valid_index",
+                                                                    "fields": {
+                                                                        "OP": "MINUS"
+                                                                    },
+                                                                    "inputs": {
+                                                                        "A": {
+                                                                            "block": {
+                                                                                "type": "list_length",
+                                                                                "id": "get_words_length",
+                                                                                "inputs": {
+                                                                                    "LIST": {
+                                                                                        "block": {
+                                                                                            "type": "variables_get",
+                                                                                            "id": "get_words_for_length",
+                                                                                            "fields": {
+                                                                                                "VAR": {
+                                                                                                    "id": "var_words"
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "B": {
+                                                                            "block": {
+                                                                                "type": "math_number",
+                                                                                "id": "minus_one",
+                                                                                "fields": {
+                                                                                    "NUM": 1
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "DO0": {
+                                                    "block": {
+                                                        "type": "math_change",
+                                                        "id": "inc_index",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_index"
+                                                            }
+                                                        },
+                                                        "inputs": {
+                                                            "DELTA": {
+                                                                "block": {
+                                                                    "type": "math_number",
+                                                                    "id": "delta_one",
+                                                                    "fields": {
+                                                                        "NUM": 1
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "next": {
+                                                            "block": {
+                                                                "type": "variables_set",
+                                                                "id": "append_chain",
+                                                                "fields": {
+                                                                    "VAR": {
+                                                                        "id": "var_chain"
+                                                                    }
+                                                                },
+                                                                "inputs": {
+                                                                    "VALUE": {
+                                                                        "block": {
+                                                                            "type": "text_join",
+                                                                            "id": "join_chain_next",
+                                                                            "extraState": {
+                                                                                "itemCount": 3
+                                                                            },
+                                                                            "inputs": {
+                                                                                "ADD0": {
+                                                                                    "block": {
+                                                                                        "type": "variables_get",
+                                                                                        "id": "get_chain_before_append",
+                                                                                        "fields": {
+                                                                                            "VAR": {
+                                                                                                "id": "var_chain"
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "ADD1": {
+                                                                                    "block": {
+                                                                                        "type": "text",
+                                                                                        "id": "space_text",
+                                                                                        "fields": {
+                                                                                            "TEXT": " "
+                                                                                        }
+                                                                                    }
+                                                                                },
+                                                                                "ADD2": {
+                                                                                    "block": {
+                                                                                        "type": "list_get_item",
+                                                                                        "id": "get_next_word",
+                                                                                        "inputs": {
+                                                                                            "INDEX": {
+                                                                                                "block": {
+                                                                                                    "type": "variables_get",
+                                                                                                    "id": "get_index_next",
+                                                                                                    "fields": {
+                                                                                                        "VAR": {
+                                                                                                            "id": "var_index"
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            },
+                                                                                            "LIST": {
+                                                                                                "block": {
+                                                                                                    "type": "variables_get",
+                                                                                                    "id": "get_words_next",
+                                                                                                    "fields": {
+                                                                                                        "VAR": {
+                                                                                                            "id": "var_words"
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "next": {
+                                                                    "block": {
+                                                                        "type": "bb_set_text",
+                                                                        "id": "show_chain_after_append",
+                                                                        "inputs": {
+                                                                            "TEXT": {
+                                                                                "block": {
+                                                                                    "type": "variables_get",
+                                                                                    "id": "get_chain_after_append",
+                                                                                    "fields": {
+                                                                                        "VAR": {
+                                                                                            "id": "var_chain"
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "next": {
+                                                                            "block": {
+                                                                                "type": "procedures_callnoreturn",
+                                                                                "id": "call_speak_next",
+                                                                                "extraState": {
+                                                                                    "name": "spreekHuidigWoord"
+                                                                                },
+                                                                                "next": {
+                                                                                    "block": {
+                                                                                        "type": "controls_if",
+                                                                                        "id": "if_now_last_word",
+                                                                                        "inputs": {
+                                                                                            "IF0": {
+                                                                                                "block": {
+                                                                                                    "type": "logic_compare",
+                                                                                                    "id": "cmp_now_last_word",
+                                                                                                    "fields": {
+                                                                                                        "OP": "EQ"
+                                                                                                    },
+                                                                                                    "inputs": {
+                                                                                                        "A": {
+                                                                                                            "block": {
+                                                                                                                "type": "variables_get",
+                                                                                                                "id": "get_index_after_next",
+                                                                                                                "fields": {
+                                                                                                                    "VAR": {
+                                                                                                                        "id": "var_index"
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        },
+                                                                                                        "B": {
+                                                                                                            "block": {
+                                                                                                                "type": "math_arithmetic",
+                                                                                                                "id": "last_index_again",
+                                                                                                                "fields": {
+                                                                                                                    "OP": "MINUS"
+                                                                                                                },
+                                                                                                                "inputs": {
+                                                                                                                    "A": {
+                                                                                                                        "block": {
+                                                                                                                            "type": "list_length",
+                                                                                                                            "id": "get_words_length_again",
+                                                                                                                            "inputs": {
+                                                                                                                                "LIST": {
+                                                                                                                                    "block": {
+                                                                                                                                        "type": "variables_get",
+                                                                                                                                        "id": "get_words_for_length_again",
+                                                                                                                                        "fields": {
+                                                                                                                                            "VAR": {
+                                                                                                                                                "id": "var_words"
+                                                                                                                                            }
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    },
+                                                                                                                    "B": {
+                                                                                                                        "block": {
+                                                                                                                            "type": "math_number",
+                                                                                                                            "id": "minus_one_again",
+                                                                                                                            "fields": {
+                                                                                                                                "NUM": 1
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            },
+                                                                                            "DO0": {
+                                                                                                "block": {
+                                                                                                    "type": "lesson_complete_lesson",
+                                                                                                    "id": "complete_after_last_word"
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "ELSE": {
+                                                    "block": {
+                                                        "type": "lesson_complete_lesson",
+                                                        "id": "complete_if_already_last"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "procedures_defnoreturn",
+                    "id": "def_speak_current_word",
+                    "x": 48,
+                    "y": 347,
+                    "icons": {
+                        "comment": {
+                            "text": "Describe this function...",
+                            "pinned": false,
+                            "height": 80,
+                            "width": 160
+                        }
+                    },
+                    "fields": {
+                        "NAME": "spreekHuidigWoord"
+                    },
+                    "inputs": {
+                        "STACK": {
+                            "block": {
+                                "type": "sound_play_folder_file",
+                                "id": "speak_current_word",
+                                "fields": {
+                                    "FOLDER": "speech"
+                                },
+                                "inputs": {
+                                    "FILE": {
+                                        "block": {
+                                            "type": "list_get_item",
+                                            "id": "get_current_word_sound",
+                                            "inputs": {
+                                                "INDEX": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_index_for_sound",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_index"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "LIST": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_words_for_sound",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "var_words"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "procedures_defnoreturn",
+                    "id": "def_instruction",
+                    "x": 863,
+                    "y": 614,
+                    "icons": {
+                        "comment": {
+                            "text": "Describe this function...",
+                            "pinned": false,
+                            "height": 80,
+                            "width": 160
+                        }
+                    },
+                    "fields": {
+                        "NAME": "instructie"
+                    },
+                    "inputs": {
+                        "STACK": {
+                            "block": {
+                                "type": "list_for_each_item",
+                                "id": "instruction_loop",
+                                "fields": {
+                                    "VAR": {
+                                        "id": "Go`7aV[u:qdc7S@Qui8i"
+                                    }
+                                },
+                                "inputs": {
+                                    "LIST": {
+                                        "block": {
+                                            "type": "lists_create_with",
+                                            "id": "instruction_playlist",
+                                            "extraState": {
+                                                "itemCount": 3
+                                            },
+                                            "inputs": {
+                                                "ADD0": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "instruction_1",
+                                                        "fields": {
+                                                            "TEXT": "../nl/instructions/woord-voor-woord-001.mp3"
+                                                        }
+                                                    }
+                                                },
+                                                "ADD1": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "instruction_2",
+                                                        "fields": {
+                                                            "TEXT": "../nl/instructions/woord-voor-woord-002.mp3"
+                                                        }
+                                                    }
+                                                },
+                                                "ADD2": {
+                                                    "block": {
+                                                        "type": "text",
+                                                        "id": "instruction_3",
+                                                        "fields": {
+                                                            "TEXT": "../nl/instructions/woord-voor-woord-003.mp3"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "DO": {
+                                        "block": {
+                                            "type": "sound_play_sounds_relative",
+                                            "id": "play_instruction_item",
+                                            "inputs": {
+                                                "PATH": {
+                                                    "block": {
+                                                        "type": "variables_get",
+                                                        "id": "get_instruction_item",
+                                                        "fields": {
+                                                            "VAR": {
+                                                                "id": "Go`7aV[u:qdc7S@Qui8i"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "words",
+                "id": "var_words"
+            },
+            {
+                "name": "index",
+                "id": "var_index"
+            },
+            {
+                "name": "chain",
+                "id": "var_chain"
+            },
+            {
+                "name": "started",
+                "id": "var_started"
+            },
+            {
+                "name": "score",
+                "id": "Hvmt,YSYvJH)aX~04VzR"
+            },
+            {
+                "name": "count",
+                "id": "o8lqcCzp+y{a$T_$v/;e"
+            },
+            {
+                "name": "item",
+                "id": "Go`7aV[u:qdc7S@Qui8i"
+            }
+        ]
+    },
+    "meta": {
+        "title": "woord voor woord",
+        "description": "",
+        "instruction": "Op de leesregel komen woorden. Wanneer je de rechterduimtoets intypt komt er een ander woord achter het woord of woorden op de leesregel. \nJe hoort dan ook het nieuwe woord. \nDruk de rechter duimtoets in voor het eerste woord.",
+        "prompt": "",
+        "status": "in review"
+    }
+}

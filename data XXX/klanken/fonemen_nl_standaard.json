@@ -1,0 +1,78 @@
+﻿{
+  "version": "1.0",
+  "language": "nl-NL",
+  "description": "Nederlandse klank-naar-letter standaard voor fonemisch afspelen en spellen.",
+  "rules": {
+    "tokenizeStrategy": "longest-first",
+    "unknownTokenFallback": "single-letter"
+  },
+  "phonemes": [
+    { "phoneme": "aa", "category": "langeKlinker", "spellingLetters": ["a", "a"] },
+    { "phoneme": "ee", "category": "langeKlinker", "spellingLetters": ["e", "e"] },
+    { "phoneme": "ie", "category": "langeKlinker", "spellingLetters": ["i", "e"] },
+    { "phoneme": "oo", "category": "langeKlinker", "spellingLetters": ["o", "o"] },
+    { "phoneme": "uu", "category": "langeKlinker", "spellingLetters": ["u", "u"] },
+
+    { "phoneme": "oe", "category": "tweetekenklank", "spellingLetters": ["o", "e"] },
+    { "phoneme": "eu", "category": "tweetekenklank", "spellingLetters": ["e", "u"] },
+    { "phoneme": "ui", "category": "tweetekenklank", "spellingLetters": ["u", "i"] },
+    { "phoneme": "ei", "category": "tweetekenklank", "spellingLetters": ["e", "i"] },
+    { "phoneme": "ij", "category": "tweetekenklank", "spellingLetters": ["i", "j"] },
+    { "phoneme": "ou", "category": "tweetekenklank", "spellingLetters": ["o", "u"] },
+    { "phoneme": "au", "category": "tweetekenklank", "spellingLetters": ["a", "u"] },
+
+    { "phoneme": "aai", "category": "drietekenklank", "spellingLetters": ["a", "a", "i"] },
+    { "phoneme": "ooi", "category": "drietekenklank", "spellingLetters": ["o", "o", "i"] },
+    { "phoneme": "oei", "category": "drietekenklank", "spellingLetters": ["o", "e", "i"] },
+
+    { "phoneme": "ieu", "category": "drietekenklank", "spellingLetters": ["i", "e", "u"] },
+
+    { "phoneme": "eeuw", "category": "viertekenklank", "spellingLetters": ["e", "e", "u", "w"] },
+    { "phoneme": "ieuw", "category": "viertekenklank", "spellingLetters": ["i", "e", "u", "w"] },
+
+    { "phoneme": "ng", "category": "medeklinkercluster", "spellingLetters": ["n", "g"] },
+    { "phoneme": "nk", "category": "medeklinkercluster", "spellingLetters": ["n", "k"] },
+    { "phoneme": "ch", "category": "medeklinkercluster", "spellingLetters": ["c", "h"] },
+    { "phoneme": "sch", "category": "medeklinkercluster", "spellingLetters": ["s", "c", "h"] },
+
+    { "phoneme": "a", "category": "korteKlinker", "spellingLetters": ["a"] },
+    { "phoneme": "e", "category": "korteKlinker", "spellingLetters": ["e"] },
+    { "phoneme": "i", "category": "korteKlinker", "spellingLetters": ["i"] },
+    { "phoneme": "o", "category": "korteKlinker", "spellingLetters": ["o"] },
+    { "phoneme": "u", "category": "korteKlinker", "spellingLetters": ["u"] },
+
+    { "phoneme": "b", "category": "medeklinker", "spellingLetters": ["b"] },
+    { "phoneme": "c", "category": "medeklinker", "spellingLetters": ["c"] },
+    { "phoneme": "d", "category": "medeklinker", "spellingLetters": ["d"] },
+    { "phoneme": "f", "category": "medeklinker", "spellingLetters": ["f"] },
+    { "phoneme": "g", "category": "medeklinker", "spellingLetters": ["g"] },
+    { "phoneme": "h", "category": "medeklinker", "spellingLetters": ["h"] },
+    { "phoneme": "j", "category": "medeklinker", "spellingLetters": ["j"] },
+    { "phoneme": "k", "category": "medeklinker", "spellingLetters": ["k"] },
+    { "phoneme": "l", "category": "medeklinker", "spellingLetters": ["l"] },
+    { "phoneme": "m", "category": "medeklinker", "spellingLetters": ["m"] },
+    { "phoneme": "n", "category": "medeklinker", "spellingLetters": ["n"] },
+    { "phoneme": "p", "category": "medeklinker", "spellingLetters": ["p"] },
+    { "phoneme": "q", "category": "medeklinker", "spellingLetters": ["q"] },
+    { "phoneme": "r", "category": "medeklinker", "spellingLetters": ["r"] },
+    { "phoneme": "s", "category": "medeklinker", "spellingLetters": ["s"] },
+    { "phoneme": "t", "category": "medeklinker", "spellingLetters": ["t"] },
+    { "phoneme": "v", "category": "medeklinker", "spellingLetters": ["v"] },
+    { "phoneme": "w", "category": "medeklinker", "spellingLetters": ["w"] },
+    { "phoneme": "x", "category": "medeklinker", "spellingLetters": ["x"] },
+    { "phoneme": "y", "category": "medeklinker", "spellingLetters": ["y"] },
+    { "phoneme": "z", "category": "medeklinker", "spellingLetters": ["z"] }
+  ],
+  "examples": [
+    {
+      "word": "maan",
+      "phonemeSequence": ["m", "aa", "n"],
+      "spellingSequence": ["m", "a", "a", "n"]
+    },
+    {
+      "word": "koeien",
+      "phonemeSequence": ["k", "oei", "e", "n"],
+      "spellingSequence": ["k", "o", "e", "i", "e", "n"]
+    }
+  ]
+}

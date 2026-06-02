@@ -33,18 +33,14 @@ if ($safeId === '') {
     exit;
 }
 
-$filePath = lessons_api_find_lesson_path($safeId);
-
-if ($filePath === null) {
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'Lesson not found']);
-    exit;
-}
-
-$content = json_decode(file_get_contents($filePath), true);
+$content = lessons_api_load_remote_lesson($safeId);
 if (!is_array($content)) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Invalid lesson JSON']);
+    http_response_code(404);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Lesson not found',
+        'source' => lessons_api_remote_lesson_url($safeId),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
@@ -185,5 +181,6 @@ $out['basisWord'] = trim((string)($content['basisWord'] ?? ''));
 $out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1;
 $out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [];
 $out['steps'] = $normalizedSteps;
+$out['url'] = lessons_api_remote_lesson_url($safeId);
 
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

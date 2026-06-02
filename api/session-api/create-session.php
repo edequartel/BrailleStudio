@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-const SESSION_API_SUPABASE_CONFIG = '/home3/kydjgrmy/private/supabase_config.php';
+require_once __DIR__ . '/supabase-config.php';
+
+define('SESSION_API_SUPABASE_CONFIG', session_api_supabase_config_path());
 const SESSION_API_SUPABASE_IDLE_TTL_SECONDS = 1800;
 
 session_api_send_headers();
@@ -235,7 +237,6 @@ function session_api_supabase_request(string $method, string $endpoint, string $
     $body = curl_exec($ch);
     $error = curl_error($ch);
     $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    curl_close($ch);
 
     $body = is_string($body) ? $body : '';
     $decoded = json_decode($body, true);

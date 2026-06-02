@@ -52,8 +52,12 @@ if (@file_put_contents($path, $json . PHP_EOL, LOCK_EX) === false) {
     ], 500);
 }
 
+methods_rebuild_basis_manifest($dir);
+
 methods_json_response([
     'ok' => true,
     'fileName' => $fileName,
     'count' => count($items),
+    'url' => methods_remote_basis_file_url($fileName),
+    'manifest' => 'temp/manifests/klanken.json',
 ]);

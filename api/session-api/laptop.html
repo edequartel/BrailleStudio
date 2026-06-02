@@ -608,15 +608,14 @@
   <script src="../../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1"></script>
   <script src="../../components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3"></script>
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
     const params = new URLSearchParams(window.location.search);
     let activeSessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
     const CREATE_SESSION_URL = './create-session.php';
     const DELETE_SESSION_URL = './delete-session.php';
+    const SESSION_STATE_URL = './session-state.php';
     const LIST_LINKS_URL = './list-links.php';
     const SCRIPT_META_URL = './script-meta.php';
-    const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260529-session-audio-handler-1';
+    const BLOCKLY_URL = '../../blockly/index.php?embed=session-player&v=20260602-copy-log-1';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
     const BRAILLE_MONITOR_PLACEHOLDER = '';
     const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -626,7 +625,10 @@
 
     let supabaseClient = null;
     let realtimeChannel = null;
+    let sessionPollTimer = null;
+    let sessionPollInFlight = false;
     let lastHandledSignature = '';
+    let lastSessionStateSignature = '';
     let brailleMonitorUi = null;
     let brailleMonitorSyncTimer = null;
     let lastBrailleSnapshot = '';
@@ -909,6 +911,10 @@
     }
 
     function stopRealtime() {
+      if (sessionPollTimer) {
+        window.clearInterval(sessionPollTimer);
+        sessionPollTimer = null;
+      }
       if (realtimeChannel && supabaseClient) {
         supabaseClient.removeChannel(realtimeChannel);
       }
@@ -1336,9 +1342,77 @@
       return data;
     }
 
+    async function pollSessionState(sessionCode) {
+      if (sessionPollInFlight || !sessionCode) {
+        return;
+      }
+      sessionPollInFlight = true;
+      try {
+        const url = new URL(SESSION_STATE_URL, window.location.href);
+        url.searchParams.set('session_code', sessionCode);
+        url.searchParams.set('_', String(Date.now()));
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error || `session-state.php gaf HTTP ${response.status}`);
+        }
+        const row = data.session || data.row || null;
+        if (row) {
+          const signature = [
+            row.session_code,
+            row.script_id,
+            row.command,
+            row.status,
+            row.record_index,
+            row.updated_at
+          ].join('|');
+          if (signature === lastSessionStateSignature) {
+            return;
+          }
+          lastSessionStateSignature = signature;
+          await handleRealtimePayload({ new: row });
+        }
+      } catch (err) {
+        log('Sessie polling mislukt.', { message: err.message || String(err) });
+      } finally {
+        sessionPollInFlight = false;
+      }
+    }
+
+    function startSessionPolling(sessionCode, reason = 'fallback') {
+      if (!sessionCode || sessionPollTimer) {
+        return;
+      }
+      log('Sessie polling gestart.', { reason, session_code: sessionCode });
+      pollSessionState(sessionCode).catch((err) => {
+        log('Eerste sessie polling mislukt.', { message: err.message || String(err) });
+      });
+      sessionPollTimer = window.setInterval(() => {
+        pollSessionState(sessionCode).catch((err) => {
+          log('Sessie polling interval mislukt.', { message: err.message || String(err) });
+        });
+      }, 1000);
+    }
+
     async function startRealtime(config) {
       if (!config.supabase_url || !config.supabase_anon_key) {
-        throw new Error('Publieke Supabase URL of anon key ontbreekt.');
+        startSessionPolling(config.session_code, 'missing-browser-config');
+        setStatus('Realtime config ontbreekt; lokale polling is actief.', 'connected', 'Wacht op mobiel');
+        return;
+      }
+
+      let createClient = null;
+      try {
+        ({ createClient } = await import('https://esm.sh/@supabase/supabase-js@2'));
+      } catch (err) {
+        startSessionPolling(config.session_code, 'supabase-module-unavailable');
+        setStatus('Realtime module niet beschikbaar; lokale polling is actief.', 'connected', 'Wacht op mobiel');
+        log('Supabase browsermodule laden mislukt; polling actief.', { message: err.message || String(err) });
+        return;
       }
 
       supabaseClient = createClient(config.supabase_url, config.supabase_anon_key, {
@@ -1367,7 +1441,8 @@
           if (status === 'SUBSCRIBED') {
             setStatus('Scan de sessie-QR met de mobiel om de sessie te starten.', 'connected', 'Wacht op mobiel');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            setStatus(`Realtime status: ${status}`, 'error');
+            startSessionPolling(config.session_code, status);
+            setStatus('Realtime niet beschikbaar; lokale polling is actief.', 'connected', 'Wacht op mobiel');
           }
         });
     }

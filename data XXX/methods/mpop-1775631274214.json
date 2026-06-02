@@ -1,0 +1,10 @@
+{
+    "id": "mpop-1775631274214",
+    "title": "Met Punt Op Pad",
+    "description": "Aanvankelijk methode lezen braille",
+    "basisFile": "aanvankelijklijst.json",
+    "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json",
+    "imageUrl": "https://www.tastenbraille.com/braillestudio/assets/mpop-2.jpeg",
+    "status": "active",
+    "updatedAt": "2026-05-07T10:13:55Z"
+}

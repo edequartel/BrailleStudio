@@ -85,7 +85,7 @@ const Sounds = {
     const baseUrl = (cfg.baseUrl || "").replace(/\/+$/, "");
     const ext = cfg.defaultExtension || ".mp3";
 
-    let sharedPath = cfg.shared?.basePath || "/sounds/shared";
+    let sharedPath = cfg.shared?.basePath || "/shared";
     sharedPath = sharedPath.replace(/\\/g, "/");
     if (!sharedPath.startsWith("/")) sharedPath = "/" + sharedPath;
 

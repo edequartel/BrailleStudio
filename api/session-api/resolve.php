@@ -115,6 +115,8 @@ function session_api_load_blockly_script_meta(string $scriptId): array
 function session_api_blockly_script_dirs(): array
 {
     return array_values(array_unique([
+        dirname(__DIR__, 2) . '/data/blockly',
+        dirname(__DIR__) . '/data/blockly',
         dirname(__DIR__, 2) . '/blockly-data',
         dirname(__DIR__) . '/blockly-data',
     ]));

@@ -114,9 +114,13 @@ if ($written === false) {
     ]);
 }
 
+blockly_api_rebuild_manifest($saveDir);
+
 echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => basename($saveDir) . '/' . $filename,
+    'path' => 'data/blockly/' . $filename,
+    'url' => blockly_api_remote_script_url($safeId),
+    'manifest' => 'temp/manifests/blockly.json',
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

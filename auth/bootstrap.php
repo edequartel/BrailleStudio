@@ -16,6 +16,7 @@ function bs_auth_config_candidates(): array
         $paths[] = $envPath;
     }
 
+    $paths[] = __DIR__ . '/config.php';
     $paths[] = '/home3/kydjgrmy/braillestudio-auth/config.php';
 
     $documentRoot = trim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));

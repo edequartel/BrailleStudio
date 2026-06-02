@@ -28,8 +28,8 @@ function methods_data_file_candidates(): array
 function methods_save_dirs(): array
 {
     return array_values(array_unique([
-        dirname(__DIR__, 2) . '/methods-data',
-        dirname(__DIR__) . '/methods-data',
+        dirname(__DIR__, 2) . '/data/methods',
+        dirname(__DIR__) . '/data/methods',
     ]));
 }
 
@@ -107,6 +107,134 @@ function methods_require_authentication(): array
     ]);
 }
 
+function methods_remote_data_base_url(string $section = ''): string
+{
+    $section = trim($section, '/');
+    return 'https://www.tastenbraille.com/braillestudio/data' . ($section !== '' ? '/' . $section : '');
+}
+
+function methods_manifest_name(string $section): string
+{
+    return match ($section) {
+        'blockly' => 'blockly',
+        'lessons' => 'lessons',
+        'klanken' => 'klanken',
+        default => 'methods',
+    };
+}
+
+function methods_remote_manifest_url(string $section): string
+{
+    return 'https://www.tastenbraille.com/braillestudio/temp/manifests/' . methods_manifest_name($section) . '.json';
+}
+
+function methods_manifest_file(string $section): string
+{
+    return dirname(__DIR__, 2) . '/temp/manifests/' . methods_manifest_name($section) . '.json';
+}
+
+function methods_is_canonical_host(): bool
+{
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
+}
+
+function methods_is_http_url(string $value): bool
+{
+    return preg_match('~^https?://~i', trim($value)) === 1;
+}
+
+function methods_fetch_url(string $url): ?string
+{
+    if (!methods_is_http_url($url)) {
+        return null;
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 8,
+            'ignore_errors' => true,
+            'header' => "User-Agent: BrailleStudioMethodsApi/1.0\r\n",
+        ],
+    ]);
+    $raw = @file_get_contents($url, false, $context);
+    if (is_string($raw) && trim($raw) !== '' && !preg_match('/^\s*</', $raw)) {
+        return $raw;
+    }
+
+    if (!function_exists('curl_init')) {
+        return null;
+    }
+
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 10,
+        CURLOPT_USERAGENT => 'BrailleStudioMethodsApi/1.0',
+    ]);
+    $result = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    if (PHP_VERSION_ID < 80500) {
+        curl_close($ch);
+    }
+
+    if (!is_string($result) || trim($result) === '' || $status >= 400 || preg_match('/^\s*</', $result)) {
+        return null;
+    }
+    return $result;
+}
+
+function methods_fetch_json_url(string $url): ?array
+{
+    $raw = methods_fetch_url($url);
+    if ($raw === null) {
+        return null;
+    }
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+function methods_remote_method_url(string $id): string
+{
+    return methods_remote_data_base_url('methods') . '/' . rawurlencode($id) . '.json';
+}
+
+function methods_remote_manifest_urls(string $section, array $extraNames = []): array
+{
+    return [
+        methods_remote_manifest_url($section) . '?_=' . rawurlencode((string)time()),
+    ];
+}
+
+function methods_load_remote_manifest(string $section, array $extraNames = []): ?array
+{
+    foreach (methods_remote_manifest_urls($section, $extraNames) as $url) {
+        $manifest = methods_fetch_json_url($url);
+        if (is_array($manifest)) {
+            return $manifest;
+        }
+    }
+
+    if (methods_is_canonical_host()) {
+        if ($section === 'methods') {
+            methods_rebuild_manifest(methods_writable_save_dir() ?? methods_save_dir());
+        } elseif ($section === 'klanken') {
+            methods_rebuild_basis_manifest(methods_basis_dir());
+        } elseif ($section === 'lessons') {
+            methods_rebuild_lessons_manifest(methods_lessons_dir());
+        }
+
+        $manifest = json_decode((string)@file_get_contents(methods_manifest_file($section)), true);
+        if (is_array($manifest)) {
+            return $manifest;
+        }
+    }
+
+    return null;
+}
+
 function methods_method_not_allowed(array $allowed): never
 {
     header('Allow: ' . implode(', ', $allowed));
@@ -159,9 +287,14 @@ function methods_normalize_method(array $item): array
     $id = methods_normalize_id($item['id'] ?? '');
     $basisFile = methods_normalize_string($item['basisFile'] ?? '');
     $dataSource = methods_normalize_string($item['dataSource'] ?? '');
+    $dataSource = str_replace(
+        'https://www.tastenbraille.com/braillestudio/klanken/',
+        'https://www.tastenbraille.com/braillestudio/data/klanken/',
+        $dataSource
+    );
     $imageUrl = methods_normalize_string($item['imageUrl'] ?? '');
     if ($basisFile !== '' && $dataSource === '') {
-        $dataSource = 'https://www.tastenbraille.com/braillestudio/klanken/' . rawurlencode($basisFile);
+        $dataSource = 'https://www.tastenbraille.com/braillestudio/data/klanken/' . rawurlencode($basisFile);
     }
     if ($basisFile === '') {
         $dataSource = '';
@@ -175,7 +308,7 @@ function methods_normalize_method(array $item): array
         'dataSource' => $dataSource,
         'imageUrl' => $imageUrl,
         'status' => methods_normalize_status($item['status'] ?? 'active'),
-        'updatedAt' => gmdate('Y-m-d\TH:i:s\Z'),
+        'updatedAt' => methods_normalize_string($item['updatedAt'] ?? '') ?: gmdate('Y-m-d\TH:i:s\Z'),
     ];
 }
 
@@ -208,11 +341,11 @@ function methods_file_path(string $id): string
 function methods_basis_dir_candidates(): array
 {
     return [
-        dirname(dirname(__DIR__)) . '/klanken',
-        dirname(__DIR__) . '/klanken',
-        dirname(__DIR__, 3) . '/klanken',
-        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/braillestudio/klanken',
-        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/klanken',
+        dirname(dirname(__DIR__)) . '/data/klanken',
+        dirname(__DIR__) . '/data/klanken',
+        dirname(__DIR__, 3) . '/data/klanken',
+        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/braillestudio/data/klanken',
+        rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/') . '/data/klanken',
     ];
 }
 
@@ -249,6 +382,53 @@ function methods_normalize_basis_filename($value): string
 function methods_basis_file_path(string $fileName): string
 {
     return methods_basis_dir() . '/' . $fileName;
+}
+
+function methods_remote_basis_file_url(string $fileName): string
+{
+    return methods_remote_data_base_url('klanken') . '/' . rawurlencode($fileName);
+}
+
+function methods_rebuild_basis_manifest(string $dir): bool
+{
+    $dir = rtrim($dir, '/');
+    if ($dir === '' || !is_dir($dir) || !is_writable($dir)) {
+        return false;
+    }
+
+    $items = [];
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (str_starts_with($name, '._')) {
+            continue;
+        }
+        $items[] = [
+            'id' => $name,
+            'name' => $name,
+            'label' => $name,
+            'url' => methods_remote_basis_file_url($name),
+        ];
+    }
+
+    $manifest = [
+        'ok' => true,
+        'updatedAt' => gmdate('c'),
+        'items' => $items,
+    ];
+    $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded)) {
+        return false;
+    }
+
+    $manifestFile = methods_manifest_file('klanken');
+    $manifestDir = dirname($manifestFile);
+    if (!is_dir($manifestDir) && !@mkdir($manifestDir, 0775, true) && !is_dir($manifestDir)) {
+        return false;
+    }
+
+    return file_put_contents($manifestFile, $encoded, LOCK_EX) !== false;
 }
 
 function methods_normalize_basis_sound_list($value): array
@@ -369,32 +549,41 @@ function methods_migrate_legacy_if_needed(): void
 
 function methods_load_all(): array
 {
-    methods_migrate_legacy_if_needed();
-    ensure_methods_storage_exists();
+    $manifest = methods_load_remote_manifest('methods', ['methods.json']);
+    if (!is_array($manifest)) {
+        return [];
+    }
+
+    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
 
     $items = [];
     $seen = [];
-    foreach (methods_save_dirs() as $dir) {
-        if (!is_dir($dir)) {
+    foreach ($rawItems as $item) {
+        if (is_string($item) || is_numeric($item)) {
+            $item = ['id' => (string)$item];
+        }
+        if (!is_array($item)) {
             continue;
         }
-        $files = glob($dir . '/*.json') ?: [];
-        foreach ($files as $file) {
-            $json = @file_get_contents($file);
-            if ($json === false || trim($json) === '') {
-                continue;
-            }
+        $id = methods_normalize_id($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME));
+        if ($id === '' || isset($seen[$id])) {
+            continue;
+        }
+        $seen[$id] = true;
 
-            $decoded = json_decode($json, true);
-            if (!is_array($decoded)) {
-                continue;
+        $content = $item;
+        if (!array_key_exists('basisFile', $content) && !array_key_exists('dataSource', $content)) {
+            $remoteContent = methods_fetch_json_url(methods_remote_method_url($id));
+            if (is_array($remoteContent)) {
+                $content = array_replace_recursive($remoteContent, $item);
             }
+        }
 
-            $normalized = methods_normalize_method($decoded);
-            if ($normalized['id'] !== '' && !isset($seen[$normalized['id']])) {
-                $seen[$normalized['id']] = true;
-                $items[] = $normalized;
-            }
+        $normalized = methods_normalize_method(['id' => $id] + $content);
+        if ($normalized['id'] !== '') {
+            $normalized['filename'] = basename((string)($content['filename'] ?? ($normalized['id'] . '.json')));
+            $normalized['url'] = methods_remote_method_url($normalized['id']);
+            $items[] = $normalized;
         }
     }
 
@@ -403,6 +592,57 @@ function methods_load_all(): array
     });
 
     return $items;
+}
+
+function methods_rebuild_manifest(string $dir): bool
+{
+    $dir = rtrim($dir, '/');
+    if ($dir === '' || !is_dir($dir) || !is_writable($dir)) {
+        return false;
+    }
+
+    $items = [];
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (str_starts_with($name, '._')) {
+            continue;
+        }
+        $decoded = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        $normalized = methods_normalize_method($decoded);
+        if ($normalized['id'] === '') {
+            continue;
+        }
+        $normalized['filename'] = $normalized['id'] . '.json';
+        $normalized['url'] = methods_remote_method_url($normalized['id']);
+        $items[] = $normalized;
+    }
+
+    usort($items, static function ($a, $b) {
+        return strcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
+    });
+
+    $manifest = [
+        'ok' => true,
+        'updatedAt' => gmdate('c'),
+        'items' => $items,
+    ];
+    $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded)) {
+        return false;
+    }
+
+    $manifestFile = methods_manifest_file('methods');
+    $manifestDir = dirname($manifestFile);
+    if (!is_dir($manifestDir) && !@mkdir($manifestDir, 0775, true) && !is_dir($manifestDir)) {
+        return false;
+    }
+
+    return file_put_contents($manifestFile, $encoded, LOCK_EX) !== false;
 }
 
 function methods_save_all(array $items): bool
@@ -437,12 +677,15 @@ function methods_save_all(array $items): bool
 
     $files = glob($saveDir . '/*.json') ?: [];
     foreach ($files as $file) {
+        if (str_starts_with(basename($file), '._')) {
+            continue;
+        }
         if (!isset($expectedPaths[$file])) {
             @unlink($file);
         }
     }
 
-    return true;
+    return methods_rebuild_manifest($saveDir);
 }
 
 function methods_find_method_by_id(string $id, array $items): ?array
@@ -479,9 +722,80 @@ function methods_lessons_dir(): string
 function methods_lessons_dirs(): array
 {
     return array_values(array_unique([
-        dirname(__DIR__, 2) . '/lessons-data',
-        dirname(__DIR__) . '/lessons-data',
+        dirname(__DIR__, 2) . '/data/lessons',
+        dirname(__DIR__) . '/data/lessons',
     ]));
+}
+
+function methods_rebuild_lessons_manifest(string $dir): bool
+{
+    $dir = rtrim($dir, '/');
+    if ($dir === '' || !is_dir($dir) || !is_writable($dir)) {
+        return false;
+    }
+
+    $items = [];
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (str_starts_with($name, '._')) {
+            continue;
+        }
+        $decoded = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        $id = methods_normalize_id($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME));
+        if ($id === '') {
+            continue;
+        }
+        $method = is_array($decoded['method'] ?? null) ? $decoded['method'] : [];
+        $items[] = [
+            'id' => $id,
+            'title' => methods_normalize_string($decoded['title'] ?? ''),
+            'description' => methods_normalize_string($decoded['description'] ?? ''),
+            'methodId' => methods_normalize_id($decoded['methodId'] ?? ($method['id'] ?? '')),
+            'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : -1,
+            'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ''),
+            'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
+            'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
+            'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : 0,
+            'filename' => $id . '.json',
+            'url' => methods_remote_data_base_url('lessons') . '/' . rawurlencode($id) . '.json',
+        ];
+    }
+
+    usort($items, static function (array $a, array $b): int {
+        $aIndex = (int)($a['basisIndex'] ?? -1);
+        $bIndex = (int)($b['basisIndex'] ?? -1);
+        if ($aIndex !== $bIndex) {
+            return $aIndex <=> $bIndex;
+        }
+        $lessonCompare = ((int)($a['lessonNumber'] ?? 1)) <=> ((int)($b['lessonNumber'] ?? 1));
+        if ($lessonCompare !== 0) {
+            return $lessonCompare;
+        }
+        return strcmp((string)($b['updatedAt'] ?? ''), (string)($a['updatedAt'] ?? ''));
+    });
+
+    $manifest = [
+        'ok' => true,
+        'updatedAt' => gmdate('c'),
+        'items' => $items,
+    ];
+    $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (!is_string($encoded)) {
+        return false;
+    }
+
+    $manifestFile = methods_manifest_file('lessons');
+    $manifestDir = dirname($manifestFile);
+    if (!is_dir($manifestDir) && !@mkdir($manifestDir, 0775, true) && !is_dir($manifestDir)) {
+        return false;
+    }
+
+    return file_put_contents($manifestFile, $encoded, LOCK_EX) !== false;
 }
 
 function methods_load_lessons_for_method(string $methodId): array
@@ -491,47 +805,52 @@ function methods_load_lessons_for_method(string $methodId): array
         return [];
     }
 
+    $manifest = methods_load_remote_manifest('lessons', ['lessons.json']);
+    if (!is_array($manifest)) {
+        return [];
+    }
+    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
+
     $items = [];
     $seen = [];
-    foreach (methods_lessons_dirs() as $dir) {
-        if (!is_dir($dir)) {
+    foreach ($rawItems as $item) {
+        if (is_string($item) || is_numeric($item)) {
+            $item = ['id' => (string)$item];
+        }
+        if (!is_array($item)) {
             continue;
         }
-        $files = glob($dir . '/*.json') ?: [];
-        foreach ($files as $file) {
-            $json = @file_get_contents($file);
-            if ($json === false || trim($json) === '') {
-                continue;
-            }
-
-            $decoded = json_decode($json, true);
-            if (!is_array($decoded)) {
-                continue;
-            }
-
-            $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
-            if ($lessonMethodId !== $methodId) {
-                continue;
-            }
-
-            $lessonId = methods_normalize_string($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME));
-            if ($lessonId === '' || isset($seen[$lessonId])) {
-                continue;
-            }
-            $seen[$lessonId] = true;
-
-            $items[] = [
-                'id' => $lessonId,
-                'title' => methods_normalize_string($decoded['title'] ?? ''),
-                'description' => methods_normalize_string($decoded['description'] ?? ''),
-                'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : -1,
-                'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ''),
-                'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
-                'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
-                'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : 0,
-                'filename' => basename($file),
-            ];
+        $lessonId = methods_normalize_id($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME));
+        if ($lessonId === '' || isset($seen[$lessonId])) {
+            continue;
         }
+
+        $decoded = $item;
+        if (!array_key_exists('methodId', $decoded) && !array_key_exists('method', $decoded)) {
+            $remoteLesson = methods_fetch_json_url(methods_remote_data_base_url('lessons') . '/' . rawurlencode($lessonId) . '.json');
+            if (is_array($remoteLesson)) {
+                $decoded = array_replace_recursive($remoteLesson, $item);
+            }
+        }
+
+        $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
+        if ($lessonMethodId !== $methodId) {
+            continue;
+        }
+        $seen[$lessonId] = true;
+
+        $items[] = [
+            'id' => $lessonId,
+            'title' => methods_normalize_string($decoded['title'] ?? ''),
+            'description' => methods_normalize_string($decoded['description'] ?? ''),
+            'basisIndex' => array_key_exists('basisIndex', $decoded) ? (int)$decoded['basisIndex'] : -1,
+            'basisWord' => methods_normalize_string($decoded['basisWord'] ?? ''),
+            'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
+            'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
+            'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : (int)($decoded['stepsCount'] ?? 0),
+            'filename' => basename((string)($decoded['filename'] ?? ($lessonId . '.json'))),
+            'url' => methods_remote_data_base_url('lessons') . '/' . rawurlencode($lessonId) . '.json',
+        ];
     }
 
     usort($items, static function ($a, $b) {
@@ -609,6 +928,15 @@ function methods_delete_lessons_for_method(string $methodId): array
             'id' => $lessonId,
             'filename' => basename($file),
         ];
+    }
+
+    if ($deleted !== []) {
+        foreach (methods_lessons_dirs() as $dir) {
+            if (is_dir($dir) && is_writable($dir)) {
+                methods_rebuild_lessons_manifest($dir);
+                break;
+            }
+        }
     }
 
     return [

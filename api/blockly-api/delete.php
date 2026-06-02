@@ -53,7 +53,9 @@ if (!unlink($filePath)) {
     exit;
 }
 
+blockly_api_rebuild_manifest(dirname($filePath));
+
 echo json_encode([
     'ok' => true,
     'id' => $safeId
-]);
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

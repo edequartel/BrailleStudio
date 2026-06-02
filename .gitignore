@@ -7,6 +7,10 @@
 *~
 api/elevenlabs-api/elevenlabs_config.php
 /auth/config.php
+/api/session-api/supabase_config.php
 /vendor
 /tabler
 /.pnpm-home
+/sounds
+/resources
+/temp

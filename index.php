@@ -56,7 +56,7 @@ $modules = [
         'description' => 'Koppel leesregels, bekijk tabellen en gebruik hulpmiddelen voor testen en beheer.',
         'icon' => 'ti-tools',
         'theme' => 'purple',
-        'roles' => ['developer'],
+        'roles' => ['admin', 'developer'],
         'links' => [
             ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
             ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],

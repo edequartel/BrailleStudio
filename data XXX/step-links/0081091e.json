@@ -1,0 +1,15 @@
+{
+    "code": "0081091e",
+    "active": true,
+    "methodId": "",
+    "stepId": "luister-verhaal-step-1",
+    "scriptId": "luister-verhaal",
+    "createdAt": "2026-05-29T11:49:46+00:00",
+    "updatedAt": "2026-05-29T11:49:55+00:00",
+    "meta": {
+        "info": "kam"
+    },
+    "stepInputs": {
+        "woord": "kam"
+    }
+}

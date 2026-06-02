@@ -1,0 +1,13 @@
+{
+    "code": "Bbal0001",
+    "active": true,
+    "methodId": "mpop-1775631274214",
+    "stepId": "mpop-1775631274214-001-bal-lesson-01-step-01-luister-verhaal",
+    "scriptId": "luister-verhaal",
+    "createdAt": "2026-05-29T12:00:03+00:00",
+    "updatedAt": "2026-05-29T13:01:03+00:00",
+    "meta": [],
+    "stepInputs": {
+        "woord": "kam"
+    }
+}

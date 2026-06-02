@@ -1,0 +1,58 @@
+[
+    {
+        "id": "spatiebalk",
+        "title": "Druk op de spatiebalk en het begint",
+        "text": "Druk op de spatiebalk en het begint",
+        "audioMode": "single_mp3",
+        "audioRef": "/instructions/druk-op-de-spatiebalk-en-het-begint.mp3",
+        "audioPlaylist": [],
+        "tags": [
+            "spatiebalk",
+            "instructie"
+        ],
+        "status": "draft",
+        "notes": "",
+        "updatedAt": "2026-03-30T16:44:25Z"
+    },
+    {
+        "id": "vooraan",
+        "title": "Voor aan de leesregel staat een letter",
+        "text": "Voor aan de leesregel staat een letter, het is de letter <a>\nAchter deze letter staan nog meer letters.\nDruk de cursor boven dezelfde letters in.",
+        "audioMode": "playlist",
+        "audioRef": "",
+        "audioPlaylist": [
+            "instructions/elevenlabs-part-001-Voor-aan-de-leesregel-staat-een-letter.mp3",
+            "instructions/elevenlabs-part-002-Het-is-de-letter.mp3",
+            "phonemes/a.mp3",
+            "instructions/elevenlabs-part-003-Achter-deze-letter-staan-nog-meer-letter.mp3",
+            "instructions/elevenlabs-part-004-Druk-de-cursor-boven-dezelfde-letter-in.mp3"
+        ],
+        "tags": [
+            "letter",
+            "vooraan",
+            "keuze"
+        ],
+        "status": "active",
+        "notes": "",
+        "updatedAt": "2026-03-30T16:44:25Z"
+    },
+    {
+        "id": "instr_instruction_20260330164001",
+        "title": "Woord kiezen",
+        "text": "Op de leesregel staat een woord. Begint het woord met een <a> dan druk je op de rechter duim toets begint het niet met de <a> dan druk je op de linker duim toets.",
+        "audioMode": "playlist",
+        "audioRef": "",
+        "audioPlaylist": [
+            "Test.mp3"
+        ],
+        "tags": [
+            "links",
+            "rechts",
+            "duim toets",
+            "keuze"
+        ],
+        "status": "draft",
+        "notes": "",
+        "updatedAt": "2026-03-30T16:44:25Z"
+    }
+]

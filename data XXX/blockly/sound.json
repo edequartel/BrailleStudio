@@ -1,0 +1,105 @@
+{
+    "id": "sound",
+    "title": "Playing sounds start en end",
+    "updatedAt": "2026-04-03T07:22:47+00:00",
+    "blockly": {
+        "blocks": {
+            "languageVersion": 0,
+            "blocks": [
+                {
+                    "type": "event_when_started",
+                    "id": ")_ZCSt8jcreY`Xj[7UX}",
+                    "x": 210,
+                    "y": 70,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "sound_play_folder_file",
+                                "id": "F?mE.?Y`%}Z5RvtX[DY}",
+                                "fields": {
+                                    "FOLDER": "speech"
+                                },
+                                "inputs": {
+                                    "FILE": {
+                                        "shadow": {
+                                            "type": "text",
+                                            "id": ",C$u~Q]5h`B!S!xuLkD/",
+                                            "fields": {
+                                                "TEXT": "bal"
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "sound_play_ux_file",
+                                        "id": "Uh0n@p}I{hZ:#-VQs#B9",
+                                        "inputs": {
+                                            "FILE": {
+                                                "shadow": {
+                                                    "type": "text",
+                                                    "id": "C?ii:%@wlyAb9S|dUn`w",
+                                                    "fields": {
+                                                        "TEXT": "bounce"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "next": {
+                                            "block": {
+                                                "type": "sound_play_ux_success",
+                                                "id": "r@~BJF1Mr:+|Zgg@(8*~"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "event_when_program_ended",
+                    "id": "iW6~64xXsVhAAGZWKN|3",
+                    "x": 570,
+                    "y": 70,
+                    "inputs": {
+                        "DO": {
+                            "block": {
+                                "type": "log_value",
+                                "id": "hMd/^:2?oN[L-wGLl/ac",
+                                "inputs": {
+                                    "VALUE": {
+                                        "block": {
+                                            "type": "text",
+                                            "id": "gXougzXQaMhZKM/@^=Dk",
+                                            "fields": {
+                                                "TEXT": "okido"
+                                            }
+                                        }
+                                    }
+                                },
+                                "next": {
+                                    "block": {
+                                        "type": "sound_play_ux_failure",
+                                        "id": "YSpsvX*8ayM)-VYe5?|?"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "variables": [
+            {
+                "name": "score",
+                "id": "G!,S?rDOv9yK}7Vbnr?c"
+            }
+        ]
+    },
+    "meta": {
+        "title": "",
+        "description": "",
+        "status": "started"
+    }
+}

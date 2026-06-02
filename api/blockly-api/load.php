@@ -33,19 +33,15 @@ if ($safeId === '') {
     exit;
 }
 
-$filePath = blockly_api_find_script_path($safeId);
-
-if ($filePath === null) {
-    http_response_code(404);
-    echo json_encode(['ok' => false, 'error' => 'Script not found']);
-    exit;
-}
-
-$content = json_decode(file_get_contents($filePath), true);
+$content = blockly_api_load_remote_script($safeId);
 
 if (!is_array($content)) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => 'Invalid stored JSON']);
+    http_response_code(404);
+    echo json_encode([
+        'ok' => false,
+        'error' => 'Script not found',
+        'source' => blockly_api_remote_script_url($safeId),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 

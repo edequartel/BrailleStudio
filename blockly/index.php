@@ -1095,6 +1095,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         <div class="card-header">
           <h3 class="card-title">Log</h3>
           <div class="card-actions">
+            <button id="copyLogBtn" class="btn btn-outline-secondary btn-icon" type="button" aria-label="Copy log" title="Copy log">
+              <i class="ti ti-copy" aria-hidden="true"></i>
+            </button>
             <button id="clearLogBtn" class="btn btn-outline-secondary btn-icon" type="button" aria-label="Clear log" title="Clear log">
               <i class="ti ti-eraser" aria-hidden="true"></i>
             </button>
@@ -1641,7 +1644,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       '/braillestudio/components/braillebridge-status/braillebridge-status.js',
       'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
-    await loadScript('./app.js?v=20260529-session-audio-handler-1');
+    await loadScript('./app.js?v=20260602-copy-log-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

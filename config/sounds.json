@@ -1,28 +1,28 @@
 {
-  "baseUrl": "https://www.tastenbraille.com/braillestudio",
+  "baseUrl": "https://www.tastenbraille.com/braillestudio/sounds",
 
   "defaultExtension": ".mp3",
 
   "languages": {
     "nl": {
-      "lettersPath":  "/sounds/nl/alfabet",
-      "wordsPath":    "/sounds/nl/words",
-      "uiPath":       "/sounds/nl/ui",
-	    "stories":      "/sounds/nl/stories",
-      "instructionsPath": "/sounds/nl/instructions",
-      "feedbackPath": "/sounds/nl/feedback"
+      "lettersPath":  "/nl/alfabet",
+      "wordsPath":    "/nl/words",
+      "uiPath":       "/nl/ui",
+	    "stories":      "/nl/stories",
+      "instructionsPath": "/nl/instructions",
+      "feedbackPath": "/nl/feedback"
     },
     "en": {
-      "lettersPath":  "/sounds/en/letters",
-      "wordsPath":    "/sounds/en/words",
-      "uiPath":       "/sounds/en/ui",
-	    "stories":      "/sounds/en/stories",
-      "instructionsPath": "/sounds/en/instructions",
-      "feedbackPath": "/sounds/en/feedback"
+      "lettersPath":  "/en/letters",
+      "wordsPath":    "/en/words",
+      "uiPath":       "/en/ui",
+	    "stories":      "/en/stories",
+      "instructionsPath": "/en/instructions",
+      "feedbackPath": "/en/feedback"
     }
   },
 
   "shared": {
-    "basePath": "/sounds/shared"
+    "basePath": "/shared"
   }
 }

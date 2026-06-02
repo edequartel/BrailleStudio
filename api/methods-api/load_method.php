@@ -24,13 +24,19 @@ if ($id === '') {
 $items = methods_load_all();
 $item = methods_find_method_by_id($id, $items);
 if (!$item) {
-    methods_json_response([
-        'ok' => false,
-        'error' => 'Method not found'
-    ], 404);
+    $remoteItem = methods_fetch_json_url(methods_remote_method_url($id));
+    $item = is_array($remoteItem) ? methods_normalize_method(['id' => $id] + $remoteItem) : null;
+    if (!$item || ($item['id'] ?? '') === '') {
+        methods_json_response([
+            'ok' => false,
+            'error' => 'Method not found',
+            'source' => methods_remote_method_url($id),
+        ], 404);
+    }
 }
 
 $item = methods_enrich_with_lessons($item);
+$item['url'] = methods_remote_method_url($id);
 
 methods_json_response([
     'ok' => true,

@@ -1,17 +1,5 @@
 (function () {
-  const SCRIPT_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/api/blockly-api',
-    '/braillestudio/api/blockly-api'
-  ];
-  const LESSON_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/api/lessons-api',
-    '/braillestudio/api/lessons-api'
-  ];
-  const METHODS_API_BASES = [
-    'https://www.tastenbraille.com/braillestudio/api/methods-api',
-    '/braillestudio/api/methods-api'
-  ];
-  const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json';
+  const DEFAULT_BASIS_DATA_URL = 'https://www.tastenbraille.com/braillestudio/data/klanken/aanvankelijklijst.json';
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
@@ -138,10 +126,12 @@
   }
 
   function getApiBases(kind = 'lesson') {
-    const bases = kind === 'script'
-      ? SCRIPT_API_BASES
-      : (kind === 'method' ? METHODS_API_BASES : LESSON_API_BASES);
-    return [...new Set(bases)];
+    const folder = kind === 'script'
+      ? '../blockly-api'
+      : (kind === 'method' ? '../methods-api' : '../lessons-api');
+    return [
+      new URL(folder, window.location.href).toString().replace(/\/$/, '')
+    ];
   }
 
   async function apiFetchJson(path, options = {}, kind = 'lesson') {
@@ -200,7 +190,13 @@
   function resolveBasisFileUrl(fileName = '') {
     const safeName = String(fileName || '').trim();
     if (!safeName) return DEFAULT_BASIS_DATA_URL;
-    return `https://www.tastenbraille.com/braillestudio/klanken/${encodeURIComponent(safeName)}`;
+    return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(safeName)}`;
+  }
+
+  function remoteFetchProxyUrl(url) {
+    const proxy = new URL('../fetch-remote.php', window.location.href);
+    proxy.searchParams.set('url', url);
+    return proxy.toString();
   }
 
   function resolveMethodDataSource(dataSource, methodId = '', basisFile = '') {
@@ -208,11 +204,14 @@
     if (basisFile) return resolveBasisFileUrl(basisFile);
     if (!source) return DEFAULT_BASIS_DATA_URL;
     if (/^https?:\/\//i.test(source)) return source;
+    if (source.startsWith('/braillestudio/klanken/')) {
+      return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(source.split('/').pop() || '')}`;
+    }
     if (source.startsWith('/')) return `https://www.tastenbraille.com${source}`;
     if (source.includes('aanvankelijklijst.json') || String(methodId || '').trim() === 'aanvankelijk') {
       return DEFAULT_BASIS_DATA_URL;
     }
-    return `https://www.tastenbraille.com/braillestudio/${source.replace(/^\.?\/*/, '')}`;
+    return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(source.replace(/^\.?\/*/, '').split('/').pop() || '')}`;
   }
 
   async function listMethods() {
@@ -297,11 +296,8 @@
 
     const fileName = source.split('/').pop() || 'aanvankelijklijst.json';
     const candidates = [
-      source,
-      `/braillestudio/klanken/${fileName}`,
-      `../klanken/${fileName}`,
-      `./../klanken/${fileName}`,
-      `https://www.tastenbraille.com/braillestudio/klanken/${fileName}`
+      remoteFetchProxyUrl(source),
+      remoteFetchProxyUrl(`https://www.tastenbraille.com/braillestudio/data/klanken/${fileName}`)
     ];
     let lastError = null;
     for (const candidate of [...new Set(candidates)]) {

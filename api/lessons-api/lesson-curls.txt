@@ -16,7 +16,7 @@ Content-Type: application/json
     "description": "",
     "imageUrl": "",
     "basisFile": "aanvankelijklijst.json",
-    "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json"
+    "dataSource": "https://www.tastenbraille.com/braillestudio/data/klanken/aanvankelijklijst.json"
   },
   "basisIndex": 0,
   "basisWord": "appel",
