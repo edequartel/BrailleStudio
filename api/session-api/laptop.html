@@ -1162,7 +1162,16 @@
       const stepLinkCommand = getStepLinkCommand(row);
       const item = await fetchStepLink(stepLinkCommand);
       const scriptId = String(item.scriptId || row.script_id || '').trim();
-      const scriptMeta = await fetchScriptMeta(scriptId);
+      let scriptMeta = {};
+      try {
+        scriptMeta = await fetchScriptMeta(scriptId);
+      } catch (err) {
+        log('Script metadata kon niet worden geladen; step-link gaat door met opgeslagen metadata.', {
+          scriptId,
+          message: err.message || String(err)
+        });
+        scriptMeta = item.meta && typeof item.meta === 'object' ? item.meta : {};
+      }
       const payload = {
         code: item.code || stepLinkCommand.code,
         methodId: item.methodId || '',

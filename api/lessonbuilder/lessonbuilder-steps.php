@@ -474,11 +474,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     function resolveRunnerUrl() {
-      const host = String(window.location.hostname || '').toLowerCase();
-      if (host === '127.0.0.1' || host === 'localhost') {
-        return 'http://127.0.0.1:5500/blockly/index.php?v=20260529-external-debug-2';
-      }
-      return 'https://www.tastenbraille.com/braillestudio/blockly/index.php?v=20260529-external-debug-2';
+      const url = new URL('../../blockly/session-player.php', window.location.href);
+      url.searchParams.set('v', '20260602-headless-highlight-1');
+      return url.toString();
     }
 
     const RUNNER_URL = resolveRunnerUrl();
@@ -2022,9 +2020,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       appendStatus('Step run gestart.', {
         scriptId: stepConfig.id,
         runnerUrl: RUNNER_URL,
+        sameOriginRunner: new URL(RUNNER_URL, window.location.href).origin === window.location.origin,
         runnerState: getRunnerDebugState()
       });
       const app = await waitForRunnerReady();
+      appendStatus('Step runner ready.', getRunnerDebugState());
       const requireExplicitCompletion = workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_step')
         || workspaceStateContainsBlockType(scriptData.blockly, 'lesson_complete_lesson');
       const result = await app.runWorkspaceStateHeadless({

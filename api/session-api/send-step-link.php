@@ -143,6 +143,7 @@ function session_api_blockly_script_dirs(): array
         dirname(__DIR__) . '/data/blockly',
         dirname(__DIR__, 2) . '/blockly-data',
         dirname(__DIR__) . '/blockly-data',
+        dirname(__DIR__, 2) . '/XXX data/blockly',
     ]));
 }
 

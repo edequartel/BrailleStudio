@@ -4325,8 +4325,15 @@ loadDefaultWorkspace();
 
 /* ---------------- Evaluation ---------------- */
 function highlightBlock(blockId) {
+  if (!workspace || typeof workspace.highlightBlock !== 'function') {
+    return;
+  }
   workspace.highlightBlock(blockId);
-  setTimeout(() => workspace.highlightBlock(null), 150);
+  setTimeout(() => {
+    if (workspace && typeof workspace.highlightBlock === 'function') {
+      workspace.highlightBlock(null);
+    }
+  }, 150);
 }
 
 function toNumber(v) {
