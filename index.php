@@ -366,28 +366,6 @@ function e(string $value): string
                     </div>
                 </section>
 
-                <?php if (is_array($gitPullResult)): ?>
-                    <section class="alert alert-<?= $gitPullResult['ok'] ? 'success' : 'danger' ?> mb-4" role="alert">
-                        <div class="d-flex">
-                            <div>
-                                <i class="ti <?= $gitPullResult['ok'] ? 'ti-git-merge' : 'ti-alert-circle' ?> alert-icon" aria-hidden="true"></i>
-                            </div>
-                            <div class="w-100">
-                                <h2 class="h4 mb-2">Git pull <?= $gitPullResult['ok'] ? 'completed' : 'failed' ?></h2>
-                                <div class="font-monospace small mb-2">
-                                    command: <?= e((string)($gitPullResult['command'] ?? 'git pull --ff-only')) ?><br>
-                                    cwd: <?= e((string)($gitPullResult['cwd'] ?? __DIR__)) ?><br>
-                                    started: <?= e((string)($gitPullResult['startedAt'] ?? '')) ?><br>
-                                    finished: <?= e((string)($gitPullResult['finishedAt'] ?? '')) ?><br>
-                                    duration: <?= e((string)($gitPullResult['durationMs'] ?? 0)) ?>ms<br>
-                                    exitCode: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?>
-                                </div>
-                                <pre class="form-control font-monospace mb-0" style="white-space: pre-wrap;"><?= e(implode("\n", $gitPullResult['output'] ?? [])) ?></pre>
-                            </div>
-                        </div>
-                    </section>
-                <?php endif; ?>
-
                 <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($modules as $module): ?>
@@ -518,6 +496,36 @@ function e(string $value): string
     </footer>
 </div>
 
+<?php if (is_array($gitPullResult)): ?>
+    <div class="modal modal-blur fade" id="gitPullResultModal" tabindex="-1" aria-labelledby="gitPullResultTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="gitPullResultTitle">
+                        <i class="ti <?= $gitPullResult['ok'] ? 'ti-git-merge text-success' : 'ti-alert-circle text-danger' ?> me-2" aria-hidden="true"></i>
+                        Git pull <?= $gitPullResult['ok'] ? 'completed' : 'failed' ?>
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="font-monospace small mb-3">
+                        command: <?= e((string)($gitPullResult['command'] ?? 'git pull --ff-only')) ?><br>
+                        cwd: <?= e((string)($gitPullResult['cwd'] ?? __DIR__)) ?><br>
+                        started: <?= e((string)($gitPullResult['startedAt'] ?? '')) ?><br>
+                        finished: <?= e((string)($gitPullResult['finishedAt'] ?? '')) ?><br>
+                        duration: <?= e((string)($gitPullResult['durationMs'] ?? 0)) ?>ms<br>
+                        exitCode: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?>
+                    </div>
+                    <pre class="form-control font-monospace mb-0" style="min-height: 12rem; white-space: pre-wrap;"><?= e(implode("\n", $gitPullResult['output'] ?? [])) ?></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <script src="<?= e($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
@@ -605,6 +613,10 @@ function e(string $value): string
 
         setIndexLoadingMessage('Alles staat klaar.');
         showIndexPage();
+        const gitPullResultModal = document.getElementById('gitPullResultModal');
+        if (gitPullResultModal && window.bootstrap?.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(gitPullResultModal).show();
+        }
     })();
 </script>
 </body>
