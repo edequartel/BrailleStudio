@@ -369,6 +369,7 @@ function e(string $value): string
                 <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($modules as $module): ?>
+                            <?php if ($authUser === null && (($module['eyebrow'] ?? '') !== 'Leerling' || ($module['title'] ?? '') !== 'Oefenen')) { continue; } ?>
                             <?php if (isset($module['roles']) && ($authUser === null || !in_array($authUser['role'], $module['roles'], true))) { continue; } ?>
                             <div class="col-12 col-md-6 col-xl-3">
                                 <article class="card module-card h-100">
