@@ -614,8 +614,32 @@ function e(string $value): string
         setIndexLoadingMessage('Alles staat klaar.');
         showIndexPage();
         const gitPullResultModal = document.getElementById('gitPullResultModal');
-        if (gitPullResultModal && window.bootstrap?.Modal) {
-            window.bootstrap.Modal.getOrCreateInstance(gitPullResultModal).show();
+        if (gitPullResultModal) {
+            if (window.bootstrap?.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance(gitPullResultModal).show();
+            } else {
+                gitPullResultModal.classList.add('show');
+                gitPullResultModal.style.display = 'block';
+                gitPullResultModal.removeAttribute('aria-hidden');
+                gitPullResultModal.setAttribute('aria-modal', 'true');
+                document.body.classList.add('modal-open');
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.dataset.gitPullBackdrop = 'true';
+                document.body.appendChild(backdrop);
+                const closeGitPullModal = () => {
+                    gitPullResultModal.classList.remove('show');
+                    gitPullResultModal.style.display = 'none';
+                    gitPullResultModal.setAttribute('aria-hidden', 'true');
+                    gitPullResultModal.removeAttribute('aria-modal');
+                    document.body.classList.remove('modal-open');
+                    document.querySelectorAll('[data-git-pull-backdrop]').forEach((node) => node.remove());
+                };
+                gitPullResultModal.querySelectorAll('[data-bs-dismiss="modal"]').forEach((button) => {
+                    button.addEventListener('click', closeGitPullModal);
+                });
+                backdrop.addEventListener('click', closeGitPullModal);
+            }
         }
     })();
 </script>
