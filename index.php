@@ -419,59 +419,72 @@ function e(string $value): string
                                 <h2 class="card-title" id="documentatie-title">Documentatie</h2>
                                 <div class="card-subtitle">Snel overzicht voor gebruik en achtergrond.</div>
                             </div>
-                            <ul class="nav nav-tabs card-header-tabs ms-auto" data-bs-toggle="tabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link active" href="#tab-starten" data-bs-toggle="tab" aria-selected="true" role="tab">
-                                        <i class="ti ti-rocket me-2" aria-hidden="true"></i>
-                                        Starten
-                                    </a>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" href="#tab-expertise" data-bs-toggle="tab" aria-selected="false" tabindex="-1" role="tab">
-                                        <i class="ti ti-school me-2" aria-hidden="true"></i>
-                                        Expertise
-                                    </a>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <a class="nav-link" href="#tab-handleiding" data-bs-toggle="tab" aria-selected="false" tabindex="-1" role="tab">
-                                        <i class="ti ti-chalkboard me-2" aria-hidden="true"></i>
-                                        Handleiding
-                                    </a>
-                                </li>
-                            </ul>
+                            <button
+                                class="btn btn-icon btn-outline-secondary ms-auto"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#documentatie-collapse"
+                                aria-expanded="false"
+                                aria-controls="documentatie-collapse"
+                                aria-label="Documentatie uitklappen"
+                            >
+                                <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                            </button>
                         </div>
-                        <div class="card-body">
-                            <div class="tab-content">
-                                <div class="tab-pane active show" id="tab-starten" role="tabpanel">
-                                    <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/README.nl.md">
-                                        <div class="placeholder-glow">
-                                            <span class="placeholder col-9"></span>
-                                            <span class="placeholder col-12"></span>
-                                            <span class="placeholder col-10"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="tab-expertise" role="tabpanel">
-                                    <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>assets/tastenbraille.md">
-                                        <div class="placeholder-glow">
-                                            <span class="placeholder col-8"></span>
-                                            <span class="placeholder col-12"></span>
-                                            <span class="placeholder col-7"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="tab-handleiding" role="tabpanel">
-                                    <div class="doc-toolbar d-flex justify-content-end mb-3">
-                                        <a class="btn btn-primary" href="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step-pdf.php">
-                                            <i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>
-                                            Download als PDF
+                        <div class="collapse" id="documentatie-collapse">
+                            <div class="card-body">
+                                <ul class="nav nav-tabs mb-3" data-bs-toggle="tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <a class="nav-link active" href="#tab-starten" data-bs-toggle="tab" aria-selected="true" role="tab">
+                                            <i class="ti ti-rocket me-2" aria-hidden="true"></i>
+                                            Starten
                                         </a>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <a class="nav-link" href="#tab-expertise" data-bs-toggle="tab" aria-selected="false" tabindex="-1" role="tab">
+                                            <i class="ti ti-school me-2" aria-hidden="true"></i>
+                                            Expertise
+                                        </a>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <a class="nav-link" href="#tab-handleiding" data-bs-toggle="tab" aria-selected="false" tabindex="-1" role="tab">
+                                            <i class="ti ti-chalkboard me-2" aria-hidden="true"></i>
+                                            Handleiding
+                                        </a>
+                                    </li>
+                                </ul>
+                                <div class="tab-content">
+                                    <div class="tab-pane active show" id="tab-starten" role="tabpanel">
+                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/README.nl.md">
+                                            <div class="placeholder-glow">
+                                                <span class="placeholder col-9"></span>
+                                                <span class="placeholder col-12"></span>
+                                                <span class="placeholder col-10"></span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
-                                        <div class="placeholder-glow">
-                                            <span class="placeholder col-10"></span>
-                                            <span class="placeholder col-12"></span>
-                                            <span class="placeholder col-8"></span>
+                                    <div class="tab-pane" id="tab-expertise" role="tabpanel">
+                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>assets/tastenbraille.md">
+                                            <div class="placeholder-glow">
+                                                <span class="placeholder col-8"></span>
+                                                <span class="placeholder col-12"></span>
+                                                <span class="placeholder col-7"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane" id="tab-handleiding" role="tabpanel">
+                                        <div class="doc-toolbar d-flex justify-content-end mb-3">
+                                            <a class="btn btn-primary" href="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step-pdf.php">
+                                                <i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>
+                                                Download als PDF
+                                            </a>
+                                        </div>
+                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
+                                            <div class="placeholder-glow">
+                                                <span class="placeholder col-10"></span>
+                                                <span class="placeholder col-12"></span>
+                                                <span class="placeholder col-8"></span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -598,8 +611,22 @@ function e(string $value): string
 
     (async () => {
         setIndexLoadingMessage('Pagina voorbereiden.');
-        const activeMarkdownTarget = document.querySelector('.tab-pane.active [data-markdown-source]');
-        await loadMarkdownBlock(activeMarkdownTarget);
+        const documentationCollapse = document.getElementById('documentatie-collapse');
+        const loadActiveDocumentation = () => {
+            const activeMarkdownTarget = document.querySelector('.tab-pane.active [data-markdown-source]');
+            return loadMarkdownBlock(activeMarkdownTarget);
+        };
+
+        if (documentationCollapse) {
+            documentationCollapse.addEventListener('shown.bs.collapse', () => {
+                loadActiveDocumentation();
+            });
+            if (documentationCollapse.classList.contains('show')) {
+                await loadActiveDocumentation();
+            }
+        } else {
+            await loadActiveDocumentation();
+        }
 
         document.querySelectorAll('[data-bs-toggle="tab"]').forEach((tab) => {
             tab.addEventListener('shown.bs.tab', () => {
