@@ -20,12 +20,14 @@ $gitPullResult = null;
 
 function run_git_pull_from_index(): array
 {
+    $startedAt = microtime(true);
+    $command = ['git', 'pull', '--ff-only'];
     $descriptorSpec = [
         1 => ['pipe', 'w'],
         2 => ['pipe', 'w'],
     ];
     $process = proc_open(
-        ['git', 'pull', '--ff-only'],
+        $command,
         $descriptorSpec,
         $pipes,
         __DIR__,
@@ -36,6 +38,11 @@ function run_git_pull_from_index(): array
         return [
             'ok' => false,
             'exitCode' => null,
+            'command' => implode(' ', $command),
+            'cwd' => __DIR__,
+            'startedAt' => date('c', (int)$startedAt),
+            'finishedAt' => date('c'),
+            'durationMs' => (int)round((microtime(true) - $startedAt) * 1000),
             'output' => ['Could not start git pull process.'],
         ];
     }
@@ -45,6 +52,7 @@ function run_git_pull_from_index(): array
     $stderr = stream_get_contents($pipes[2]);
     fclose($pipes[2]);
     $exitCode = proc_close($process);
+    $finishedAt = microtime(true);
     $lines = array_values(array_filter(
         preg_split('/\R/', trim((string)$stdout . "\n" . (string)$stderr)) ?: [],
         static fn (string $line): bool => trim($line) !== ''
@@ -53,6 +61,11 @@ function run_git_pull_from_index(): array
     return [
         'ok' => $exitCode === 0,
         'exitCode' => $exitCode,
+        'command' => implode(' ', $command),
+        'cwd' => __DIR__,
+        'startedAt' => date('c', (int)$startedAt),
+        'finishedAt' => date('c', (int)$finishedAt),
+        'durationMs' => (int)round(($finishedAt - $startedAt) * 1000),
         'output' => $lines !== [] ? $lines : ['git pull returned no output.'],
     ];
 }
@@ -62,12 +75,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'
         $gitPullResult = [
             'ok' => false,
             'exitCode' => null,
+            'command' => 'git pull --ff-only',
+            'cwd' => __DIR__,
+            'startedAt' => date('c'),
+            'finishedAt' => date('c'),
+            'durationMs' => 0,
             'output' => ['Not allowed. Git pull is only available for admin/developer users.'],
         ];
     } elseif (!bs_auth_verify_csrf((string)($_POST['csrf'] ?? ''))) {
         $gitPullResult = [
             'ok' => false,
             'exitCode' => null,
+            'command' => 'git pull --ff-only',
+            'cwd' => __DIR__,
+            'startedAt' => date('c'),
+            'finishedAt' => date('c'),
+            'durationMs' => 0,
             'output' => ['Invalid CSRF token. Refresh the page and try again.'],
         ];
     } else {
@@ -351,7 +374,14 @@ function e(string $value): string
                             </div>
                             <div class="w-100">
                                 <h2 class="h4 mb-2">Git pull <?= $gitPullResult['ok'] ? 'completed' : 'failed' ?></h2>
-                                <div class="text-secondary mb-2">Exit code: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?></div>
+                                <div class="font-monospace small mb-2">
+                                    command: <?= e((string)($gitPullResult['command'] ?? 'git pull --ff-only')) ?><br>
+                                    cwd: <?= e((string)($gitPullResult['cwd'] ?? __DIR__)) ?><br>
+                                    started: <?= e((string)($gitPullResult['startedAt'] ?? '')) ?><br>
+                                    finished: <?= e((string)($gitPullResult['finishedAt'] ?? '')) ?><br>
+                                    duration: <?= e((string)($gitPullResult['durationMs'] ?? 0)) ?>ms<br>
+                                    exitCode: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?>
+                                </div>
                                 <pre class="form-control font-monospace mb-0" style="white-space: pre-wrap;"><?= e(implode("\n", $gitPullResult['output'] ?? [])) ?></pre>
                             </div>
                         </div>
@@ -379,7 +409,7 @@ function e(string $value): string
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($module['links'] as $link): ?>
                                             <?php if (isset($link['postAction'])): ?>
-                                                <form method="post" action="<?= e($baseUrl) ?>index.php" class="list-group-item list-group-item-action p-0 m-0">
+                                                <form method="post" action="<?= e($baseUrl) ?>index.php" class="list-group-item list-group-item-action p-0 m-0" data-git-pull-form>
                                                     <input type="hidden" name="csrf" value="<?= e(bs_auth_csrf_token()) ?>">
                                                     <input type="hidden" name="action" value="<?= e($link['postAction']) ?>">
                                                     <button class="btn w-100 border-0 rounded-0 d-flex align-items-center justify-content-start px-3 py-3 text-start" type="submit">
@@ -494,6 +524,21 @@ function e(string $value): string
     const indexLoadingScreen = document.getElementById('indexLoadingScreen');
     const indexLoadingMessage = document.getElementById('indexLoadingMessage');
     const indexAppPage = document.getElementById('indexAppPage');
+
+    document.querySelectorAll('[data-git-pull-form]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            const button = form.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = `
+                    <i class="ti ti-loader-2 me-3 text-secondary" aria-hidden="true"></i>
+                    <span class="fw-medium">Git pull started...</span>
+                    <i class="ti ti-refresh ms-auto text-secondary" aria-hidden="true"></i>
+                `;
+            }
+            setIndexLoadingMessage('Git pull uitvoeren.');
+        });
+    });
 
     function setIndexLoadingMessage(message) {
         if (indexLoadingMessage) {
