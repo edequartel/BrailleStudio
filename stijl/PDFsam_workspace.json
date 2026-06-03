@@ -1,0 +1,27 @@
+{
+  "merge" : {
+    "footer" : "false",
+    "input.0" : "/Users/ericdequartel/Developer/_myApps/BrailleStudio/stijl/braillestudio_voorkant.pdf",
+    "input.1" : "/Users/ericdequartel/Developer/_myApps/BrailleStudio/stijl/uitleg.pdf",
+    "toc" : "NONE",
+    "input.2" : "/Users/ericdequartel/Developer/_myApps/BrailleStudio/stijl/mpop-bal.pdf",
+    "input.3" : "/Users/ericdequartel/Developer/_myApps/BrailleStudio/stijl/mpop-bal-braill.pdf",
+    "pageNormalization" : "NONE",
+    "merge.destinationbrowsableField" : "/Users/ericdequartel/Developer/_myApps/BrailleStudio/stijl/braillestudio_voorbeeld.pdf",
+    "input.size" : "4",
+    "acroForms" : "MERGE_RENAMING_EXISTING_FIELDS",
+    "outline" : "RETAIN",
+    "blankIfOdd" : "false",
+    "overwrite" : "false",
+    "input.reverse.3" : "false",
+    "input.reverse.2" : "false",
+    "compress" : "true",
+    "input.reverse.1" : "false",
+    "input.reverse.0" : "false",
+    "version" : "VERSION_1_5",
+    "input.step.0" : "1",
+    "input.step.1" : "1",
+    "input.step.2" : "1",
+    "input.step.3" : "1"
+  }
+}

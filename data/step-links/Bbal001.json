@@ -1,0 +1,11 @@
+{
+    "code": "Bbal001",
+    "active": true,
+    "methodId": "",
+    "stepId": "luister-verhaal-step-1",
+    "scriptId": "luister-verhaal",
+    "createdAt": "2026-06-03T10:26:33+00:00",
+    "updatedAt": "2026-06-03T10:26:33+00:00",
+    "meta": [],
+    "stepInputs": []
+}
