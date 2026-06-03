@@ -16,6 +16,65 @@ try {
     $authUser = null;
 }
 
+$gitPullResult = null;
+
+function run_git_pull_from_index(): array
+{
+    $descriptorSpec = [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+    $process = proc_open(
+        ['git', 'pull', '--ff-only'],
+        $descriptorSpec,
+        $pipes,
+        __DIR__,
+        ['GIT_TERMINAL_PROMPT' => '0']
+    );
+
+    if (!is_resource($process)) {
+        return [
+            'ok' => false,
+            'exitCode' => null,
+            'output' => ['Could not start git pull process.'],
+        ];
+    }
+
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+    $exitCode = proc_close($process);
+    $lines = array_values(array_filter(
+        preg_split('/\R/', trim((string)$stdout . "\n" . (string)$stderr)) ?: [],
+        static fn (string $line): bool => trim($line) !== ''
+    ));
+
+    return [
+        'ok' => $exitCode === 0,
+        'exitCode' => $exitCode,
+        'output' => $lines !== [] ? $lines : ['git pull returned no output.'],
+    ];
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'] ?? '') === 'git_pull') {
+    if ($authUser === null || !in_array((string)($authUser['role'] ?? ''), ['admin', 'developer'], true)) {
+        $gitPullResult = [
+            'ok' => false,
+            'exitCode' => null,
+            'output' => ['Not allowed. Git pull is only available for admin/developer users.'],
+        ];
+    } elseif (!bs_auth_verify_csrf((string)($_POST['csrf'] ?? ''))) {
+        $gitPullResult = [
+            'ok' => false,
+            'exitCode' => null,
+            'output' => ['Invalid CSRF token. Refresh the page and try again.'],
+        ];
+    } else {
+        $gitPullResult = run_git_pull_from_index();
+    }
+}
+
 $modules = [
     [
         'title' => 'Oefenen',
@@ -64,6 +123,7 @@ $modules = [
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
             ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
             ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
+            ['label' => 'Git pull', 'postAction' => 'git_pull', 'icon' => 'ti-git-pull-request'],
         ],
     ],
 ];
@@ -283,6 +343,21 @@ function e(string $value): string
                     </div>
                 </section>
 
+                <?php if (is_array($gitPullResult)): ?>
+                    <section class="alert alert-<?= $gitPullResult['ok'] ? 'success' : 'danger' ?> mb-4" role="alert">
+                        <div class="d-flex">
+                            <div>
+                                <i class="ti <?= $gitPullResult['ok'] ? 'ti-git-merge' : 'ti-alert-circle' ?> alert-icon" aria-hidden="true"></i>
+                            </div>
+                            <div class="w-100">
+                                <h2 class="h4 mb-2">Git pull <?= $gitPullResult['ok'] ? 'completed' : 'failed' ?></h2>
+                                <div class="text-secondary mb-2">Exit code: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?></div>
+                                <pre class="form-control font-monospace mb-0" style="white-space: pre-wrap;"><?= e(implode("\n", $gitPullResult['output'] ?? [])) ?></pre>
+                            </div>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
                 <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($modules as $module): ?>
@@ -303,11 +378,23 @@ function e(string $value): string
                                     </div>
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($module['links'] as $link): ?>
-                                            <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
-                                                <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
-                                                <span class="fw-medium"><?= e($link['label']) ?></span>
-                                                <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
-                                            </a>
+                                            <?php if (isset($link['postAction'])): ?>
+                                                <form method="post" action="<?= e($baseUrl) ?>index.php" class="list-group-item list-group-item-action p-0 m-0">
+                                                    <input type="hidden" name="csrf" value="<?= e(bs_auth_csrf_token()) ?>">
+                                                    <input type="hidden" name="action" value="<?= e($link['postAction']) ?>">
+                                                    <button class="btn w-100 border-0 rounded-0 d-flex align-items-center justify-content-start px-3 py-3 text-start" type="submit">
+                                                        <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
+                                                        <span class="fw-medium"><?= e($link['label']) ?></span>
+                                                        <i class="ti ti-refresh ms-auto text-secondary" aria-hidden="true"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
+                                                    <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
+                                                    <span class="fw-medium"><?= e($link['label']) ?></span>
+                                                    <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
+                                                </a>
+                                            <?php endif; ?>
                                         <?php endforeach; ?>
                                     </div>
                                 </article>
