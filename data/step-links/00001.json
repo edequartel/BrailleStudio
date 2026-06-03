@@ -1,0 +1,13 @@
+{
+    "code": "00001",
+    "active": true,
+    "methodId": "",
+    "stepId": "luister-verhaal-step-1",
+    "scriptId": "luister-verhaal",
+    "createdAt": "2026-06-03T05:06:06+00:00",
+    "updatedAt": "2026-06-03T05:06:30+00:00",
+    "meta": [],
+    "stepInputs": {
+        "woord": "bal"
+    }
+}

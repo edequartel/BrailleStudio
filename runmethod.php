@@ -150,6 +150,105 @@ function normalize_id(string $value): string
     return trim((string)$value, '-_');
 }
 
+function local_data_dirs(string $section): array
+{
+    $section = trim($section, '/');
+    if ($section === '') {
+        return [];
+    }
+
+    return array_values(array_unique([
+        __DIR__ . '/data/' . $section,
+        __DIR__ . '/api/data/' . $section,
+        __DIR__ . '/XXX data/' . $section,
+    ]));
+}
+
+function read_local_method(string $methodId): ?array
+{
+    $methodId = normalize_id($methodId);
+    if ($methodId === '') {
+        return null;
+    }
+
+    foreach (local_data_dirs('methods') as $dir) {
+        $method = read_json_file($dir . '/' . $methodId . '.json');
+        if (is_array($method)) {
+            return $method;
+        }
+    }
+
+    return null;
+}
+
+function read_local_lessons_for_method(string $methodId): array
+{
+    $methodId = normalize_id($methodId);
+    if ($methodId === '') {
+        return [];
+    }
+
+    $lessons = [];
+    $seen = [];
+    foreach (local_data_dirs('lessons') as $dir) {
+        if (!is_dir($dir)) {
+            continue;
+        }
+        $files = glob($dir . '/*.json') ?: [];
+        sort($files);
+        foreach ($files as $file) {
+            $lesson = read_json_file($file);
+            if (!is_array($lesson)) {
+                continue;
+            }
+            $lessonMethod = is_array($lesson['method'] ?? null) ? $lesson['method'] : [];
+            $lessonMethodId = normalize_id((string)($lesson['methodId'] ?? ($lessonMethod['id'] ?? '')));
+            if ($lessonMethodId !== $methodId) {
+                continue;
+            }
+            $lessonId = normalize_id((string)($lesson['id'] ?? pathinfo($file, PATHINFO_FILENAME)));
+            if ($lessonId === '' || isset($seen[$lessonId])) {
+                continue;
+            }
+            $seen[$lessonId] = true;
+            $lesson['id'] = $lessonId;
+            $lesson['methodId'] = $lessonMethodId;
+            $lesson['filename'] = basename($file);
+            $lessons[] = $lesson;
+        }
+    }
+
+    usort($lessons, static function (array $a, array $b): int {
+        $aIndex = array_key_exists('basisIndex', $a) ? (int)$a['basisIndex'] : -1;
+        $bIndex = array_key_exists('basisIndex', $b) ? (int)$b['basisIndex'] : -1;
+        if ($aIndex !== $bIndex) {
+            return $aIndex <=> $bIndex;
+        }
+        $aLesson = array_key_exists('lessonNumber', $a) ? (int)$a['lessonNumber'] : 1;
+        $bLesson = array_key_exists('lessonNumber', $b) ? (int)$b['lessonNumber'] : 1;
+        if ($aLesson !== $bLesson) {
+            return $aLesson <=> $bLesson;
+        }
+        return strcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
+    });
+
+    return $lessons;
+}
+
+function local_basis_sources(string $basisFile, string $dataSource): array
+{
+    $sources = [];
+    $sourcePath = $basisFile !== '' ? $basisFile : (string)(parse_url($dataSource, PHP_URL_PATH) ?: '');
+    $basisName = basename($sourcePath);
+    if ($basisName !== '') {
+        foreach (local_data_dirs('klanken') as $dir) {
+            $sources[] = $dir . '/' . $basisName;
+        }
+        $sources[] = __DIR__ . '/klanken/' . $basisName;
+    }
+    return $sources;
+}
+
 function normalize_step_inputs($inputs): array
 {
     if (!is_array($inputs)) {
@@ -182,7 +281,7 @@ function normalize_step_inputs($inputs): array
     return $normalized;
 }
 
-$defaultRunnerUrl = '/braillestudio/blockly/index.php?v=20260529-external-debug-2';
+$defaultRunnerUrl = './blockly/session-player.php?v=20260602-headless-highlight-1';
 $blocklyApiBase = './api/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
@@ -195,11 +294,20 @@ $remotePayload = null;
 if ($methodId === '') {
     $errorMessage = 'Missing method id. Use runmethod.php?id=your-method-id';
 } else {
-    $remotePayload = read_remote_runmethod_payload($methodId);
-    if (is_array($remotePayload)) {
-        $method = is_array($remotePayload['method'] ?? null) ? $remotePayload['method'] : null;
-        $basisRecords = is_array($remotePayload['basisRecords'] ?? null) ? array_values($remotePayload['basisRecords']) : [];
-        $lessons = is_array($remotePayload['lessons'] ?? null) ? array_values($remotePayload['lessons']) : [];
+    $method = read_local_method($methodId);
+    $lessons = read_local_lessons_for_method($methodId);
+
+    if (!$method || count($lessons) === 0) {
+        $remotePayload = read_remote_runmethod_payload($methodId);
+        if (is_array($remotePayload)) {
+            if (!$method) {
+                $method = is_array($remotePayload['method'] ?? null) ? $remotePayload['method'] : null;
+            }
+            $basisRecords = is_array($remotePayload['basisRecords'] ?? null) ? array_values($remotePayload['basisRecords']) : [];
+            if (count($lessons) === 0 && is_array($remotePayload['lessons'] ?? null)) {
+                $lessons = array_values($remotePayload['lessons']);
+            }
+        }
     }
 
     if (!$method) {
@@ -218,6 +326,7 @@ if ($methodId === '') {
         if ($basisFile !== '') {
             $basisSources[] = canonical_remote_data_url('klanken/' . rawurlencode(basename($basisFile)));
         }
+        array_unshift($basisSources, ...local_basis_sources($basisFile, $dataSource));
 
         $basisData = null;
         foreach (array_values(array_unique(array_filter($basisSources))) as $basisSource) {
@@ -787,6 +896,7 @@ $pagePayload = [
         <div class="card-header">
           <h2 class="card-title">Debug log</h2>
           <div class="card-actions">
+            <button id="copyDebugLogBtn" type="button" class="btn btn-outline-secondary">Copy</button>
             <button id="clearDebugLogBtn" type="button" class="btn btn-outline-secondary">Clear</button>
             <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary">Unhidden</button>
           </div>
@@ -845,6 +955,7 @@ $pagePayload = [
     const brailleMonitorStatus = document.getElementById('brailleMonitorStatus');
     const lessonReturnValues = document.getElementById('lessonReturnValues');
     const runStatusBanner = document.getElementById('runStatusBanner');
+    const copyDebugLogBtn = document.getElementById('copyDebugLogBtn');
     const clearDebugLogBtn = document.getElementById('clearDebugLogBtn');
     const toggleDebugLogBtn = document.getElementById('toggleDebugLogBtn');
     const toggleRunnerBtn = document.getElementById('toggleRunnerBtn');
@@ -1339,6 +1450,54 @@ $pagePayload = [
       statusBox.scrollTop = 0;
     }
 
+    function getDebugLogText() {
+      if (!statusBox) return '';
+      const cells = Array.from(statusBox.querySelectorAll('.debug-log-cell'));
+      const rows = [];
+      for (let index = 0; index < cells.length; index += 5) {
+        const row = cells.slice(index, index + 5).map((cell) => String(cell.textContent || '').trim());
+        if (row.length === 5 && row.some(Boolean)) {
+          rows.push(row.join('\t'));
+        }
+      }
+      return rows.join('\n');
+    }
+
+    async function copyDebugLog() {
+      const text = getDebugLogText();
+      if (!text) {
+        appendStatus('Copy debug log skipped.', { reason: 'empty log' });
+        return;
+      }
+      try {
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+            appendStatus('Debug log copied.');
+            return;
+          } catch (err) {
+            appendStatus('Clipboard API failed, trying textarea fallback.', { error: err.message || String(err) });
+          }
+        }
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        if (!copied) {
+          throw new Error('textarea copy fallback failed');
+        }
+        appendStatus('Debug log copied.');
+      } catch (err) {
+        appendStatus('Copy debug log failed.', { error: err.message || String(err) });
+      }
+    }
+
     window.appendStatus = appendStatus;
     if (Array.isArray(window.__brailleBridgeStatusLogQueue)) {
       window.__brailleBridgeStatusLogQueue.splice(0).forEach((entry) => {
@@ -1350,6 +1509,10 @@ $pagePayload = [
       if (!statusBox) return;
       statusBox.replaceChildren();
       delete statusBox.dataset.hasHeader;
+    });
+
+    copyDebugLogBtn?.addEventListener('click', () => {
+      copyDebugLog();
     });
 
     function getStepDebugSnapshot(stepConfig, stepIndex) {

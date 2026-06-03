@@ -535,6 +535,14 @@
               <img id="qrImage" alt="QR-code voor deze sessie">
               <p class="caption">Scan deze QR-code met de mobiel. Daarna wacht deze pagina op de step-link die op de mobiel wordt gescand.</p>
               <code id="laptopUrlText">-</code>
+              <div id="localPhoneHostControls" class="mt-3" hidden>
+                <label class="form-label" for="phoneHostInput">Phone URL host</label>
+                <div class="input-group">
+                  <input id="phoneHostInput" class="form-control font-monospace" type="text" placeholder="192.168.1.23:8000">
+                  <button id="applyPhoneHostBtn" class="btn btn-outline-primary" type="button">Update QR</button>
+                </div>
+                <div class="form-hint">Gebruik hier het LAN-adres van deze computer. Een telefoon kan geen localhost van je Mac openen.</div>
+              </div>
             </div>
           </div>
         </section>
@@ -617,6 +625,7 @@
     const SCRIPT_META_URL = './script-meta.php';
     const BLOCKLY_URL = '../../blockly/session-player.php?v=20260602-headless-session-player-1';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
+    const PHONE_HOST_STORAGE_KEY = 'braillestudioSessionPhoneHost';
     const BRAILLE_MONITOR_PLACEHOLDER = '';
     const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -639,6 +648,7 @@
     let pendingBlockedAudio = null;
     let idleCleanupTimer = null;
     let sessionDeleted = false;
+    let currentSessionConfig = null;
 
     function log(message, data) {
       const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
@@ -886,8 +896,72 @@
       }
     }
 
+    function isLocalhostName(hostname = window.location.hostname) {
+      const host = String(hostname || '').trim().toLowerCase();
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    }
+
+    function normalizePhoneHost(value = '') {
+      return String(value || '')
+        .trim()
+        .replace(/^https?:\/\//i, '')
+        .replace(/\/+$/g, '');
+    }
+
+    function getStoredPhoneHost() {
+      try {
+        return normalizePhoneHost(localStorage.getItem(PHONE_HOST_STORAGE_KEY) || '');
+      } catch {
+        return '';
+      }
+    }
+
+    function setStoredPhoneHost(value = '') {
+      const normalized = normalizePhoneHost(value);
+      try {
+        if (normalized) {
+          localStorage.setItem(PHONE_HOST_STORAGE_KEY, normalized);
+        } else {
+          localStorage.removeItem(PHONE_HOST_STORAGE_KEY);
+        }
+      } catch {}
+      return normalized;
+    }
+
+    function resolvePhoneUrl(config) {
+      const raw = String(config?.phone_url || config?.laptop_url || '').trim();
+      if (!raw) return '';
+      const overrideHost = getStoredPhoneHost();
+      if (!overrideHost) return raw;
+      try {
+        const url = new URL(raw, window.location.href);
+        url.host = overrideHost;
+        url.protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+        return url.toString();
+      } catch {
+        return raw;
+      }
+    }
+
+    function renderLocalPhoneHostControls(config) {
+      const controls = $('localPhoneHostControls');
+      const input = $('phoneHostInput');
+      if (!controls || !input) return;
+      const rawPhoneUrl = String(config?.phone_url || '').trim();
+      const rawHost = (() => {
+        try {
+          return new URL(rawPhoneUrl || window.location.href, window.location.href).hostname;
+        } catch {
+          return window.location.hostname;
+        }
+      })();
+      controls.hidden = !isLocalhostName(rawHost) && !isLocalhostName();
+      input.value = getStoredPhoneHost();
+    }
+
     function renderSessionQr(config) {
-      const phoneUrl = String(config?.phone_url || config?.laptop_url || '').trim();
+      currentSessionConfig = config;
+      const phoneUrl = resolvePhoneUrl(config);
       const panel = $('qrPanel');
       if (!phoneUrl) {
         panel.hidden = true;
@@ -895,6 +969,7 @@
       }
       $('qrImage').src = `${QR_IMAGE_BASE_URL}${encodeURIComponent(phoneUrl)}`;
       $('laptopUrlText').textContent = phoneUrl;
+      renderLocalPhoneHostControls(config);
       panel.hidden = false;
     }
 
@@ -1485,6 +1560,14 @@
       $('audioEnableBtn')?.addEventListener('click', () => {
         enablePendingAudio().catch((err) => {
           setAudioIndicator('error', err.message || String(err), pendingBlockedAudio?.url || '');
+        });
+      });
+      $('applyPhoneHostBtn')?.addEventListener('click', () => {
+        const host = setStoredPhoneHost($('phoneHostInput')?.value || '');
+        renderSessionQr(currentSessionConfig || config);
+        log('Phone QR host bijgewerkt.', {
+          host: host || '(default)',
+          phoneUrl: $('laptopUrlText')?.textContent || ''
         });
       });
 
