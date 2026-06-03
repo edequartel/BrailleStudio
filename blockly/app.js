@@ -1683,6 +1683,9 @@ let soundVolume = 1;
 let activeAudio = null;
 let activeAudioCleanup = null;
 let audioStoppedWaiters = [];
+let audioQueue = Promise.resolve();
+let audioQueuePending = 0;
+let audioQueueGeneration = 0;
 let instructionPreviewAudio = null;
 let externalAudioPlayHandler = null;
 const REFRESH_DEDUPE_MS = 1500;
@@ -2912,14 +2915,14 @@ function clearActiveAudio() {
 }
 
 function waitForAudioStopped() {
-  if (!activeAudio) return Promise.resolve();
+  if (!activeAudio && audioQueuePending === 0) return Promise.resolve();
   return new Promise(resolve => {
     audioStoppedWaiters.push(resolve);
   });
 }
 
 function isInputBlockedByAudio() {
-  return Boolean(activeAudio);
+  return Boolean(activeAudio) || audioQueuePending > 0;
 }
 
 function isAudioBypassEvent(event) {
@@ -2941,6 +2944,9 @@ function shouldBlockEventDuringAudio(event) {
 }
 
 function stopSound(reason = 'stopped') {
+  audioQueueGeneration += 1;
+  audioQueue = Promise.resolve();
+  audioQueuePending = 0;
   if (!activeAudio) {
     if (reason === 'stopped') resolveAudioStoppedWaiters();
     return;
@@ -2981,14 +2987,12 @@ async function resumeSound() {
   }
 }
 
-async function playSound(input) {
-  const url = resolveSoundUrl(input);
-  if (!url) {
-    log('Sound skipped: empty filename/url');
-    return;
-  }
+async function playSoundNow(url, generation) {
+  if (generation !== audioQueueGeneration) return;
   if (typeof externalAudioPlayHandler === 'function') {
-    stopSound('replaced');
+    const audioToken = { external: true, url };
+    activeAudio = audioToken;
+    activeAudioCleanup = null;
     runtime.lastSound = url;
     renderStatus();
     log('Audio URL: ' + url);
@@ -2996,10 +3000,15 @@ async function playSound(input) {
       await externalAudioPlayHandler(url);
     } catch (err) {
       log('Sound failed: ' + (err?.message || String(err)));
+    } finally {
+      if (activeAudio === audioToken) {
+        clearActiveAudio();
+        resolveAudioStoppedWaiters();
+      }
     }
     return;
   }
-  stopSound('replaced');
+
   const audio = new Audio(url);
   audio.volume = soundVolume;
   activeAudio = audio;
@@ -3051,6 +3060,33 @@ async function playSound(input) {
     }
     log('Sound failed: ' + err.message);
   }
+}
+
+function queueSound(url) {
+  const generation = audioQueueGeneration;
+  audioQueuePending += 1;
+  audioQueue = audioQueue
+    .catch(() => {})
+    .then(async () => {
+      if (generation !== audioQueueGeneration) return;
+      await playSoundNow(url, generation);
+    })
+    .finally(() => {
+      if (generation !== audioQueueGeneration) return;
+      audioQueuePending = Math.max(0, audioQueuePending - 1);
+      if (!activeAudio && audioQueuePending === 0) {
+        resolveAudioStoppedWaiters();
+      }
+    });
+}
+
+async function playSound(input) {
+  const url = resolveSoundUrl(input);
+  if (!url) {
+    log('Sound skipped: empty filename/url');
+    return;
+  }
+  queueSound(url);
 }
 
 if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.setPlayHandler === 'function') {
@@ -5897,24 +5933,14 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'sound_play_url': {
         const url = String(await evalValue(current.getInputTargetBlock('URL')) ?? '');
-        if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
-          log('Sound play: ' + url);
-          await window.BrailleStudioAPI.playUrl(url);
-        } else {
-          await playSound(url);
-        }
+        await playSound(url);
         break;
       }
 
       case 'sound_play_sounds_relative': {
         const path = String(await evalValue(current.getInputTargetBlock('PATH')) ?? '');
         const url = resolveSoundsRelativeUrl(path);
-        if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.playUrl === 'function') {
-          log('Sound play: ' + url);
-          await window.BrailleStudioAPI.playUrl(url);
-        } else {
-          await playSound(url);
-        }
+        await playSound(url);
         break;
       }
 
@@ -7015,7 +7041,7 @@ window.BrailleBlocklyApp = {
       ...snapshot,
       isActive: isRuntimeActive(snapshot),
       activeTimers: timerHandles.size,
-      hasActiveAudio: Boolean(activeAudio),
+      hasActiveAudio: Boolean(activeAudio) || audioQueuePending > 0,
       hasPendingStart: Boolean(pendingStart),
       wsConnected
     };
