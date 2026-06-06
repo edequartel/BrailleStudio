@@ -16,12 +16,23 @@ function blockly_api_require_authentication(): array
 
 function blockly_api_remote_data_base_url(): string
 {
-    return 'https://www.tastenbraille.com/braillestudio/data/blockly';
+    return blockly_api_public_app_base_url() . '/data/blockly';
 }
 
 function blockly_api_remote_manifest_url(): string
 {
-    return 'https://www.tastenbraille.com/braillestudio/temp/manifests/blockly.json';
+    return blockly_api_public_app_base_url() . '/temp/manifests/blockly.json';
+}
+
+function blockly_api_public_app_base_url(): string
+{
+    $https = strtolower((string)($_SERVER['HTTPS'] ?? ''));
+    $scheme = ($https !== '' && $https !== 'off') ? 'https' : 'http';
+    $host = trim((string)($_SERVER['HTTP_HOST'] ?? 'localhost'));
+    $scriptDir = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
+    $appPath = preg_replace('~/api/blockly-api$~', '', rtrim($scriptDir, '/')) ?? '';
+
+    return $scheme . '://' . $host . ($appPath === '' ? '' : $appPath);
 }
 
 function blockly_api_manifest_file(): string
@@ -37,7 +48,7 @@ function blockly_api_is_canonical_host(): bool
 
 function blockly_api_should_prefer_local_data(): bool
 {
-    return !blockly_api_is_canonical_host();
+    return true;
 }
 
 function blockly_api_is_http_url(string $value): bool
