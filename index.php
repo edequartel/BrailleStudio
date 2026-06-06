@@ -16,88 +16,6 @@ try {
     $authUser = null;
 }
 
-$gitPullResult = null;
-
-function run_git_pull_from_index(): array
-{
-    $startedAt = microtime(true);
-    $command = ['git', 'pull', '--ff-only'];
-    $descriptorSpec = [
-        1 => ['pipe', 'w'],
-        2 => ['pipe', 'w'],
-    ];
-    $process = proc_open(
-        $command,
-        $descriptorSpec,
-        $pipes,
-        __DIR__,
-        ['GIT_TERMINAL_PROMPT' => '0']
-    );
-
-    if (!is_resource($process)) {
-        return [
-            'ok' => false,
-            'exitCode' => null,
-            'command' => implode(' ', $command),
-            'cwd' => __DIR__,
-            'startedAt' => date('c', (int)$startedAt),
-            'finishedAt' => date('c'),
-            'durationMs' => (int)round((microtime(true) - $startedAt) * 1000),
-            'output' => ['Could not start git pull process.'],
-        ];
-    }
-
-    $stdout = stream_get_contents($pipes[1]);
-    fclose($pipes[1]);
-    $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[2]);
-    $exitCode = proc_close($process);
-    $finishedAt = microtime(true);
-    $lines = array_values(array_filter(
-        preg_split('/\R/', trim((string)$stdout . "\n" . (string)$stderr)) ?: [],
-        static fn (string $line): bool => trim($line) !== ''
-    ));
-
-    return [
-        'ok' => $exitCode === 0,
-        'exitCode' => $exitCode,
-        'command' => implode(' ', $command),
-        'cwd' => __DIR__,
-        'startedAt' => date('c', (int)$startedAt),
-        'finishedAt' => date('c', (int)$finishedAt),
-        'durationMs' => (int)round(($finishedAt - $startedAt) * 1000),
-        'output' => $lines !== [] ? $lines : ['git pull returned no output.'],
-    ];
-}
-
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && (string)($_POST['action'] ?? '') === 'git_pull') {
-    if ($authUser === null || !in_array((string)($authUser['role'] ?? ''), ['admin', 'developer'], true)) {
-        $gitPullResult = [
-            'ok' => false,
-            'exitCode' => null,
-            'command' => 'git pull --ff-only',
-            'cwd' => __DIR__,
-            'startedAt' => date('c'),
-            'finishedAt' => date('c'),
-            'durationMs' => 0,
-            'output' => ['Not allowed. Git pull is only available for admin/developer users.'],
-        ];
-    } elseif (!bs_auth_verify_csrf((string)($_POST['csrf'] ?? ''))) {
-        $gitPullResult = [
-            'ok' => false,
-            'exitCode' => null,
-            'command' => 'git pull --ff-only',
-            'cwd' => __DIR__,
-            'startedAt' => date('c'),
-            'finishedAt' => date('c'),
-            'durationMs' => 0,
-            'output' => ['Invalid CSRF token. Refresh the page and try again.'],
-        ];
-    } else {
-        $gitPullResult = run_git_pull_from_index();
-    }
-}
-
 $modules = [
     [
         'title' => 'Oefenen',
@@ -146,7 +64,6 @@ $modules = [
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
             ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
             ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
-            ['label' => 'Git pull', 'postAction' => 'git_pull', 'icon' => 'ti-git-pull-request'],
         ],
     ],
 ];
@@ -387,23 +304,11 @@ function e(string $value): string
                                     </div>
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($module['links'] as $link): ?>
-                                            <?php if (isset($link['postAction'])): ?>
-                                                <form method="post" action="<?= e($baseUrl) ?>index.php" class="list-group-item list-group-item-action p-0 m-0" data-git-pull-form>
-                                                    <input type="hidden" name="csrf" value="<?= e(bs_auth_csrf_token()) ?>">
-                                                    <input type="hidden" name="action" value="<?= e($link['postAction']) ?>">
-                                                    <button class="btn w-100 border-0 rounded-0 d-flex align-items-center justify-content-start px-3 py-3 text-start" type="submit">
-                                                        <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
-                                                        <span class="fw-medium"><?= e($link['label']) ?></span>
-                                                        <i class="ti ti-refresh ms-auto text-secondary" aria-hidden="true"></i>
-                                                    </button>
-                                                </form>
-                                            <?php else: ?>
-                                                <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
-                                                    <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
-                                                    <span class="fw-medium"><?= e($link['label']) ?></span>
-                                                    <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
-                                                </a>
-                                            <?php endif; ?>
+                                            <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
+                                                <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
+                                                <span class="fw-medium"><?= e($link['label']) ?></span>
+                                                <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
+                                            </a>
                                         <?php endforeach; ?>
                                     </div>
                                 </article>
@@ -510,57 +415,12 @@ function e(string $value): string
     </footer>
 </div>
 
-<?php if (is_array($gitPullResult)): ?>
-    <div class="modal modal-blur fade" id="gitPullResultModal" tabindex="-1" aria-labelledby="gitPullResultTitle" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="gitPullResultTitle">
-                        <i class="ti <?= $gitPullResult['ok'] ? 'ti-git-merge text-success' : 'ti-alert-circle text-danger' ?> me-2" aria-hidden="true"></i>
-                        Git pull <?= $gitPullResult['ok'] ? 'completed' : 'failed' ?>
-                    </h2>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="font-monospace small mb-3">
-                        command: <?= e((string)($gitPullResult['command'] ?? 'git pull --ff-only')) ?><br>
-                        cwd: <?= e((string)($gitPullResult['cwd'] ?? __DIR__)) ?><br>
-                        started: <?= e((string)($gitPullResult['startedAt'] ?? '')) ?><br>
-                        finished: <?= e((string)($gitPullResult['finishedAt'] ?? '')) ?><br>
-                        duration: <?= e((string)($gitPullResult['durationMs'] ?? 0)) ?>ms<br>
-                        exitCode: <?= e((string)($gitPullResult['exitCode'] ?? 'n/a')) ?>
-                    </div>
-                    <pre class="form-control font-monospace mb-0" style="min-height: 12rem; white-space: pre-wrap;"><?= e(implode("\n", $gitPullResult['output'] ?? [])) ?></pre>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
-
 <script src="<?= e($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     const indexLoadingScreen = document.getElementById('indexLoadingScreen');
     const indexLoadingMessage = document.getElementById('indexLoadingMessage');
     const indexAppPage = document.getElementById('indexAppPage');
-
-    document.querySelectorAll('[data-git-pull-form]').forEach((form) => {
-        form.addEventListener('submit', () => {
-            const button = form.querySelector('button[type="submit"]');
-            if (button) {
-                button.disabled = true;
-                button.innerHTML = `
-                    <i class="ti ti-loader-2 me-3 text-secondary" aria-hidden="true"></i>
-                    <span class="fw-medium">Git pull started...</span>
-                    <i class="ti ti-refresh ms-auto text-secondary" aria-hidden="true"></i>
-                `;
-            }
-            setIndexLoadingMessage('Git pull uitvoeren.');
-        });
-    });
 
     function setIndexLoadingMessage(message) {
         if (indexLoadingMessage) {
@@ -641,34 +501,6 @@ function e(string $value): string
 
         setIndexLoadingMessage('Alles staat klaar.');
         showIndexPage();
-        const gitPullResultModal = document.getElementById('gitPullResultModal');
-        if (gitPullResultModal) {
-            if (window.bootstrap?.Modal) {
-                window.bootstrap.Modal.getOrCreateInstance(gitPullResultModal).show();
-            } else {
-                gitPullResultModal.classList.add('show');
-                gitPullResultModal.style.display = 'block';
-                gitPullResultModal.removeAttribute('aria-hidden');
-                gitPullResultModal.setAttribute('aria-modal', 'true');
-                document.body.classList.add('modal-open');
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop fade show';
-                backdrop.dataset.gitPullBackdrop = 'true';
-                document.body.appendChild(backdrop);
-                const closeGitPullModal = () => {
-                    gitPullResultModal.classList.remove('show');
-                    gitPullResultModal.style.display = 'none';
-                    gitPullResultModal.setAttribute('aria-hidden', 'true');
-                    gitPullResultModal.removeAttribute('aria-modal');
-                    document.body.classList.remove('modal-open');
-                    document.querySelectorAll('[data-git-pull-backdrop]').forEach((node) => node.remove());
-                };
-                gitPullResultModal.querySelectorAll('[data-bs-dismiss="modal"]').forEach((button) => {
-                    button.addEventListener('click', closeGitPullModal);
-                });
-                backdrop.addEventListener('click', closeGitPullModal);
-            }
-        }
     })();
 </script>
 </body>
