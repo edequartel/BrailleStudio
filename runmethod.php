@@ -945,7 +945,6 @@ $pagePayload = [
     const lessons = Array.isArray(bootstrap.lessons) ? bootstrap.lessons : [];
     const runnerUrl = String(bootstrap.runnerUrl || '');
     const blocklyApiBase = String(bootstrap.blocklyApiBase || '');
-    const EXTERNAL_RUN_STOP_STORAGE_KEY = 'braillestudioExternalRunStop';
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     const lessonsList = document.getElementById('lessonsList');
@@ -2737,32 +2736,9 @@ $pagePayload = [
         renderRunnerVisibility();
       });
     }
-    let lastExternalStopRequestId = '';
     window.addEventListener('storage', (event) => {
       if (event.key === 'runmethodAuthToken') {
         renderAuthButton();
-        return;
-      }
-      if (event.key !== EXTERNAL_RUN_STOP_STORAGE_KEY || !event.newValue) {
-        return;
-      }
-      try {
-        const request = JSON.parse(event.newValue);
-        const requestId = String(request?.id || '').trim();
-        if (!requestId || requestId === lastExternalStopRequestId) {
-          return;
-        }
-        lastExternalStopRequestId = requestId;
-        appendStatus('Externe stopopdracht ontvangen.', request);
-        stopCurrentRun().catch((err) => {
-          appendStatus('Externe stopopdracht mislukt.', {
-            error: err.message || String(err)
-          });
-        });
-      } catch (err) {
-        appendStatus('Ongeldig extern stopbericht genegeerd.', {
-          error: err.message || String(err)
-        });
       }
     });
 
