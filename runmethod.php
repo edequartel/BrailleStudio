@@ -1875,6 +1875,24 @@ $pagePayload = [
       }
     }
 
+    function getRunControlDebugSnapshot() {
+      const runtime = getRunnerRuntimeSnapshot();
+      return {
+        currentRun: currentRun ? { ...currentRun } : null,
+        stopRequested,
+        isLessonRunning,
+        controls: {
+          runStepDisabled: runSelectedStepBtn?.disabled ?? null,
+          runLessonDisabled: runCurrentBtn?.disabled ?? null,
+          runAllDisabled: runAllBtn?.disabled ?? null,
+          stopDisabled: stopRunBtn?.disabled ?? null,
+          stopText: stopRunBtn?.textContent?.trim() || ''
+        },
+        runner: getRunnerDebugState(),
+        runtime
+      };
+    }
+
     async function waitForRunnerReady(timeoutMs = 30000) {
       const start = Date.now();
       let lastState = getRunnerDebugState();
@@ -2397,13 +2415,18 @@ $pagePayload = [
     }
 
     async function runSelectedStep() {
-      if (!requireAuthForRun()) return;
+      appendStatus('Run step knop ingedrukt.', getRunControlDebugSnapshot());
+      if (!requireAuthForRun()) {
+        appendStatus('Run step geblokkeerd door authenticatie.', getRunControlDebugSnapshot());
+        return;
+      }
       try {
         const lesson = getSelectedLesson();
         if (!lesson) throw new Error('No lesson selected');
         const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
         if (!steps[selectedStepIndex]) throw new Error('No step selected');
         startRunSession('step', lesson, selectedStepIndex);
+        appendStatus('Run step sessiestatus gestart.', getRunControlDebugSnapshot());
         stopRequested = false;
         setLessonStatus(lesson.id, 'running', `Manual step run in ${lesson.title || lesson.id}`);
         setStepStatus(lesson.id, selectedStepIndex, 'running', `Running ${steps[selectedStepIndex].id}`);
@@ -2427,12 +2450,18 @@ $pagePayload = [
         const stepIndex = selectedStepIndex;
         updateCurrentRunStep(stepIndex);
         const stepConfig = steps[stepIndex];
-        appendStatus('Step gestart.', {
+        appendStatus('Runner-start wordt aangeroepen.', {
           lessonId: lesson.id,
           stepIndex,
-          scriptId: stepConfig.id
+          scriptId: stepConfig.id,
+          state: getRunControlDebugSnapshot()
         });
         const { completion, result } = await runLessonStep(lesson, stepConfig, stepIndex);
+        appendStatus('Runner-start is afgerond.', {
+          completion,
+          resultRuntime: result?.runtime || null,
+          state: getRunControlDebugSnapshot()
+        });
         const finalStatus = stopRequested
           ? 'stopped'
           : (String(completion?.status || 'completed').trim().toLowerCase() || 'completed');
@@ -2476,7 +2505,8 @@ $pagePayload = [
           stepIndex,
           scriptId: stepConfig.id,
           completion,
-          lessonCompletion: result?.lessonCompletion || null
+          lessonCompletion: result?.lessonCompletion || null,
+          state: getRunControlDebugSnapshot()
         });
         stopRequested = false;
       } catch (err) {
@@ -2495,7 +2525,9 @@ $pagePayload = [
         ]);
         finishRunSession('failed', `Step run failed: ${err.message || String(err)}`);
         appendStatus('Run vanaf geselecteerde step mislukt.', {
-          error: err.message || String(err)
+          error: err.message || String(err),
+          stack: err?.stack || '',
+          state: getRunControlDebugSnapshot()
         });
         stopRequested = false;
       }
@@ -2574,15 +2606,20 @@ $pagePayload = [
     }
 
     async function stopCurrentRun() {
-      if (!requireAuthForRun()) return;
+      appendStatus('Stop knop ingedrukt.', getRunControlDebugSnapshot());
+      if (!requireAuthForRun()) {
+        appendStatus('Stop geblokkeerd door authenticatie.', getRunControlDebugSnapshot());
+        return;
+      }
       if (!currentRun) {
         const app = await waitForRunnerReady(5000);
         const runtime = getRunnerRuntimeSnapshot(app);
         if (!runtime?.isActive || typeof app?.stopProgram !== 'function') {
-          appendStatus('Stop ignored: no active run.');
+          appendStatus('Stop genegeerd: geen actieve run of runner.', getRunControlDebugSnapshot());
           renderRunControls();
           return;
         }
+        appendStatus('Directe runner-stop wordt aangeroepen.', getRunControlDebugSnapshot());
         await app.stopProgram();
         setLessonRunningState(false, 'Stopped');
         lastRunBanner = {
@@ -2590,12 +2627,16 @@ $pagePayload = [
           text: 'Runner stopped.'
         };
         renderRunControls();
-        appendStatus('Actieve runner rechtstreeks gestopt.');
+        appendStatus('Actieve runner rechtstreeks gestopt.', getRunControlDebugSnapshot());
         return;
       }
       const runSnapshot = { ...currentRun };
       stopRequested = true;
       requestStopCurrentRun();
+      appendStatus('Stopstatus is ingesteld.', {
+        runSnapshot,
+        state: getRunControlDebugSnapshot()
+      });
       setLessonRunningState(true, 'Stopping');
       if (currentRun.lessonId && Number.isInteger(getCurrentRunStepIndex())) {
         setStepStatus(currentRun.lessonId, getCurrentRunStepIndex(), 'stopping', 'Stop requested');
@@ -2608,11 +2649,15 @@ $pagePayload = [
       try {
         const app = await waitForRunnerReady(5000);
         if (app && typeof app.stopProgram === 'function') {
+          appendStatus('Runner stopProgram wordt aangeroepen.', getRunControlDebugSnapshot());
           await app.stopProgram();
+          appendStatus('Runner stopProgram is afgerond.', getRunControlDebugSnapshot());
         }
       } catch (err) {
         appendStatus('Stop requested, but runner was not ready.', {
-          error: err.message || String(err)
+          error: err.message || String(err),
+          stack: err?.stack || '',
+          state: getRunControlDebugSnapshot()
         });
         finalizeStoppedStepRun(runSnapshot);
         if (runSnapshot.mode !== 'step') {
@@ -2673,11 +2718,27 @@ $pagePayload = [
     });
 
     if (runSelectedStepBtn) {
-      runSelectedStepBtn.addEventListener('click', runSelectedStep);
+      runSelectedStepBtn.addEventListener('click', () => {
+        runSelectedStep().catch((err) => {
+          appendStatus('Onverwachte fout in Run step click-handler.', {
+            error: err.message || String(err),
+            stack: err?.stack || '',
+            state: getRunControlDebugSnapshot()
+          });
+        });
+      });
     }
     runCurrentBtn.addEventListener('click', runCurrentLesson);
     runAllBtn.addEventListener('click', runAllLessons);
-    stopRunBtn.addEventListener('click', stopCurrentRun);
+    stopRunBtn.addEventListener('click', () => {
+      stopCurrentRun().catch((err) => {
+        appendStatus('Onverwachte fout in Stop click-handler.', {
+          error: err.message || String(err),
+          stack: err?.stack || '',
+          state: getRunControlDebugSnapshot()
+        });
+      });
+    });
     simThumbLeftBtn?.addEventListener('click', async () => {
       try {
         await dispatchRunnerInput({ type: 'thumbKey', key: 'left' });
