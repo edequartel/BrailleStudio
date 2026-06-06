@@ -196,6 +196,15 @@
       gap: .75rem;
     }
 
+    .player-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .player-actions .btn {
+      min-width: 9rem;
+    }
+
     .audio-indicator {
       display: flex;
       align-items: center;
@@ -560,6 +569,9 @@
                 </div>
                 <span id="audioIndicatorBadge" class="audio-indicator__badge">stil</span>
                 <button id="audioEnableBtn" class="audio-indicator__action" type="button">Geluid inschakelen</button>
+              </div>
+              <div class="player-actions">
+                <button id="stopStepBtn" class="btn btn-danger" type="button">Stop step</button>
               </div>
               <div id="sessionBrailleMonitorComponent" class="braille-monitor-standard-host"></div>
               <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
@@ -1371,7 +1383,7 @@
         && row.executed === false;
     }
 
-    async function stopCurrentStep() {
+    async function stopCurrentStep(source = 'remote') {
       const targetWindow = await waitForLoadWorkspaceOnline();
       const app = targetWindow?.BrailleBlocklyApp || null;
       if (app && typeof app.stopProgram === 'function') {
@@ -1382,9 +1394,10 @@
         throw new Error('Stop API is niet beschikbaar.');
       }
       stopActiveSessionAudio();
-      setAudioIndicator('idle', 'Step gestopt vanaf de mobiele telefoon.');
-      setStatus('De actieve step is gestopt vanaf de mobiele telefoon.', 'connected', 'Step gestopt');
-      log('Step gestopt via mobiele stopopdracht.');
+      const sourceLabel = source === 'laptop' ? 'op de laptop' : 'via een stopopdracht';
+      setAudioIndicator('idle', `Step gestopt ${sourceLabel}.`);
+      setStatus(`De actieve step is gestopt ${sourceLabel}.`, 'connected', 'Step gestopt');
+      log(`Step gestopt ${sourceLabel}.`);
     }
 
     async function handleRealtimePayload(payload) {
@@ -1410,7 +1423,7 @@
 
       if (isStopStepCommand(row)) {
         try {
-          await stopCurrentStep();
+          await stopCurrentStep('remote');
         } catch (err) {
           setStatus(err.message || String(err), 'error', 'Stoppen mislukt');
           log('Mobiele stopopdracht mislukt.', { message: err.message || String(err) });
@@ -1593,6 +1606,18 @@
         enablePendingAudio().catch((err) => {
           setAudioIndicator('error', err.message || String(err), pendingBlockedAudio?.url || '');
         });
+      });
+      $('stopStepBtn')?.addEventListener('click', async () => {
+        const button = $('stopStepBtn');
+        button.disabled = true;
+        try {
+          await stopCurrentStep('laptop');
+        } catch (err) {
+          setStatus(err.message || String(err), 'error', 'Stoppen mislukt');
+          log('Stoppen op de laptop mislukt.', { message: err.message || String(err) });
+        } finally {
+          button.disabled = false;
+        }
       });
       $('applyPhoneHostBtn')?.addEventListener('click', () => {
         const host = setStoredPhoneHost($('phoneHostInput')?.value || '');

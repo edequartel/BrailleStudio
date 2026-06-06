@@ -86,10 +86,6 @@
       border: 1px solid #c7d7ff;
     }
 
-    button.danger {
-      background: var(--red);
-    }
-
     button:disabled {
       opacity: .65;
     }
@@ -142,7 +138,6 @@
       <label for="codeInput">Step-link code</label>
       <input id="codeInput" type="text" autocomplete="off" placeholder="Scan of typ de code">
       <button id="sendBtn" type="button">Verstuur step-link</button>
-      <button id="stopBtn" class="danger" type="button">Stop step</button>
       <button id="scanBtn" class="secondary" type="button">Camera gebruiken</button>
 
       <video id="video" playsinline muted hidden></video>
@@ -157,7 +152,6 @@
     const sessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();
     const SEND_STEP_LINK_URL = './send-step-link.php';
     const MARK_SESSION_OPEN_URL = './mark-session-open.php';
-    const STOP_STEP_URL = './stop-step.php';
     const $ = (id) => document.getElementById(id);
 
     let stream = null;
@@ -196,7 +190,6 @@
 
       busy = true;
       $('sendBtn').disabled = true;
-      $('stopBtn').disabled = true;
       $('codeInput').value = code;
       setStatus('Step-link wordt verstuurd...');
       try {
@@ -217,36 +210,6 @@
       } finally {
         busy = false;
         $('sendBtn').disabled = false;
-        $('stopBtn').disabled = false;
-      }
-    }
-
-    async function stopStep() {
-      if (busy) return;
-      if (!sessionCode) {
-        throw new Error('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.');
-      }
-
-      busy = true;
-      $('sendBtn').disabled = true;
-      $('stopBtn').disabled = true;
-      stopScanner();
-      setStatus('Step wordt gestopt...');
-      try {
-        const response = await fetch(STOP_STEP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_code: sessionCode })
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok) {
-          throw new Error(data.error || `HTTP ${response.status}`);
-        }
-        setStatus('Stopopdracht verstuurd. De step stopt op de laptop.', 'ok');
-      } finally {
-        busy = false;
-        $('sendBtn').disabled = false;
-        $('stopBtn').disabled = false;
       }
     }
 
@@ -352,9 +315,6 @@
 
       $('sendBtn').addEventListener('click', () => {
         sendStepLink('button').catch((err) => setStatus(err.message || String(err), 'error'));
-      });
-      $('stopBtn').addEventListener('click', () => {
-        stopStep().catch((err) => setStatus(err.message || String(err), 'error'));
       });
       $('codeInput').addEventListener('keydown', (event) => {
         if (event.key !== 'Enter') return;
