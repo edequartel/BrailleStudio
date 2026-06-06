@@ -1113,7 +1113,7 @@ $pagePayload = [
           : 'btn btn-outline-primary';
       }
       if (stopRunBtn) {
-        stopRunBtn.disabled = !hasActiveRun;
+        stopRunBtn.disabled = false;
         stopRunBtn.textContent = isStopping ? 'Stopping...' : 'Stop';
         stopRunBtn.className = `btn ${isStopping ? 'btn-warning' : 'btn-danger'}`;
       }
