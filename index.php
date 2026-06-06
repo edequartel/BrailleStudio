@@ -64,6 +64,7 @@ $modules = [
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
             ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
             ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
+            ['label' => 'Git pull', 'postHref' => $baseUrl . 'tools/git-pull.php', 'icon' => 'ti-git-pull-request'],
         ],
     ],
 ];
@@ -304,11 +305,22 @@ function e(string $value): string
                                     </div>
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($module['links'] as $link): ?>
-                                            <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
-                                                <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
-                                                <span class="fw-medium"><?= e($link['label']) ?></span>
-                                                <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
-                                            </a>
+                                            <?php if (isset($link['postHref'])): ?>
+                                                <form method="post" action="<?= e($link['postHref']) ?>" class="list-group-item list-group-item-action p-0 m-0">
+                                                    <input type="hidden" name="csrf" value="<?= e(bs_auth_csrf_token()) ?>">
+                                                    <button class="btn w-100 border-0 rounded-0 d-flex align-items-center justify-content-start px-3 py-3 text-start" type="submit">
+                                                        <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
+                                                        <span class="fw-medium"><?= e($link['label']) ?></span>
+                                                        <i class="ti ti-refresh ms-auto text-secondary" aria-hidden="true"></i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
+                                                <a class="list-group-item list-group-item-action d-flex align-items-center" href="<?= e($link['href']) ?>">
+                                                    <i class="ti <?= e($link['icon']) ?> me-3 text-secondary" aria-hidden="true"></i>
+                                                    <span class="fw-medium"><?= e($link['label']) ?></span>
+                                                    <i class="ti ti-chevron-right ms-auto text-secondary" aria-hidden="true"></i>
+                                                </a>
+                                            <?php endif; ?>
                                         <?php endforeach; ?>
                                     </div>
                                 </article>
