@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BrailleStudio realtime sessie</title>
   <link rel="stylesheet" href="../../tabler/core/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="../../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../../components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
   <link rel="stylesheet" href="../../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
   <style>
@@ -198,6 +199,7 @@
 
     .player-actions {
       display: flex;
+      gap: .75rem;
       justify-content: flex-end;
     }
 
@@ -571,7 +573,14 @@
                 <button id="audioEnableBtn" class="audio-indicator__action" type="button">Geluid inschakelen</button>
               </div>
               <div class="player-actions">
-                <button id="stopStepBtn" class="btn btn-danger" type="button">Stop step</button>
+                <button id="startStepBtn" class="btn btn-success" type="button">
+                  <i class="ti ti-player-play me-2" aria-hidden="true"></i>
+                  Start step
+                </button>
+                <button id="stopStepBtn" class="btn btn-danger" type="button">
+                  <i class="ti ti-player-stop me-2" aria-hidden="true"></i>
+                  Stop step
+                </button>
               </div>
               <div id="sessionBrailleMonitorComponent" class="braille-monitor-standard-host"></div>
               <div class="braille-monitor-thumb-row" aria-label="Thumb keys">
@@ -1383,6 +1392,20 @@
         && row.executed === false;
     }
 
+    async function startCurrentStep() {
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      if (app && typeof app.runCurrentWorkspace === 'function') {
+        await app.runCurrentWorkspace();
+      } else if (targetWindow && typeof targetWindow.onRunClicked === 'function') {
+        await targetWindow.onRunClicked();
+      } else {
+        throw new Error('Start API is niet beschikbaar.');
+      }
+      setStatus('De actieve step is gestart op de laptop.', 'loaded', 'Step actief');
+      log('Step gestart op de laptop.');
+    }
+
     async function stopCurrentStep(source = 'remote') {
       const targetWindow = await waitForLoadWorkspaceOnline();
       const app = targetWindow?.BrailleBlocklyApp || null;
@@ -1606,6 +1629,18 @@
         enablePendingAudio().catch((err) => {
           setAudioIndicator('error', err.message || String(err), pendingBlockedAudio?.url || '');
         });
+      });
+      $('startStepBtn')?.addEventListener('click', async () => {
+        const button = $('startStepBtn');
+        button.disabled = true;
+        try {
+          await startCurrentStep();
+        } catch (err) {
+          setStatus(err.message || String(err), 'error', 'Starten mislukt');
+          log('Starten op de laptop mislukt.', { message: err.message || String(err) });
+        } finally {
+          button.disabled = false;
+        }
       });
       $('stopStepBtn')?.addEventListener('click', async () => {
         const button = $('stopStepBtn');
