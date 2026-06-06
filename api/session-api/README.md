@@ -38,6 +38,8 @@ Scan de QR-code op de laptop. Die opent:
 
 Daarna scan je op de telefoon de step-link QR-code uit het boek. De telefoon stuurt de code naar `send-step-link.php`. Dat endpoint resolve't de step-link naar `scriptId` en patcht `public.sessions` met `load_step_link:<code>[:methodId]`, zodat de laptop de actuele externe variabelen kan ophalen.
 
+Met de knop **Stop step** verstuurt de telefoon via `stop-step.php` het commando `stop_step`. De laptop stopt daarop het actieve Blockly-programma en de actieve audio.
+
 ## Script sturen
 
 Test tijdelijk met GET:

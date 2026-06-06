@@ -1365,6 +1365,28 @@
         && row.executed === false;
     }
 
+    function isStopStepCommand(row) {
+      return row
+        && (row.command === 'stop_step' || row.status === 'stop_requested')
+        && row.executed === false;
+    }
+
+    async function stopCurrentStep() {
+      const targetWindow = await waitForLoadWorkspaceOnline();
+      const app = targetWindow?.BrailleBlocklyApp || null;
+      if (app && typeof app.stopProgram === 'function') {
+        await app.stopProgram();
+      } else if (app && typeof app.stopAudio === 'function') {
+        await app.stopAudio();
+      } else {
+        throw new Error('Stop API is niet beschikbaar.');
+      }
+      stopActiveSessionAudio();
+      setAudioIndicator('idle', 'Step gestopt vanaf de mobiele telefoon.');
+      setStatus('De actieve step is gestopt vanaf de mobiele telefoon.', 'connected', 'Step gestopt');
+      log('Step gestopt via mobiele stopopdracht.');
+    }
+
     async function handleRealtimePayload(payload) {
       const row = payload?.new || null;
       resetSessionIdleTimer();
@@ -1383,6 +1405,16 @@
         $('qrPanel').hidden = true;
         setStatus(`Step-link ${code} is inactief en kan niet worden gestart.`, 'error', 'Step-link inactief');
         log('Inactieve step-link gescand.', row);
+        return;
+      }
+
+      if (isStopStepCommand(row)) {
+        try {
+          await stopCurrentStep();
+        } catch (err) {
+          setStatus(err.message || String(err), 'error', 'Stoppen mislukt');
+          log('Mobiele stopopdracht mislukt.', { message: err.message || String(err) });
+        }
         return;
       }
 

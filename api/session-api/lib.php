@@ -16,6 +16,7 @@ $sessionApiPublicScripts = [
     'script-meta.php',
     'start-session.php',
     'status.php',
+    'stop-step.php',
     'wait.php',
 ];
 if (
