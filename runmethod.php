@@ -1082,9 +1082,11 @@ $pagePayload = [
 
     function renderRunControls() {
       const active = currentRun && (currentRun.status === 'running' || currentRun.status === 'stopping') ? currentRun : null;
+      const runnerActive = getRunnerRuntimeSnapshot()?.isActive === true;
+      const hasActiveRun = Boolean(active || runnerActive);
       const isStopping = Boolean(active && active.status === 'stopping');
       if (runSelectedStepBtn) {
-        runSelectedStepBtn.disabled = Boolean(active);
+        runSelectedStepBtn.disabled = hasActiveRun;
         runSelectedStepBtn.textContent = active?.mode === 'step'
           ? (isStopping ? 'Stopping step...' : 'Running step...')
           : 'Run step';
@@ -1093,7 +1095,7 @@ $pagePayload = [
           : 'btn btn-outline-primary';
       }
       if (runCurrentBtn) {
-        runCurrentBtn.disabled = Boolean(active);
+        runCurrentBtn.disabled = hasActiveRun;
         runCurrentBtn.textContent = active?.mode === 'lesson'
           ? (isStopping ? 'Stopping lesson...' : 'Running lesson...')
           : 'Run lesson';
@@ -1102,7 +1104,7 @@ $pagePayload = [
           : 'btn btn-primary';
       }
       if (runAllBtn) {
-        runAllBtn.disabled = Boolean(active);
+        runAllBtn.disabled = hasActiveRun;
         runAllBtn.textContent = active?.mode === 'all'
           ? (isStopping ? 'Stopping all...' : 'Running all...')
           : 'Run all';
@@ -1111,13 +1113,16 @@ $pagePayload = [
           : 'btn btn-outline-primary';
       }
       if (stopRunBtn) {
-        stopRunBtn.disabled = !active;
+        stopRunBtn.disabled = !hasActiveRun;
         stopRunBtn.textContent = isStopping ? 'Stopping...' : 'Stop';
         stopRunBtn.className = `btn ${isStopping ? 'btn-warning' : 'btn-danger'}`;
       }
 
       if (runStatusBanner) {
-        if (!active) {
+        if (!active && runnerActive) {
+          runStatusBanner.className = 'status-banner is-running';
+          runStatusBanner.textContent = 'Runner is actief.';
+        } else if (!active) {
           const tones = {
             idle: 'status-banner',
             running: 'status-banner is-running',
@@ -1789,6 +1794,7 @@ $pagePayload = [
           return;
         }
         const runtime = app.getRuntimeSnapshot();
+        renderRunControls();
         const isWsConnected = Boolean(runtime?.wsConnected);
         renderMonitorSourceVisibility(isWsConnected);
         const brailleUnicode = String(runtime?.brailleUnicode || '');
@@ -2570,7 +2576,21 @@ $pagePayload = [
     async function stopCurrentRun() {
       if (!requireAuthForRun()) return;
       if (!currentRun) {
-        appendStatus('Stop ignored: no active run.');
+        const app = await waitForRunnerReady(5000);
+        const runtime = getRunnerRuntimeSnapshot(app);
+        if (!runtime?.isActive || typeof app?.stopProgram !== 'function') {
+          appendStatus('Stop ignored: no active run.');
+          renderRunControls();
+          return;
+        }
+        await app.stopProgram();
+        setLessonRunningState(false, 'Stopped');
+        lastRunBanner = {
+          tone: 'stopped',
+          text: 'Runner stopped.'
+        };
+        renderRunControls();
+        appendStatus('Actieve runner rechtstreeks gestopt.');
         return;
       }
       const runSnapshot = { ...currentRun };
