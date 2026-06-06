@@ -44,7 +44,10 @@ $iconForFile = static function (string $file): string {
     };
 };
 
-$downloadDir = dirname(__DIR__) . '/downloads';
+$projectRoot = dirname(__DIR__);
+$centralDownloadDir = dirname($projectRoot) . '/braillestudio/downloads';
+$usesCentralDownloads = is_dir($centralDownloadDir) && is_readable($centralDownloadDir);
+$downloadDir = $usesCentralDownloads ? $centralDownloadDir : $projectRoot . '/downloads';
 $downloads = [];
 if (is_dir($downloadDir) && is_readable($downloadDir)) {
     $entries = scandir($downloadDir) ?: [];
@@ -70,7 +73,10 @@ usort($downloads, static function (array $a, array $b): int {
     return strnatcasecmp((string)$a['title'], (string)$b['title']);
 });
 
-$downloadUrl = static function (string $file) use ($urlFor, $appBase): string {
+$downloadUrl = static function (string $file) use ($urlFor, $appBase, $usesCentralDownloads): string {
+    if ($usesCentralDownloads) {
+        return 'https://www.tastenbraille.com/braillestudio/downloads/' . rawurlencode($file);
+    }
     return $urlFor($appBase, 'downloads/' . rawurlencode($file));
 };
 ?>
@@ -146,7 +152,7 @@ $downloadUrl = static function (string $file) use ($urlFor, $appBase): string {
                   </div>
                   <p class="empty-title">Geen downloads gevonden</p>
                   <p class="empty-subtitle text-secondary">
-                    Plaats bestanden in de map <code>downloads</code> om ze hier te tonen.
+                    Plaats bestanden in de centrale map <code>braillestudio/downloads</code> om ze hier te tonen.
                   </p>
                 </div>
               </div>
