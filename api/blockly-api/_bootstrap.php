@@ -16,15 +16,24 @@ function blockly_api_require_authentication(): array
 
 function blockly_api_remote_data_base_url(): string
 {
-    return blockly_api_public_app_base_url() . '/data/blockly';
+    return blockly_api_canonical_public_base_url() . '/data/blockly';
 }
 
 function blockly_api_remote_manifest_url(): string
 {
-    return blockly_api_public_app_base_url() . '/temp/manifests/blockly.json';
+    return blockly_api_canonical_public_base_url() . '/temp/manifests/blockly.json';
 }
 
-function blockly_api_public_app_base_url(): string
+function blockly_api_canonical_public_base_url(): string
+{
+    if (blockly_api_is_canonical_host()) {
+        return 'https://www.tastenbraille.com/braillestudio';
+    }
+
+    return blockly_api_current_public_base_url();
+}
+
+function blockly_api_current_public_base_url(): string
 {
     $https = strtolower((string)($_SERVER['HTTPS'] ?? ''));
     $scheme = ($https !== '' && $https !== 'off') ? 'https' : 'http';
@@ -37,7 +46,7 @@ function blockly_api_public_app_base_url(): string
 
 function blockly_api_manifest_file(): string
 {
-    return dirname(__DIR__, 2) . '/temp/manifests/blockly.json';
+    return blockly_api_storage_root() . '/temp/manifests/blockly.json';
 }
 
 function blockly_api_is_canonical_host(): bool
@@ -49,6 +58,17 @@ function blockly_api_is_canonical_host(): bool
 function blockly_api_should_prefer_local_data(): bool
 {
     return true;
+}
+
+function blockly_api_storage_root(): string
+{
+    $projectRoot = dirname(__DIR__, 2);
+    if (!blockly_api_is_canonical_host()) {
+        return $projectRoot;
+    }
+
+    $canonicalRoot = dirname($projectRoot) . '/braillestudio';
+    return is_dir($canonicalRoot) ? $canonicalRoot : $projectRoot;
 }
 
 function blockly_api_is_http_url(string $value): bool
@@ -183,9 +203,10 @@ function blockly_api_data_dirs(): array
     if ($envDir !== '') {
         $dirs[] = $envDir;
     }
-    $dirs[] = dirname(__DIR__, 2) . '/data/blockly';
-    $dirs[] = dirname(__DIR__) . '/data/blockly';
-    $dirs[] = dirname(__DIR__, 2) . '/XXX data/blockly';
+    $storageRoot = blockly_api_storage_root();
+    $dirs[] = $storageRoot . '/data/blockly';
+    $dirs[] = $storageRoot . '/api/data/blockly';
+    $dirs[] = $storageRoot . '/XXX data/blockly';
 
     return array_values(array_unique($dirs));
 }
