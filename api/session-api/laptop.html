@@ -647,6 +647,7 @@
     const BLOCKLY_URL = '../../blockly/session-player.php?v=20260602-headless-session-player-1';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
     const PHONE_HOST_STORAGE_KEY = 'braillestudioSessionPhoneHost';
+    const EXTERNAL_RUN_STOP_STORAGE_KEY = 'braillestudioExternalRunStop';
     const BRAILLE_MONITOR_PLACEHOLDER = '';
     const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -1406,7 +1407,25 @@
       log('Step gestart op de laptop.');
     }
 
+    function requestExternalRunStop() {
+      try {
+        window.localStorage.setItem(EXTERNAL_RUN_STOP_STORAGE_KEY, JSON.stringify({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          source: 'session-laptop',
+          sessionCode: activeSessionCode,
+          requestedAt: new Date().toISOString()
+        }));
+        return true;
+      } catch (err) {
+        log('Stopbericht voor andere BrailleStudio-tab kon niet worden verstuurd.', {
+          message: err.message || String(err)
+        });
+        return false;
+      }
+    }
+
     async function stopCurrentStep(source = 'remote') {
+      const externalStopRequested = requestExternalRunStop();
       const targetWindow = await waitForLoadWorkspaceOnline();
       const app = targetWindow?.BrailleBlocklyApp || null;
       if (app && typeof app.stopProgram === 'function') {
@@ -1419,8 +1438,9 @@
       stopActiveSessionAudio();
       const sourceLabel = source === 'laptop' ? 'op de laptop' : 'via een stopopdracht';
       setAudioIndicator('idle', `Step gestopt ${sourceLabel}.`);
-      setStatus(`De actieve step is gestopt ${sourceLabel}.`, 'connected', 'Step gestopt');
-      log(`Step gestopt ${sourceLabel}.`);
+      const externalLabel = externalStopRequested ? ' Ook actieve runmethod-tabs hebben een stopopdracht ontvangen.' : '';
+      setStatus(`De actieve step is gestopt ${sourceLabel}.${externalLabel}`, 'connected', 'Step gestopt');
+      log(`Step gestopt ${sourceLabel}.`, { externalStopRequested });
     }
 
     async function handleRealtimePayload(payload) {
