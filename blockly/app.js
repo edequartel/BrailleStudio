@@ -1682,6 +1682,7 @@ const listNextIndex = new WeakMap();
 let soundVolume = 1;
 let activeAudio = null;
 let activeAudioCleanup = null;
+let activeAudioStop = null;
 let audioStoppedWaiters = [];
 let audioQueue = Promise.resolve();
 let audioQueuePending = 0;
@@ -2911,6 +2912,7 @@ function clearActiveAudio() {
     }
     activeAudioCleanup = null;
   }
+  activeAudioStop = null;
   activeAudio = null;
 }
 
@@ -2952,8 +2954,12 @@ function stopSound(reason = 'stopped') {
     return;
   }
   try {
-    activeAudio.pause();
-    activeAudio.currentTime = 0;
+    if (typeof activeAudioStop === 'function') {
+      activeAudioStop();
+    } else {
+      activeAudio.pause();
+      activeAudio.currentTime = 0;
+    }
   } catch {
     // ignore pause/currentTime errors
   }
@@ -2993,6 +2999,7 @@ async function playSoundNow(url, generation) {
     const audioToken = { external: true, url };
     activeAudio = audioToken;
     activeAudioCleanup = null;
+    activeAudioStop = null;
     runtime.lastSound = url;
     renderStatus();
     log('Audio URL: ' + url);
@@ -3046,6 +3053,11 @@ async function playSoundNow(url, generation) {
     audio.removeEventListener('ended', onEnded);
     audio.removeEventListener('error', onError);
     audio.removeEventListener('abort', onAbort);
+  };
+  activeAudioStop = () => {
+    audio.pause();
+    audio.currentTime = 0;
+    settlePlayback?.resolve();
   };
   runtime.lastSound = url;
   renderStatus();
@@ -3445,17 +3457,15 @@ async function onRunClicked() {
 async function onStopClicked() {
   const generation = runGeneration;
   const rt = getRuntime();
-  setExecutionUiState('stopping', 'Stop requested. Waiting for the current cycle to finish.');
+  setExecutionUiState('stopping', 'Stopping script and audio.');
   renderStatus();
-  if (!rt.stopped) {
-    rt.stopped = true;
-    await dispatchProgramEnded(generation, 'stopped');
-  }
-  getRuntime().stopped = true;
-  runGeneration++;
+  rt.stopped = true;
+  rt.programEndedGeneration = generation;
+  rt.programEndedCompletedGeneration = generation;
   pendingStart = false;
   stopAllTimers();
   stopSound();
+  runGeneration++;
   setExecutionUiState('stopped', 'Script stopped by user.');
   renderStatus();
   log('Runtime stopped');
