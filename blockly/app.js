@@ -1792,7 +1792,7 @@ attachRuntimeKeyboardListener();
 function isRuntimeActive(runtimeState = getRuntime()) {
   const rt = runtimeState && typeof runtimeState === 'object' ? runtimeState : getRuntime();
   if (rt.stopped) {
-    return Boolean(pendingStart);
+    return Boolean(pendingStart || activeAudio || audioQueuePending > 0);
   }
   const hasPendingProgramEnd =
     rt.programEndedGeneration < 0 ||
@@ -2950,7 +2950,7 @@ function stopSound(reason = 'stopped') {
   audioQueue = Promise.resolve();
   audioQueuePending = 0;
   if (!activeAudio) {
-    if (reason === 'stopped') resolveAudioStoppedWaiters();
+    resolveAudioStoppedWaiters();
     return;
   }
   try {
@@ -6979,7 +6979,7 @@ window.BrailleBlocklyApp = {
     await onStopClicked();
   },
   async stopAudio() {
-    const hadActiveAudio = Boolean(activeAudio);
+    const hadActiveAudio = Boolean(activeAudio) || audioQueuePending > 0;
     stopSound('external-stop-audio');
     renderStatus();
     if (hadActiveAudio) {

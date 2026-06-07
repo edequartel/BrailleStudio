@@ -2607,15 +2607,26 @@ $pagePayload = [
 
     async function stopCurrentRun() {
       appendStatus('Stop knop ingedrukt.', getRunControlDebugSnapshot());
-      if (!requireAuthForRun()) {
-        appendStatus('Stop geblokkeerd door authenticatie.', getRunControlDebugSnapshot());
-        return;
+      const app = await waitForRunnerReady(5000);
+      const audioStopped = typeof app?.stopAudio === 'function'
+        ? await app.stopAudio()
+        : false;
+      if (audioStopped) {
+        appendStatus('Runner audio direct gestopt.', getRunControlDebugSnapshot());
       }
       if (!currentRun) {
-        const app = await waitForRunnerReady(5000);
         const runtime = getRunnerRuntimeSnapshot(app);
         if (!runtime?.isActive || typeof app?.stopProgram !== 'function') {
-          appendStatus('Stop genegeerd: geen actieve run of runner.', getRunControlDebugSnapshot());
+          if (audioStopped) {
+            setLessonRunningState(false, 'Audio stopped');
+            lastRunBanner = {
+              tone: 'stopped',
+              text: 'Audio stopped.'
+            };
+            renderRunControls();
+            return;
+          }
+          appendStatus('Stop genegeerd: geen actieve run, runner of audio.', getRunControlDebugSnapshot());
           renderRunControls();
           return;
         }
@@ -2647,7 +2658,6 @@ $pagePayload = [
         renderLessonsList();
       }
       try {
-        const app = await waitForRunnerReady(5000);
         if (app && typeof app.stopProgram === 'function') {
           appendStatus('Runner stopProgram wordt aangeroepen.', getRunControlDebugSnapshot());
           await app.stopProgram();
