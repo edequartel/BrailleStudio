@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>BrailleStudio xAPI Student</title>
+</head>
+<body>
+
+<h1>BrailleStudio demo</h1>
+
+<label>
+  Student ID:
+  <input id="student_id" value="student-001">
+</label>
+
+<label>
+  Naam:
+  <input id="student_name" value="Tinus">
+</label>
+
+<hr>
+
+<button onclick="sendXapi('initialized')">Start les</button>
+<button onclick="answer(true)">Goed antwoord</button>
+<button onclick="answer(false)">Fout antwoord</button>
+<button onclick="sendXapi('completed')">Les klaar</button>
+
+<pre id="output"></pre>
+
+<script>
+const lessonId = 'les-bal-001';
+
+async function sendXapi(verb, extra = {}) {
+  const payload = {
+    student_id: document.getElementById('student_id').value,
+    student_name: document.getElementById('student_name').value,
+    verb: verb,
+    lesson_id: lessonId,
+    activity_id: 'vraag-1',
+    ...extra
+  };
+
+  const response = await fetch('api/xapi.php', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  document.getElementById('output').textContent =
+    JSON.stringify(data, null, 2);
+}
+
+function answer(correct) {
+  sendXapi('answered', {
+    success: correct,
+    score: correct ? 1 : 0,
+    response: correct ? 'bal' : 'bla',
+    correct_response: 'bal',
+    duration_seconds: 12
+  });
+}
+</script>
+
+</body>
+</html>

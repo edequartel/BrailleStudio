@@ -2,7 +2,6 @@
   "use strict";
 
   const DEFAULTS = {
-    baseUrl: "http://localhost:5000",
     wsUrl: "ws://localhost:5000/ws",
     launchUrl: "braillebridge://",
     launchDelayMs: 1200,
@@ -29,6 +28,13 @@
     } catch {
       return null;
     }
+  }
+
+  function toBoolean(value) {
+    if (typeof value === "string") {
+      return value.trim().toLowerCase() === "true" || value.trim() === "1";
+    }
+    return Boolean(value);
   }
 
   function logStatus(message, data = null, level = "info") {
@@ -58,32 +64,10 @@
     return fields.length ? fields.join(" ") : "Brailleleesregel verbonden";
   }
 
-  function hasActiveDevice(payload) {
-    if (!payload || typeof payload !== "object") return false;
-    if (payload.ok === false || payload.Ok === false || payload.error || payload.Error) return false;
-    if (payload.connected === false || payload.Connected === false || payload.isConnected === false || payload.IsConnected === false) return false;
-    if (payload.active === false || payload.Active === false) return false;
-    if (payload.connected === true || payload.Connected === true || payload.isConnected === true || payload.IsConnected === true) return true;
-    if (payload.active === true || payload.Active === true) return true;
-    if (payload.device && typeof payload.device === "object") return true;
-    if (payload.Device && typeof payload.Device === "object") return true;
-    if (payload.activeDevice && typeof payload.activeDevice === "object") return true;
-    if (payload.ActiveDevice && typeof payload.ActiveDevice === "object") return true;
-    if (Array.isArray(payload.devices)) return payload.devices.some(hasActiveDevice);
-    if (Array.isArray(payload.Devices)) return payload.Devices.some(hasActiveDevice);
-    return Object.keys(payload).length > 0 && !("error" in payload) && !("Error" in payload);
-  }
-
-  function hasBrailleDisplay(payload) {
-    if (!payload || typeof payload !== "object") return false;
-    if (payload.connected === true || payload.Connected === true) return true;
-    if (payload.connected === false || payload.Connected === false) return false;
-    return hasActiveDevice(payload);
-  }
-
   function getDisplayPayload(payload) {
     if (!payload || typeof payload !== "object") return null;
-    return payload.device || payload.Device || payload.activeDevice || payload.ActiveDevice || payload;
+    const device = payload.device || payload.Device || payload.activeDevice || payload.ActiveDevice;
+    return device && typeof device === "object" ? { ...device, ...payload } : payload;
   }
 
   class BrailleBridgeStatus {
@@ -94,12 +78,10 @@
       this.reconnectTimer = null;
       this.launchAttemptedAt = 0;
       this.lastState = {};
-      this.runtimeVersion = null;
+      this.runtimeVersion = "";
       this.displayStatus = null;
-      this.initialStatusPromise = null;
       this.lastStateLog = "";
       this.lastIncomingLabel = "WS inkomend: geen";
-      this.httpRequestSeq = 0;
       this.wsMessageSeq = 0;
       this.expanded = boolAttr(root.dataset.expanded || "false");
       this.popup = boolAttr(root.dataset.popup || "false");
@@ -140,7 +122,7 @@
               <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="sam"><span class="braillebridge-status__dot"></span>SAM</span>
               <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="version">Versie onbekend</span>
               <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge braillebridge-status__incoming" data-role="incoming">WS inkomend: geen</span>
-              <a class="btn btn-sm btn-outline-primary braillebridge-status__action" href="${this.options.launchUrl}" data-role="start">Start</a>
+              <button class="btn btn-sm btn-outline-primary braillebridge-status__action" type="button" data-role="start">Start</button>
               <button class="btn btn-sm btn-outline-secondary braillebridge-status__action" type="button" data-role="test">Test</button>
               <button class="btn btn-sm btn-outline-secondary braillebridge-status__header-toggle" type="button" data-role="header-toggle" aria-label="BrailleBridge status sluiten" title="Samenvouwen">
                 <i class="ti ti-chevron-up" aria-hidden="true"></i>
@@ -213,17 +195,9 @@
 
     start() {
       logStatus("init", {
-        baseUrl: this.options.baseUrl,
         wsUrl: this.options.wsUrl,
         launchUrl: this.options.launchUrl
       });
-      logStatus("snapshot -> start", {
-        endpoints: [
-          `${this.options.baseUrl}/version`,
-          `${this.options.baseUrl}/brailledisplay/status`
-        ]
-      });
-      this.loadInitialStatus();
       this.connectWebSocket();
     }
 
@@ -238,65 +212,13 @@
       }
     }
 
-    async loadInitialStatus() {
-      const [version, display] = await Promise.all([
-        this.fetchJson("/version"),
-        this.fetchJson("/brailledisplay/status")
-      ]);
-      if (version.ok && version.data) {
-        this.runtimeVersion = version.data;
-      }
-      if (display.ok && display.data) {
-        this.displayStatus = display.data;
-      }
-      this.applyState(this.buildState({
-        wsOk: Boolean(this.ws && this.ws.readyState === WebSocket.OPEN),
-        httpOk: Boolean(version.ok || display.ok),
-        detail: ""
-      }));
-      logStatus("snapshot <- done", {
-        versionOk: Boolean(version.ok),
-        displayOk: Boolean(display.ok),
-        versionStatus: version.status ?? null,
-        displayStatus: display.status ?? null,
-        displayConnected: Boolean(display.data?.connected ?? display.data?.Connected),
-        displayName: display.data?.name || display.data?.Name || "",
-        samLoaded: Boolean(display.data?.samLoaded ?? display.data?.SamLoaded),
-        samFound: Boolean(display.data?.samFound ?? display.data?.SamFound),
-        samActive: Boolean(display.data?.samActive ?? display.data?.SamActive)
-      });
-    }
-
-    async fetchJson(path) {
-      const url = `${this.options.baseUrl}${path}`;
-      const requestId = ++this.httpRequestSeq;
-      logStatus(`HTTP -> [${requestId}] GET ${url}`);
-      try {
-        const response = await fetch(url, { method: "GET" });
-        const text = await response.text();
-        const data = parseJson(text);
-        logStatus(`HTTP <- [${requestId}] ${response.status} ${response.statusText} ${path}`, data ?? text);
-        return {
-          ok: response.ok,
-          status: response.status,
-          data
-        };
-      } catch (err) {
-        logStatus(`HTTP xx [${requestId}] ${path}`, { error: err?.message || String(err) }, "warn");
-        return {
-          ok: false,
-          error: err?.message || String(err)
-        };
-      }
-    }
-
     connectWebSocket() {
       if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
         logStatus("WS -> connect skipped", { reason: "already open or connecting" });
         return;
       }
       logStatus(`WS -> connect ${this.options.wsUrl}`);
-      this.applyState(this.buildState({ wsOk: false, changing: false, detail: "WebSocket verbinden" }));
+      this.applyVisualState("checking", this.buildState({ wsOk: false, detail: "WebSocket verbinden" }));
       try {
         const ws = new WebSocket(this.options.wsUrl);
         this.ws = ws;
@@ -309,14 +231,9 @@
       }
     }
 
-    async handleWebSocketOpen() {
+    handleWebSocketOpen() {
       logStatus(`WS <- open ${this.options.wsUrl}`);
       logStatus("WS state", { readyState: this.ws?.readyState ?? null });
-      this.applyState(this.buildState({
-        wsOk: true,
-        httpOk: true,
-        detail: ""
-      }));
     }
 
     async handleWebSocketMessage(raw) {
@@ -329,24 +246,33 @@
       const messageId = ++this.wsMessageSeq;
       logStatus(`WS <- raw [${messageId}]`, text || "(empty)");
       const message = text ? parseJson(text) : null;
-      if (!message || message.type !== "brailleDisplayStatus") {
+      const messageType = String(message?.type || "").trim();
+      const hasStatusFields = message && [
+        "bridgeVersion", "version", "samLoaded", "samFound", "samActive",
+        "displayConnected", "displayName"
+      ].some((key) => Object.prototype.hasOwnProperty.call(message, key));
+      const isStatusMessage = message && (
+        messageType === "brailleDisplayStatus" ||
+        messageType === "hello" ||
+        messageType === "status" ||
+        messageType === "bridgeStatus" ||
+        hasStatusFields
+      );
+      if (!isStatusMessage) {
         logStatus(`WS <- ignored [${messageId}]`, {
           type: message?.type || "(unknown)",
           bytes: text ? text.length : 0
         });
         return;
       }
-      this.lastIncomingLabel = `WS inkomend: brailleDisplayStatus ${new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
-      logStatus(`WS <- brailleDisplayStatus [${messageId}]`, message);
-      this.displayStatus = message;
-      if (message.version) {
-        this.runtimeVersion = { version: message.version };
-      }
+      this.lastIncomingLabel = `WS inkomend: ${messageType} ${new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
+      logStatus(`WS <- ${messageType} [${messageId}]`, message);
+      this.displayStatus = this.normalizeStatusMessage(message);
+      this.runtimeVersion = this.displayStatus.bridgeVersion;
       this.applyState(this.buildState({
         wsOk: true,
-        httpOk: true,
-        changing: message.reason === "samConfigStart",
-        detail: message.reason || ""
+        changing: this.displayStatus.reason === "samConfigStart",
+        detail: this.displayStatus.reason || ""
       }));
     }
 
@@ -355,23 +281,13 @@
       logStatus("WS <- close", {
         reconnectDelayMs: this.options.reconnectDelayMs
       });
-      this.applyState(this.buildState({
-        wsOk: false,
-        changing: false,
-        detail: "WebSocket gesloten"
-      }));
-      logStatus("auto-start skipped", { reason: "websocket closed; waiting for Start button" });
+      this.setOffline("WebSocket gesloten");
       this.scheduleReconnect();
     }
 
     handleWebSocketError(err = null) {
       logStatus("WS <- error", { error: err?.message || String(err || "WebSocket fout") }, "warn");
-      this.applyState(this.buildState({
-        wsOk: false,
-        changing: false,
-        detail: err?.message || "WebSocket fout"
-      }));
-      logStatus("auto-start skipped", { reason: "websocket error; waiting for Start button" });
+      this.setOffline(err?.message || "WebSocket fout");
       this.scheduleReconnect();
     }
 
@@ -385,18 +301,41 @@
       }, this.options.reconnectDelayMs);
     }
 
+    normalizeStatusMessage(message) {
+      const nested = message && typeof message.status === "object"
+        ? message.status
+        : (message && typeof message.data === "object" ? message.data : {});
+      const source = { ...message, ...nested };
+      return {
+        ...source,
+        bridgeVersion: String(source?.bridgeVersion ?? source?.bridge?.version ?? source?.version ?? source?.Version ?? ""),
+        samLoaded: toBoolean(source?.samLoaded ?? source?.SamLoaded),
+        samFound: toBoolean(source?.samFound ?? source?.SamFound),
+        samActive: toBoolean(source?.samActive ?? source?.SamActive),
+        displayConnected: toBoolean(source?.displayConnected ?? source?.connected ?? source?.Connected),
+        displayName: String(source?.displayName ?? source?.name ?? source?.Name ?? "")
+      };
+    }
+
+    setOffline(detail) {
+      this.runtimeVersion = "";
+      this.displayStatus = null;
+      this.lastIncomingLabel = "WS inkomend: geen";
+      this.applyState(this.buildState({ wsOk: false, detail }));
+    }
+
     buildState(overrides = {}) {
       const displayPayload = getDisplayPayload(this.displayStatus);
-      const deviceOk = hasBrailleDisplay(displayPayload);
+      const deviceOk = Boolean(displayPayload?.displayConnected);
       const changing = Boolean(overrides.changing || displayPayload?.reason === "samConfigStart");
       const samOk = Boolean(displayPayload?.samLoaded && displayPayload?.samFound && displayPayload?.samActive);
       return {
-        httpOk: Boolean(overrides.httpOk ?? this.runtimeVersion ?? this.displayStatus),
+        httpOk: Boolean(overrides.wsOk),
         wsOk: Boolean(overrides.wsOk),
         deviceOk,
         samOk,
         changing,
-        version: this.runtimeVersion,
+        version: this.runtimeVersion ? { version: this.runtimeVersion } : null,
         display: displayPayload,
         displayStatus: displayPayload,
         runtimeStatus: null,
@@ -416,7 +355,9 @@
       global.setTimeout(() => frame.remove(), this.options.launchDelayMs);
     }
 
-    handleManualStart() {
+    handleManualStart(event) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
       logStatus("launch -> braillebridge://", { reason: "manual start button" });
       this.launchAttemptedAt = 0;
       this.tryLaunch();
@@ -426,21 +367,12 @@
     async refresh(event = null) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
-      logStatus("test -> start", {
-        baseUrl: this.options.baseUrl,
-        wsUrl: this.options.wsUrl
-      });
-      await this.loadInitialStatus();
+      logStatus("test -> WebSocket reconnect", { wsUrl: this.options.wsUrl });
+      if (this.ws) {
+        try { this.ws.close(1000, "manual WebSocket test"); } catch {}
+        this.ws = null;
+      }
       this.connectWebSocket();
-      logStatus("test <- done", {
-        runtimeVersion: this.runtimeVersion?.version || this.runtimeVersion?.informationalVersion || "",
-        displayConnected: Boolean(this.displayStatus?.connected ?? this.displayStatus?.Connected),
-        displayName: this.displayStatus?.name || this.displayStatus?.Name || "",
-        samLoaded: Boolean(this.displayStatus?.samLoaded ?? this.displayStatus?.SamLoaded),
-        samFound: Boolean(this.displayStatus?.samFound ?? this.displayStatus?.SamFound),
-        samActive: Boolean(this.displayStatus?.samActive ?? this.displayStatus?.SamActive),
-        websocketReadyState: this.ws?.readyState ?? null
-      });
     }
 
     toggleExpanded() {
@@ -472,17 +404,15 @@
       let state = "offline";
       if (next.changing) {
         state = "starting";
-      } else if (!next.wsOk && Date.now() - this.launchAttemptedAt < this.options.launchDelayMs * 2) {
-        state = "starting";
-      } else if (next.httpOk && next.wsOk && next.deviceOk && next.samOk) {
+      } else if (next.wsOk && next.deviceOk && next.samOk) {
         state = "ready";
-      } else if (next.httpOk || next.wsOk) {
+      } else if (next.wsOk) {
         state = "partial";
       }
       this.applyVisualState(state, next);
       const stateLog = {
         state,
-        runtime: next.httpOk,
+        runtime: next.wsOk,
         websocket: next.wsOk,
         display: next.deviceOk,
         sam: next.samOk,
@@ -518,7 +448,7 @@
       }
       if (this.titleEl) this.titleEl.textContent = state === "ready" ? "BrailleBridge" : (STATE_LABELS[state] || STATE_LABELS.checking);
       if (this.subtitleEl) this.subtitleEl.textContent = this.getSubtitle(state, data);
-      this.setBadge(this.httpEl, data.httpOk, data.httpOk ? "Runtime actief" : "Runtime offline");
+      this.setBadge(this.httpEl, data.wsOk, data.wsOk ? "Runtime actief" : "Runtime offline");
       this.setBadge(this.wsEl, data.wsOk, data.wsOk ? "WebSocket ok" : "WebSocket offline");
       this.setBadge(this.deviceEl, data.deviceOk, data.changing ? "Leesregel wijzigt" : (data.deviceOk ? "Leesregel verbonden" : "Geen leesregel"));
       this.setBadge(this.samEl, data.samOk, data.changing ? "SAM wijzigt" : (data.samOk ? "SAM actief" : "SAM niet actief"));
@@ -533,8 +463,8 @@
         this.versionEl.className = `badge ${version ? "bg-primary-lt text-primary" : "bg-secondary-lt text-secondary"} braillebridge-status__badge`;
       }
       if (this.runtimeDetailEl) {
-        const runtimeVersion = data.version?.version || data.version?.informationalVersion || "";
-        this.runtimeDetailEl.textContent = data.httpOk
+        const runtimeVersion = data.version?.version || "";
+        this.runtimeDetailEl.textContent = data.wsOk
           ? `Actief${runtimeVersion ? `, versie ${runtimeVersion}` : ""}`
           : `Offline${data.detail ? `: ${data.detail}` : ""}`;
       }
@@ -608,7 +538,6 @@
 
   function init(root) {
     const options = {
-      baseUrl: root.dataset.baseUrl || DEFAULTS.baseUrl,
       wsUrl: root.dataset.wsUrl || DEFAULTS.wsUrl,
       launchUrl: root.dataset.launchUrl || DEFAULTS.launchUrl,
       reconnectDelayMs: Number(root.dataset.reconnectDelayMs || DEFAULTS.reconnectDelayMs)
@@ -654,20 +583,8 @@
   }
 
   async function runFallbackTest(root) {
-    const baseUrl = root?.dataset?.baseUrl || DEFAULTS.baseUrl;
     const wsUrl = root?.dataset?.wsUrl || DEFAULTS.wsUrl;
-    logStatus("test -> fallback", { baseUrl, wsUrl });
-    for (const path of ["/version", "/brailledisplay/status"]) {
-      const url = `${baseUrl}${path}`;
-      logStatus(`HTTP -> fallback GET ${url}`);
-      try {
-        const response = await fetch(url, { method: "GET" });
-        const text = await response.text();
-        logStatus(`HTTP <- fallback ${response.status} ${response.statusText} ${path}`, parseJson(text) ?? text);
-      } catch (err) {
-        logStatus(`HTTP xx fallback ${path}`, { error: err?.message || String(err) }, "warn");
-      }
-    }
+    logStatus("test -> fallback WebSocket", { wsUrl });
     try {
       logStatus(`WS -> fallback connect ${wsUrl}`);
       const ws = new WebSocket(wsUrl);

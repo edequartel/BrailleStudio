@@ -1,0 +1,18 @@
+[06-Jun-2026 23:52:24 America/Boise] PHP Parse error:  syntax error, unexpected identifier "https", expecting "," or ";" in /home3/kydjgrmy/public_html/xapi/config.php on line 9
+[06-Jun-2026 23:54:16 America/Boise] PHP Parse error:  syntax error, unexpected identifier "https", expecting "," or ";" in /home3/kydjgrmy/public_html/xapi/config.php on line 9
+[06-Jun-2026 23:54:33 America/Boise] PHP Parse error:  syntax error, unexpected identifier "https", expecting "," or ";" in /home3/kydjgrmy/public_html/xapi/config.php on line 9
+[06-Jun-2026 23:54:41 America/Boise] PHP Parse error:  syntax error, unexpected identifier "https", expecting "," or ";" in /home3/kydjgrmy/public_html/xapi/config.php on line 9
+[06-Jun-2026 23:59:31 America/Boise] PHP Parse error:  syntax error, unexpected identifier "https", expecting "," or ";" in /home3/kydjgrmy/public_html/xapi/config.php on line 9
+[07-Jun-2026 00:09:29 America/Boise] PHP Fatal error:  Cannot redeclare h() (previously declared in /home3/kydjgrmy/public_html/xapi/teacher-dashboard.php:8) in /home3/kydjgrmy/public_html/xapi/lib.php on line 38
+[07-Jun-2026 00:14:53 America/Boise] PHP Fatal error:  Uncaught TypeError: Cannot access offset of type string on string in /home3/kydjgrmy/public_html/xapi/students.php:45
+Stack trace:
+#0 {main}
+  thrown in /home3/kydjgrmy/public_html/xapi/students.php on line 45
+[07-Jun-2026 00:15:30 America/Boise] PHP Fatal error:  Uncaught TypeError: Cannot access offset of type string on string in /home3/kydjgrmy/public_html/xapi/students.php:45
+Stack trace:
+#0 {main}
+  thrown in /home3/kydjgrmy/public_html/xapi/students.php on line 45
+[07-Jun-2026 00:18:30 America/Boise] PHP Fatal error:  Uncaught TypeError: Cannot access offset of type string on string in /home3/kydjgrmy/public_html/xapi/students.php:45
+Stack trace:
+#0 {main}
+  thrown in /home3/kydjgrmy/public_html/xapi/students.php on line 45

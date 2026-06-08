@@ -207,7 +207,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                   data-braillebridge-status
                   data-expanded="false"
                   data-popup="true"
-                  data-base-url="http://localhost:5000"
                   data-ws-url="ws://localhost:5000/ws"
                   data-launch-url="braillebridge://"
                   aria-label="BrailleBridge status"
@@ -372,7 +371,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <iframe id="lessonRunnerFrame" class="d-none" title="Lesson runner" allow="autoplay" hidden></iframe>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
-  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const stepsLoadingScreen = document.getElementById('stepsLoadingScreen');

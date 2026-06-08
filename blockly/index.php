@@ -1023,7 +1023,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         data-braillebridge-status
         data-expanded="false"
         data-popup="true"
-        data-base-url="http://localhost:5000"
         data-ws-url="ws://localhost:5000/ws"
         data-launch-url="braillebridge://"
         aria-label="BrailleBridge status"
@@ -1616,7 +1615,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 </script>
 <script>
   (async function () {
-    const assetVersion = '20260526-audio-debug-1';
+    const assetVersion = '20260608-ws-only-1';
 
     async function loadScript(src) {
       await new Promise((resolve, reject) => {

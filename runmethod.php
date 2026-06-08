@@ -840,7 +840,6 @@ $pagePayload = [
             data-braillebridge-status
             data-expanded="false"
             data-popup="true"
-            data-base-url="http://localhost:5000"
             data-ws-url="ws://localhost:5000/ws"
             data-launch-url="braillebridge://"
             aria-label="BrailleBridge status"
@@ -937,7 +936,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260526-popup-3"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
@@ -1369,14 +1368,9 @@ $pagePayload = [
       if (!text.startsWith('BrailleBridge status: ')) return text;
       return text
         .replace(/^BrailleBridge status:\s*/, 'BB ')
-        .replace(/^BB snapshot -> start$/, 'BB SNAP -> start')
-        .replace(/^BB snapshot <- done$/, 'BB SNAP <- done')
         .replace(/^BB test -> start$/, 'BB TEST -> start')
         .replace(/^BB test <- done$/, 'BB TEST <- done')
         .replace(/^BB launch -> /, 'BB APP -> ')
-        .replace(/^BB HTTP -> /, 'BB API -> ')
-        .replace(/^BB HTTP <- /, 'BB API <- ')
-        .replace(/^BB HTTP xx /, 'BB API xx ')
         .replace(/^BB WS -> /, 'BB WS -> ')
         .replace(/^BB WS <- /, 'BB WS <- ')
         .replace(/^BB state$/, 'BB STATE')
@@ -1400,7 +1394,7 @@ $pagePayload = [
 
       parts.source = 'BB';
       const rest = compactMessage.slice(3);
-      const match = rest.match(/^(API|WS|TEST|SNAP|APP|STATE|INIT)\s*(->|<-|xx)?\s*(.*)$/);
+      const match = rest.match(/^(WS|TEST|APP|STATE|INIT)\s*(->|<-|xx)?\s*(.*)$/);
       if (!match) {
         parts.channel = 'STATUS';
         parts.event = rest;

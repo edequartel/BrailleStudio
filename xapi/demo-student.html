@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="nl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BrailleStudio student demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="page page-center">
+    <div class="container container-tight py-4">
+
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">BrailleStudio demo</h1>
+            </div>
+
+            <div class="card-body">
+                <label class="form-label">Studentcode</label>
+                <input id="student_code" class="form-control mb-3" value="STU001">
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="sendXapi('initialized')">
+                        Les openen
+                    </button>
+
+                    <button class="btn btn-primary" onclick="sendXapi('attempted')">
+                        Les starten
+                    </button>
+
+                    <button class="btn btn-success" onclick="answer(true)">
+                        Goed antwoord
+                    </button>
+
+                    <button class="btn btn-danger" onclick="answer(false)">
+                        Fout antwoord
+                    </button>
+
+                    <button class="btn btn-warning" onclick="sendXapi('used-hint')">
+                        Hint gebruikt
+                    </button>
+
+                    <button class="btn btn-secondary" onclick="sendXapi('completed')">
+                        Les afronden
+                    </button>
+                </div>
+
+                <pre id="output" class="mt-3 small"></pre>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+async function sendXapi(verb, extra = {}) {
+    const payload = {
+        student_code: document.getElementById('student_code').value,
+
+        verb: verb,
+
+        method_id: 'mpop-plus',
+        lesson_id: 'les-bal',
+        activity_id: 'les-bal-vraag-1',
+        activity_name: 'Vraag 1: woord bal',
+        activity_type: 'question',
+
+        ...extra
+    };
+
+    const res = await fetch('api/xapi.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    document.getElementById('output').textContent =
+        JSON.stringify(data, null, 2);
+}
+
+function answer(correct) {
+    sendXapi('answered', {
+        success: correct,
+        score_raw: correct ? 1 : 0,
+        response: correct ? 'bal' : 'bla',
+        correct_response: 'bal',
+        duration_seconds: 8,
+        letter: 'b',
+        braille_cell: '12',
+        attempt_number: 1
+    });
+}
+</script>
+</body>
+</html>

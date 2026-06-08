@@ -27,19 +27,16 @@ const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || 
 const AUTH_BRIDGE_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authBridgePageUrl || '/braillestudio/authentication.php?mode=bridge';
 const AUTH_LOGIN_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authLoginPageUrl || '/braillestudio/authentication.php';
 const AUTH_HOMEPAGE_ORIGIN = BRAILLE_BLOCKLY_AUTH_CONFIG.homepageOrigin || 'https://www.tastenbraille.com';
-const BRAILLEBRIDGE_PROTOCOL_URL = 'braillebridge://';
 const BRAILLESTUDIO_AUTH_TOKEN_KEY = 'braillestudioAuthToken';
 const ELEVENLABS_AUTH_TOKEN_KEY = 'elevenlabsAuthToken';
 const BLOCK_CLIPBOARD_STORAGE_KEY = 'brailleBlocklyBlockClipboard';
 const WS_URL = 'ws://localhost:5000/ws';
-const AUTO_RECONNECT_MS = 2000;
-const BRAILLEBRIDGE_STARTUP_TIMEOUT_MS = 4000;
+const AUTO_RECONNECT_MS = 2500;
 let currentFileHandle = null;
 let ws = null;
 let wsConnected = false;
 let reconnectTimer = null;
 let autoConnectEnabled = true;
-let bridgeLaunchTimer = null;
 let bridgeLaunchState = 'idle';
 let gridSnapEnabled = true;
 let brailleMonitorVisible = true;
@@ -228,42 +225,6 @@ function renderBrailleBridgeIndicator() {
   indicator.classList.add('is-disconnected');
   indicator.setAttribute('aria-label', 'BrailleBridge unavailable');
   indicator.setAttribute('title', 'BrailleBridge unavailable');
-}
-
-function scheduleBrailleBridgeFailureCheck() {
-  if (bridgeLaunchTimer) {
-    clearTimeout(bridgeLaunchTimer);
-  }
-  bridgeLaunchTimer = setTimeout(() => {
-    bridgeLaunchTimer = null;
-    if (!wsConnected) {
-      bridgeLaunchState = 'failed';
-      renderBrailleBridgeIndicator();
-    }
-  }, BRAILLEBRIDGE_STARTUP_TIMEOUT_MS);
-}
-
-function requestBrailleBridgeLaunch(reason = 'startup') {
-  bridgeLaunchState = 'starting';
-  renderBrailleBridgeIndicator();
-  scheduleBrailleBridgeFailureCheck();
-  try {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.src = BRAILLEBRIDGE_PROTOCOL_URL;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      iframe.remove();
-    }, 1500);
-    if (reason !== 'auto-reconnect') {
-      log(`BrailleBridge launch requested (${reason})`);
-    }
-  } catch (err) {
-    bridgeLaunchState = 'failed';
-    renderBrailleBridgeIndicator();
-    log('BrailleBridge launch failed: ' + (err?.message || String(err)));
-  }
 }
 
 function setWsBadge(isConnected) {
@@ -3154,9 +3115,6 @@ function connectWs(reason = 'manual') {
     autoConnectEnabled = true;
   }
   clearReconnectTimer();
-  if (!isWsOpen()) {
-    requestBrailleBridgeLaunch(reason);
-  }
 
   let socket = null;
   try {
@@ -3224,7 +3182,6 @@ async function ensureBrailleBridgeConnection(timeoutMs = 5000) {
     setWsBadge(true);
     return true;
   }
-  requestBrailleBridgeLaunch('ensure-connection');
   connectWs('manual');
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
