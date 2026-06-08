@@ -49,6 +49,44 @@ if (!in_array($verb, $allowedVerbs, true)) {
     exit;
 }
 
+$allowedActivityTypes = ['lesson', 'question', 'interaction', 'module'];
+
+if (!in_array($activityType, $allowedActivityTypes, true)) {
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'activity_type must be one of: ' . implode(', ', $allowedActivityTypes)
+    ]);
+    exit;
+}
+
+if (array_key_exists('success', $input) && $input['success'] !== null && !is_bool($input['success'])) {
+    http_response_code(400);
+    echo json_encode(['error' => 'success must be a boolean (true or false)']);
+    exit;
+}
+
+if (array_key_exists('score_raw', $input) && $input['score_raw'] !== null) {
+    if (!is_int($input['score_raw']) && !is_float($input['score_raw'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'score_raw must be a number between 0 and 1']);
+        exit;
+    }
+
+    if ($input['score_raw'] < 0 || $input['score_raw'] > 1) {
+        http_response_code(400);
+        echo json_encode(['error' => 'score_raw must be between 0 and 1']);
+        exit;
+    }
+}
+
+if (array_key_exists('attempt_number', $input) && $input['attempt_number'] !== null) {
+    if (!is_int($input['attempt_number']) || $input['attempt_number'] < 1) {
+        http_response_code(400);
+        echo json_encode(['error' => 'attempt_number must be a whole number of 1 or higher']);
+        exit;
+    }
+}
+
 $studentRes = sb_request(
     'GET',
     'students?student_code=eq.' . urlencode($studentCode) . '&active=eq.true&select=*'

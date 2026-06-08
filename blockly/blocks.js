@@ -1519,15 +1519,15 @@
   Blockly.Blocks['lesson_progress_data'] = {
     init() {
       this.appendDummyInput().appendField('progress data');
-      this.appendValueInput('ACTIVITY_TYPE').appendField('activity type');
-      this.appendValueInput('WORD').appendField('word');
-      this.appendValueInput('LETTER').appendField('letter');
-      this.appendValueInput('SUCCESS').appendField('success');
-      this.appendValueInput('SCORE_RAW').appendField('score raw');
-      this.appendValueInput('RESPONSE').appendField('response');
-      this.appendValueInput('CORRECT_RESPONSE').appendField('correct response');
-      this.appendValueInput('BRAILLE_CELL').appendField('braille cell');
-      this.appendValueInput('ATTEMPT_NUMBER').appendField('attempt number');
+      this.appendValueInput('ACTIVITY_TYPE').setCheck('String').appendField('activity type');
+      this.appendValueInput('WORD').setCheck('String').appendField('word');
+      this.appendValueInput('LETTER').setCheck('String').appendField('letter');
+      this.appendValueInput('SUCCESS').setCheck('Boolean').appendField('success');
+      this.appendValueInput('SCORE_RAW').setCheck('Number').appendField('score raw (0-1)');
+      this.appendValueInput('RESPONSE').setCheck('String').appendField('response');
+      this.appendValueInput('CORRECT_RESPONSE').setCheck('String').appendField('correct response');
+      this.appendValueInput('BRAILLE_CELL').setCheck('String').appendField('braille cell');
+      this.appendValueInput('ATTEMPT_NUMBER').setCheck('Number').appendField('attempt number');
       this.setOutput(true);
       this.setColour('#14B8A6');
       this.setTooltip('Optional learning-progress details. Only connected values are included.');

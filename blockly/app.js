@@ -5016,13 +5016,50 @@ const PROGRESS_DATA_KEYS = new Set([
   'braille_cell',
   'attempt_number'
 ]);
+const PROGRESS_ACTIVITY_TYPES = new Set(['lesson', 'question', 'interaction', 'module']);
 
 function normalizeProgressData(data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
-  return Object.fromEntries(
+  const normalized = Object.fromEntries(
     Object.entries(data)
       .filter(([key, value]) => PROGRESS_DATA_KEYS.has(key) && value != null)
   );
+
+  if (normalized.activity_type != null) {
+    normalized.activity_type = String(normalized.activity_type).trim();
+    if (!PROGRESS_ACTIVITY_TYPES.has(normalized.activity_type)) {
+      throw new Error(`activity_type must be one of: ${[...PROGRESS_ACTIVITY_TYPES].join(', ')}`);
+    }
+  }
+
+  ['word', 'letter', 'response', 'correct_response', 'braille_cell'].forEach((key) => {
+    if (normalized[key] != null) normalized[key] = String(normalized[key]).trim();
+  });
+
+  if (normalized.success != null && typeof normalized.success !== 'boolean') {
+    throw new Error('success must be a boolean (true or false)');
+  }
+
+  if (normalized.score_raw != null) {
+    if (typeof normalized.score_raw !== 'number' || !Number.isFinite(normalized.score_raw)) {
+      throw new Error('score_raw must be a number between 0 and 1');
+    }
+    if (normalized.score_raw < 0 || normalized.score_raw > 1) {
+      throw new Error('score_raw must be between 0 and 1');
+    }
+  }
+
+  if (normalized.attempt_number != null) {
+    if (
+      typeof normalized.attempt_number !== 'number'
+      || !Number.isInteger(normalized.attempt_number)
+      || normalized.attempt_number < 1
+    ) {
+      throw new Error('attempt_number must be a whole number of 1 or higher');
+    }
+  }
+
+  return normalized;
 }
 
 function buildXapiProgressPayload(event) {
