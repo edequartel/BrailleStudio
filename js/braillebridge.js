@@ -2,8 +2,7 @@
  * BrailleBridge JavaScript Framework
  * ----------------------------------
  * Two-way communication with the local BrailleBridge:
- *  - HTTP  : send text to braille display (/braille) and clear (/clear)
- *  - WS    : receive key events (cursor routing, thumbkeys, etc.)
+ *  - WS: send editor commands and receive status/key/braille-line events
  *
  * Usage (simple):
  *   BrailleBridge.connect();
@@ -18,12 +17,10 @@
   // DEFAULT CONFIG
   // ---------------------------------------------------------------------------
   const DEFAULT_CONFIG = {
-    baseUrl: "http://localhost:5000", // HTTP base
     wsUrl: "ws://localhost:5000/ws",  // WebSocket URL
     displayCells: 40,                 // default braille cells to pad to
     autoReconnect: true,
-    reconnectDelay: 2000,             // ms initial delay
-    maxReconnectDelay: 10000,         // ms max delay
+    reconnectDelay: 2500,
     debug: false                      // debug logs to console
   };
 
@@ -76,7 +73,6 @@
       this._ws = null;
       this._manualClose = false;
       this._reconnectTimer = null;
-      this._currentDelay = this._config.reconnectDelay;
     }
 
     // ----- CONFIG ------------------------------------------------------------
@@ -95,38 +91,6 @@
       }
     }
 
-    // ----- HTTP HELPERS ------------------------------------------------------
-    async _post(path, body, contentType = "text/plain; charset=utf-8") {
-      const url = this._config.baseUrl + path;
-      this._logDebug("HTTP POST", url, "body=", body);
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": contentType
-        },
-        body
-      });
-
-      const text = await res.text().catch(() => "");
-      this.emit("http", { path, ok: res.ok, status: res.status, body: text });
-      return { ok: res.ok, status: res.status, body: text };
-    }
-
-    async _get(path) {
-      const url = this._config.baseUrl + path;
-      this._logDebug("HTTP GET", url);
-
-      const res = await fetch(url, {
-        method: "GET"
-      });
-
-      const text = await res.text().catch(() => "");
-      this.emit("http", { path, ok: res.ok, status: res.status, body: text });
-      return { ok: res.ok, status: res.status, body: text };
-    }
-
-    // ----- PUBLIC HTTP API ---------------------------------------------------
     /**
      * Send text to the braille display.
      * Options:
@@ -145,7 +109,11 @@
       }
 
       this._logDebug("sendText:", { line });
-      return this._post("/braille", line);
+      return this.sendWs({
+        type: "command",
+        command: "editorInput",
+        input: { kind: "text", text: line, replace: true }
+      });
     }
 
     /**
@@ -158,21 +126,9 @@
 	/**
 	 * Clear the braille display.
 	 */
-	async clearDisplay() {
-	  this._logDebug("clearDisplay()");
-	  try {
-		// 👇 use GET instead of POST
-		const result = await this._get("/clear");
-		return result;
-	  } catch (err) {
-		this.emit("error", { type: "http", error: err });
-		throw err;
-	  }
-	}
-
-    async ping() {
-      // optional: if you implement /ping in your bridge
-      return this._get("/ping");
+    async clearDisplay() {
+      this._logDebug("clearDisplay()");
+      return this.sendText("", { pad: false });
     }
 
     // ----- WEBSOCKET HANDLING ------------------------------------------------
@@ -192,7 +148,6 @@
 
         ws.onopen = () => {
           this._logDebug("WebSocket OPEN");
-          this._currentDelay = this._config.reconnectDelay;
           this.emit("connected", { wsUrl });
         };
 
@@ -229,15 +184,11 @@
     _scheduleReconnect() {
       if (this._reconnectTimer) return;
 
-      const delay = this._currentDelay;
+      const delay = this._config.reconnectDelay;
       this._logDebug("Scheduling reconnect in", delay, "ms");
 
       this._reconnectTimer = setTimeout(() => {
         this._reconnectTimer = null;
-        this._currentDelay = Math.min(
-          this._currentDelay * 2,
-          this._config.maxReconnectDelay
-        );
         this.connect();
       }, delay);
     }
@@ -261,11 +212,12 @@
     sendWs(data) {
       if (!this.isConnected()) {
         this._logDebug("sendWs: not connected");
-        return;
+        return false;
       }
       const payload = typeof data === "string" ? data : JSON.stringify(data);
       this._logDebug("sendWs:", payload);
       this._ws.send(payload);
+      return true;
     }
 
     // ----- MESSAGE NORMALIZATION --------------------------------------------

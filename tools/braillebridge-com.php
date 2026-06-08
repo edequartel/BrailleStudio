@@ -119,7 +119,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
             <div class="btn-list">
               <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>"><i class="ti ti-home me-2" aria-hidden="true"></i>Home</a>
               <a class="btn btn-outline-secondary" href="<?= $htmlUrl($urlFor($scriptDir, 'tables.php')) ?>"><i class="ti ti-table me-2" aria-hidden="true"></i>Tables</a>
-              <button class="btn btn-outline-secondary" id="showBrailleBridgeBtn" type="button"><i class="ti ti-window me-2" aria-hidden="true"></i>Show BrailleBridge</button>
               <a class="btn btn-primary" href="braillebridge://"><i class="ti ti-plug-connected me-2" aria-hidden="true"></i>Open BrailleBridge</a>
             </div>
           </div>
@@ -134,7 +133,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
             <div class="col">
               <div class="page-pretitle">BrailleStudio tools</div>
               <h1 class="page-title">BrailleBridge tool</h1>
-              <div class="text-secondary mt-2">HTTP and WebSocket controls for the local BrailleBridge runtime.</div>
+              <div class="text-secondary mt-2">WebSocket controls for the local BrailleBridge runtime.</div>
             </div>
             <div class="col-auto">
               <span class="badge bg-secondary-lt">localhost:5000</span>
@@ -171,37 +170,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
               </section>
             </div>
 
-            <div class="col-12 col-xl-5">
-              <section class="card h-100">
-                <div class="card-header">
-                  <h2 class="card-title">API</h2>
-                  <div class="card-actions">
-                    <span class="badge bg-danger-lt" id="httpDot">offline</span>
-                    <span class="text-secondary ms-2" id="httpStatusText">unknown</span>
-                  </div>
-                </div>
-                <div class="card-body">
-                  <div class="mb-3">
-                    <label class="form-label" for="httpBase">HTTP Base URL</label>
-                    <input id="httpBase" class="form-control font-monospace" type="text" value="http://localhost:5000" aria-label="HTTP Base URL">
-                  </div>
-                  <div class="btn-list mb-2">
-                    <button class="btn btn-outline-secondary" id="getPathsBtn" type="button">GET /paths</button>
-                    <button class="btn btn-outline-secondary" id="getPingBtn" type="button">GET /ping</button>
-                    <button class="btn btn-outline-secondary" id="getClearBtn" type="button">GET /clear</button>
-                  </div>
-                  <div class="btn-list mb-2">
-                    <button class="btn btn-outline-secondary" id="getDevicesBtn" type="button">GET /devices</button>
-                    <button class="btn btn-outline-secondary" id="getActiveDeviceBtn" type="button">GET /devices/active</button>
-                  </div>
-                  <div class="btn-list">
-                    <button class="btn btn-outline-secondary" id="getTablesBtn" type="button">GET /tables</button>
-                  </div>
-                </div>
-              </section>
-            </div>
-
-            <div class="col-12 col-xl-7">
+            <div class="col-12">
               <section class="card h-100">
                 <div class="card-header">
                   <h2 class="card-title">WebSocket</h2>
@@ -377,20 +346,9 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const el = (id) => document.getElementById(id);
 
       // Elements
-      const httpBase = el("httpBase");
       const wsBase = el("wsBase");
-      const httpBaseLabel = el("httpBaseLabel");
       const wsBaseLabel = el("wsBaseLabel");
 
-      const getPathsBtn = el("getPathsBtn");
-      const getPingBtn = el("getPingBtn");
-      const getClearBtn = el("getClearBtn");
-      const getDevicesBtn = el("getDevicesBtn");
-      const getActiveDeviceBtn = el("getActiveDeviceBtn");
-      const getTablesBtn = el("getTablesBtn");
-
-      const httpDot = el("httpDot");
-      const httpStatusText = el("httpStatusText");
       const wsDot = el("wsDot");
       const wsStatusText = el("wsStatusText");
       const wsConnectBtn = el("wsConnectBtn");
@@ -457,7 +415,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const log = el("log");
       const logCardBody = el("logCardBody");
       const toggleLogBtn = el("toggleLogBtn");
-      const showBrailleBridgeBtn = el("showBrailleBridgeBtn");
       const copyLogBtn = el("copyLogBtn");
       const clearLogBtn = el("clearLogBtn");
       const simThumbLeftBtn = el("simThumbLeftBtn");
@@ -537,13 +494,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         if (logCardBody) logCardBody.hidden = !visible;
         if (toggleLogBtn) toggleLogBtn.textContent = visible ? "Hide log" : "Show log";
       }
-      function setHttpStatus(ok, text) {
-        if (httpDot) {
-          httpDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
-          httpDot.textContent = ok ? "online" : "offline";
-        }
-        httpStatusText.textContent = text;
-      }
       function setWsStatus(ok, text) {
         if (wsDot) {
           wsDot.className = ok ? "badge bg-success-lt" : "badge bg-danger-lt";
@@ -588,92 +538,16 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
 
       // Base URL labels
       function refreshBaseLabels() {
-        if (httpBaseLabel) httpBaseLabel.textContent = httpBase.value.trim();
         if (wsBaseLabel) wsBaseLabel.textContent = wsBase.value.trim();
       }
-      httpBase.addEventListener("input", refreshBaseLabels);
       wsBase.addEventListener("input", refreshBaseLabels);
       refreshBaseLabels();
 
-      // HTTP fetch wrappers
-      async function httpGet(path) {
-        const base = httpBase.value.trim().replace(/\/$/, "");
-        const url = base + path;
-        appendLog(`HTTP → GET ${url}`);
-        try {
-          const resp = await fetch(url, { method: "GET" });
-          const ct = resp.headers.get("content-type") || "";
-          let body;
-          if (ct.includes("application/json")) body = await resp.json();
-          else body = await resp.text();
-
-          setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
-          appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${typeof body === "string" ? body : JSON.stringify(body)}`);
-          return body;
-        } catch (e) {
-          setHttpStatus(false, "network error");
-          appendLog(`HTTP !! error :: ${String(e)}`);
-          throw e;
-        }
-      }
-
-
-      async function httpPostJson(path, bodyObj) {
-        const base = httpBase.value.trim().replace(/\/$/, "");
-        const url = base + path;
-        appendLog(`HTTP → POST ${url} (application/json)`);
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json; charset=utf-8" },
-            body: JSON.stringify(bodyObj)
-          });
-
-          const body = await resp.text();
-          setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
-          appendLog(`HTTP ← ${resp.status} ${resp.statusText} :: ${body}`);
-          return body;
-        } catch (e) {
-          setHttpStatus(false, "network error");
-          appendLog(`HTTP !! error :: ${String(e)}`);
-          throw e;
-        }
-      }
-
-      async function httpPostText(path, bodyText, contentType) {
-        const base = httpBase.value.trim().replace(/\/$/, "");
-        const url = base + path;
-        const ct = contentType || "application/json";
-        appendLog(`HTTP â†’ POST ${url} (${ct})`);
-        try {
-          const resp = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": ct },
-            body: bodyText ?? ""
-          });
-
-          const body = await resp.text();
-          setHttpStatus(resp.ok, resp.ok ? "ok" : `error ${resp.status}`);
-          appendLog(`HTTP â† ${resp.status} ${resp.statusText} :: ${body}`);
-          return body;
-        } catch (e) {
-          setHttpStatus(false, "network error");
-          appendLog(`HTTP !! error :: ${String(e)}`);
-          throw e;
-        }
-      }
-
-      // Hook up HTTP buttons
-      getPathsBtn.addEventListener("click", () => httpGet("/paths"));
-      getPingBtn.addEventListener("click", () => httpGet("/ping"));
-      getClearBtn.addEventListener("click", () => httpGet("/clear"));
-      getDevicesBtn.addEventListener("click", () => httpGet("/devices"));
-      getActiveDeviceBtn.addEventListener("click", () => httpGet("/devices/active"));
-      getTablesBtn.addEventListener("click", () => httpGet("/tables"));
-      showBrailleBridgeBtn.addEventListener("click", () => httpGet("/show"));
-
       // WebSocket
       let ws = null;
+      let wsReconnectTimer = null;
+      let wsAutoReconnect = true;
+      const WS_RECONNECT_MS = 2500;
       let lastWsJsonLog = null;
       let lastSsocLineId = null;
       let lastSsocCaretCellPosition = null;
@@ -755,9 +629,18 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         return true;
       }
 
-      function wsConnect() {
+      function scheduleWsReconnect() {
+        if (!wsAutoReconnect || wsReconnectTimer || wsIsOpen()) return;
+        wsReconnectTimer = window.setTimeout(() => {
+          wsReconnectTimer = null;
+          wsConnect("auto-reconnect");
+        }, WS_RECONNECT_MS);
+      }
+
+      function wsConnect(reason = "manual") {
         const url = wsBase.value.trim();
         if (!url) return;
+        if (reason !== "auto-reconnect") wsAutoReconnect = true;
 
         if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
           appendLog("WS: already connected/connecting");
@@ -766,21 +649,36 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
 
         appendLog(`WS → connect ${url}`);
         setWsStatus(false, "connecting");
-        ws = new WebSocket(url);
+        try {
+          ws = new WebSocket(url);
+        } catch (err) {
+          setWsStatus(false, "offline");
+          appendLog(`WS: connect error ${String(err)}`);
+          scheduleWsReconnect();
+          return;
+        }
 
         ws.addEventListener("open", () => {
+          if (wsReconnectTimer) {
+            window.clearTimeout(wsReconnectTimer);
+            wsReconnectTimer = null;
+          }
           setWsStatus(true, "connected");
           appendLog("WS: open");
+          wsSendJson({ type: "getBrailleLine" }, "getBrailleLine");
         });
 
         ws.addEventListener("close", (ev) => {
           setWsStatus(false, `closed (${ev.code})`);
           appendLog(`WS: close code=${ev.code} reason=${ev.reason || "(none)"}`);
+          ws = null;
+          scheduleWsReconnect();
         });
 
         ws.addEventListener("error", () => {
           setWsStatus(false, "error");
           appendLog("WS: error");
+          scheduleWsReconnect();
         });
 
         ws.addEventListener("message", async (ev) => {
@@ -804,6 +702,11 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       }
 
       function wsDisconnect() {
+        wsAutoReconnect = false;
+        if (wsReconnectTimer) {
+          window.clearTimeout(wsReconnectTimer);
+          wsReconnectTimer = null;
+        }
         if (!ws) {
           appendLog("WS: no connection to close");
           return;
@@ -1062,10 +965,10 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       setInsertModeStatus(undefined);
 
       // On load: show initial instruction in log
-      appendLog("UI ready. Use HTTP buttons or connect WebSocket.");
-      appendLog("Spec: GET /ping, GET /clear, GET /devices, GET /tables, GET /paths.");
+      appendLog("UI ready. Connecting WebSocket.");
       appendLog("Spec: WS thumbKey/editorKey/cursor/chord/brailleLine in (+ optional raw key).");
       appendLog("Spec: out setEditorMode/setEditorInsertMode/editorInput and caret/query/cursorRouting commands.");
+      wsConnect("startup");
     })();
   </script>
 </body>
