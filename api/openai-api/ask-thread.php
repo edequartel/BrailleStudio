@@ -140,11 +140,16 @@ function buildPromptContext(array $blocklySchema): array
         $blocklySchema['prompt_rules'] ?? [],
         static fn(mixed $value): bool => is_string($value) && trim($value) !== ''
     ));
+    $deprecatedBlockTypes = array_values(array_filter(
+        $blocklySchema['deprecated_block_types'] ?? [],
+        static fn(mixed $value): bool => is_string($value) && trim($value) !== ''
+    ));
+    $deprecatedBlockTypeLookup = array_fill_keys($deprecatedBlockTypes, true);
 
-    $validBlocklyBlockTypes = array_values(array_unique(array_merge(
+    $validBlocklyBlockTypes = array_values(array_filter(array_unique(array_merge(
         extractBlocklyBlockTypes($blocksJsText),
         $builtinCoreBlockTypes
-    )));
+    )), static fn(string $type): bool => !isset($deprecatedBlockTypeLookup[$type])));
     sort($validBlocklyBlockTypes);
 
     $outputOnlyBlocklyBlockTypes = array_values(array_unique(array_merge(

@@ -1494,6 +1494,7 @@
     }
   };
 
+  // Legacy compatibility: hidden from the toolbox, but required by older saved scripts.
   Blockly.Blocks['lesson_complete_step'] = {
     init() {
       this.appendDummyInput()

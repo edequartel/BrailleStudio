@@ -6212,6 +6212,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         break;
       }
 
+      // Legacy compatibility: execute detailed step completion from older saved scripts.
       case 'lesson_complete_step': {
         await signalLessonStepCompletion({
           status: String(current.getFieldValue('STATUS') || 'completed'),

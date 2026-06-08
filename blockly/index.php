@@ -1391,7 +1391,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
 
   <category name="Lesson" colour="#14B8A6">
-    <block type="lesson_complete_step"></block>
     <block type="lesson_complete_lesson"></block>
     <block type="lesson_get_step_repeat"></block>
   </category>

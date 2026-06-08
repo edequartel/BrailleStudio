@@ -115,9 +115,9 @@ Important project conventions
 - If you generate `event_when_thumb_key`, use exact field values that exist in the project dropdown.
 
 4. Completion behavior
-- If the script should explicitly mark lesson progress, use:
-  - `lesson_complete_step`
+- If the script should explicitly mark the lesson as completed, use:
   - `lesson_complete_lesson`
+- Do not use `lesson_complete_step` in new scripts. It is deprecated and only retained so older saved scripts keep working.
 - If the script is intended to keep listening for input, use event-based top-level blocks rather than a single finite `event_when_started` chain that immediately ends.
 
 5. Audio behavior

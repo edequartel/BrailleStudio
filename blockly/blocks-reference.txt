@@ -96,7 +96,6 @@ Important statement/action blocks
 - list_remove_item
 - list_for_each_item
 - lesson_set_active_record_index
-- lesson_complete_step
 - lesson_complete_lesson
 - klanken_play_word_sounds
 - klanken_play_word_sounds_with_pause
@@ -182,6 +181,7 @@ Important output/value blocks
 Lesson and step rules
 - If a script uses lesson_get_active_field or lesson_get_active_word, set the active lesson record first with lesson_set_active_record_index.
 - In step-link flows, prefer lesson_get_step_input and lesson_get_step_repeat when the script depends on external step input.
+- Do not add lesson_complete_step to new scripts. It is deprecated and supported only for older saved scripts.
 - A common safe order is:
   1. lesson_set_active_record_index
   2. bb_set_text / other output

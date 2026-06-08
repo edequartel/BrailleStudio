@@ -37,6 +37,9 @@ return [
         'procedures_callreturn',
         'lists_create_with',
     ],
+    'deprecated_block_types' => [
+        'lesson_complete_step',
+    ],
     'top_level_allowed_types' => [
         'procedures_defnoreturn',
         'procedures_defreturn',
@@ -99,6 +102,7 @@ return [
         ],
     ],
     'prompt_rules' => [
+        'Gebruik lesson_complete_step niet in nieuwe scripts; dit blocktype is deprecated en bestaat alleen voor compatibiliteit met oudere scripts.',
         'Gebruik voor if/else-logica het bestaande Blockly blocktype controls_if.',
         'Gebruik dus nooit een pseudoblok zoals if_else.',
         'Voor controls_if gebruik je de echte Blockly inputnamen zoals IF0 en DO0.',

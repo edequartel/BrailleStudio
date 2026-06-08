@@ -399,6 +399,7 @@
     return [`(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; return Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1)); })()`, ORDER_ATOMIC];
   };
 
+  // Legacy compatibility: generate code when an older saved script contains this block.
   javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {
     const status = q(block.getFieldValue('STATUS') || 'completed');
     const outputCode = valueToCodeOr(block, 'OUTPUT', 'null');
