@@ -262,6 +262,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                       <button id="adminChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
                       <button id="adminThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
                     </div>
+                    <div class="braille-monitor-run-controls">
+                      <button id="adminStopBtn" class="btn btn-danger" type="button">
+                        <i class="ti ti-player-stop me-1" aria-hidden="true"></i>
+                        Stop
+                      </button>
+                    </div>
                     <div
                       class="braille-monitor-bridge-status"
                       data-braillebridge-status
@@ -799,12 +805,14 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       if (!silent) setSessionSendStatus('Script wordt gestopt...');
       const targetWindow = await waitForLoadWorkspaceOnline();
       const app = targetWindow?.BrailleBlocklyApp || null;
-      if (app && typeof app.stopProgram === 'function') {
-        await app.stopProgram();
-      } else if (app && typeof app.stopAudio === 'function') {
-        await app.stopAudio();
-      } else {
+      if (!app || (typeof app.stopProgram !== 'function' && typeof app.stopAudio !== 'function')) {
         throw new Error('Stop API is niet beschikbaar.');
+      }
+      const audioStopped = typeof app.stopAudio === 'function'
+        ? await app.stopAudio()
+        : false;
+      if (typeof app.stopProgram === 'function') {
+        await app.stopProgram();
       }
       stopBrailleMonitorSync();
       clearAdminBrailleMonitor();
@@ -820,6 +828,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       }
       logLine('Step-link runtime gestopt vanuit admin.', {
         stoppedCode,
+        audioStopped: Boolean(audioStopped),
         reason: options.reason || 'manual'
       });
     }
@@ -1513,6 +1522,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       });
       $('adminChord1Btn')?.addEventListener('click', () => {
         dispatchRunnerInput({ type: 'thumbKey', key: 'right-middle' }).catch((err) => setSessionSendStatus(err.message || String(err), 'danger'));
+      });
+      $('adminStopBtn')?.addEventListener('click', () => {
+        stopCurrentStepLink({ reason: 'admin-stop-button' }).catch((err) => {
+          setSessionSendStatus(err.message || String(err), 'danger');
+          $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+        });
       });
       $('createLinkBtn').addEventListener('click', async () => {
         try {
