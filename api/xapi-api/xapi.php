@@ -28,6 +28,27 @@ if ($studentCode === '' || $verb === '' || $activityId === '') {
     exit;
 }
 
+$allowedVerbs = [
+    'initialized',
+    'attempted',
+    'answered',
+    'typed',
+    'used-hint',
+    'completed',
+    'passed',
+    'failed'
+];
+
+if (!in_array($verb, $allowedVerbs, true)) {
+    http_response_code(400);
+    echo json_encode([
+        'error' => 'Unsupported verb',
+        'verb' => $verb,
+        'allowed_verbs' => $allowedVerbs
+    ]);
+    exit;
+}
+
 $studentRes = sb_request(
     'GET',
     'students?student_code=eq.' . urlencode($studentCode) . '&active=eq.true&select=*'
@@ -56,18 +77,12 @@ if (!$student) {
 $verbMap = [
     'initialized' => 'http://adlnet.gov/expapi/verbs/initialized',
     'attempted'   => 'http://adlnet.gov/expapi/verbs/attempted',
-    'experienced' => 'http://adlnet.gov/expapi/verbs/experienced',
     'answered'    => 'http://adlnet.gov/expapi/verbs/answered',
+    'typed'       => $appHome . '/xapi/verbs/typed',
+    'used-hint'   => $appHome . '/xapi/verbs/used-hint',
     'completed'   => 'http://adlnet.gov/expapi/verbs/completed',
     'passed'      => 'http://adlnet.gov/expapi/verbs/passed',
-    'failed'      => 'http://adlnet.gov/expapi/verbs/failed',
-    'suspended'   => 'http://adlnet.gov/expapi/verbs/suspended',
-    'resumed'     => 'http://adlnet.gov/expapi/verbs/resumed',
-    'terminated'  => 'http://adlnet.gov/expapi/verbs/terminated',
-
-    'typed'      => $appHome . '/xapi/verbs/typed',
-    'made-error' => $appHome . '/xapi/verbs/made-error',
-    'used-hint'  => $appHome . '/xapi/verbs/used-hint'
+    'failed'      => 'http://adlnet.gov/expapi/verbs/failed'
 ];
 
 $verbId = $verbMap[$verb] ?? $appHome . '/xapi/verbs/' . rawurlencode($verb);
@@ -140,6 +155,7 @@ $statement = [
             ]]
         ],
         'extensions' => [
+            $appHome . '/xapi/extensions/word' => $input['word'] ?? null,
             $appHome . '/xapi/extensions/braille-cell' => $input['braille_cell'] ?? null,
             $appHome . '/xapi/extensions/letter' => $input['letter'] ?? null,
             $appHome . '/xapi/extensions/correct-response' => $input['correct_response'] ?? null,

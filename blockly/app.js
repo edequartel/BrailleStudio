@@ -4998,25 +4998,21 @@ function normalizeLessonStepCompletionPayload(payload = {}) {
 const PROGRESS_VERBS = new Set([
   'initialized',
   'attempted',
-  'experienced',
   'answered',
+  'typed',
+  'used-hint',
   'completed',
   'passed',
-  'failed',
-  'suspended',
-  'resumed',
-  'terminated',
-  'typed',
-  'made-error',
-  'used-hint'
+  'failed'
 ]);
 const PROGRESS_DATA_KEYS = new Set([
   'activity_type',
+  'word',
+  'letter',
   'success',
   'score_raw',
   'response',
   'correct_response',
-  'letter',
   'braille_cell',
   'attempt_number'
 ]);
@@ -5041,6 +5037,7 @@ function buildXapiProgressPayload(event) {
     || 'blockly-runtime';
   const activityName = normalizeOptionalString(step.title)
     || normalizeOptionalString(step.prompt)
+    || normalizeOptionalString(data.word)
     || normalizeOptionalString(step.basisWord)
     || normalizeOptionalString(getRuntime().text)
     || activityId;
@@ -5407,11 +5404,12 @@ async function evalValue(block) {
     case 'lesson_progress_data': {
       const fields = [
         ['ACTIVITY_TYPE', 'activity_type'],
+        ['WORD', 'word'],
+        ['LETTER', 'letter'],
         ['SUCCESS', 'success'],
         ['SCORE_RAW', 'score_raw'],
         ['RESPONSE', 'response'],
         ['CORRECT_RESPONSE', 'correct_response'],
-        ['LETTER', 'letter'],
         ['BRAILLE_CELL', 'braille_cell'],
         ['ATTEMPT_NUMBER', 'attempt_number']
       ];

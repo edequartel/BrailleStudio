@@ -400,7 +400,7 @@
   };
 
   javascriptGenerator.forBlock['lesson_track_progress'] = function (block) {
-    const verb = q(block.getFieldValue('VERB') || 'experienced');
+    const verb = q(block.getFieldValue('VERB') || 'initialized');
     const dataCode = javascriptGenerator.valueToCode(block, 'DATA', ORDER_NONE);
     return dataCode
       ? `trackProgress(${verb}, ${dataCode});\n`
@@ -410,11 +410,12 @@
   javascriptGenerator.forBlock['lesson_progress_data'] = function (block) {
     const fields = [
       ['ACTIVITY_TYPE', 'activity_type'],
+      ['WORD', 'word'],
+      ['LETTER', 'letter'],
       ['SUCCESS', 'success'],
       ['SCORE_RAW', 'score_raw'],
       ['RESPONSE', 'response'],
       ['CORRECT_RESPONSE', 'correct_response'],
-      ['LETTER', 'letter'],
       ['BRAILLE_CELL', 'braille_cell'],
       ['ATTEMPT_NUMBER', 'attempt_number']
     ];

@@ -186,6 +186,8 @@ Lesson and step rules
 - Do not add lesson_complete_step to new scripts. It is deprecated and supported only for older saved scripts.
 - Use lesson_track_progress for learning analytics and lesson_progress_data only for optional details.
 - student_code is always available as a standard external variable; progress tracking is skipped when it is empty.
+- Basic progress verbs are initialized, attempted, answered, typed, used-hint, completed, passed, and failed.
+- Progress data can include word, letter, response, correct response, success, score, braille cell, and attempt number.
 - Blockly analytics must not contain HTTP, Supabase, API keys, student identity, or manually constructed xAPI statements.
 - A common safe order is:
   1. lesson_set_active_record_index

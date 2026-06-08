@@ -1655,8 +1655,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js?v=20260608-track-progress-1');
-    await loadScript('./generators.js?v=20260608-track-progress-1');
+    await loadScript('./blocks.js?v=20260608-basic-xapi-1');
+    await loadScript('./generators.js?v=20260608-basic-xapi-1');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
       '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
@@ -1667,7 +1667,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1'
     ], { required: false });
-    await loadScript('./app.js?v=20260608-xapi-progress-1');
+    await loadScript('./app.js?v=20260608-basic-xapi-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

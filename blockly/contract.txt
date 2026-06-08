@@ -128,8 +128,8 @@ Important project conventions
 - BrailleStudio skips `trackProgress()` when the runtime `student_code` is empty.
 - Do not create xAPI statements, call Supabase, send HTTP requests, include API keys, or handle student identity in Blockly.
 - Allowed verbs:
-  - `initialized`, `attempted`, `experienced`, `answered`, `completed`, `passed`, `failed`
-  - `suspended`, `resumed`, `terminated`, `typed`, `made-error`, `used-hint`
+  - `initialized`, `attempted`, `answered`, `typed`, `used-hint`, `completed`, `passed`, `failed`
+- Progress data can include `word`, `letter`, `response`, `correct_response`, `success`, `score_raw`, `braille_cell`, and `attempt_number`.
 
 6. Audio behavior
 - Prefer project-native sound blocks over raw URLs when possible:

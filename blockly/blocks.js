@@ -1501,17 +1501,12 @@
         .appendField(new Blockly.FieldDropdown([
           ['initialized', 'initialized'],
           ['attempted', 'attempted'],
-          ['experienced', 'experienced'],
           ['answered', 'answered'],
+          ['typed', 'typed'],
+          ['used-hint', 'used-hint'],
           ['completed', 'completed'],
           ['passed', 'passed'],
-          ['failed', 'failed'],
-          ['suspended', 'suspended'],
-          ['resumed', 'resumed'],
-          ['terminated', 'terminated'],
-          ['typed', 'typed'],
-          ['made-error', 'made-error'],
-          ['used-hint', 'used-hint']
+          ['failed', 'failed']
         ]), 'VERB');
       this.appendValueInput('DATA').appendField('data');
       this.setPreviousStatement(true);
@@ -1525,11 +1520,12 @@
     init() {
       this.appendDummyInput().appendField('progress data');
       this.appendValueInput('ACTIVITY_TYPE').appendField('activity type');
+      this.appendValueInput('WORD').appendField('word');
+      this.appendValueInput('LETTER').appendField('letter');
       this.appendValueInput('SUCCESS').appendField('success');
       this.appendValueInput('SCORE_RAW').appendField('score raw');
       this.appendValueInput('RESPONSE').appendField('response');
       this.appendValueInput('CORRECT_RESPONSE').appendField('correct response');
-      this.appendValueInput('LETTER').appendField('letter');
       this.appendValueInput('BRAILLE_CELL').appendField('braille cell');
       this.appendValueInput('ATTEMPT_NUMBER').appendField('attempt number');
       this.setOutput(true);
