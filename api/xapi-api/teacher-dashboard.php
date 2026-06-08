@@ -5,8 +5,55 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
+$deleteCsrfToken = $_SESSION['xapi_delete_csrf'] ?? '';
+if (!is_string($deleteCsrfToken) || $deleteCsrfToken === '') {
+    $deleteCsrfToken = bin2hex(random_bytes(32));
+    $_SESSION['xapi_delete_csrf'] = $deleteCsrfToken;
+}
+
 try {
     require __DIR__ . '/lib.php';
+
+    if (
+        ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+        && ($_POST['action'] ?? '') === 'delete_event'
+    ) {
+        $eventId = trim((string)($_POST['event_id'] ?? ''));
+        $csrfToken = (string)($_POST['csrf'] ?? '');
+        $returnStudent = trim((string)($_POST['return_student'] ?? ''));
+
+        if (!hash_equals($deleteCsrfToken, $csrfToken)) {
+            throw new RuntimeException('Ongeldig verwijderverzoek. Vernieuw de pagina en probeer opnieuw.');
+        }
+
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $eventId) !== 1) {
+            throw new RuntimeException('Ongeldig xAPI event-ID.');
+        }
+
+        $deleteRes = sb_request(
+            'DELETE',
+            'xapi_statements?id=eq.' . urlencode($eventId)
+        );
+
+        if (($deleteRes['status'] ?? 500) >= 400) {
+            throw new RuntimeException($deleteRes['raw'] ?? 'Kon xAPI-event niet verwijderen.');
+        }
+
+        if (count($deleteRes['data'] ?? []) !== 1) {
+            throw new RuntimeException('Het xAPI-event bestaat niet of is al verwijderd.');
+        }
+
+        $location = 'teacher-dashboard.php?deleted=1';
+        if ($returnStudent !== '') {
+            $location .= '&student=' . urlencode($returnStudent);
+        }
+        header('Location: ' . $location);
+        exit;
+    }
 
     $res = sb_request(
         'GET',
@@ -157,6 +204,12 @@ function display_value(mixed $value): string
                         <?php endif; ?>
                     </div>
                 </form>
+
+                <?php if (($_GET['deleted'] ?? '') === '1'): ?>
+                    <div class="alert alert-success">
+                        Het xAPI-event is verwijderd.
+                    </div>
+                <?php endif; ?>
 
                 <div class="row row-cards mb-3">
                     <div class="col-6 col-md-3">
@@ -328,16 +381,28 @@ function display_value(mixed $value): string
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <details>
-                                            <summary class="btn btn-sm btn-outline-secondary">Volledig</summary>
-                                            <dl class="mt-2 mb-2 small">
-                                                <dt>Statement ID</dt>
-                                                <dd><?= h(display_value($r['id'] ?? null)) ?></dd>
-                                                <dt>Activity ID</dt>
-                                                <dd><?= h(display_value($r['activity_id'] ?? null)) ?></dd>
-                                            </dl>
-                                            <pre class="small bg-dark text-light p-2 rounded" style="min-width: 34rem; white-space: pre-wrap;"><?= h((string)$statementJson) ?></pre>
-                                        </details>
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <details>
+                                                <summary class="btn btn-sm btn-outline-secondary">Volledig</summary>
+                                                <dl class="mt-2 mb-2 small">
+                                                    <dt>Statement ID</dt>
+                                                    <dd><?= h(display_value($r['id'] ?? null)) ?></dd>
+                                                    <dt>Activity ID</dt>
+                                                    <dd><?= h(display_value($r['activity_id'] ?? null)) ?></dd>
+                                                </dl>
+                                                <pre class="small bg-dark text-light p-2 rounded" style="min-width: 34rem; white-space: pre-wrap;"><?= h((string)$statementJson) ?></pre>
+                                            </details>
+
+                                            <form method="post" onsubmit="return confirm('Dit xAPI-event definitief verwijderen?');">
+                                                <input type="hidden" name="action" value="delete_event">
+                                                <input type="hidden" name="event_id" value="<?= h((string)($r['id'] ?? '')) ?>">
+                                                <input type="hidden" name="return_student" value="<?= h((string)$selectedStudent) ?>">
+                                                <input type="hidden" name="csrf" value="<?= h($deleteCsrfToken) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Verwijderen
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
