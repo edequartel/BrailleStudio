@@ -20,9 +20,9 @@ try {
 
     if (
         ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
-        && ($_POST['action'] ?? '') === 'delete_event'
+        && in_array(($_POST['action'] ?? ''), ['delete_event', 'delete_visible_events'], true)
     ) {
-        $eventId = trim((string)($_POST['event_id'] ?? ''));
+        $action = (string)$_POST['action'];
         $csrfToken = (string)($_POST['csrf'] ?? '');
         $returnStudent = trim((string)($_POST['return_student'] ?? ''));
 
@@ -30,24 +30,44 @@ try {
             throw new RuntimeException('Ongeldig verwijderverzoek. Vernieuw de pagina en probeer opnieuw.');
         }
 
-        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $eventId) !== 1) {
-            throw new RuntimeException('Ongeldig xAPI event-ID.');
+        if ($action === 'delete_event') {
+            $eventIds = [trim((string)($_POST['event_id'] ?? ''))];
+        } else {
+            $decodedIds = json_decode((string)($_POST['event_ids'] ?? ''), true);
+            $eventIds = is_array($decodedIds)
+                ? array_values(array_unique(array_map(static fn ($id): string => trim((string)$id), $decodedIds)))
+                : [];
         }
 
-        $deleteRes = sb_request(
-            'DELETE',
-            'xapi_statements?id=eq.' . urlencode($eventId)
-        );
-
-        if (($deleteRes['status'] ?? 500) >= 400) {
-            throw new RuntimeException($deleteRes['raw'] ?? 'Kon xAPI-event niet verwijderen.');
+        if (count($eventIds) === 0 || count($eventIds) > 1000) {
+            throw new RuntimeException('Geen geldige zichtbare xAPI-events geselecteerd.');
         }
 
-        if (count($deleteRes['data'] ?? []) !== 1) {
-            throw new RuntimeException('Het xAPI-event bestaat niet of is al verwijderd.');
+        foreach ($eventIds as $eventId) {
+            if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $eventId) !== 1) {
+                throw new RuntimeException('Ongeldig xAPI event-ID.');
+            }
         }
 
-        $location = 'teacher-dashboard.php?deleted=1';
+        $deletedCount = 0;
+        foreach (array_chunk($eventIds, 100) as $eventIdBatch) {
+            $deleteRes = sb_request(
+                'DELETE',
+                'xapi_statements?id=in.(' . implode(',', $eventIdBatch) . ')'
+            );
+
+            if (($deleteRes['status'] ?? 500) >= 400) {
+                throw new RuntimeException($deleteRes['raw'] ?? 'Kon xAPI-events niet verwijderen.');
+            }
+
+            $deletedCount += count($deleteRes['data'] ?? []);
+        }
+
+        if ($deletedCount !== count($eventIds)) {
+            throw new RuntimeException('Niet alle geselecteerde xAPI-events konden worden verwijderd.');
+        }
+
+        $location = 'teacher-dashboard.php?deleted=' . $deletedCount;
         if ($returnStudent !== '') {
             $location .= '&student=' . urlencode($returnStudent);
         }
@@ -125,6 +145,10 @@ if ($selectedStudent !== '') {
 
 $totalEvents = count($filteredRows);
 $totalStudents = $selectedStudent !== '' ? 1 : count($stats);
+$visibleEventIds = array_values(array_filter(array_map(
+    static fn (array $row): string => trim((string)($row['id'] ?? '')),
+    $filteredRows
+)));
 
 function statement_extension(array $row, string $name): mixed
 {
@@ -205,9 +229,9 @@ function display_value(mixed $value): string
                     </div>
                 </form>
 
-                <?php if (($_GET['deleted'] ?? '') === '1'): ?>
+                <?php if ((int)($_GET['deleted'] ?? 0) > 0): ?>
                     <div class="alert alert-success">
-                        Het xAPI-event is verwijderd.
+                        <?= (int)$_GET['deleted'] ?> xAPI-event<?= (int)$_GET['deleted'] === 1 ? '' : 's' ?> verwijderd.
                     </div>
                 <?php endif; ?>
 
@@ -305,9 +329,23 @@ function display_value(mixed $value): string
                 </div>
 
                 <div class="card mt-4">
-                    <div class="card-header">
-                        <h2 class="card-title">Volledige xAPI voortgang</h2>
-                        <div class="card-subtitle">Alle opgehaalde statements voor deze selectie, maximaal 1000.</div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="card-title">Volledige xAPI voortgang</h2>
+                            <div class="card-subtitle">Alle opgehaalde statements voor deze selectie, maximaal 1000.</div>
+                        </div>
+
+                        <?php if ($visibleEventIds): ?>
+                            <form method="post" onsubmit="return confirm('Alle <?= count($visibleEventIds) ?> zichtbare xAPI-events definitief verwijderen?');">
+                                <input type="hidden" name="action" value="delete_visible_events">
+                                <input type="hidden" name="event_ids" value="<?= h(json_encode($visibleEventIds)) ?>">
+                                <input type="hidden" name="return_student" value="<?= h((string)$selectedStudent) ?>">
+                                <input type="hidden" name="csrf" value="<?= h($deleteCsrfToken) ?>">
+                                <button type="submit" class="btn btn-danger">
+                                    Verwijder alle zichtbare events (<?= count($visibleEventIds) ?>)
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </div>
 
                     <div class="table-responsive">
