@@ -3735,6 +3735,9 @@ function bindAppControls() {
         alert('Could not load online script: ' + err.message);
         onlineSelect.value = previousOnlineId || '';
         setOnlineCurrentScript({ id: previousOnlineId, title: previousOnlineTitle, status: previousOnlineStatus });
+        if (String(err?.message || '').includes('Script not found')) {
+          refreshOnlineScriptsIfAuthenticated('missing-script').catch(() => {});
+        }
       }
     });
     onlineSelect.dataset.initialized = '1';
@@ -7289,6 +7292,12 @@ if (!IS_EMBEDDED_SESSION_PLAYER) {
     applyResolvedSessionPayload(pendingResolvedSessionPayload, { autoRun: false, force: false })
       .catch((err) => {
         log('Resolved session boot apply failed: ' + (err?.message || err));
+        if (String(err?.message || '').includes('Script not found')) {
+          try {
+            window.localStorage?.removeItem(SESSION_RESOLVED_PAYLOAD_STORAGE_KEY);
+            log('Removed stale resolved session payload after missing script');
+          } catch {}
+        }
       });
   }
 }

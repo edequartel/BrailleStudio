@@ -128,9 +128,10 @@ foreach ($rawItems as $item) {
     $content = $item;
     if (!isset($content['blockly'])) {
         $remoteContent = blockly_api_load_remote_script($safeId);
-        if (is_array($remoteContent)) {
-            $content = array_replace_recursive($remoteContent, $item);
+        if (!is_array($remoteContent)) {
+            continue;
         }
+        $content = array_replace_recursive($remoteContent, $item);
     }
 
     $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
