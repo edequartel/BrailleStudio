@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/../lib.php';
+require __DIR__ . '/lib.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+$appHome = xapi_config()['APP_HOME'];
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input) {
@@ -64,12 +65,12 @@ $verbMap = [
     'resumed'     => 'http://adlnet.gov/expapi/verbs/resumed',
     'terminated'  => 'http://adlnet.gov/expapi/verbs/terminated',
 
-    'typed'      => APP_HOME . '/xapi/verbs/typed',
-    'made-error' => APP_HOME . '/xapi/verbs/made-error',
-    'used-hint'  => APP_HOME . '/xapi/verbs/used-hint'
+    'typed'      => $appHome . '/xapi/verbs/typed',
+    'made-error' => $appHome . '/xapi/verbs/made-error',
+    'used-hint'  => $appHome . '/xapi/verbs/used-hint'
 ];
 
-$verbId = $verbMap[$verb] ?? APP_HOME . '/xapi/verbs/' . rawurlencode($verb);
+$verbId = $verbMap[$verb] ?? $appHome . '/xapi/verbs/' . rawurlencode($verb);
 
 $activityTypeMap = [
     'lesson' => 'http://adlnet.gov/expapi/activities/lesson',
@@ -79,7 +80,7 @@ $activityTypeMap = [
 ];
 
 $xapiActivityType = $activityTypeMap[$activityType]
-    ?? APP_HOME . '/xapi/activity-types/' . rawurlencode($activityType);
+    ?? $appHome . '/xapi/activity-types/' . rawurlencode($activityType);
 
 $scoreRaw = $input['score_raw'] ?? null;
 $success = $input['success'] ?? null;
@@ -89,7 +90,7 @@ $statement = [
     'actor' => [
         'name' => $student['display_name'],
         'account' => [
-            'homePage' => APP_HOME,
+            'homePage' => $appHome,
             'name' => $studentCode
         ]
     ],
@@ -100,7 +101,7 @@ $statement = [
         ]
     ],
     'object' => [
-        'id' => APP_HOME . '/activities/' . rawurlencode($activityId),
+        'id' => $appHome . '/activities/' . rawurlencode($activityId),
         'definition' => [
             'name' => [
                 'nl-NL' => $activityName
@@ -124,13 +125,13 @@ $statement = [
     'context' => [
         'contextActivities' => [
             'parent' => [[
-                'id' => APP_HOME . '/lessons/' . rawurlencode($input['lesson_id'] ?? 'unknown'),
+                'id' => $appHome . '/lessons/' . rawurlencode($input['lesson_id'] ?? 'unknown'),
                 'definition' => [
                     'type' => 'http://adlnet.gov/expapi/activities/lesson'
                 ]
             ]],
             'grouping' => [[
-                'id' => APP_HOME . '/methods/' . rawurlencode($input['method_id'] ?? 'braillestudio'),
+                'id' => $appHome . '/methods/' . rawurlencode($input['method_id'] ?? 'braillestudio'),
                 'definition' => [
                     'name' => [
                         'nl-NL' => $input['method_id'] ?? 'BrailleStudio'
@@ -139,10 +140,10 @@ $statement = [
             ]]
         ],
         'extensions' => [
-            APP_HOME . '/xapi/extensions/braille-cell' => $input['braille_cell'] ?? null,
-            APP_HOME . '/xapi/extensions/letter' => $input['letter'] ?? null,
-            APP_HOME . '/xapi/extensions/correct-response' => $input['correct_response'] ?? null,
-            APP_HOME . '/xapi/extensions/attempt-number' => $input['attempt_number'] ?? null
+            $appHome . '/xapi/extensions/braille-cell' => $input['braille_cell'] ?? null,
+            $appHome . '/xapi/extensions/letter' => $input['letter'] ?? null,
+            $appHome . '/xapi/extensions/correct-response' => $input['correct_response'] ?? null,
+            $appHome . '/xapi/extensions/attempt-number' => $input['attempt_number'] ?? null
         ]
     ],
     'timestamp' => gmdate('c')
