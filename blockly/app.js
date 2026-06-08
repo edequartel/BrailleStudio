@@ -22,6 +22,7 @@ const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
 const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/api/elevenlabs-api/tts.php';
+const XAPI_PROGRESS_API_URL = window.BrailleStudioXapiEndpoint || '../api/xapi-api/xapi.php';
 const BRAILLE_BLOCKLY_AUTH_CONFIG = window.BrailleBlocklyAuth || {};
 const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || '/braillestudio/authentication-api/';
 const AUTH_BRIDGE_PAGE_URL = BRAILLE_BLOCKLY_AUTH_CONFIG.authBridgePageUrl || '/braillestudio/authentication.php?mode=bridge';
@@ -5028,6 +5029,82 @@ function normalizeProgressData(data) {
   );
 }
 
+function buildXapiProgressPayload(event) {
+  const step = window.currentLessonStep && typeof window.currentLessonStep === 'object'
+    ? window.currentLessonStep
+    : {};
+  const method = getLessonMethod();
+  const data = normalizeProgressData(event?.data);
+  const activityId = normalizeOptionalString(step.id)
+    || normalizeOptionalString(step.code)
+    || normalizeOptionalString(step.scriptId)
+    || 'blockly-runtime';
+  const activityName = normalizeOptionalString(step.title)
+    || normalizeOptionalString(step.prompt)
+    || normalizeOptionalString(step.basisWord)
+    || normalizeOptionalString(getRuntime().text)
+    || activityId;
+
+  return {
+    student_code: String(event?.student_code ?? '').trim(),
+    verb: String(event?.verb ?? '').trim(),
+    method_id: normalizeOptionalString(step.methodId)
+      || normalizeOptionalString(method?.id)
+      || 'braillestudio',
+    lesson_id: normalizeOptionalString(step.lessonId)
+      || normalizeOptionalString(step.scriptId)
+      || 'blockly',
+    activity_id: activityId,
+    activity_name: activityName,
+    activity_type: normalizeOptionalString(data.activity_type) || 'lesson',
+    ...data
+  };
+}
+
+async function sendXapiProgress(event) {
+  const payload = buildXapiProgressPayload(event);
+  log(`xAPI request: POST ${XAPI_PROGRESS_API_URL}`);
+  log(`xAPI payload: ${JSON.stringify(payload)}`);
+
+  let response;
+  try {
+    response = await fetch(XAPI_PROGRESS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    log(`xAPI network error: ${err?.message || String(err)}`);
+    throw err;
+  }
+
+  const responseText = await response.text();
+  let responseData = responseText;
+  try {
+    responseData = responseText ? JSON.parse(responseText) : null;
+  } catch {}
+
+  log(`xAPI response: HTTP ${response.status} ${response.statusText || ''}`.trim());
+  log(`xAPI response body: ${responseText || '(empty)'}`);
+
+  if (!response.ok) {
+    const apiError = responseData && typeof responseData === 'object'
+      ? responseData.error
+      : '';
+    throw new Error(`xAPI HTTP ${response.status}${apiError ? `: ${apiError}` : ''}`);
+  }
+
+  const statement = Array.isArray(responseData) ? responseData[0] : responseData;
+  const statementId = normalizeOptionalString(statement?.id);
+  log(`xAPI stored: verb=${payload.verb}, student=${payload.student_code}, statement=${statementId || '(no id returned)'}`);
+  return responseData;
+}
+
+if (typeof window.BrailleStudioProgressTracker !== 'function') {
+  window.BrailleStudioProgressTracker = sendXapiProgress;
+  log(`xAPI progress tracker initialized: ${XAPI_PROGRESS_API_URL}`);
+}
+
 async function reportProgress(verb, data = undefined) {
   const normalizedVerb = String(verb ?? '').trim();
   if (!PROGRESS_VERBS.has(normalizedVerb)) {
@@ -5050,9 +5127,12 @@ async function reportProgress(verb, data = undefined) {
   window.dispatchEvent(new CustomEvent('braillestudio:track-progress', {
     detail: structuredClone(event)
   }));
+  log(`Progress event: ${JSON.stringify(event)}`);
 
   if (typeof handler === 'function') {
     await handler(structuredClone(event));
+  } else {
+    throw new Error('BrailleStudioProgressTracker is not configured');
   }
 
   log(`Progress tracked: ${normalizedVerb}`);

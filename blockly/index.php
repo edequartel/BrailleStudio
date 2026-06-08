@@ -1667,7 +1667,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1'
     ], { required: false });
-    await loadScript('./app.js?v=20260608-track-progress-2');
+    await loadScript('./app.js?v=20260608-xapi-progress-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {
