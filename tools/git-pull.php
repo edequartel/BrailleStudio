@@ -65,9 +65,14 @@ $kind = $csrfValid && ($result['ok'] ?? false) ? 'success' : 'danger';
   <title><?= $h($title) ?> - BrailleStudio</title>
   <link rel="stylesheet" href="<?= $h($urlFor('tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $h($urlFor('tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <style>
+    .git-pull-container {
+      max-width: 72rem;
+    }
+  </style>
 </head>
 <body class="bg-body">
-  <main class="container-tight py-5">
+  <main class="container git-pull-container py-5">
     <div class="card">
       <div class="card-body">
         <h1 class="h2"><?= $h($title) ?></h1>
