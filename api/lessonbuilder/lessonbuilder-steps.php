@@ -280,6 +280,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                       <i class="ti ti-player-play me-2" aria-hidden="true"></i>
                       Run
                     </button>
+                    <button id="stopLessonBtn" class="btn btn-danger" type="button">
+                      <i class="ti ti-player-stop me-2" aria-hidden="true"></i>
+                      Stop
+                    </button>
                   </div>
                   <div id="lessonActionHint" class="form-hint mt-2">Use Save to store the current steps, Delete to remove the lesson, and Run to test the current steps.</div>
                 </div>
@@ -404,6 +408,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
     const deleteLessonBtn = document.getElementById('deleteLessonBtn');
+    const stopLessonBtn = document.getElementById('stopLessonBtn');
     const lessonActionHint = document.getElementById('lessonActionHint');
     const brailleMonitorRow = document.getElementById('brailleMonitorRow');
     const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
@@ -823,6 +828,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         runLessonBtn.innerHTML = isLessonRunning
           ? `<i class="ti ti-player-stop me-2" aria-hidden="true"></i>${isStoppingLesson ? 'Stopping...' : 'Stop'}`
           : '<i class="ti ti-player-play me-2" aria-hidden="true"></i>Run';
+      }
+      if (stopLessonBtn) {
+        const isStopping = isStoppingCurrentStep || isStoppingLesson;
+        stopLessonBtn.disabled = isStopping;
+        stopLessonBtn.innerHTML = `<i class="ti ti-player-stop me-2" aria-hidden="true"></i>${isStopping ? 'Stopping...' : 'Stop'}`;
       }
     }
 
@@ -2074,6 +2084,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       renderStepRunButtons();
       activeStopPromise = (async () => {
         const app = await waitForRunnerReady(5000);
+        if (app && typeof app.stopAudio === 'function') {
+          await app.stopAudio();
+        }
         if (app && typeof app.stopProgram === 'function') {
           await app.stopProgram();
         }
@@ -2096,6 +2109,34 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         renderStepRunButtons();
       });
       await activeStopPromise;
+    }
+
+    async function stopLessonAndAudio() {
+      appendStatus('Stop requested for lesson script and audio.');
+      const app = await waitForRunnerReady(5000);
+      const audioStopped = app && typeof app.stopAudio === 'function'
+        ? await app.stopAudio()
+        : false;
+
+      if (currentRunningStepIndex >= 0) {
+        await stopCurrentStep({ alsoStopLesson: true });
+      } else {
+        isStoppingLesson = true;
+        renderStepRunButtons();
+        try {
+          if (app && typeof app.stopProgram === 'function') {
+            await app.stopProgram();
+          }
+        } finally {
+          isLessonRunning = false;
+          isStoppingLesson = false;
+          renderStepRunButtons();
+        }
+      }
+
+      appendStatus('Lesson script and audio stopped.', {
+        audioStopped: Boolean(audioStopped)
+      });
     }
 
     async function runSingleStep(index) {
@@ -2592,6 +2633,14 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         await runLesson();
       } catch (err) {
         setStatus(`Run error: ${err.message}`);
+      }
+    });
+
+    stopLessonBtn.addEventListener('click', async () => {
+      try {
+        await stopLessonAndAudio();
+      } catch (err) {
+        setStatus(`Stop error: ${err.message}`);
       }
     });
 
