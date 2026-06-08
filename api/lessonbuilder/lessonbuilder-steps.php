@@ -927,6 +927,14 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           description: 'External variable detected from Blockly blocks. Save the script again to add full metadata.'
         });
       });
+      if (!seen.has('student_code')) {
+        normalizedVariables.unshift({
+          name: 'student_code',
+          type: 'string',
+          defaultValue: '',
+          description: 'Required student code for learning progress. Progress tracking is skipped when empty.'
+        });
+      }
       return normalizedVariables;
     }
 

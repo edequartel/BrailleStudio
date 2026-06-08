@@ -380,10 +380,21 @@ function normalizeScriptVariable(raw = {}, fallbackScope = 'internal') {
   };
 }
 
+const STANDARD_EXTERNAL_VARIABLES = Object.freeze([
+  Object.freeze({
+    id: 'external_student_code_standard',
+    name: 'student_code',
+    scope: 'external',
+    type: 'string',
+    defaultValue: '',
+    description: 'Required student code for learning progress. Progress tracking is skipped when empty.'
+  })
+]);
+
 function normalizeScriptVariables(items) {
-  if (!Array.isArray(items)) return [];
+  const source = Array.isArray(items) ? [...items, ...STANDARD_EXTERNAL_VARIABLES] : [...STANDARD_EXTERNAL_VARIABLES];
   const seen = new Set();
-  return items
+  return source
     .map((item) => normalizeScriptVariable(item))
     .filter(Boolean)
     .filter((item) => {
@@ -5023,7 +5034,14 @@ async function reportProgress(verb, data = undefined) {
     throw new Error(`Unsupported progress verb: ${normalizedVerb || '(empty)'}`);
   }
 
+  const studentCode = String(getExternalVariable('student_code') ?? '').trim();
+  if (!studentCode) {
+    log(`Progress skipped: student_code is empty (${normalizedVerb})`);
+    return null;
+  }
+
   const event = {
+    student_code: studentCode,
     verb: normalizedVerb,
     data: normalizeProgressData(data)
   };

@@ -157,6 +157,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <script src="./generators.js?v=20260608-track-progress-1"></script>
   <script src="../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1"></script>
   <script src="../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1"></script>
-  <script src="./app.js?v=20260608-track-progress-1"></script>
+  <script src="./app.js?v=20260608-track-progress-2"></script>
 </body>
 </html>

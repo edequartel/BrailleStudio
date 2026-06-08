@@ -124,6 +124,8 @@ Important project conventions
 - Use `lesson_track_progress` for all learning analytics.
 - Add `lesson_progress_data` only when the selected verb needs details.
 - The generated JavaScript uses only `trackProgress(verb, data)`.
+- `student_code` is a standard external variable. Fill it through the script default or lesson step inputs.
+- BrailleStudio skips `trackProgress()` when the runtime `student_code` is empty.
 - Do not create xAPI statements, call Supabase, send HTTP requests, include API keys, or handle student identity in Blockly.
 - Allowed verbs:
   - `initialized`, `attempted`, `experienced`, `answered`, `completed`, `passed`, `failed`

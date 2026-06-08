@@ -185,6 +185,7 @@ Lesson and step rules
 - In step-link flows, prefer lesson_get_step_input and lesson_get_step_repeat when the script depends on external step input.
 - Do not add lesson_complete_step to new scripts. It is deprecated and supported only for older saved scripts.
 - Use lesson_track_progress for learning analytics and lesson_progress_data only for optional details.
+- student_code is always available as a standard external variable; progress tracking is skipped when it is empty.
 - Blockly analytics must not contain HTTP, Supabase, API keys, student identity, or manually constructed xAPI statements.
 - A common safe order is:
   1. lesson_set_active_record_index
