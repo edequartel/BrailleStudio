@@ -99,7 +99,10 @@ function blockly_api_has_legacy_variable_format(array $content): bool
     return false;
 }
 
-$manifest = blockly_api_load_remote_manifest();
+$localDataDir = blockly_api_data_dir();
+$manifest = is_dir($localDataDir)
+    ? blockly_api_build_manifest_from_dir($localDataDir)
+    : blockly_api_load_remote_manifest();
 if (!is_array($manifest)) {
     blockly_api_json_error('Remote Blockly data manifest not found', 404, [
         'source' => blockly_api_remote_data_base_url(),
@@ -127,11 +130,11 @@ foreach ($rawItems as $item) {
 
     $content = $item;
     if (!isset($content['blockly'])) {
-        $remoteContent = blockly_api_load_remote_script($safeId);
-        if (!is_array($remoteContent)) {
+        $scriptContent = blockly_api_load_local_script($safeId);
+        if (!is_array($scriptContent)) {
             continue;
         }
-        $content = array_replace_recursive($remoteContent, $item);
+        $content = array_replace_recursive($scriptContent, $item);
     }
 
     $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
