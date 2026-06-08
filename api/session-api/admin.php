@@ -402,6 +402,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     let lastBrailleSnapshot = '';
     let activeStepLinkCode = '';
     let pendingStepLinkCode = '';
+    let stepLinkRunToken = 0;
+    let isStoppingStepLink = false;
     const scriptDataCache = new Map();
 
     function logLine(message, data) {
@@ -602,6 +604,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       document.querySelectorAll('.js-run-toggle-link').forEach((button) => {
         const code = String(button.getAttribute('data-link-code') || '').trim();
         const isPlaying = code !== '' && (code === activeStepLinkCode || code === pendingStepLinkCode);
+        button.disabled = isStoppingStepLink;
         button.classList.toggle('btn-outline-primary', !isPlaying);
         button.classList.toggle('btn-outline-danger', isPlaying);
         button.setAttribute('title', isPlaying ? 'Stop step-link' : 'Start step-link');
@@ -610,6 +613,31 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           ? '<i class="ti ti-player-stop" aria-hidden="true"></i>'
           : '<i class="ti ti-player-play" aria-hidden="true"></i>';
       });
+      const stopButton = $('adminStopBtn');
+      if (stopButton) {
+        stopButton.disabled = isStoppingStepLink;
+        stopButton.innerHTML = `<i class="ti ti-player-stop me-1" aria-hidden="true"></i>${isStoppingStepLink ? 'Stopping...' : 'Stop'}`;
+      }
+    }
+
+    function isCurrentStepLinkRun(token, code) {
+      return token === stepLinkRunToken
+        && code !== ''
+        && (code === activeStepLinkCode || code === pendingStepLinkCode);
+    }
+
+    async function waitForStepLinkRunnerIdle(app, token, code, timeoutMs = 30000) {
+      const startedAt = Date.now();
+      while (isCurrentStepLinkRun(token, code) && Date.now() - startedAt < timeoutMs) {
+        const runtime = typeof app?.getRuntimeSnapshot === 'function'
+          ? app.getRuntimeSnapshot()
+          : null;
+        if (!runtime?.isActive && !runtime?.hasActiveAudio && !runtime?.hasPendingStart) {
+          return true;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 100));
+      }
+      return false;
     }
 
     async function dispatchRunnerInput(event) {
@@ -702,7 +730,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       };
     }
 
-    async function playStepLink(item, index = -1) {
+    async function playStepLink(item, index = -1, runToken = stepLinkRunToken) {
       const payload = buildResolvedStepLinkPayload(item, index);
       if (!payload.scriptId) throw new Error('Step-link heeft geen scriptId.');
       if (activeStepLinkCode && activeStepLinkCode !== payload.code) {
@@ -710,7 +738,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           activeStepLinkCode,
           nextCode: payload.code
         });
-        await stopCurrentStepLink({ silent: true, reason: 'switch-step-link', preservePending: true });
+        await stopCurrentStepLink({ silent: true, reason: 'switch-step-link', preservePending: true, invalidateRun: false });
+        if (runToken !== stepLinkRunToken) return;
         pendingStepLinkCode = payload.code;
         updateRunToggleButtons();
       }
@@ -729,6 +758,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         : `Step-link ${payload.code} wordt direct gestart...`);
       stopBrailleMonitorSync();
       const targetWindow = await waitForLoadWorkspaceOnline();
+      if (runToken !== stepLinkRunToken) return;
       if (!targetWindow) {
         throw new Error('Blockly runner is nog niet beschikbaar.');
       }
@@ -746,6 +776,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       } else {
         await targetWindow.loadWorkspaceOnline(payload.scriptId);
       }
+      if (runToken !== stepLinkRunToken) return;
       logLine('Runner state na applyResolvedSessionPayload/loadWorkspaceOnline.', getRunnerDebugSnapshot(targetWindow, payload));
       const api = targetWindow.BrailleStudioAPI || {};
       Object.entries(payload.stepInputs || {}).forEach(([name, value]) => {
@@ -772,7 +803,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       window.setTimeout(forceBrailleMonitorSyncFromRunner, 350);
       Promise.resolve(runPromise).then(() => {
         logLine('Runner state na run completion.', getRunnerDebugSnapshot(targetWindow, payload));
-        if (activeStepLinkCode === payload.code || pendingStepLinkCode === payload.code) {
+        return waitForStepLinkRunnerIdle(app, runToken, payload.code);
+      }).then((runnerIdle) => {
+        if (runnerIdle && isCurrentStepLinkRun(runToken, payload.code)) {
           activeStepLinkCode = '';
           pendingStepLinkCode = '';
           updateRunToggleButtons();
@@ -784,7 +817,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           code: payload.code,
           message: err.message || String(err)
         });
-        const isCurrentRun = activeStepLinkCode === payload.code || pendingStepLinkCode === payload.code;
+        const isCurrentRun = isCurrentStepLinkRun(runToken, payload.code);
         if (isCurrentRun) {
           activeStepLinkCode = '';
           pendingStepLinkCode = '';
@@ -801,36 +834,46 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     async function stopCurrentStepLink(options = {}) {
+      if (isStoppingStepLink) return;
+      isStoppingStepLink = true;
       const silent = Boolean(options.silent);
-      if (!silent) setSessionSendStatus('Script wordt gestopt...');
-      const targetWindow = await waitForLoadWorkspaceOnline();
-      const app = targetWindow?.BrailleBlocklyApp || null;
-      if (!app || (typeof app.stopProgram !== 'function' && typeof app.stopAudio !== 'function')) {
-        throw new Error('Stop API is niet beschikbaar.');
-      }
-      const audioStopped = typeof app.stopAudio === 'function'
-        ? await app.stopAudio()
-        : false;
-      if (typeof app.stopProgram === 'function') {
-        await app.stopProgram();
-      }
-      stopBrailleMonitorSync();
-      clearAdminBrailleMonitor();
-      const stoppedCode = activeStepLinkCode;
-      activeStepLinkCode = '';
-      if (!options.preservePending) {
-        pendingStepLinkCode = '';
+      if (options.invalidateRun !== false) {
+        stepLinkRunToken += 1;
       }
       updateRunToggleButtons();
-      if (!silent) {
-        setSessionSendStatus('Script gestopt.', 'success');
-        $('linksStatus').innerHTML = statusText('Script stopped.', 'success');
+      if (!silent) setSessionSendStatus('Script wordt gestopt...');
+      try {
+        const targetWindow = await waitForLoadWorkspaceOnline();
+        const app = targetWindow?.BrailleBlocklyApp || null;
+        if (!app || (typeof app.stopProgram !== 'function' && typeof app.stopAudio !== 'function')) {
+          throw new Error('Stop API is niet beschikbaar.');
+        }
+        const audioStopped = typeof app.stopAudio === 'function'
+          ? await app.stopAudio()
+          : false;
+        if (typeof app.stopProgram === 'function') {
+          await app.stopProgram();
+        }
+        stopBrailleMonitorSync();
+        clearAdminBrailleMonitor();
+        const stoppedCode = activeStepLinkCode;
+        activeStepLinkCode = '';
+        if (!options.preservePending) {
+          pendingStepLinkCode = '';
+        }
+        if (!silent) {
+          setSessionSendStatus('Script gestopt.', 'success');
+          $('linksStatus').innerHTML = statusText('Script stopped.', 'success');
+        }
+        logLine('Step-link runtime gestopt vanuit admin.', {
+          stoppedCode,
+          audioStopped: Boolean(audioStopped),
+          reason: options.reason || 'manual'
+        });
+      } finally {
+        isStoppingStepLink = false;
+        updateRunToggleButtons();
       }
-      logLine('Step-link runtime gestopt vanuit admin.', {
-        stoppedCode,
-        audioStopped: Boolean(audioStopped),
-        reason: options.reason || 'manual'
-      });
     }
 
     function getScriptDisplayMeta(itemOrScriptId = {}) {
@@ -1444,6 +1487,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           const code = String(item?.code || '').trim();
           const isCurrent = code && (code === activeStepLinkCode || code === pendingStepLinkCode);
           const action = isCurrent ? 'stop' : 'play';
+          const runToken = action === 'play'
+            ? ++stepLinkRunToken
+            : stepLinkRunToken;
           if (action === 'play') {
             pendingStepLinkCode = code;
             updateRunToggleButtons();
@@ -1458,8 +1504,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           });
           const task = action === 'stop'
             ? stopCurrentStepLink({ reason: 'row-toggle' })
-            : playStepLink(item, index);
+            : playStepLink(item, index, runToken);
           task.catch((err) => {
+            if (action === 'play' && runToken !== stepLinkRunToken) {
+              return;
+            }
             if (pendingStepLinkCode === code) {
               pendingStepLinkCode = '';
             }
