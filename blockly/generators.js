@@ -399,6 +399,34 @@
     return [`(() => { const inputs = (window.lessonStepInputs && typeof window.lessonStepInputs === 'object') ? window.lessonStepInputs : {}; return Math.max(1, Math.floor(Number(inputs.repeat ?? 1) || 1)); })()`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['lesson_track_progress'] = function (block) {
+    const verb = q(block.getFieldValue('VERB') || 'experienced');
+    const dataCode = javascriptGenerator.valueToCode(block, 'DATA', ORDER_NONE);
+    return dataCode
+      ? `trackProgress(${verb}, ${dataCode});\n`
+      : `trackProgress(${verb});\n`;
+  };
+
+  javascriptGenerator.forBlock['lesson_progress_data'] = function (block) {
+    const fields = [
+      ['ACTIVITY_TYPE', 'activity_type'],
+      ['SUCCESS', 'success'],
+      ['SCORE_RAW', 'score_raw'],
+      ['RESPONSE', 'response'],
+      ['CORRECT_RESPONSE', 'correct_response'],
+      ['LETTER', 'letter'],
+      ['BRAILLE_CELL', 'braille_cell'],
+      ['ATTEMPT_NUMBER', 'attempt_number']
+    ];
+    const properties = fields
+      .map(([inputName, propertyName]) => {
+        const valueCode = javascriptGenerator.valueToCode(block, inputName, ORDER_NONE);
+        return valueCode ? `${propertyName}: ${valueCode}` : '';
+      })
+      .filter(Boolean);
+    return [`{ ${properties.join(', ')} }`, ORDER_ATOMIC];
+  };
+
   // Legacy compatibility: generate code when an older saved script contains this block.
   javascriptGenerator.forBlock['lesson_complete_step'] = function (block) {
     const status = q(block.getFieldValue('STATUS') || 'completed');

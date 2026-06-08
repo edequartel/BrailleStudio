@@ -4983,6 +4983,71 @@ function normalizeLessonStepCompletionPayload(payload = {}) {
   };
 }
 
+const PROGRESS_VERBS = new Set([
+  'initialized',
+  'attempted',
+  'experienced',
+  'answered',
+  'completed',
+  'passed',
+  'failed',
+  'suspended',
+  'resumed',
+  'terminated',
+  'typed',
+  'made-error',
+  'used-hint'
+]);
+const PROGRESS_DATA_KEYS = new Set([
+  'activity_type',
+  'success',
+  'score_raw',
+  'response',
+  'correct_response',
+  'letter',
+  'braille_cell',
+  'attempt_number'
+]);
+
+function normalizeProgressData(data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return {};
+  return Object.fromEntries(
+    Object.entries(data)
+      .filter(([key, value]) => PROGRESS_DATA_KEYS.has(key) && value != null)
+  );
+}
+
+async function reportProgress(verb, data = undefined) {
+  const normalizedVerb = String(verb ?? '').trim();
+  if (!PROGRESS_VERBS.has(normalizedVerb)) {
+    throw new Error(`Unsupported progress verb: ${normalizedVerb || '(empty)'}`);
+  }
+
+  const event = {
+    verb: normalizedVerb,
+    data: normalizeProgressData(data)
+  };
+  const handler = window.BrailleStudioProgressTracker;
+
+  window.dispatchEvent(new CustomEvent('braillestudio:track-progress', {
+    detail: structuredClone(event)
+  }));
+
+  if (typeof handler === 'function') {
+    await handler(structuredClone(event));
+  }
+
+  log(`Progress tracked: ${normalizedVerb}`);
+  return event;
+}
+
+window.trackProgress = function trackProgressFromBlockly(verb, data = undefined) {
+  return reportProgress(verb, data).catch((err) => {
+    log(`Progress tracking failed: ${err?.message || String(err)}`);
+    return null;
+  });
+};
+
 async function signalLessonStepCompletion(payload = {}) {
   const normalized = normalizeLessonStepCompletionPayload(payload);
   getRuntime().stepCompletion = normalized;
@@ -5239,6 +5304,26 @@ async function evalValue(block) {
     case 'lesson_get_step_repeat': {
       const inputs = getLessonStepInputs();
       return Math.max(1, Math.floor(Number(inputs.repeat) || 1));
+    }
+
+    case 'lesson_progress_data': {
+      const fields = [
+        ['ACTIVITY_TYPE', 'activity_type'],
+        ['SUCCESS', 'success'],
+        ['SCORE_RAW', 'score_raw'],
+        ['RESPONSE', 'response'],
+        ['CORRECT_RESPONSE', 'correct_response'],
+        ['LETTER', 'letter'],
+        ['BRAILLE_CELL', 'braille_cell'],
+        ['ATTEMPT_NUMBER', 'attempt_number']
+      ];
+      const data = {};
+      for (const [inputName, propertyName] of fields) {
+        const inputBlock = block.getInputTargetBlock(inputName);
+        if (!inputBlock) continue;
+        data[propertyName] = await evalValue(inputBlock);
+      }
+      return data;
     }
 
     case 'state_last_timer_name':
@@ -6169,6 +6254,14 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         break;
       }
 
+      case 'lesson_track_progress': {
+        await window.trackProgress(
+          current.getFieldValue('VERB'),
+          await evalValue(current.getInputTargetBlock('DATA'))
+        );
+        break;
+      }
+
       // Legacy compatibility: execute detailed step completion from older saved scripts.
       case 'lesson_complete_step': {
         await signalLessonStepCompletion({
@@ -6987,6 +7080,9 @@ window.BrailleBlocklyApp = {
   },
   async signalLessonCompletion(payload = {}) {
     return await signalLessonCompletion(payload);
+  },
+  async trackProgress(verb, data = undefined) {
+    return await window.trackProgress(verb, data);
   },
   getStepCompletion() {
     return getRuntime().stepCompletion ? structuredClone(getRuntime().stepCompletion) : null;

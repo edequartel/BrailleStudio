@@ -1494,6 +1494,50 @@
     }
   };
 
+  Blockly.Blocks['lesson_track_progress'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('track progress')
+        .appendField(new Blockly.FieldDropdown([
+          ['initialized', 'initialized'],
+          ['attempted', 'attempted'],
+          ['experienced', 'experienced'],
+          ['answered', 'answered'],
+          ['completed', 'completed'],
+          ['passed', 'passed'],
+          ['failed', 'failed'],
+          ['suspended', 'suspended'],
+          ['resumed', 'resumed'],
+          ['terminated', 'terminated'],
+          ['typed', 'typed'],
+          ['made-error', 'made-error'],
+          ['used-hint', 'used-hint']
+        ]), 'VERB');
+      this.appendValueInput('DATA').appendField('data');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour('#14B8A6');
+      this.setTooltip('Reports learning progress through trackProgress(). BrailleStudio handles identity, xAPI conversion, and storage.');
+    }
+  };
+
+  Blockly.Blocks['lesson_progress_data'] = {
+    init() {
+      this.appendDummyInput().appendField('progress data');
+      this.appendValueInput('ACTIVITY_TYPE').appendField('activity type');
+      this.appendValueInput('SUCCESS').appendField('success');
+      this.appendValueInput('SCORE_RAW').appendField('score raw');
+      this.appendValueInput('RESPONSE').appendField('response');
+      this.appendValueInput('CORRECT_RESPONSE').appendField('correct response');
+      this.appendValueInput('LETTER').appendField('letter');
+      this.appendValueInput('BRAILLE_CELL').appendField('braille cell');
+      this.appendValueInput('ATTEMPT_NUMBER').appendField('attempt number');
+      this.setOutput(true);
+      this.setColour('#14B8A6');
+      this.setTooltip('Optional learning-progress details. Only connected values are included.');
+    }
+  };
+
   // Legacy compatibility: hidden from the toolbox, but required by older saved scripts.
   Blockly.Blocks['lesson_complete_step'] = {
     init() {

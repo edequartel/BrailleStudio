@@ -1390,6 +1390,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
 
   <category name="Lesson" colour="#14B8A6">
+    <block type="lesson_track_progress"></block>
+    <block type="lesson_progress_data"></block>
     <block type="lesson_complete_lesson"></block>
     <block type="lesson_get_step_repeat"></block>
   </category>
@@ -1652,8 +1654,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js?v=20260529-external-debug-2');
-    await loadScript('./generators.js?v=20260529-external-debug-2');
+    await loadScript('./blocks.js?v=20260608-track-progress-1');
+    await loadScript('./generators.js?v=20260608-track-progress-1');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
       '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
@@ -1664,7 +1666,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       '/braillestudio/components/braillebridge-status/braillebridge-status.js',
       'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
     ], { required: false });
-    await loadScript('./app.js?v=20260607-stop-finished-audio-2');
+    await loadScript('./app.js?v=20260608-track-progress-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

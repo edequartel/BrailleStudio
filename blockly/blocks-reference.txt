@@ -96,6 +96,7 @@ Important statement/action blocks
 - list_remove_item
 - list_for_each_item
 - lesson_set_active_record_index
+- lesson_track_progress
 - lesson_complete_lesson
 - klanken_play_word_sounds
 - klanken_play_word_sounds_with_pause
@@ -145,6 +146,7 @@ Important output/value blocks
 - lesson_get_active_category_count
 - lesson_get_step_input
 - lesson_get_step_repeat
+- lesson_progress_data
 - klanken_get_speech_audio_by_onlyletters
 - audio_get_speech_audio_by_letters_klanken
 - audio_get_speech_audio_by_onlyletters_klanken_length
@@ -182,6 +184,8 @@ Lesson and step rules
 - If a script uses lesson_get_active_field or lesson_get_active_word, set the active lesson record first with lesson_set_active_record_index.
 - In step-link flows, prefer lesson_get_step_input and lesson_get_step_repeat when the script depends on external step input.
 - Do not add lesson_complete_step to new scripts. It is deprecated and supported only for older saved scripts.
+- Use lesson_track_progress for learning analytics and lesson_progress_data only for optional details.
+- Blockly analytics must not contain HTTP, Supabase, API keys, student identity, or manually constructed xAPI statements.
 - A common safe order is:
   1. lesson_set_active_record_index
   2. bb_set_text / other output

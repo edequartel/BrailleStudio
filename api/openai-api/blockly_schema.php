@@ -51,6 +51,7 @@ return [
         'bb_send_key' => ['KEY'],
         'bb_move_caret' => ['UNIT'],
         'sound_play_folder_file' => ['FOLDER'],
+        'lesson_track_progress' => ['VERB'],
         'math_arithmetic' => ['OP'],
         'logic_compare' => ['OP'],
     ],
@@ -69,6 +70,9 @@ return [
         ],
         'bb_move_caret' => [
             'UNIT' => ['character', 'cell'],
+        ],
+        'lesson_track_progress' => [
+            'VERB' => ['initialized', 'attempted', 'experienced', 'answered', 'completed', 'passed', 'failed', 'suspended', 'resumed', 'terminated', 'typed', 'made-error', 'used-hint'],
         ],
         'sound_play_folder_file' => [
             'FOLDER' => ['speech', 'letters', 'instructions', 'feedback', 'story', 'general', 'ux'],
@@ -103,6 +107,7 @@ return [
     ],
     'prompt_rules' => [
         'Gebruik lesson_complete_step niet in nieuwe scripts; dit blocktype is deprecated en bestaat alleen voor compatibiliteit met oudere scripts.',
+        'Gebruik lesson_track_progress voor learning analytics. Gebruik alleen lesson_progress_data als optionele data-input en maak geen xAPI statements, HTTP requests, Supabase-code of studentidentiteit in Blockly.',
         'Gebruik voor if/else-logica het bestaande Blockly blocktype controls_if.',
         'Gebruik dus nooit een pseudoblok zoals if_else.',
         'Voor controls_if gebruik je de echte Blockly inputnamen zoals IF0 en DO0.',

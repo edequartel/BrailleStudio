@@ -120,7 +120,16 @@ Important project conventions
 - Do not use `lesson_complete_step` in new scripts. It is deprecated and only retained so older saved scripts keep working.
 - If the script is intended to keep listening for input, use event-based top-level blocks rather than a single finite `event_when_started` chain that immediately ends.
 
-5. Audio behavior
+5. Learning progress
+- Use `lesson_track_progress` for all learning analytics.
+- Add `lesson_progress_data` only when the selected verb needs details.
+- The generated JavaScript uses only `trackProgress(verb, data)`.
+- Do not create xAPI statements, call Supabase, send HTTP requests, include API keys, or handle student identity in Blockly.
+- Allowed verbs:
+  - `initialized`, `attempted`, `experienced`, `answered`, `completed`, `passed`, `failed`
+  - `suspended`, `resumed`, `terminated`, `typed`, `made-error`, `used-hint`
+
+6. Audio behavior
 - Prefer project-native sound blocks over raw URLs when possible:
   - `sound_play_folder_file`
   - `sound_play_sounds_relative`
@@ -129,14 +138,14 @@ Important project conventions
   - `klanken_play_word_phonemes_nl`
 - Use `sound_wait_stopped` only if explicit sequencing is needed and the block exists in the uploaded files.
 
-6. Braille output
+7. Braille output
 - Use `bb_set_text` to place text on the braille line.
 - Use `bb_append_text` only when incremental concatenation is intentional.
 - If the script should show a word from lesson data, prefer:
   - `lesson_set_active_record_index`
   - then `bb_set_text` with `lesson_get_active_field` or `lesson_get_active_word`
 
-7. Variables
+8. Variables
 - Declare variables in the top-level `variables` array if any block refers to them.
 - Ensure variable ids and names are consistent with the blocks that reference them.
 
