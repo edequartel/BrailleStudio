@@ -290,15 +290,71 @@ $method = null;
 $basisRecords = [];
 $lessons = [];
 $remotePayload = null;
+$loadDiagnostics = [];
+$basisSources = [];
+
+$loadDiagnostics[] = [
+    'stage' => 'request',
+    'requestedId' => (string)($_GET['id'] ?? $_GET['method'] ?? ''),
+    'normalizedId' => $methodId,
+    'host' => (string)($_SERVER['HTTP_HOST'] ?? ''),
+    'canonicalRemoteFallbackAllowed' => !is_running_on_canonical_remote(),
+];
 
 if ($methodId === '') {
     $errorMessage = 'Missing method id. Use runmethod.php?id=your-method-id';
 } else {
     $method = read_local_method($methodId);
     $lessons = read_local_lessons_for_method($methodId);
+    foreach (local_data_dirs('methods') as $index => $dir) {
+        $path = $dir . '/' . $methodId . '.json';
+        $candidate = read_json_file($path);
+        $loadDiagnostics[] = [
+            'stage' => 'local-method',
+            'source' => ['data/methods', 'api/data/methods', 'XXX data/methods'][$index] ?? ('method-source-' . $index),
+            'fileExists' => is_file($path),
+            'readable' => is_readable($path),
+            'jsonValid' => is_array($candidate),
+            'storedId' => is_array($candidate) ? (string)($candidate['id'] ?? '') : '',
+        ];
+    }
+    foreach (local_data_dirs('lessons') as $index => $dir) {
+        $files = is_dir($dir) ? (glob($dir . '/*.json') ?: []) : [];
+        $matching = 0;
+        $seenMethodIds = [];
+        foreach ($files as $file) {
+            $candidate = read_json_file($file);
+            if (!is_array($candidate)) {
+                continue;
+            }
+            $candidateMethod = is_array($candidate['method'] ?? null) ? $candidate['method'] : [];
+            $candidateMethodId = normalize_id((string)($candidate['methodId'] ?? ($candidateMethod['id'] ?? '')));
+            if ($candidateMethodId !== '') {
+                $seenMethodIds[$candidateMethodId] = true;
+            }
+            if ($candidateMethodId === $methodId) {
+                $matching++;
+            }
+        }
+        $loadDiagnostics[] = [
+            'stage' => 'local-lessons',
+            'source' => ['data/lessons', 'api/data/lessons', 'XXX data/lessons'][$index] ?? ('lesson-source-' . $index),
+            'directoryExists' => is_dir($dir),
+            'jsonFileCount' => count($files),
+            'matchingLessonCount' => $matching,
+            'sampleMethodIds' => array_slice(array_keys($seenMethodIds), 0, 10),
+        ];
+    }
 
     if (!$method || count($lessons) === 0) {
         $remotePayload = read_remote_runmethod_payload($methodId);
+        $loadDiagnostics[] = [
+            'stage' => 'remote-runmethod-fallback',
+            'attempted' => !is_running_on_canonical_remote(),
+            'source' => canonical_remote_base_url() . '/runmethod.php?id=' . rawurlencode($methodId),
+            'payloadFound' => is_array($remotePayload),
+            'skipReason' => is_running_on_canonical_remote() ? 'Current host is treated as canonical remote.' : '',
+        ];
         if (is_array($remotePayload)) {
             if (!$method) {
                 $method = is_array($remotePayload['method'] ?? null) ? $remotePayload['method'] : null;
@@ -312,6 +368,11 @@ if ($methodId === '') {
 
     if (!$method) {
         $method = read_remote_method($methodId);
+        $loadDiagnostics[] = [
+            'stage' => 'remote-method-json',
+            'source' => canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'),
+            'methodFound' => is_array($method),
+        ];
     }
 
     if (!$method) {
@@ -319,7 +380,6 @@ if ($methodId === '') {
     } elseif (count($basisRecords) === 0) {
         $basisFile = trim((string)($method['basisFile'] ?? ''));
         $dataSource = trim((string)($method['dataSource'] ?? ''));
-        $basisSources = [];
         if ($dataSource !== '') {
             $basisSources[] = $dataSource;
         }
@@ -331,6 +391,12 @@ if ($methodId === '') {
         $basisData = null;
         foreach (array_values(array_unique(array_filter($basisSources))) as $basisSource) {
             $basisData = read_json_source($basisSource);
+            $loadDiagnostics[] = [
+                'stage' => 'basis-source',
+                'source' => is_http_url($basisSource) ? $basisSource : basename(dirname($basisSource)) . '/' . basename($basisSource),
+                'loaded' => is_array($basisData),
+                'recordCount' => is_array($basisData) ? count($basisData) : 0,
+            ];
             if (is_array($basisData)) {
                 break;
             }
@@ -355,6 +421,15 @@ if ($methodId === '') {
     }
 }
 
+$loadDiagnostics[] = [
+    'stage' => 'result',
+    'methodFound' => is_array($method),
+    'methodId' => is_array($method) ? (string)($method['id'] ?? '') : '',
+    'lessonCount' => count($lessons),
+    'basisRecordCount' => count($basisRecords),
+    'error' => $errorMessage,
+];
+
 $pagePayload = [
     'methodId' => $methodId,
     'method' => $method,
@@ -363,6 +438,7 @@ $pagePayload = [
     'runnerUrl' => $defaultRunnerUrl,
     'blocklyApiBase' => $blocklyApiBase,
     'error' => $errorMessage,
+    'loadDiagnostics' => $loadDiagnostics,
 ];
 ?>
 <!doctype html>
@@ -819,6 +895,14 @@ $pagePayload = [
         <i class="ti ti-alert-circle me-2" aria-hidden="true"></i>
         <div><?= h($errorMessage) ?></div>
       </section>
+      <section class="card">
+        <div class="card-header">
+          <h2 class="card-title">Debug log</h2>
+        </div>
+        <div class="card-body">
+          <pre class="form-control debug-log mb-0" role="log"><?= h((string)json_encode($loadDiagnostics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
+        </div>
+      </section>
     <?php else: ?>
       <section class="card">
         <div class="card-body method-stack">
@@ -945,6 +1029,7 @@ $pagePayload = [
     const lessons = Array.isArray(bootstrap.lessons) ? bootstrap.lessons : [];
     const runnerUrl = String(bootstrap.runnerUrl || '');
     const blocklyApiBase = String(bootstrap.blocklyApiBase || '');
+    const loadDiagnostics = Array.isArray(bootstrap.loadDiagnostics) ? bootstrap.loadDiagnostics : [];
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     const lessonsList = document.getElementById('lessonsList');
@@ -2047,23 +2132,82 @@ $pagePayload = [
       const scriptId = String(id || '').trim();
       if (!scriptId) throw new Error('Missing script id');
       if (scriptDataCache.has(scriptId)) {
+        appendStatus('Script load cache hit.', { scriptId });
         return scriptDataCache.get(scriptId);
       }
       const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(scriptId)}`;
+      appendStatus('Script load requested.', {
+        scriptId,
+        url,
+        authenticated: Boolean(getBrailleStudioAuthToken())
+      });
       const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
-      if (!res.ok) throw new Error(`Failed to load script ${scriptId} (HTTP ${res.status})`);
-      const data = await res.json();
-      if (!data || !data.blockly) throw new Error(`Script ${scriptId} has no blockly state`);
+      const responseText = await res.text();
+      let data = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = null;
+      }
+      if (!res.ok) {
+        appendStatus('Script load HTTP failure.', {
+          scriptId,
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          response: responseText.slice(0, 500)
+        });
+        throw new Error(`Failed to load script ${scriptId} (HTTP ${res.status})`);
+      }
+      if (!data || !data.blockly) {
+        appendStatus('Script load response missing Blockly state.', {
+          scriptId,
+          url,
+          responseKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+          response: responseText.slice(0, 500)
+        });
+        throw new Error(`Script ${scriptId} has no blockly state`);
+      }
       scriptDataCache.set(scriptId, data);
+      appendStatus('Script loaded.', {
+        scriptId,
+        url,
+        title: String(data.title || ''),
+        responseKeys: Object.keys(data)
+      });
       return data;
     }
 
     async function loadScriptsList() {
       const url = `${blocklyApiBase}/list.php`;
+      appendStatus('Script list requested.', {
+        url,
+        authenticated: Boolean(getBrailleStudioAuthToken())
+      });
       const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
-      if (!res.ok) throw new Error(`Failed to load script list (HTTP ${res.status})`);
-      const data = await res.json();
-      return Array.isArray(data?.items) ? data.items : [];
+      const responseText = await res.text();
+      let data = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        data = null;
+      }
+      if (!res.ok) {
+        appendStatus('Script list HTTP failure.', {
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          response: responseText.slice(0, 500)
+        });
+        throw new Error(`Failed to load script list (HTTP ${res.status})`);
+      }
+      const items = Array.isArray(data?.items) ? data.items : [];
+      appendStatus('Script list loaded.', {
+        url,
+        scriptCount: items.length,
+        scriptIds: items.slice(0, 100).map((item) => String(item?.id || ''))
+      });
+      return items;
     }
 
     function getReferencedScriptIds() {
@@ -2089,13 +2233,14 @@ $pagePayload = [
           return scriptId;
         })
       );
-      const failed = results.filter((result) => result.status === 'rejected');
-      failed.forEach((result, index) => {
+      results.forEach((result, index) => {
+        if (result.status !== 'rejected') return;
         appendStatus('Script preload failed.', {
           scriptId: scriptIds[index],
           error: result.reason?.message || String(result.reason)
         });
       });
+      const failed = results.filter((result) => result.status === 'rejected');
       return {
         total: scriptIds.length,
         loaded: results.length - failed.length,
@@ -2839,6 +2984,7 @@ $pagePayload = [
 
     async function init() {
       let preloadSummary = { total: 0, loaded: 0, failed: 0 };
+      appendStatus('RunMethod load diagnostics.', loadDiagnostics);
       try {
         appendStatus('Initial preload started.', {
           lessonCount: lessons.length,
@@ -2855,6 +3001,13 @@ $pagePayload = [
           return null;
         });
         scriptsCache = await loadScriptsList();
+        const referencedScriptIds = getReferencedScriptIds();
+        const availableScriptIds = new Set(scriptsCache.map((item) => String(item?.id || '').trim()).filter(Boolean));
+        appendStatus('Referenced script diagnostics.', {
+          referencedScriptIds,
+          missingFromScriptList: referencedScriptIds.filter((scriptId) => !availableScriptIds.has(scriptId)),
+          availableScriptCount: availableScriptIds.size
+        });
         hydrateLessonsWithScriptMetadata();
         preloadSummary = await preloadReferencedScriptData();
         await runnerWarmup;
