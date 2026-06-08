@@ -1025,6 +1025,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         data-popup="true"
         data-ws-url="ws://localhost:5000/ws"
         data-launch-url="braillebridge://"
+        data-auto-launch="true"
         aria-label="BrailleBridge status"
       ></section>
     </div>
@@ -1662,9 +1663,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
     ], { required: false });
     await loadScriptCandidates([
-      '../components/braillebridge-status/braillebridge-status.js',
-      '/braillestudio/components/braillebridge-status/braillebridge-status.js',
-      'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js'
+        '../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
+        '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
+        'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1'
     ], { required: false });
     await loadScript('./app.js?v=20260608-track-progress-2');
   })().catch((err) => {

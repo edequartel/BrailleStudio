@@ -598,6 +598,7 @@
                   data-popup="true"
                   data-show-launch="true"
                   data-launch-url="braillebridge://"
+                  data-auto-launch="true"
                 ></div>
               </div>
             </div>
@@ -635,7 +636,7 @@
   </div>
 
   <script src="../../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1"></script>
-  <script src="../../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1"></script>
+  <script src="../../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1"></script>
   <script type="module">
     const params = new URLSearchParams(window.location.search);
     let activeSessionCode = String(params.get('session') || params.get('session_code') || '').trim().toUpperCase();

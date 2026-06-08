@@ -270,6 +270,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                       data-popup="true"
                       data-show-launch="true"
                       data-launch-url="braillebridge://"
+                      data-auto-launch="true"
                     ></div>
                   </div>
                 </div>
@@ -376,7 +377,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script src="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1')) ?>"></script>
-  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1')) ?>"></script>
   <script>
     const ADMIN_VERSION = '2026-05-29 rebuilt-step-link-admin-debug-4';
     const SCRIPT_LIST_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/list.php')) ?>;

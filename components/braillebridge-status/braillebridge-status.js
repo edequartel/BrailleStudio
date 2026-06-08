@@ -5,7 +5,8 @@
     wsUrl: "ws://localhost:5000/ws",
     launchUrl: "braillebridge://",
     launchDelayMs: 1200,
-    reconnectDelayMs: 2500
+    reconnectDelayMs: 2500,
+    autoLaunch: false
   };
 
   const LOG_PREFIX = "[BrailleBridgeStatus]";
@@ -196,7 +197,8 @@
     start() {
       logStatus("init", {
         wsUrl: this.options.wsUrl,
-        launchUrl: this.options.launchUrl
+        launchUrl: this.options.launchUrl,
+        autoLaunch: this.options.autoLaunch
       });
       this.connectWebSocket();
     }
@@ -282,12 +284,14 @@
         reconnectDelayMs: this.options.reconnectDelayMs
       });
       this.setOffline("WebSocket gesloten");
+      this.tryAutoLaunch("WebSocket gesloten");
       this.scheduleReconnect();
     }
 
     handleWebSocketError(err = null) {
       logStatus("WS <- error", { error: err?.message || String(err || "WebSocket fout") }, "warn");
       this.setOffline(err?.message || "WebSocket fout");
+      this.tryAutoLaunch(err?.message || "WebSocket fout");
       this.scheduleReconnect();
     }
 
@@ -343,24 +347,30 @@
       };
     }
 
-    tryLaunch() {
+    tryAutoLaunch(reason) {
+      if (!this.options.autoLaunch) return false;
+      return this.tryLaunch(`automatic: ${reason || "WebSocket offline"}`);
+    }
+
+    tryLaunch(reason = "manual") {
       const now = Date.now();
-      if (now - this.launchAttemptedAt < 30000) return;
+      if (now - this.launchAttemptedAt < 30000) return false;
       this.launchAttemptedAt = now;
+      logStatus("launch -> braillebridge://", { reason });
       this.applyVisualState("starting");
       const frame = document.createElement("iframe");
       frame.hidden = true;
       frame.src = this.options.launchUrl;
       document.body.appendChild(frame);
       global.setTimeout(() => frame.remove(), this.options.launchDelayMs);
+      return true;
     }
 
     handleManualStart(event) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
-      logStatus("launch -> braillebridge://", { reason: "manual start button" });
       this.launchAttemptedAt = 0;
-      this.tryLaunch();
+      this.tryLaunch("manual start button");
       global.setTimeout(() => this.connectWebSocket(), this.options.launchDelayMs);
     }
 
@@ -540,7 +550,8 @@
     const options = {
       wsUrl: root.dataset.wsUrl || DEFAULTS.wsUrl,
       launchUrl: root.dataset.launchUrl || DEFAULTS.launchUrl,
-      reconnectDelayMs: Number(root.dataset.reconnectDelayMs || DEFAULTS.reconnectDelayMs)
+      reconnectDelayMs: Number(root.dataset.reconnectDelayMs || DEFAULTS.reconnectDelayMs),
+      autoLaunch: boolAttr(root.dataset.autoLaunch || "false")
     };
     return new BrailleBridgeStatus(root, options);
   }

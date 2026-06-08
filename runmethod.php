@@ -842,6 +842,7 @@ $pagePayload = [
             data-popup="true"
             data-ws-url="ws://localhost:5000/ws"
             data-launch-url="braillebridge://"
+            data-auto-launch="true"
             aria-label="BrailleBridge status"
           ></section>
         </div>
@@ -936,7 +937,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
