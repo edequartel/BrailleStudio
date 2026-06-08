@@ -100,7 +100,16 @@ function canonical_remote_data_url(string $path = ''): string
 function is_running_on_canonical_remote(): bool
 {
     $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
-    return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
+    if ($host !== 'www.tastenbraille.com' && $host !== 'tastenbraille.com') {
+        return false;
+    }
+
+    $requestPath = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?: '');
+    if ($requestPath === '') {
+        $requestPath = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+    }
+    return $requestPath === '/braillestudio/runmethod.php'
+        || str_starts_with($requestPath, '/braillestudio/');
 }
 
 function read_remote_runmethod_payload(string $methodId): ?array
@@ -141,6 +150,58 @@ function read_remote_method(string $methodId): ?array
         );
     }
     return $method;
+}
+
+function read_remote_lessons_for_method(string $methodId, ?array &$diagnostics = null): array
+{
+    $methodId = normalize_id($methodId);
+    if ($methodId === '') {
+        return [];
+    }
+
+    $manifestUrl = canonical_remote_base_url() . '/temp/manifests/lessons.json';
+    $manifest = read_json_url($manifestUrl);
+    $items = is_array($manifest['items'] ?? null) ? $manifest['items'] : [];
+    $diagnostics = [
+        'manifestLoaded' => is_array($manifest),
+        'manifestItemCount' => count($items),
+        'matchingManifestItems' => 0,
+        'loadedLessonCount' => 0,
+        'failedLessonIds' => [],
+    ];
+    $lessons = [];
+    foreach ($items as $item) {
+        if (!is_array($item) || normalize_id((string)($item['methodId'] ?? '')) !== $methodId) {
+            continue;
+        }
+        $diagnostics['matchingManifestItems']++;
+        $lessonId = normalize_id((string)($item['id'] ?? ''));
+        if ($lessonId === '') {
+            continue;
+        }
+        $lessonUrl = trim((string)($item['url'] ?? ''));
+        if (!is_http_url($lessonUrl)) {
+            $lessonUrl = canonical_remote_data_url('lessons/' . rawurlencode($lessonId) . '.json');
+        }
+        $lesson = read_json_url($lessonUrl);
+        if (!is_array($lesson)) {
+            $diagnostics['failedLessonIds'][] = $lessonId;
+            continue;
+        }
+        $lesson['id'] = normalize_id((string)($lesson['id'] ?? $lessonId));
+        $lesson['methodId'] = normalize_id((string)($lesson['methodId'] ?? $methodId));
+        $lessons[] = $lesson;
+    }
+    $diagnostics['loadedLessonCount'] = count($lessons);
+
+    usort($lessons, static function (array $a, array $b): int {
+        $basisCompare = ((int)($a['basisIndex'] ?? -1)) <=> ((int)($b['basisIndex'] ?? -1));
+        if ($basisCompare !== 0) {
+            return $basisCompare;
+        }
+        return ((int)($a['lessonNumber'] ?? 1)) <=> ((int)($b['lessonNumber'] ?? 1));
+    });
+    return $lessons;
 }
 
 function normalize_id(string $value): string
@@ -298,6 +359,7 @@ $loadDiagnostics[] = [
     'requestedId' => (string)($_GET['id'] ?? $_GET['method'] ?? ''),
     'normalizedId' => $methodId,
     'host' => (string)($_SERVER['HTTP_HOST'] ?? ''),
+    'requestPath' => (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?: ($_SERVER['SCRIPT_NAME'] ?? '')),
     'canonicalRemoteFallbackAllowed' => !is_running_on_canonical_remote(),
 ];
 
@@ -372,6 +434,18 @@ if ($methodId === '') {
             'stage' => 'remote-method-json',
             'source' => canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'),
             'methodFound' => is_array($method),
+        ];
+    }
+
+    if (count($lessons) === 0) {
+        $remoteLessonsDiagnostics = [];
+        $lessons = read_remote_lessons_for_method($methodId, $remoteLessonsDiagnostics);
+        $loadDiagnostics[] = [
+            'stage' => 'remote-lessons-manifest',
+            'source' => canonical_remote_base_url() . '/temp/manifests/lessons.json',
+            'matchingLessonCount' => count($lessons),
+            'lessonIds' => array_map(static fn(array $lesson): string => (string)($lesson['id'] ?? ''), $lessons),
+            'details' => $remoteLessonsDiagnostics,
         ];
     }
 
