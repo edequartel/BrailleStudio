@@ -1673,6 +1673,7 @@ const SOUND_FOLDER_URLS = {
   general: 'https://www.tastenbraille.com/braillestudio-data/sounds/general/',
   ux: 'https://www.tastenbraille.com/braillestudio-data/sounds/ux/'
 };
+const STATIC_SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio-data/sounds/';
 const lessonDataCache = new Map();
 const SESSION_RESOLVED_PAYLOAD_STORAGE_KEY = 'braillestudio_session_api_last_resolved';
 const BRAILLE_BLOCKLY_MODE_CONFIG = window.BrailleBlocklyMode || {};
@@ -2711,7 +2712,7 @@ function startTimer(name, seconds, generation) {
 }
 
 function resolveSoundUrl(input) {
-  const raw = String(input ?? '').trim();
+  const raw = normalizeStaticSoundUrl(input);
   if (!raw) return '';
   if (/^https?:\/\//i.test(raw)) return raw;
   const filename = raw.toLowerCase().endsWith('.mp3') ? raw : (raw + '.mp3');
@@ -2719,7 +2720,7 @@ function resolveSoundUrl(input) {
 }
 
 function resolveFolderSoundUrl(folder, input) {
-  const raw = String(input ?? '').trim();
+  const raw = normalizeStaticSoundUrl(input);
   if (!raw) return '';
   if (/^https?:\/\//i.test(raw)) return raw;
   const baseUrl = SOUND_FOLDER_URLS[String(folder || 'speech')] || SOUND_BASE_URL;
@@ -2728,12 +2729,20 @@ function resolveFolderSoundUrl(folder, input) {
 }
 
 function resolveSoundsRelativeUrl(input) {
-  const raw = String(input ?? '').trim();
+  const raw = normalizeStaticSoundUrl(input);
   if (!raw) return '';
   if (/^https?:\/\//i.test(raw)) return raw;
   const normalized = raw.replace(/^(?:\.\.\/|\.\/|\/)+/, '');
   if (!normalized) return '';
-  return 'https://www.tastenbraille.com/braillestudio-data/sounds/' + normalized.split('/').map(encodeURIComponent).join('/');
+  return STATIC_SOUND_BASE_URL + normalized.split('/').map(encodeURIComponent).join('/');
+}
+
+function normalizeStaticSoundUrl(input) {
+  const raw = String(input ?? '').trim();
+  if (!raw) return '';
+  return raw
+    .replace(/^https?:\/\/(?:www\.)?tastenbraille\.com\/braillestudio\/sounds\//i, STATIC_SOUND_BASE_URL)
+    .replace(/^\/?braillestudio\/sounds\//i, STATIC_SOUND_BASE_URL);
 }
 
 function resolveInstructionAudioUrl(input) {
@@ -2968,6 +2977,7 @@ async function resumeSound() {
 
 async function playSoundNow(url, generation) {
   if (generation !== audioQueueGeneration) return;
+  url = normalizeStaticSoundUrl(url);
   if (typeof externalAudioPlayHandler === 'function') {
     const audioToken = { external: true, url };
     activeAudio = audioToken;

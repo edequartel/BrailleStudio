@@ -1560,7 +1560,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
 </xml>
 
-<script src="./runtime.js?v=20260416-session-player-3"></script>
+<script src="./runtime.js?v=20260609-static-sounds-1"></script>
 <script src="./instructions-catalog.js?v=20260416-session-player-3"></script>
 <script src="./preload-instructions.js?v=20260416-session-player-3"></script>
 <script src="../tabler/core/dist/js/tabler.min.js"></script>
@@ -1656,7 +1656,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     }
 
     await loadScript('./blocks.js?v=20260608-xapi-validation-1');
-    await loadScript('./generators.js?v=20260608-basic-xapi-1');
+    await loadScript('./generators.js?v=20260609-static-sounds-1');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
       '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
@@ -1667,7 +1667,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1'
     ], { required: false });
-    await loadScript('./app.js?v=20260608-missing-script-cleanup-1');
+    await loadScript('./app.js?v=20260609-static-sounds-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

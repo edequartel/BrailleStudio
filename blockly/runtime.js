@@ -14,6 +14,7 @@
     general: 'https://www.tastenbraille.com/braillestudio-data/sounds/general/',
     speech: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/'
   };
+  const STATIC_SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio-data/sounds/';
   const instructionCache = new Map();
   const audioCatalogCache = new Map();
   const audioCatalogPromiseCache = new Map();
@@ -428,8 +429,16 @@
     playUrlImpl = typeof fn === 'function' ? fn : null;
   }
 
+  function normalizeStaticSoundUrl(input) {
+    const raw = String(input ?? '').trim();
+    if (!raw) return '';
+    return raw
+      .replace(/^https?:\/\/(?:www\.)?tastenbraille\.com\/braillestudio\/sounds\//i, STATIC_SOUND_BASE_URL)
+      .replace(/^\/?braillestudio\/sounds\//i, STATIC_SOUND_BASE_URL);
+  }
+
   async function playUrl(url) {
-    const target = String(url ?? '').trim();
+    const target = normalizeStaticSoundUrl(url);
     if (!target) return;
 
     if (playUrlImpl) {
@@ -455,6 +464,7 @@
     applyInstructionAudioOverrides,
     playInstructionById,
     playUrl,
+    normalizeStaticSoundUrl,
     resolveInstructionAudioUrl,
     setPlayHandler,
     joinCsv,
