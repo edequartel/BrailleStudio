@@ -152,8 +152,8 @@ function load_markdown_source(string $remoteUrl, string $localPath): string
 
 $rootDir = __DIR__;
 $markdownPath = $rootDir . '/assets/tastenbraille.md';
-$markdownUrl = 'https://www.tastenbraille.com/braillestudio/assets/tastenbraille.md';
-$headerImageUrl = '/braillestudio/assets/tastenbraille.jpeg';
+$markdownUrl = 'https://www.tastenbraille.com/braillestudio-data/assets/tastenbraille.md';
+$headerImageUrl = 'https://www.tastenbraille.com/braillestudio-data/assets/tastenbraille.jpeg';
 $hasHeaderImage = true;
 $contentHtml = render_markdown(load_markdown_source($markdownUrl, $markdownPath));
 ?>

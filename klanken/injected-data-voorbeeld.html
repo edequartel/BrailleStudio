@@ -441,7 +441,7 @@
       if (!value) return "";
       if (/^https?:\/\//i.test(value)) return value;
       const normalized = value.toLowerCase().endsWith(".mp3") ? value : `${value}.mp3`;
-      return `https://www.tastenbraille.com/braillestudio/sounds/nl/speech/${encodeURIComponent(normalized)}`;
+      return `https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/${encodeURIComponent(normalized)}`;
     }
 
     function resolveStoryUrl(file) {
@@ -449,7 +449,7 @@
       if (!value) return "";
       if (/^https?:\/\//i.test(value)) return value;
       const normalized = value.toLowerCase().endsWith(".mp3") ? value : `${value}.mp3`;
-      return `https://www.tastenbraille.com/braillestudio/sounds/nl/stories/${encodeURIComponent(normalized)}`;
+      return `https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/${encodeURIComponent(normalized)}`;
     }
 
     async function playSpeechFile(file) {

@@ -133,7 +133,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
                   <label class="form-label" for="methodImageUrlInput">Image URL</label>
                   <div class="row g-2 align-items-center">
                     <div class="col">
-                      <input id="methodImageUrlInput" class="form-control" type="text" placeholder="https://www.tastenbraille.com/braillestudio/assets/bartimeus.png">
+                      <input id="methodImageUrlInput" class="form-control" type="text" placeholder="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png">
                     </div>
                     <div id="methodImagePreview" class="col-auto d-none" hidden></div>
                   </div>
@@ -215,7 +215,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     const METHODS_DELETE_ENDPOINT = `${METHODS_API_BASE}/delete_method.php`;
     const APP_BASE_PATH = window.location.pathname.replace(/\/(?:api\/)?lessonbuilder(?:\/.*)?$/, '') || '';
     const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
-    const METHODS_STORAGE_DIR = `${APP_BASE_URL.pathname}data/methods/`;
+    const METHODS_STORAGE_DIR = 'https://www.tastenbraille.com/braillestudio-data/data/methods/';
 
     function setStatus(message, data = null) {
       statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;

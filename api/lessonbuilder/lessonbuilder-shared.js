@@ -1,7 +1,6 @@
 (function () {
-  const APP_BASE_PATH = window.location.pathname.replace(/\/(?:api\/)?lessonbuilder(?:\/.*)?$/, '') || '';
-  const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
-  const DEFAULT_BASIS_DATA_URL = new URL('data/klanken/aanvankelijklijst.json', APP_BASE_URL).toString();
+  const STATIC_DATA_BASE_URL = 'https://www.tastenbraille.com/braillestudio-data/';
+  const DEFAULT_BASIS_DATA_URL = `${STATIC_DATA_BASE_URL}data/klanken/aanvankelijklijst.json`;
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
@@ -226,7 +225,7 @@
   function resolveBasisFileUrl(fileName = '') {
     const safeName = String(fileName || '').trim();
     if (!safeName) return DEFAULT_BASIS_DATA_URL;
-    return new URL(`../../klanken/${encodeURIComponent(safeName)}`, window.location.href).toString();
+    return `${STATIC_DATA_BASE_URL}data/klanken/${encodeURIComponent(safeName)}`;
   }
 
   function remoteFetchProxyUrl(url) {
@@ -241,13 +240,13 @@
     if (!source) return DEFAULT_BASIS_DATA_URL;
     if (/^https?:\/\//i.test(source)) return source;
     if (source.startsWith('/braillestudio/klanken/')) {
-      return new URL(`data/klanken/${encodeURIComponent(source.split('/').pop() || '')}`, APP_BASE_URL).toString();
+      return `${STATIC_DATA_BASE_URL}data/klanken/${encodeURIComponent(source.split('/').pop() || '')}`;
     }
     if (source.startsWith('/')) return `https://www.tastenbraille.com${source}`;
     if (source.includes('aanvankelijklijst.json') || String(methodId || '').trim() === 'aanvankelijk') {
       return DEFAULT_BASIS_DATA_URL;
     }
-    return new URL(`data/klanken/${encodeURIComponent(source.replace(/^\.?\/*/, '').split('/').pop() || '')}`, APP_BASE_URL).toString();
+    return `${STATIC_DATA_BASE_URL}data/klanken/${encodeURIComponent(source.replace(/^\.?\/*/, '').split('/').pop() || '')}`;
   }
 
   async function listMethods() {
@@ -335,9 +334,9 @@
 
     const fileName = source.split('/').pop() || 'aanvankelijklijst.json';
     const candidates = [
-      new URL(`data/klanken/${encodeURIComponent(fileName)}`, APP_BASE_URL).toString(),
+      `${STATIC_DATA_BASE_URL}data/klanken/${encodeURIComponent(fileName)}`,
       remoteFetchProxyUrl(source),
-      remoteFetchProxyUrl(new URL(`data/klanken/${encodeURIComponent(fileName)}`, APP_BASE_URL).toString())
+      remoteFetchProxyUrl(`${STATIC_DATA_BASE_URL}data/klanken/${encodeURIComponent(fileName)}`)
     ];
     let lastError = null;
     for (const candidate of [...new Set(candidates)]) {

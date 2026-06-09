@@ -107,7 +107,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               </span>
               <span>BrailleStudio</span>
             </a>
-            <img src="<?= $htmlUrl($urlFor($appBase, 'assets/bartimeus.png')) ?>" width="132" alt="Bartiméus">
+            <img src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png" width="132" alt="Bartiméus">
           </div>
         </div>
       </footer>

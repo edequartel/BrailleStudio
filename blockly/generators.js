@@ -87,7 +87,7 @@
     return [
       `(await (async () => {
         const __list = Array.isArray(${listCode}) ? ${listCode} : [];
-        const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
+        const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
         const __category = ${category};
         const __allowed = new Set((Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])
           .filter(item => String(item?.category ?? '').trim().toLowerCase() === __category.toLowerCase())
@@ -117,7 +117,7 @@
         const __list = Array.isArray(${listCode}) ? ${listCode} : [];
         const __selected = ${JSON.stringify(selected)};
         if (!__selected.length) return [];
-        const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
+        const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));
         const __allowed = new Set((Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])
           .filter(item => __selected.includes(String(item?.category ?? '').trim()))
           .map(item => String(item?.phoneme ?? '').trim().toLowerCase())
@@ -479,7 +479,7 @@
     const wordCode = valueToCodeOr(block, 'WORD', "''");
     return (
       `for (const sound of ((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? [])) {\n` +
-      `  await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
+      `  await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
       `}\n`
     );
   };
@@ -493,7 +493,7 @@
       `  const __sounds = ((await window.BrailleBlocklyApp.findLessonItemByWord(${wordCode}))?.sounds ?? []);\n` +
       `  for (let __i = 0; __i < __sounds.length; __i++) {\n` +
       `    const sound = __sounds[__i];\n` +
-      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/' + encodeURIComponent(String(sound).toLowerCase().endsWith('.mp3') ? String(sound) : String(sound) + '.mp3'));\n` +
       `    if (__pauseMs > 0 && __i < __sounds.length - 1) await new Promise(resolve => setTimeout(resolve, __pauseMs));\n` +
       `  }\n` +
       `}\n`
@@ -505,7 +505,7 @@
     return (
       `{\n` +
       `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
-      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
       `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
       `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
       `    .filter(Boolean)\n` +
@@ -519,7 +519,7 @@
       `    if (__m) { __fonemen.push(__m); __i += __m.length; } else { __fonemen.push(__ch); __i += 1; }\n` +
       `  }\n` +
       `  for (const __f of __fonemen) {\n` +
-      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
       `  }\n` +
       `}\n`
     );
@@ -530,7 +530,7 @@
     return [
       `(await (async () => {\n` +
       `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
-      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
       `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
       `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
       `    .filter(Boolean)\n` +
@@ -554,7 +554,7 @@
     return [
       `(await (async () => {\n` +
       `  const __text = String(${textCode} ?? '').toLowerCase();\n` +
-      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
       `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
       `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
       `    .filter(Boolean)\n` +
@@ -582,7 +582,7 @@
       `{\n` +
       `  const __pauseMs = Math.max(0, Math.round((Number(${secondsCode}) || 0) * 1000));\n` +
       `  const __word = String(${wordCode} ?? '').trim().toLowerCase();\n` +
-      `  const __nl = await fetch('../klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
+      `  const __nl = await fetch('https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json', { cache: 'no-store' }).then(res => res.json()).catch(() => ({ phonemes: [] }));\n` +
       `  const __tokens = (Array.isArray(__nl?.phonemes) ? __nl.phonemes : [])\n` +
       `    .map(p => String(p?.phoneme ?? '').trim().toLowerCase())\n` +
       `    .filter(Boolean)\n` +
@@ -597,7 +597,7 @@
       `  }\n` +
       `  for (let __k = 0; __k < __fonemen.length; __k++) {\n` +
       `    const __f = __fonemen[__k];\n` +
-      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
+      `    await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/' + encodeURIComponent(String(__f).toLowerCase().endsWith('.mp3') ? String(__f) : String(__f) + '.mp3'));\n` +
       `    if (__pauseMs > 0 && __k < __fonemen.length - 1) await new Promise(resolve => setTimeout(resolve, __pauseMs));\n` +
       `  }\n` +
       `}\n`
@@ -630,7 +630,7 @@
 
   javascriptGenerator.forBlock['sound_play_sounds_relative'] = function (block) {
     const pathCode = valueToCodeOr(block, 'PATH', "''");
-    return `await BrailleStudioAPI.playUrl((() => { const raw = String(${pathCode} ?? '').trim(); if (/^https?:\\/\\//i.test(raw)) return raw; const normalized = raw.replace(/^(\\.\\.\\/|\\.\\/|\\/)+/, ''); return 'https://www.tastenbraille.com/braillestudio/sounds/' + normalized.split('/').map(encodeURIComponent).join('/'); })());\n`;
+    return `await BrailleStudioAPI.playUrl((() => { const raw = String(${pathCode} ?? '').trim(); if (/^https?:\\/\\//i.test(raw)) return raw; const normalized = raw.replace(/^(\\.\\.\\/|\\.\\/|\\/)+/, ''); return 'https://www.tastenbraille.com/braillestudio-data/sounds/' + normalized.split('/').map(encodeURIComponent).join('/'); })());\n`;
   };
 
   javascriptGenerator.forBlock['sound_play_folder_file'] = function (block) {
@@ -639,12 +639,12 @@
     const code =
       `await BrailleStudioAPI.playUrl((() => { ` +
       `const bases = {` +
-      `speech:'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',` +
-      `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',` +
-      `instructions:'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',` +
-      `feedback:'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',` +
-      `story:'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',` +
-      `general:'https://www.tastenbraille.com/braillestudio/sounds/general/'` +
+      `speech:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/',` +
+      `letters:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/',` +
+      `instructions:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions/',` +
+      `feedback:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback/',` +
+      `story:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/',` +
+      `general:'https://www.tastenbraille.com/braillestudio-data/sounds/general/'` +
       `}; ` +
       `const folder = ${folder}; ` +
       `const file = ${file}; ` +
@@ -661,12 +661,12 @@
       const code =
         `await BrailleStudioAPI.playUrl((() => { ` +
         `const bases = {` +
-        `speech:'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',` +
-        `letters:'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',` +
-        `instructions:'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',` +
-        `feedback:'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',` +
-        `story:'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',` +
-        `general:'https://www.tastenbraille.com/braillestudio/sounds/general/'` +
+        `speech:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/',` +
+        `letters:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/',` +
+        `instructions:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions/',` +
+        `feedback:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback/',` +
+        `story:'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/',` +
+        `general:'https://www.tastenbraille.com/braillestudio-data/sounds/general/'` +
         `}; ` +
         `const file = ${file}; ` +
         `const base = bases[${q(folder)}] || bases.speech; ` +
@@ -688,17 +688,17 @@
     const code =
       `await BrailleStudioAPI.playUrl((() => { ` +
       `const file = ${file}; ` +
-      `const base = 'https://www.tastenbraille.com/braillestudio/sounds/ux/'; ` +
+      `const base = 'https://www.tastenbraille.com/braillestudio-data/sounds/ux/'; ` +
       `const name = String(file).toLowerCase().endsWith('.mp3') ? String(file) : String(file) + '.mp3'; ` +
       `return /^https?:\\/\\//i.test(String(file)) ? String(file) : base + encodeURIComponent(name); ` +
       `})())`;
     return `${code};\n`;
   };
   javascriptGenerator.forBlock['sound_play_ux_success'] = function () {
-    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/ux/success.mp3');\n`;
+    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/ux/success.mp3');\n`;
   };
   javascriptGenerator.forBlock['sound_play_ux_failure'] = function () {
-    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio/sounds/ux/failure.mp3');\n`;
+    return `await BrailleStudioAPI.playUrl('https://www.tastenbraille.com/braillestudio-data/sounds/ux/failure.mp3');\n`;
   };
   javascriptGenerator.forBlock['sound_play_instruction_by_id'] = function (block) {
     const instructionId = q(block.getFieldValue('INSTRUCTION_ID') || '');

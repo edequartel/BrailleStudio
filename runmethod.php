@@ -94,7 +94,8 @@ function canonical_remote_base_url(): string
 function canonical_remote_data_url(string $path = ''): string
 {
     $path = ltrim($path, '/');
-    return canonical_remote_base_url() . '/data' . ($path !== '' ? '/' . $path : '');
+    return 'https://www.tastenbraille.com/braillestudio-data/data'
+        . ($path !== '' ? '/' . $path : '');
 }
 
 function is_running_on_canonical_remote(): bool
@@ -144,7 +145,11 @@ function read_remote_method(string $methodId): ?array
     $method = read_json_url(canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'));
     if (is_array($method) && isset($method['dataSource'])) {
         $method['dataSource'] = str_replace(
-            canonical_remote_base_url() . '/klanken/',
+            [
+                canonical_remote_base_url() . '/klanken/',
+                canonical_remote_base_url() . '/data/klanken/',
+                'https://www.tastenbraille.com/braillestudio-data/klanken/',
+            ],
             canonical_remote_data_url('klanken') . '/',
             (string)$method['dataSource']
         );
@@ -219,6 +224,7 @@ function local_data_dirs(string $section): array
     }
 
     return array_values(array_unique([
+        dirname(__DIR__) . '/braillestudio-data/data/' . $section,
         __DIR__ . '/data/' . $section,
         __DIR__ . '/api/data/' . $section,
         __DIR__ . '/XXX data/' . $section,
@@ -305,6 +311,7 @@ function local_basis_sources(string $basisFile, string $dataSource): array
         foreach (local_data_dirs('klanken') as $dir) {
             $sources[] = $dir . '/' . $basisName;
         }
+        $sources[] = dirname(__DIR__) . '/braillestudio-data/klanken/' . $basisName;
         $sources[] = __DIR__ . '/klanken/' . $basisName;
     }
     return $sources;
@@ -1080,7 +1087,7 @@ $pagePayload = [
         <span class="text-secondary">Powered by</span>
         <a href="https://www.bartimeus.nl" target="_blank" rel="noopener noreferrer">
           <img
-            src="./assets/bartimeus.png"
+            src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png"
             alt="Bartimeus logo"
             class="footer-logo"
           >

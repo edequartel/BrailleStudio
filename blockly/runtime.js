@@ -3,16 +3,16 @@
   const INSTRUCTIONS_API_BASE_URLS = [
     'https://www.tastenbraille.com/braillestudio/instructions-api'
   ];
-  const INSTRUCTIONS_SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/';
+  const INSTRUCTIONS_SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions/';
   const INSTRUCTION_AUDIO_FOLDER_URLS = {
-    instructions: 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',
-    phonemes: 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',
-    letters: 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',
-    feedback: 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',
-    story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
-    stories: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
-    general: 'https://www.tastenbraille.com/braillestudio/sounds/general/',
-    speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/'
+    instructions: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions/',
+    phonemes: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/',
+    letters: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/',
+    feedback: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback/',
+    story: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/',
+    stories: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/',
+    general: 'https://www.tastenbraille.com/braillestudio-data/sounds/general/',
+    speech: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/'
   };
   const instructionCache = new Map();
   const audioCatalogCache = new Map();

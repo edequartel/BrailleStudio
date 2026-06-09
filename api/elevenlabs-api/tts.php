@@ -28,13 +28,13 @@ function elevenlabs_resolve_save_destination(string $relativeDir, string $fileNa
 {
     $relativeDir = trim(str_replace('\\', '/', $relativeDir), '/');
     if ($relativeDir === '') {
-        $relativeDir = 'braillestudio/sounds/nl/instructions';
+        $relativeDir = 'braillestudio-data/sounds/nl/instructions';
     }
 
-    if (!preg_match('#^braillestudio/sounds(?:/[a-z0-9_-]+)+$#i', $relativeDir)) {
+    if (!preg_match('#^braillestudio-data/sounds(?:/[a-z0-9_-]+)+$#i', $relativeDir)) {
         elevenlabs_json_response([
             'ok' => false,
-            'error' => 'Invalid save_path. Use a path under braillestudio/sounds/.',
+            'error' => 'Invalid save_path. Use a path under braillestudio-data/sounds/.',
         ], 400);
     }
 

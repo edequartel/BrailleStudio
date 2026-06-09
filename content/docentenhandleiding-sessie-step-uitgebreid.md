@@ -6,16 +6,16 @@
 2. Laptop: klik **Sessie starten**.
 3. Telefoon: scan de sessie-QR.
 
-![scan sessie](https://www.tastenbraille.com/braillestudio/content/laptop.png)
+![scan sessie](https://www.tastenbraille.com/braillestudio-data/content/laptop.png)
 
 * Telefoon: scan de step-link of vul de boekcode in.
 
-![scan step](https://www.tastenbraille.com/braillestudio/content/mobiel.png)
+![scan step](https://www.tastenbraille.com/braillestudio-data/content/mobiel.png)
 * Telefoon: tik **Start de les**.
 
 * Laptop: begeleid de leerling bij de step.
 
-![scan step](https://www.tastenbraille.com/braillestudio/content/leerling.png)
+![scan step](https://www.tastenbraille.com/braillestudio-data/content/leerling.png)
 
 * Herhaal vanaf stap 4 voor de volgende step.
 

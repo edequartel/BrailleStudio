@@ -8,7 +8,7 @@ $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
 $appBase = preg_replace('~/tools$~', '', $scriptDir) ?? '';
 $appBase = rtrim($appBase, '/');
-$soundsRoot = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'sounds';
+$soundsRoot = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'braillestudio-data' . DIRECTORY_SEPARATOR . 'sounds';
 $audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'];
 $selectedPath = normalize_relative_path((string)($_POST['folder_path'] ?? ''));
 $selectedFiles = array_values(array_filter(
@@ -746,7 +746,7 @@ if ($requestMethod === 'POST') {
                       <td><pre class="mb-0" style="white-space: pre-wrap;"><?= $h($result['detail']) ?></pre></td>
                       <td>
                         <?php if (!empty($result['outputPath'])): ?>
-                          <?php $audioUrl = $urlFor($appBase, 'sounds/' . (string)$result['outputPath']); ?>
+                          <?php $audioUrl = 'https://www.tastenbraille.com/braillestudio-data/sounds/' . ltrim((string)$result['outputPath'], '/'); ?>
                           <div class="d-flex align-items-center gap-2">
                             <a class="font-monospace small" href="<?= $h($audioUrl) ?>" target="_blank" rel="noopener"><?= $h((string)$result['outputPath']) ?></a>
                             <button class="btn btn-outline-secondary" type="button" data-audio-action="play-pause" data-audio-url="<?= $h($audioUrl) ?>">
@@ -775,7 +775,7 @@ if ($requestMethod === 'POST') {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const soundsBaseUrl = <?= json_encode($urlFor($appBase, 'sounds/'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+      const soundsBaseUrl = 'https://www.tastenbraille.com/braillestudio-data/sounds/';
       const folderFiles = <?= json_encode($folderFilesByPath, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
       const initiallySelectedFiles = new Set(<?= json_encode($selectedFiles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
       const form = document.getElementById('convert-form');

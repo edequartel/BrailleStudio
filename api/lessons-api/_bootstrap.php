@@ -16,7 +16,7 @@ function lessons_api_require_authentication(): array
 
 function lessons_api_remote_data_base_url(): string
 {
-    return 'https://www.tastenbraille.com/braillestudio/data/lessons';
+    return 'https://www.tastenbraille.com/braillestudio-data/data/lessons';
 }
 
 function lessons_api_remote_manifest_url(): string
@@ -143,6 +143,7 @@ function lessons_api_data_dir(): string
 function lessons_api_data_dirs(): array
 {
     return array_values(array_unique([
+        dirname(__DIR__, 3) . '/braillestudio-data/data/lessons',
         dirname(__DIR__, 2) . '/data/lessons',
         dirname(__DIR__) . '/data/lessons',
     ]));

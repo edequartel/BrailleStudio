@@ -16,7 +16,7 @@ function blockly_api_require_authentication(): array
 
 function blockly_api_remote_data_base_url(): string
 {
-    return blockly_api_canonical_public_base_url() . '/data/blockly';
+    return 'https://www.tastenbraille.com/braillestudio-data/data/blockly';
 }
 
 function blockly_api_remote_manifest_url(): string
@@ -203,6 +203,7 @@ function blockly_api_data_dirs(): array
     if ($envDir !== '') {
         $dirs[] = $envDir;
     }
+    $dirs[] = dirname(dirname(__DIR__, 2)) . '/braillestudio-data/data/blockly';
     $storageRoot = blockly_api_storage_root();
     $dirs[] = $storageRoot . '/data/blockly';
     $dirs[] = $storageRoot . '/api/data/blockly';

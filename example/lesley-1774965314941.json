@@ -3,7 +3,7 @@
     "title": "Met Punt Op Pad",
     "description": "",
     "basisFile": "aanvankelijklijst.json",
-    "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json",
+    "dataSource": "https://www.tastenbraille.com/braillestudio-data/klanken/aanvankelijklijst.json",
     "status": "active",
     "updatedAt": "2026-04-03T07:27:41Z"
 }

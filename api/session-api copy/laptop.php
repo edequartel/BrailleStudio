@@ -176,7 +176,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
       <footer class="footer footer-transparent">
         <div class="container-xl text-center">
-          <img src="<?= $htmlUrl($urlFor($appBase, 'assets/bartimeus.png')) ?>" width="132" alt="Bartiméus">
+          <img src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png" width="132" alt="Bartiméus">
         </div>
       </footer>
     </div>
@@ -202,7 +202,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const START_PAGE_URL = <?= $jsValue($urlFor($sessionBase, 'start.php')) ?>;
     const BLOCKLY_SCRIPT_LOAD_URL = <?= $jsValue($urlFor($appBase, 'api/blockly-api/load.php')) ?>;
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=';
-    const STEP_START_NOTICE_AUDIO_URL = 'https://www.tastenbraille.com/braillestudio/sounds/ux/dahang.mp3';
+    const STEP_START_NOTICE_AUDIO_URL = 'https://www.tastenbraille.com/braillestudio-data/sounds/ux/dahang.mp3';
 
     const $ = (id) => document.getElementById(id);
     let sessionPollTimer = null;

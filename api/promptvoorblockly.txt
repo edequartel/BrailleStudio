@@ -27,7 +27,7 @@ The API returns JSON like:
 [
   {
     "word": "lamp",
-    "url": "https://www.tastenbraille.com/braillestudio/sounds/nl/speech/lamp.mp3"
+    "url": "https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/lamp.mp3"
   }
 ]
 

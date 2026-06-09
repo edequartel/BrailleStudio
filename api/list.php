@@ -19,12 +19,12 @@ Geeft een JSON-lijst terug van audiobestanden voor Blockly / BrailleStudio.
 
 PUBLIEKE AUDIO MAPPEN
 ---------------------
-speech       -> https://www.tastenbraille.com/braillestudio/sounds/nl/speech
-letters      -> https://www.tastenbraille.com/braillestudio/sounds/nl/letters
-instructions -> https://www.tastenbraille.com/braillestudio/sounds/nl/instructions
-feedback     -> https://www.tastenbraille.com/braillestudio/sounds/nl/feedback
-story        -> https://www.tastenbraille.com/braillestudio/sounds/nl/stories
-general      -> https://www.tastenbraille.com/braillestudio/sounds/general
+speech       -> https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech
+letters      -> https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters
+instructions -> https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions
+feedback     -> https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback
+story        -> https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories
+general      -> https://www.tastenbraille.com/braillestudio-data/sounds/general
 
 HOE TE GEBRUIKEN
 ----------------
@@ -182,7 +182,7 @@ UITVOER
 [
   {
     "word": "lamp",
-    "url": "https://www.tastenbraille.com/braillestudio/sounds/nl/speech/lamp.mp3"
+    "url": "https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/lamp.mp3"
   }
 ]
 
@@ -241,28 +241,28 @@ if (!in_array($sort, ['asc', 'desc', 'random'], true)) {
 // -----------------------------
 $folderMap = [
     'speech' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/speech',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/nl/speech',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech',
     ],
     'letters' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/letters',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/nl/letters',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters',
     ],
     'instructions' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/instructions',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/nl/instructions',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions',
     ],
     'feedback' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/feedback',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/nl/feedback',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback',
     ],
     'story' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/nl/stories',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/nl/stories',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories',
     ],
     'general' => [
-        'dir' => __DIR__ . '/../braillestudio/sounds/general',
-        'url' => 'https://www.tastenbraille.com/braillestudio/sounds/general',
+        'dir' => dirname(__DIR__, 2) . '/braillestudio-data/sounds/general',
+        'url' => 'https://www.tastenbraille.com/braillestudio-data/sounds/general',
     ],
 ];
 

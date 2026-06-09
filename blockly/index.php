@@ -1290,7 +1290,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     <block type="sound_play_url">
       <value name="URL">
         <shadow type="text">
-          <field name="TEXT">https://www.tastenbraille.com/braillestudio/sounds/nl/letters/b.mp3</field>
+          <field name="TEXT">https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/b.mp3</field>
         </shadow>
       </value>
     </block>

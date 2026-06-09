@@ -13,10 +13,10 @@ let scriptBrailleMonitorUi = null;
 const BLOCKLY_GRID_SNAP_KEY = 'blockly_grid_snap';
 const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
-const DEFAULT_LESSON_DATA_URL = '../klanken/aanvankelijklijst.json';
+const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio-data/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URLS = [
-  '../klanken/fonemen_nl_standaard.json',
-  'https://www.tastenbraille.com/braillestudio/data/klanken/fonemen_nl_standaard.json'
+  'https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json',
+  'https://www.tastenbraille.com/braillestudio-data/data/klanken/fonemen_nl_standaard.json'
 ];
 const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
@@ -1161,7 +1161,7 @@ function renderInstructionTtsControl(message = '') {
     return;
   }
 
-  status.textContent = `Generated instruction audio will be saved under ${state.scriptId}-NNN.mp3 in /braillestudio/sounds/nl/instructions/.`;
+  status.textContent = `Generated instruction audio will be saved under ${state.scriptId}-NNN.mp3 in /braillestudio-data/sounds/nl/instructions/.`;
 }
 
 function createInstructionGeneratedItem(instructionId) {
@@ -1287,7 +1287,7 @@ async function saveInstructionAsMp3() {
         model_id: 'eleven_v3',
         text: segment.text,
         save_to_file: true,
-        save_path: 'braillestudio/sounds/nl/instructions',
+        save_path: 'braillestudio-data/sounds/nl/instructions',
           file_name: segment.fileName
         })
       });
@@ -1663,15 +1663,15 @@ let audioQueueGeneration = 0;
 let instructionPreviewAudio = null;
 let externalAudioPlayHandler = null;
 const REFRESH_DEDUPE_MS = 1500;
-const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/';
+const SOUND_BASE_URL = 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/';
 const SOUND_FOLDER_URLS = {
-  speech: 'https://www.tastenbraille.com/braillestudio/sounds/nl/speech/',
-  letters: 'https://www.tastenbraille.com/braillestudio/sounds/nl/letters/',
-  instructions: 'https://www.tastenbraille.com/braillestudio/sounds/nl/instructions/',
-  feedback: 'https://www.tastenbraille.com/braillestudio/sounds/nl/feedback/',
-  story: 'https://www.tastenbraille.com/braillestudio/sounds/nl/stories/',
-  general: 'https://www.tastenbraille.com/braillestudio/sounds/general/',
-  ux: 'https://www.tastenbraille.com/braillestudio/sounds/ux/'
+  speech: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/speech/',
+  letters: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/letters/',
+  instructions: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/instructions/',
+  feedback: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/feedback/',
+  story: 'https://www.tastenbraille.com/braillestudio-data/sounds/nl/stories/',
+  general: 'https://www.tastenbraille.com/braillestudio-data/sounds/general/',
+  ux: 'https://www.tastenbraille.com/braillestudio-data/sounds/ux/'
 };
 const lessonDataCache = new Map();
 const SESSION_RESOLVED_PAYLOAD_STORAGE_KEY = 'braillestudio_session_api_last_resolved';
@@ -2733,7 +2733,7 @@ function resolveSoundsRelativeUrl(input) {
   if (/^https?:\/\//i.test(raw)) return raw;
   const normalized = raw.replace(/^(?:\.\.\/|\.\/|\/)+/, '');
   if (!normalized) return '';
-  return 'https://www.tastenbraille.com/braillestudio/sounds/' + normalized.split('/').map(encodeURIComponent).join('/');
+  return 'https://www.tastenbraille.com/braillestudio-data/sounds/' + normalized.split('/').map(encodeURIComponent).join('/');
 }
 
 function resolveInstructionAudioUrl(input) {
@@ -4511,7 +4511,7 @@ function buildLessonDataCandidates(source) {
   const fileName = normalizedSource.split('/').pop() || 'aanvankelijklijst.json';
   const candidates = [
     normalizedSource,
-    `https://www.tastenbraille.com/braillestudio/data/klanken/${fileName}`
+    `https://www.tastenbraille.com/braillestudio-data/data/klanken/${fileName}`
   ].filter(Boolean);
 
   return [...new Set(candidates)];

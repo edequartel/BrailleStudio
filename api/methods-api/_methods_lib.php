@@ -28,6 +28,7 @@ function methods_data_file_candidates(): array
 function methods_save_dirs(): array
 {
     return array_values(array_unique([
+        dirname(__DIR__, 3) . '/braillestudio-data/data/methods',
         dirname(__DIR__, 2) . '/data/methods',
         dirname(__DIR__) . '/data/methods',
     ]));
@@ -110,7 +111,8 @@ function methods_require_authentication(): array
 function methods_remote_data_base_url(string $section = ''): string
 {
     $section = trim($section, '/');
-    return methods_remote_app_base_url() . '/data' . ($section !== '' ? '/' . $section : '');
+    return 'https://www.tastenbraille.com/braillestudio-data/data'
+        . ($section !== '' ? '/' . $section : '');
 }
 
 function methods_manifest_name(string $section): string
@@ -307,6 +309,8 @@ function methods_normalize_method(array $item): array
     $dataSource = str_replace([
         'https://www.tastenbraille.com/braillestudio/klanken/',
         'https://www.tastenbraille.com/braillestudio/data/klanken/',
+        'https://www.tastenbraille.com/braillestudio-data/klanken/',
+        'https://www.tastenbraille.com/braillestudio-data/data/klanken/',
     ], methods_remote_data_base_url('klanken') . '/', $dataSource);
     $imageUrl = methods_normalize_string($item['imageUrl'] ?? '');
     if ($basisFile !== '' && $dataSource === '') {
@@ -357,6 +361,7 @@ function methods_file_path(string $id): string
 function methods_basis_dir_candidates(): array
 {
     return [
+        dirname(__DIR__, 3) . '/braillestudio-data/data/klanken',
         dirname(dirname(__DIR__)) . '/data/klanken',
         dirname(__DIR__) . '/data/klanken',
         dirname(__DIR__, 3) . '/data/klanken',
@@ -738,6 +743,7 @@ function methods_lessons_dir(): string
 function methods_lessons_dirs(): array
 {
     return array_values(array_unique([
+        dirname(__DIR__, 3) . '/braillestudio-data/data/lessons',
         dirname(__DIR__, 2) . '/data/lessons',
         dirname(__DIR__) . '/data/lessons',
     ]));

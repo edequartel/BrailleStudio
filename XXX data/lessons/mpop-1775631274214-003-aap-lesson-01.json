@@ -7,9 +7,9 @@
         "id": "mpop-1775631274214",
         "title": "Met Punt Op Pad",
         "description": "Aanvankelijk methode lezen braille",
-        "imageUrl": "https://www.tastenbraille.com/braillestudio/assets/mpop-2.jpeg",
+        "imageUrl": "https://www.tastenbraille.com/braillestudio-data/assets/mpop-2.jpeg",
         "basisFile": "aanvankelijklijst.json",
-        "dataSource": "https://www.tastenbraille.com/braillestudio/klanken/aanvankelijklijst.json"
+        "dataSource": "https://www.tastenbraille.com/braillestudio-data/klanken/aanvankelijklijst.json"
     },
     "basisIndex": 2,
     "basisWord": "aap",

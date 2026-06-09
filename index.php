@@ -373,7 +373,7 @@ function e(string $value): string
                                 </ul>
                                 <div class="tab-content">
                                     <div class="tab-pane active show" id="tab-starten" role="tabpanel">
-                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/README.nl.md">
+                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/content/README.nl.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-9"></span>
                                                 <span class="placeholder col-12"></span>
@@ -382,7 +382,7 @@ function e(string $value): string
                                         </div>
                                     </div>
                                     <div class="tab-pane" id="tab-expertise" role="tabpanel">
-                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>assets/tastenbraille.md">
+                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/assets/tastenbraille.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-8"></span>
                                                 <span class="placeholder col-12"></span>
@@ -397,7 +397,7 @@ function e(string $value): string
                                                 Download als PDF
                                             </a>
                                         </div>
-                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
+                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/content/docentenhandleiding-sessie-step.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-10"></span>
                                                 <span class="placeholder col-12"></span>
@@ -418,7 +418,7 @@ function e(string $value): string
         <div class="container-xl">
             <div class="row text-center align-items-center flex-row-reverse">
                 <div class="col-lg-auto ms-lg-auto">
-                    <img class="site-logo" src="<?= e($baseUrl) ?>assets/bartimeus.png" alt="Bartimeus">
+                    <img class="site-logo" src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png" alt="Bartimeus">
                 </div>
                 <div class="col-12 col-lg-auto mt-3 mt-lg-0">
                     <span class="text-secondary">Powered by Bartimeus en de Braille Expertise Groep</span>
