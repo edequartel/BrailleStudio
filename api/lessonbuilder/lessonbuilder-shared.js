@@ -1,5 +1,7 @@
 (function () {
-  const DEFAULT_BASIS_DATA_URL = new URL('../../klanken/aanvankelijklijst.json', window.location.href).toString();
+  const APP_BASE_PATH = window.location.pathname.replace(/\/(?:api\/)?lessonbuilder(?:\/.*)?$/, '') || '';
+  const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
+  const DEFAULT_BASIS_DATA_URL = new URL('data/klanken/aanvankelijklijst.json', APP_BASE_URL).toString();
   const STATE_KEY = 'braillestudioLessonBuilderStateV2';
   const AUTH_TOKEN_KEYS = ['braillestudioAuthToken', 'elevenlabsAuthToken'];
   const AUTH_BRIDGE_URL = 'https://www.tastenbraille.com/braillestudio/authentication.php?mode=bridge';
@@ -239,13 +241,13 @@
     if (!source) return DEFAULT_BASIS_DATA_URL;
     if (/^https?:\/\//i.test(source)) return source;
     if (source.startsWith('/braillestudio/klanken/')) {
-      return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(source.split('/').pop() || '')}`;
+      return new URL(`data/klanken/${encodeURIComponent(source.split('/').pop() || '')}`, APP_BASE_URL).toString();
     }
     if (source.startsWith('/')) return `https://www.tastenbraille.com${source}`;
     if (source.includes('aanvankelijklijst.json') || String(methodId || '').trim() === 'aanvankelijk') {
       return DEFAULT_BASIS_DATA_URL;
     }
-    return `https://www.tastenbraille.com/braillestudio/data/klanken/${encodeURIComponent(source.replace(/^\.?\/*/, '').split('/').pop() || '')}`;
+    return new URL(`data/klanken/${encodeURIComponent(source.replace(/^\.?\/*/, '').split('/').pop() || '')}`, APP_BASE_URL).toString();
   }
 
   async function listMethods() {
@@ -333,9 +335,9 @@
 
     const fileName = source.split('/').pop() || 'aanvankelijklijst.json';
     const candidates = [
-      new URL(`../../klanken/${encodeURIComponent(fileName)}`, window.location.href).toString(),
+      new URL(`data/klanken/${encodeURIComponent(fileName)}`, APP_BASE_URL).toString(),
       remoteFetchProxyUrl(source),
-      remoteFetchProxyUrl(`https://www.tastenbraille.com/braillestudio/data/klanken/${fileName}`)
+      remoteFetchProxyUrl(new URL(`data/klanken/${encodeURIComponent(fileName)}`, APP_BASE_URL).toString())
     ];
     let lastError = null;
     for (const candidate of [...new Set(candidates)]) {

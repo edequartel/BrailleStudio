@@ -110,7 +110,7 @@ function methods_require_authentication(): array
 function methods_remote_data_base_url(string $section = ''): string
 {
     $section = trim($section, '/');
-    return 'https://www.tastenbraille.com/braillestudio/data' . ($section !== '' ? '/' . $section : '');
+    return methods_remote_app_base_url() . '/data' . ($section !== '' ? '/' . $section : '');
 }
 
 function methods_manifest_name(string $section): string
@@ -125,7 +125,7 @@ function methods_manifest_name(string $section): string
 
 function methods_remote_manifest_url(string $section): string
 {
-    return 'https://www.tastenbraille.com/braillestudio/temp/manifests/' . methods_manifest_name($section) . '.json';
+    return methods_remote_app_base_url() . '/temp/manifests/' . methods_manifest_name($section) . '.json';
 }
 
 function methods_manifest_file(string $section): string
@@ -137,6 +137,23 @@ function methods_is_canonical_host(): bool
 {
     $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
     return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
+}
+
+function methods_remote_app_base_url(): string
+{
+    if (!methods_is_canonical_host()) {
+        return 'https://www.tastenbraille.com/braillestudio';
+    }
+
+    $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    $appPath = preg_replace('~/api/methods-api(?:/.*)?$~', '', $scriptName) ?? '';
+    $appPath = '/' . trim($appPath, '/');
+    if ($appPath === '/') {
+        $appPath = '/braillestudio';
+    }
+
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? 'www.tastenbraille.com'));
+    return 'https://' . $host . $appPath;
 }
 
 function methods_is_http_url(string $value): bool
@@ -287,14 +304,13 @@ function methods_normalize_method(array $item): array
     $id = methods_normalize_id($item['id'] ?? '');
     $basisFile = methods_normalize_string($item['basisFile'] ?? '');
     $dataSource = methods_normalize_string($item['dataSource'] ?? '');
-    $dataSource = str_replace(
+    $dataSource = str_replace([
         'https://www.tastenbraille.com/braillestudio/klanken/',
         'https://www.tastenbraille.com/braillestudio/data/klanken/',
-        $dataSource
-    );
+    ], methods_remote_data_base_url('klanken') . '/', $dataSource);
     $imageUrl = methods_normalize_string($item['imageUrl'] ?? '');
     if ($basisFile !== '' && $dataSource === '') {
-        $dataSource = 'https://www.tastenbraille.com/braillestudio/data/klanken/' . rawurlencode($basisFile);
+        $dataSource = methods_remote_data_base_url('klanken') . '/' . rawurlencode($basisFile);
     }
     if ($basisFile === '') {
         $dataSource = '';

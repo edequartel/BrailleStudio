@@ -213,7 +213,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     const METHODS_SAVE_ENDPOINT = `${METHODS_API_BASE}/save_method.php`;
     const METHODS_LIST_ENDPOINT = `${METHODS_API_BASE}/list_methods.php`;
     const METHODS_DELETE_ENDPOINT = `${METHODS_API_BASE}/delete_method.php`;
-    const METHODS_STORAGE_DIR = '/braillestudio/data/methods/';
+    const APP_BASE_PATH = window.location.pathname.replace(/\/(?:api\/)?lessonbuilder(?:\/.*)?$/, '') || '';
+    const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
+    const METHODS_STORAGE_DIR = `${APP_BASE_URL.pathname}data/methods/`;
 
     function setStatus(message, data = null) {
       statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
@@ -300,7 +302,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         }
         return;
       }
-      openRunmethodLink.href = `https://www.tastenbraille.com/braillestudio/runmethod.php?id=${encodeURIComponent(methodId)}`;
+      const runmethodUrl = new URL('runmethod.php', APP_BASE_URL);
+      runmethodUrl.searchParams.set('id', methodId);
+      openRunmethodLink.href = runmethodUrl.toString();
       openRunmethodLink.setAttribute('aria-disabled', 'false');
       openRunmethodLink.className = 'btn btn-outline-primary';
       if (copyRunmethodLinkBtn) {
