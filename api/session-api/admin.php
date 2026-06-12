@@ -385,7 +385,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               </div>
             </div>
             <div id="logBody" class="card-body d-none" hidden>
-              <pre id="logBox" class="form-control font-monospace mb-0">Ready.</pre>
+              <div id="logBox" class="list-group list-group-flush border rounded font-monospace overflow-auto" style="max-height: 32rem"></div>
             </div>
           </div>
 
@@ -438,21 +438,36 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       loadingMessage.classList.add('text-danger');
     }
 
-    function logLine(message, data) {
-      const box = $('logBox');
-      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
-      let line = `[${timestamp}] ${String(message || '').trim()}`;
-      if (typeof data !== 'undefined') {
-        try {
-          line += `\n${JSON.stringify(data, null, 2)}`;
-        } catch {
-          line += `\n${String(data)}`;
-        }
+    function buildLogDetailLines(data, prefix = '') {
+      if (typeof data === 'undefined') return [];
+      if (data === null || typeof data !== 'object') {
+        return [`${prefix ? `${prefix}: ` : ''}${String(data)}`];
       }
-      box.textContent = box.textContent.trim() && box.textContent.trim() !== 'Ready.'
-        ? `${box.textContent}\n${line}`
-        : line;
-      box.scrollTop = box.scrollHeight;
+      if (Array.isArray(data)) {
+        return data.length
+          ? data.flatMap((value, index) => buildLogDetailLines(value, prefix ? `${prefix}.${index + 1}` : String(index + 1)))
+          : [`${prefix ? `${prefix}: ` : ''}(leeg)`];
+      }
+      const entries = Object.entries(data);
+      return entries.length
+        ? entries.flatMap(([key, value]) => buildLogDetailLines(value, prefix ? `${prefix}.${key}` : key))
+        : [`${prefix ? `${prefix}: ` : ''}(leeg)`];
+    }
+
+    function logLine(message, data) {
+      const item = document.createElement('div');
+      item.className = 'list-group-item py-2';
+      const title = document.createElement('div');
+      title.className = 'fw-medium';
+      title.textContent = `[${new Date().toLocaleTimeString('nl-NL', { hour12: false })}] ${String(message || '').trim()}`;
+      item.appendChild(title);
+      buildLogDetailLines(data).forEach((line) => {
+        const detail = document.createElement('div');
+        detail.className = 'text-secondary small';
+        detail.textContent = line;
+        item.appendChild(detail);
+      });
+      $('logBox').prepend(item);
     }
 
     function escapeHtml(value) {
@@ -1620,7 +1635,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     async function copyLogToClipboard() {
-      const text = String($('logBox')?.textContent || '').trim();
+      const text = Array.from($('logBox')?.children || [])
+        .map((item) => String(item.innerText || item.textContent || '').trim())
+        .filter(Boolean)
+        .join('\n\n');
       if (!text) throw new Error('Log is empty.');
       await navigator.clipboard.writeText(text);
     }
@@ -1686,7 +1704,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         }
       });
       $('clearLogBtn').addEventListener('click', () => {
-        $('logBox').textContent = 'Log cleared.';
+        $('logBox').replaceChildren();
       });
       setLogVisibility(false);
       setLoadingMessage('Scripts laden.');
