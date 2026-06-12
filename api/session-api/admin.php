@@ -203,7 +203,21 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   </style>
 </head>
 <body class="bg-body">
-  <div class="page">
+  <div id="adminLoadingScreen" class="page page-center" aria-live="polite">
+    <div class="container-tight py-4">
+      <div class="card card-md">
+        <div class="card-body text-center py-5">
+          <div class="mb-3">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          </div>
+          <h1 class="h3 mb-2">Session Admin laden</h1>
+          <p id="adminLoadingMessage" class="text-secondary mb-0">Beheeromgeving voorbereiden.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="adminAppPage" class="page d-none" hidden>
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
         <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
@@ -405,6 +419,24 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     let stepLinkRunToken = 0;
     let isStoppingStepLink = false;
     const scriptDataCache = new Map();
+
+    function setLoadingMessage(message) {
+      $('adminLoadingMessage').textContent = message;
+    }
+
+    function hideLoadingScreen() {
+      $('adminLoadingScreen').hidden = true;
+      $('adminLoadingScreen').classList.add('d-none');
+      $('adminAppPage').hidden = false;
+      $('adminAppPage').classList.remove('d-none');
+    }
+
+    function showLoadingError(message) {
+      const loadingMessage = $('adminLoadingMessage');
+      loadingMessage.textContent = message;
+      loadingMessage.classList.remove('text-secondary');
+      loadingMessage.classList.add('text-danger');
+    }
 
     function logLine(message, data) {
       const box = $('logBox');
@@ -1620,10 +1652,19 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         $('logBox').textContent = 'Log cleared.';
       });
       setLogVisibility(false);
+      setLoadingMessage('Scripts laden.');
       loadScripts()
-        .then(() => loadLinks())
+        .then(() => {
+          setLoadingMessage('Step-links laden.');
+          return loadLinks();
+        })
+        .then(() => {
+          setLoadingMessage('Beheeromgeving klaarzetten.');
+          hideLoadingScreen();
+        })
         .catch((err) => {
           $('scriptsStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          showLoadingError(`Laden mislukt: ${err.message || String(err)}`);
         });
     }
 
