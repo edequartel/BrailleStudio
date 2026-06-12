@@ -56,7 +56,7 @@ $steps = [
   <title>BrailleStudio Lesson Builder</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-method-list-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -249,15 +249,11 @@ $steps = [
           details.className = 'text-secondary small';
           details.textContent = [item.id, item.description].filter(Boolean).join(' - ');
 
-          const count = document.createElement('span');
-          count.className = 'badge bg-blue-lt me-3';
-          count.textContent = `${Number(item.lessonsCount || 0)} lessons`;
-
           const icon = document.createElement('i');
           icon.className = 'ti ti-chevron-right text-secondary';
 
           body.append(title, details);
-          row.append(body, count, icon);
+          row.append(body, icon);
           button.append(row);
           button.addEventListener('click', () => openMethod(item));
           methodsList.append(button);

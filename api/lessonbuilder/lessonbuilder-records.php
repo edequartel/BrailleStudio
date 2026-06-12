@@ -24,7 +24,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <title>Lesson Builder - Lessons</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-local-api-2')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -125,7 +125,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
               <h2 class="card-title">Debug log</h2>
             </div>
             <div class="card-body">
-              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+              <div id="statusBox" class="list-group list-group-flush border rounded font-monospace overflow-auto" style="max-height: 24rem"></div>
             </div>
           </div>
         </div>
@@ -190,7 +190,22 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
 
     function setStatus(message, data = null) {
-      statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
+      statusBox.replaceChildren();
+      const item = document.createElement('div');
+      item.className = 'list-group-item py-2';
+      const title = document.createElement('div');
+      title.className = 'fw-medium';
+      title.textContent = message;
+      item.append(title);
+      if (data && typeof data === 'object') {
+        Object.entries(data).forEach(([key, value]) => {
+          const detail = document.createElement('div');
+          detail.className = 'text-secondary small';
+          detail.textContent = `${key}: ${Array.isArray(value) ? value.join(', ') : String(value ?? '')}`;
+          item.append(detail);
+        });
+      }
+      statusBox.prepend(item);
     }
 
     function cloneDeep(value) {

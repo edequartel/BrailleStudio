@@ -27,7 +27,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <title>Lesson Builder - Methode</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-local-api-2')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -175,7 +175,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
               </div>
             </div>
             <div class="card-body d-none" id="debugLogBody" hidden>
-              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+              <div id="statusBox" class="list-group list-group-flush border rounded font-monospace overflow-auto" style="max-height: 24rem"></div>
             </div>
           </div>
         </div>
@@ -217,18 +217,43 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
     const METHODS_STORAGE_DIR = 'https://www.tastenbraille.com/braillestudio-data/data/methods/';
 
+    function debugLines(data, prefix = '') {
+      if (data == null) return [];
+      if (typeof data !== 'object') return [`${prefix}${String(data)}`];
+      return Object.entries(data).flatMap(([key, value]) => {
+        const label = prefix ? `${prefix}.${key}` : key;
+        return value && typeof value === 'object'
+          ? debugLines(value, label)
+          : [`${label}: ${String(value ?? '')}`];
+      });
+    }
+
+    function addStatus(message, data = null, replace = false) {
+      if (replace) statusBox.replaceChildren();
+      const item = document.createElement('div');
+      item.className = 'list-group-item py-2';
+      const title = document.createElement('div');
+      title.className = 'fw-medium';
+      title.textContent = `[${new Date().toLocaleTimeString('nl-NL', { hour12: false })}] ${message}`;
+      item.append(title);
+      debugLines(data).forEach((line) => {
+        const detail = document.createElement('div');
+        detail.className = 'text-secondary small';
+        detail.textContent = line;
+        item.append(detail);
+      });
+      statusBox.prepend(item);
+    }
+
     function setStatus(message, data = null) {
-      statusBox.textContent = data ? `${message}\n\n${JSON.stringify(data, null, 2)}` : message;
+      addStatus(message, data, true);
     }
 
     function appendStatus(message, data = null) {
-      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
-      const block = data
-        ? `[${timestamp}] ${message}\n${JSON.stringify(data, null, 2)}`
-        : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n\n${block}` : block;
-      statusBox.scrollTop = statusBox.scrollHeight;
+      addStatus(message, data);
     }
+
+    window.LessonBuilderSharedDebugLog = appendStatus;
 
     function renderDebugLogVisibility() {
       if (debugLogBody) {
@@ -438,19 +463,24 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         methodDescription: item.description || '',
         methodImageUrl: item.imageUrl || ''
       });
-      await loadBasisPreview();
       setStatus(`Method loaded: ${id}`, item);
+      loadBasisPreview().catch((err) => {
+        appendStatus('Basispreview laden mislukt.', {
+          error: err.message || String(err)
+        });
+      });
     }
 
     async function init() {
       renderBasisFileOptions([]);
       try {
-        basisFileOptions = await shared.listBasisFiles();
-        renderBasisFileOptions(shared.loadState().methodBasisFile || '');
-        methodDataSourceInput.value = methodBasisFileSelect.value ? shared.resolveBasisFileUrl(methodBasisFileSelect.value) : '';
-
+        const basisFilesPromise = shared.listBasisFiles();
         methodsCache = await shared.listMethods();
         renderMethodOptions(methodsCache);
+
+        basisFileOptions = await basisFilesPromise;
+        renderBasisFileOptions(shared.loadState().methodBasisFile || '');
+        methodDataSourceInput.value = methodBasisFileSelect.value ? shared.resolveBasisFileUrl(methodBasisFileSelect.value) : '';
 
         const state = shared.loadState();
         methodIdInput.value = state.methodId || '';

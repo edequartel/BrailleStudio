@@ -21,8 +21,7 @@ if ($id === '') {
     ], 400);
 }
 
-$items = methods_load_all();
-$item = methods_find_method_by_id($id, $items);
+$item = methods_load_by_id($id);
 if (!$item) {
     methods_json_response([
         'ok' => false,
@@ -31,7 +30,10 @@ if (!$item) {
     ], 404);
 }
 
-$item = methods_enrich_with_lessons($item);
+$compact = filter_var($_GET['compact'] ?? false, FILTER_VALIDATE_BOOLEAN);
+if (!$compact) {
+    $item = methods_enrich_with_lessons($item);
+}
 $item['url'] = methods_remote_method_url($id);
 
 methods_json_response([

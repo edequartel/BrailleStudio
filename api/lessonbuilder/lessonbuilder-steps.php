@@ -31,7 +31,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
-  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260602-steps-debug-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
   <style>
     .steps-list {
       display: grid;
@@ -365,7 +365,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               </div>
             </div>
             <div id="debugLogBody" class="card-body d-none" hidden>
-              <pre id="statusBox" class="form-control font-monospace mb-0" rows="8"></pre>
+              <div id="statusBox" class="list-group list-group-flush border rounded font-monospace overflow-auto" style="max-height: 24rem"></div>
             </div>
           </div>
         </div>
@@ -503,11 +503,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           if (Array.isArray(item)) {
             return `${key}: ${item.map((entry) => {
               if (entry && typeof entry === 'object') {
-                try {
-                  return JSON.stringify(entry);
-                } catch {
-                  return String(entry);
-                }
+                return formatDebugData(entry).replaceAll('\n', '; ');
               }
               return String(entry ?? '');
             }).join(', ')}`;
@@ -518,27 +514,40 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           return `${key}: ${String(item ?? '')}`;
         }).join('\n');
       }
-      try {
-        return JSON.stringify(value, null, 2);
-      } catch (err) {
-        return String(value);
+      return String(value);
+    }
+
+    function addStatus(message, data = null, replace = false) {
+      if (replace) statusBox.replaceChildren();
+      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
+      const item = document.createElement('div');
+      item.className = 'list-group-item py-2';
+      const title = document.createElement('div');
+      title.className = 'fw-medium';
+      title.textContent = `[${timestamp}] ${message}`;
+      item.append(title);
+      const formatted = formatDebugData(data);
+      if (formatted) {
+        formatted.split('\n').forEach((line) => {
+          const detail = document.createElement('div');
+          detail.className = 'text-secondary small';
+          detail.textContent = line;
+          item.append(detail);
+        });
       }
+      statusBox.prepend(item);
+      return `[${timestamp}] ${message}${formatted ? `\n${formatted}` : ''}`;
     }
 
     function setStatus(message, data = null) {
-      statusBox.textContent = data != null ? `${message}\n\n${formatDebugData(data)}` : message;
+      addStatus(message, data, true);
     }
 
     function appendStatus(message, data = null) {
-      const timestamp = new Date().toLocaleTimeString('nl-NL', { hour12: false });
-      const block = data
-        ? `[${timestamp}] ${message}\n${formatDebugData(data)}`
-        : `[${timestamp}] ${message}`;
-      statusBox.textContent = statusBox.textContent ? `${statusBox.textContent}\n${block}` : block;
-      statusBox.scrollTop = statusBox.scrollHeight;
+      const block = addStatus(message, data);
       if (stepsLoadingDebugLog) {
-        stepsLoadingDebugLog.textContent = stepsLoadingDebugLog.textContent ? `${stepsLoadingDebugLog.textContent}\n${block}` : block;
-        stepsLoadingDebugLog.scrollTop = stepsLoadingDebugLog.scrollHeight;
+        stepsLoadingDebugLog.textContent = stepsLoadingDebugLog.textContent ? `${block}\n${stepsLoadingDebugLog.textContent}` : block;
+        stepsLoadingDebugLog.scrollTop = 0;
       }
     }
 
@@ -2650,11 +2659,11 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     });
 
     clearDebugLogBtn.addEventListener('click', () => {
-      statusBox.textContent = '';
+      statusBox.replaceChildren();
     });
 
     copyDebugLogBtn.addEventListener('click', async () => {
-      const text = statusBox.textContent || stepsLoadingDebugLog?.textContent || '';
+      const text = statusBox.innerText || stepsLoadingDebugLog?.textContent || '';
       try {
         if (navigator.clipboard?.writeText) {
           try {

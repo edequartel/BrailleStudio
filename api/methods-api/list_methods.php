@@ -16,6 +16,7 @@ methods_require_authentication();
 $items = methods_load_all();
 $status = methods_normalize_string($_GET['status'] ?? '');
 $q = methods_normalize_string($_GET['q'] ?? '');
+$compact = filter_var($_GET['compact'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
 $filtered = array_values(array_filter($items, static function (array $item) use ($status, $q): bool {
     if ($status !== '' && ($item['status'] ?? '') !== $status) {
@@ -37,9 +38,12 @@ $filtered = array_values(array_filter($items, static function (array $item) use 
     return true;
 }));
 
-$filtered = array_map(static function (array $item): array {
-    return methods_enrich_with_lessons($item);
-}, $filtered);
+if (!$compact) {
+    $lessonsByMethod = methods_load_lessons_by_method();
+    $filtered = array_map(static function (array $item) use ($lessonsByMethod): array {
+        return methods_enrich_with_lessons($item, $lessonsByMethod);
+    }, $filtered);
+}
 
 methods_json_response([
     'ok' => true,

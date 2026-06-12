@@ -250,12 +250,12 @@
   }
 
   async function listMethods() {
-    const data = await apiFetchJson('/list_methods.php', {}, 'method');
+    const data = await apiFetchJson('/list_methods.php?compact=1', {}, 'method');
     return Array.isArray(data.items) ? data.items : [];
   }
 
   async function loadMethod(id) {
-    const data = await apiFetchJson(`/load_method.php?id=${encodeURIComponent(id)}`, {}, 'method');
+    const data = await apiFetchJson(`/load_method.php?id=${encodeURIComponent(id)}&compact=1`, {}, 'method');
     return data.item || null;
   }
 

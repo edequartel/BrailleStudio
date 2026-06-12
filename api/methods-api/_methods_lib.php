@@ -631,6 +631,32 @@ function methods_find_method_by_id(string $id, array $items): ?array
     return null;
 }
 
+function methods_load_by_id(string $id): ?array
+{
+    $id = methods_normalize_id($id);
+    if ($id === '') {
+        return null;
+    }
+
+    $file = methods_save_dir() . '/' . $id . '.json';
+    if (!is_file($file)) {
+        return null;
+    }
+
+    $content = json_decode((string)@file_get_contents($file), true);
+    if (!is_array($content)) {
+        return null;
+    }
+
+    $method = methods_normalize_method(['id' => $id] + $content);
+    if ($method['id'] === '') {
+        return null;
+    }
+    $method['filename'] = basename($file);
+    $method['url'] = methods_remote_method_url($method['id']);
+    return $method;
+}
+
 function methods_find_method_index_by_id(string $id, array $items): int
 {
     foreach ($items as $index => $item) {
@@ -730,19 +756,14 @@ function methods_rebuild_lessons_manifest(string $dir): bool
     return file_put_contents($manifestFile, $encoded, LOCK_EX) !== false;
 }
 
-function methods_load_lessons_for_method(string $methodId): array
+function methods_load_lessons_by_method(): array
 {
-    $methodId = methods_normalize_id($methodId);
-    if ($methodId === '') {
-        return [];
-    }
-
     $dir = methods_lessons_dir();
     if (!is_dir($dir)) {
         return [];
     }
 
-    $items = [];
+    $itemsByMethod = [];
     $seen = [];
     $files = glob($dir . '/*.json') ?: [];
     sort($files);
@@ -760,12 +781,12 @@ function methods_load_lessons_for_method(string $methodId): array
         }
 
         $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
-        if ($lessonMethodId !== $methodId) {
+        if ($lessonMethodId === '') {
             continue;
         }
         $seen[$lessonId] = true;
 
-        $items[] = [
+        $itemsByMethod[$lessonMethodId][] = [
             'id' => $lessonId,
             'title' => methods_normalize_string($decoded['title'] ?? ''),
             'description' => methods_normalize_string($decoded['description'] ?? ''),
@@ -779,28 +800,44 @@ function methods_load_lessons_for_method(string $methodId): array
         ];
     }
 
-    usort($items, static function ($a, $b) {
-        $aIndex = (int)($a['basisIndex'] ?? -1);
-        $bIndex = (int)($b['basisIndex'] ?? -1);
-        if ($aIndex >= 0 && $bIndex >= 0 && $aIndex !== $bIndex) {
-            return $aIndex <=> $bIndex;
-        }
+    foreach ($itemsByMethod as &$items) {
+        usort($items, static function ($a, $b) {
+            $aIndex = (int)($a['basisIndex'] ?? -1);
+            $bIndex = (int)($b['basisIndex'] ?? -1);
+            if ($aIndex >= 0 && $bIndex >= 0 && $aIndex !== $bIndex) {
+                return $aIndex <=> $bIndex;
+            }
 
-        $aLessonNumber = (int)($a['lessonNumber'] ?? 1);
-        $bLessonNumber = (int)($b['lessonNumber'] ?? 1);
-        if ($aLessonNumber !== $bLessonNumber) {
-            return $aLessonNumber <=> $bLessonNumber;
-        }
+            $aLessonNumber = (int)($a['lessonNumber'] ?? 1);
+            $bLessonNumber = (int)($b['lessonNumber'] ?? 1);
+            if ($aLessonNumber !== $bLessonNumber) {
+                return $aLessonNumber <=> $bLessonNumber;
+            }
 
-        return strcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
-    });
+            return strcasecmp((string)($a['title'] ?? ''), (string)($b['title'] ?? ''));
+        });
+    }
+    unset($items);
 
-    return $items;
+    return $itemsByMethod;
 }
 
-function methods_enrich_with_lessons(array $method): array
+function methods_load_lessons_for_method(string $methodId): array
 {
-    $lessons = methods_load_lessons_for_method((string)($method['id'] ?? ''));
+    $methodId = methods_normalize_id($methodId);
+    if ($methodId === '') {
+        return [];
+    }
+
+    return methods_load_lessons_by_method()[$methodId] ?? [];
+}
+
+function methods_enrich_with_lessons(array $method, ?array $lessonsByMethod = null): array
+{
+    $methodId = methods_normalize_id($method['id'] ?? '');
+    $lessons = $lessonsByMethod === null
+        ? methods_load_lessons_for_method($methodId)
+        : ($lessonsByMethod[$methodId] ?? []);
     $method['lessons'] = $lessons;
     $method['lessonsCount'] = count($lessons);
     return $method;
