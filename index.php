@@ -328,32 +328,30 @@ function e(string $value): string
                             </div>
                         <?php endforeach; ?>
 
-                        <?php if ($authUser === null): ?>
-                            <div class="col-12">
-                                <article class="card module-card">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-start mb-3">
-                                            <span class="module-icon rounded bg-azure-lt text-azure me-3">
-                                                <i class="ti ti-user-code" aria-hidden="true"></i>
-                                            </span>
-                                            <div>
-                                                <div class="subheader">Leerling</div>
-                                                <h3 class="card-title mb-0">Leerlingcode</h3>
-                                            </div>
+                        <div class="col-12">
+                            <article class="card module-card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <span class="module-icon rounded bg-azure-lt text-azure me-3">
+                                            <i class="ti ti-user-code" aria-hidden="true"></i>
+                                        </span>
+                                        <div>
+                                            <div class="subheader">Leerling</div>
+                                            <h3 class="card-title mb-0">Leerlingcode</h3>
                                         </div>
-                                        <label class="form-label" for="studentCodeInput">Voer je leerlingcode in</label>
-                                        <input
-                                            id="studentCodeInput"
-                                            class="form-control"
-                                            type="text"
-                                            value=""
-                                            autocomplete="off"
-                                            placeholder="Leerlingcode"
-                                        >
                                     </div>
-                                </article>
-                            </div>
-                        <?php endif; ?>
+                                    <label class="form-label" for="studentCodeInput">Voer je leerlingcode in</label>
+                                    <input
+                                        id="studentCodeInput"
+                                        class="form-control"
+                                        type="text"
+                                        value=""
+                                        autocomplete="off"
+                                        placeholder="Leerlingcode"
+                                    >
+                                </div>
+                            </article>
+                        </div>
                     </div>
                 </section>
 
