@@ -1707,5 +1707,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     bootstrap();
   </script>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>

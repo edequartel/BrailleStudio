@@ -161,5 +161,6 @@ $downloadUrl = static function (string $file): string {
   </div>
 
   <script src="<?= $html($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>

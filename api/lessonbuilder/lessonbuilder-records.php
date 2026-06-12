@@ -736,5 +736,6 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       init();
     });
   </script>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>

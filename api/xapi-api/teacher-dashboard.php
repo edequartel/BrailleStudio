@@ -462,5 +462,6 @@ function display_value(mixed $value): string
 
     </div>
 </div>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>

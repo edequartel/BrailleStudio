@@ -1675,5 +1675,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     }
   });
 </script>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>

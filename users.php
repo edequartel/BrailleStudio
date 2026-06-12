@@ -289,5 +289,6 @@ try {
   </main>
 </div>
 <script src="<?= $html($baseUrl) ?>tabler/core/dist/js/tabler.min.js"></script>
+  <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
 </html>
