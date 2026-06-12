@@ -56,6 +56,7 @@ $steps = [
   <title>BrailleStudio Lesson Builder</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-method-list-1')) ?>"></script>
 </head>
 <body class="bg-body">
   <div class="page">
@@ -128,6 +129,23 @@ $steps = [
 
           <div class="card mt-4">
             <div class="card-header">
+              <div>
+                <h2 class="card-title">Methodes</h2>
+                <div class="card-subtitle">Methodes uit <code>../braillestudio-data/data/methods</code>.</div>
+              </div>
+              <div class="card-actions">
+                <button id="refreshMethodsBtn" class="btn btn-outline-secondary btn-sm" type="button">
+                  <i class="ti ti-refresh me-2"></i>
+                  Vernieuwen
+                </button>
+              </div>
+            </div>
+            <div id="methodsStatus" class="card-body text-secondary">Methodes laden...</div>
+            <div id="methodsList" class="list-group list-group-flush"></div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
               <h2 class="card-title">Flow</h2>
             </div>
             <div class="list-group list-group-flush">
@@ -183,5 +201,88 @@ $steps = [
   </div>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
+  <script>
+    (() => {
+      const shared = window.LessonBuilderShared;
+      const methodsList = document.getElementById('methodsList');
+      const methodsStatus = document.getElementById('methodsStatus');
+      const refreshMethodsBtn = document.getElementById('refreshMethodsBtn');
+      const methodPageUrl = <?= $jsValue($urlFor($lessonBuilderBase, 'lessonbuilder-method.php')) ?>;
+
+      function openMethod(item) {
+        shared.updateState({
+          methodId: item.id || '',
+          methodTitle: item.title || '',
+          methodDescription: item.description || '',
+          methodImageUrl: item.imageUrl || '',
+          methodBasisFile: item.basisFile || '',
+          methodDataSource: item.dataSource || ''
+        });
+        window.location.href = methodPageUrl;
+      }
+
+      function renderMethods(items) {
+        methodsList.replaceChildren();
+        if (items.length === 0) {
+          methodsStatus.textContent = 'Geen methodes gevonden.';
+          methodsStatus.hidden = false;
+          return;
+        }
+
+        methodsStatus.hidden = true;
+        items.forEach((item) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'list-group-item list-group-item-action';
+
+          const row = document.createElement('div');
+          row.className = 'd-flex align-items-center';
+
+          const body = document.createElement('div');
+          body.className = 'flex-fill';
+
+          const title = document.createElement('div');
+          title.className = 'fw-medium';
+          title.textContent = item.title || item.id || 'Naamloze methode';
+
+          const details = document.createElement('div');
+          details.className = 'text-secondary small';
+          details.textContent = [item.id, item.description].filter(Boolean).join(' - ');
+
+          const count = document.createElement('span');
+          count.className = 'badge bg-blue-lt me-3';
+          count.textContent = `${Number(item.lessonsCount || 0)} lessons`;
+
+          const icon = document.createElement('i');
+          icon.className = 'ti ti-chevron-right text-secondary';
+
+          body.append(title, details);
+          row.append(body, count, icon);
+          button.append(row);
+          button.addEventListener('click', () => openMethod(item));
+          methodsList.append(button);
+        });
+      }
+
+      async function loadMethods() {
+        refreshMethodsBtn.disabled = true;
+        methodsStatus.hidden = false;
+        methodsStatus.textContent = 'Methodes laden...';
+        try {
+          const items = await shared.listMethods();
+          renderMethods(items);
+        } catch (err) {
+          methodsList.replaceChildren();
+          methodsStatus.hidden = false;
+          methodsStatus.textContent = `Methodes laden mislukt: ${err.message || String(err)}`;
+        } finally {
+          refreshMethodsBtn.disabled = false;
+        }
+      }
+
+      refreshMethodsBtn.addEventListener('click', loadMethods);
+      window.addEventListener('load', loadMethods);
+    })();
+  </script>
 </body>
 </html>
