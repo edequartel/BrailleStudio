@@ -1212,6 +1212,20 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       await loadLinks();
     }
 
+    async function updateStepLinkCode(item, nextCode) {
+      const originalCode = String(item?.code || '').trim();
+      const code = String(nextCode || '').trim();
+      if (!originalCode) throw new Error('Missing original step link code');
+      if (!code) throw new Error('Step-link code mag niet leeg zijn.');
+      if (code === originalCode) {
+        $('linksStatus').innerHTML = statusText(`Step link ${code} is niet gewijzigd.`, 'secondary');
+        return;
+      }
+      const data = await updateLink(buildLinkMutationPayload(item, { originalCode, code }));
+      $('linksStatus').innerHTML = statusText(`Step link ${originalCode} gewijzigd naar ${data.code}.`, 'success');
+      await loadLinks();
+    }
+
     async function copyStepLink(item) {
       const sourceCode = String(item?.code || '').trim();
       if (!sourceCode) throw new Error('Missing step link code');
@@ -1430,8 +1444,13 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                 return `
                 <tr data-link-index="${index}" aria-controls="linkEditorRow${index}">
                   <td>
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="badge bg-primary-lt">${escapeHtml(item.code || '-')}</span>
+                    <div class="d-flex align-items-center gap-2" style="min-width: 14rem">
+                      <div class="input-group input-group-sm flex-nowrap">
+                        <input type="text" class="form-control font-monospace js-link-code-input" value="${escapeHtml(item.code || '')}" maxlength="64" aria-label="Step-link code">
+                        <button type="button" class="btn btn-outline-primary js-save-link-code" title="Save step-link code" aria-label="Save step-link code">
+                          <i class="ti ti-device-floppy" aria-hidden="true"></i>
+                        </button>
+                      </div>
                       ${formatWarning ? '<i class="ti ti-alert-triangle text-warning" aria-hidden="true" title="Old step-link"></i><span class="visually-hidden">Old step-link</span>' : ''}
                     </div>
                   </td>
@@ -1474,6 +1493,24 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     function bindLinkListEvents(list) {
+      list.querySelectorAll('.js-save-link-code').forEach((button) => {
+        button.addEventListener('click', () => {
+          const row = button.closest('tr[data-link-index]');
+          const index = Number(row?.dataset?.linkIndex ?? -1);
+          const input = row?.querySelector('.js-link-code-input');
+          if (!Number.isInteger(index) || index < 0 || !linksCache[index] || !input) return;
+          updateStepLinkCode(linksCache[index], input.value).catch((err) => {
+            $('linksStatus').innerHTML = statusText(err.message || String(err), 'danger');
+          });
+        });
+      });
+      list.querySelectorAll('.js-link-code-input').forEach((input) => {
+        input.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter') return;
+          event.preventDefault();
+          input.closest('tr[data-link-index]')?.querySelector('.js-save-link-code')?.click();
+        });
+      });
       list.querySelectorAll('.js-toggle-inline-link').forEach((button) => {
         button.addEventListener('click', () => {
           const row = button.closest('tr[data-link-index]');
