@@ -54,6 +54,20 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     .step-card__title {
       min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .step-link-code-editor {
+      display: grid;
+      grid-template-columns: auto minmax(12rem, 28rem) auto;
+      align-items: center;
+      gap: .5rem;
+      margin-top: .75rem;
+    }
+
+    .step-link-code-editor .form-label {
+      margin-bottom: 0;
+      white-space: nowrap;
     }
 
     .step-card__actions {
@@ -122,6 +136,20 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     }
 
     @media (max-width: 575.98px) {
+      .step-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .step-link-code-editor {
+        grid-template-columns: 1fr auto;
+        width: 100%;
+      }
+
+      .step-link-code-editor .form-label {
+        grid-column: 1 / -1;
+      }
+
       .step-variable-row {
         grid-template-columns: 1fr;
         gap: .25rem;
@@ -1654,9 +1682,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           </div>
         `;
         const stepLink = document.createElement('div');
-        stepLink.className = 'd-flex align-items-center flex-wrap gap-2 mt-2';
+        stepLink.className = 'step-link-code-editor';
         stepLink.innerHTML = `
-          <label class="visually-hidden" for="stepLinkCode${index}">Step-link code</label>
+          <label class="form-label small fw-semibold" for="stepLinkCode${index}">Step-link code</label>
           <input id="stepLinkCode${index}" type="text" data-step-link-code-input class="form-control form-control-sm font-monospace" maxlength="64" autocomplete="off" aria-label="Step-link code voor stap ${index + 1}">
           <button type="button" data-copy-step-link-code class="btn btn-outline-secondary btn-icon" aria-label="Copy link code" title="Copy link code">
             <i class="ti ti-copy" aria-hidden="true"></i>
