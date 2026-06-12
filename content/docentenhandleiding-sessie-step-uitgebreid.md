@@ -2,7 +2,7 @@
 
 ## Korte werkwijze
 
-* Laptop: open link [Braille sessie](https://www.tastenbraille.com/braillestudio/session-api/laptop.php)
+* Laptop: open link [Braille sessie](https://www.tastenbraille.com/braillestudio/api/session-api/laptop.html)
 2. Laptop: klik **Sessie starten**.
 3. Telefoon: scan de sessie-QR.
 
@@ -112,5 +112,4 @@ Start pas een nieuwe step als de laptop weer klaar is. Als de laptop nog bezig i
 - Herstart BrailleBridge en herlaad de pagina als dat nodig is.
 
 -->
-
 

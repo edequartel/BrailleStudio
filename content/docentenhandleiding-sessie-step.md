@@ -1,7 +1,7 @@
 # Handleiding Sessie en Step starten
 
 
-* Laptop: open link [Braille sessie](https://www.tastenbraille.com/braillestudio/session-api/laptop.php)
+* Laptop: open link [Braille sessie](https://www.tastenbraille.com/braillestudio/api/session-api/laptop.html)
 
 * Laptop: klik **Sessie starten**.
 
@@ -20,4 +20,3 @@
 ![scan step](https://www.tastenbraille.com/braillestudio-data/content/leerling.png)
 
 * Herhaal vanaf stap 4 voor de volgende step.
-

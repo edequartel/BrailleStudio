@@ -301,7 +301,7 @@
           <button id="runStoryOnlineBtn" class="btn" type="button">Run Story (Online)</button>
           <button id="stopExampleBtn" class="btn" type="button">Stop</button>
         </div>
-        <p class="small">This page loads the online <code>Story</code> script from <code>https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=Story</code>, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
+        <p class="small">This page loads the online <code>Story</code> script from <code>https://www.tastenbraille.com/braillestudio/api/blockly-api/load.php?id=Story</code>, injects the requested record from <code>./aanvankelijklijst.json</code>, and runs it headlessly without showing the Blockly canvas.</p>
       </section>
 
       <div class="stack">
@@ -321,7 +321,7 @@
 
   <script>
     const EXTERNAL_DATA_URL = "./aanvankelijklijst.json";
-    const ONLINE_STORY_SCRIPT_URL = "https://www.tastenbraille.com/braillestudio/blockly-api/load.php?id=Story";
+    const ONLINE_STORY_SCRIPT_URL = "https://www.tastenbraille.com/braillestudio/api/blockly-api/load.php?id=Story";
     const DEFAULT_BLOCKLY_SCRIPT = ONLINE_STORY_SCRIPT_URL;
     let externalLessonData = [];
     let selectedBlocklySource = null;
