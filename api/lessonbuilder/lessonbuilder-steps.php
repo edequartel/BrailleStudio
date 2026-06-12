@@ -376,7 +376,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <iframe id="lessonRunnerFrame" class="d-none" title="Lesson runner" allow="autoplay" hidden></iframe>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
-  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1')) ?>"></script>
+  <script src="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.js?v=20260612-ws-state-1')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
     const stepsLoadingScreen = document.getElementById('stepsLoadingScreen');

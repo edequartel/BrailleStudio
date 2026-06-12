@@ -236,6 +236,13 @@
     handleWebSocketOpen() {
       logStatus(`WS <- open ${this.options.wsUrl}`);
       logStatus("WS state", { readyState: this.ws?.readyState ?? null });
+      this.applyState(this.buildState({ wsOk: true, detail: "WebSocket verbonden" }));
+      try {
+        this.ws?.send(JSON.stringify({ type: "getBrailleLine" }));
+        logStatus("WS -> getBrailleLine");
+      } catch (err) {
+        logStatus("WS -> getBrailleLine failed", { error: err?.message || String(err) }, "warn");
+      }
     }
 
     async handleWebSocketMessage(raw) {
@@ -249,6 +256,8 @@
       logStatus(`WS <- raw [${messageId}]`, text || "(empty)");
       const message = text ? parseJson(text) : null;
       const messageType = String(message?.type || "").trim();
+      const incomingType = messageType || (message ? "JSON" : "tekst");
+      this.lastIncomingLabel = `WS inkomend: ${incomingType} ${new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
       const hasStatusFields = message && [
         "bridgeVersion", "version", "samLoaded", "samFound", "samActive",
         "displayConnected", "displayName"
@@ -258,6 +267,7 @@
         messageType === "hello" ||
         messageType === "status" ||
         messageType === "bridgeStatus" ||
+        (message.state && typeof message.state === "object") ||
         hasStatusFields
       );
       if (!isStatusMessage) {
@@ -265,9 +275,9 @@
           type: message?.type || "(unknown)",
           bytes: text ? text.length : 0
         });
+        this.applyVisualState(this.root.dataset.state || "checking", this.lastState);
         return;
       }
-      this.lastIncomingLabel = `WS inkomend: ${messageType} ${new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
       logStatus(`WS <- ${messageType} [${messageId}]`, message);
       this.displayStatus = this.normalizeStatusMessage(message);
       this.runtimeVersion = this.displayStatus.bridgeVersion;
@@ -306,9 +316,11 @@
     }
 
     normalizeStatusMessage(message) {
-      const nested = message && typeof message.status === "object"
-        ? message.status
-        : (message && typeof message.data === "object" ? message.data : {});
+      const nested = message && typeof message.state === "object"
+        ? message.state
+        : (message && typeof message.status === "object"
+          ? message.status
+          : (message && typeof message.data === "object" ? message.data : {}));
       const source = { ...message, ...nested };
       return {
         ...source,

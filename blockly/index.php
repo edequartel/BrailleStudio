@@ -1674,9 +1674,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
     ], { required: false });
     await loadScriptCandidates([
-        '../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
-        '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1',
-        'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260608-ws-auto-start-1'
+        '../components/braillebridge-status/braillebridge-status.js?v=20260612-ws-state-1',
+        '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-ws-state-1',
+        'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-ws-state-1'
     ], { required: false });
     await loadScript('./app.js?v=20260612-global-student-code-1');
   })().catch((err) => {
