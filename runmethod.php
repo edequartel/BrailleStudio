@@ -1005,7 +1005,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260612-ws-state-1"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};

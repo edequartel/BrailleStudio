@@ -6,6 +6,7 @@
     launchUrl: "braillebridge://",
     launchDelayMs: 1200,
     reconnectDelayMs: 2500,
+    statusRefreshMs: 5000,
     autoLaunch: false
   };
 
@@ -36,6 +37,19 @@
       return value.trim().toLowerCase() === "true" || value.trim() === "1";
     }
     return Boolean(value);
+  }
+
+  function httpBaseFromWsUrl(wsUrl) {
+    try {
+      const url = new URL(wsUrl);
+      url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+      url.pathname = "";
+      url.search = "";
+      url.hash = "";
+      return url.toString().replace(/\/$/, "");
+    } catch {
+      return "http://localhost:5000";
+    }
   }
 
   function logStatus(message, data = null, level = "info") {
@@ -77,8 +91,10 @@
       this.options = { ...DEFAULTS, ...options };
       this.ws = null;
       this.reconnectTimer = null;
+      this.statusTimer = null;
       this.launchAttemptedAt = 0;
       this.lastState = {};
+      this.httpOk = false;
       this.runtimeVersion = "";
       this.displayStatus = null;
       this.lastStateLog = "";
@@ -201,12 +217,17 @@
         autoLaunch: this.options.autoLaunch
       });
       this.connectWebSocket();
+      this.startStatusPolling();
     }
 
     stop() {
       if (this.reconnectTimer) {
         global.clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
+      }
+      if (this.statusTimer) {
+        global.clearInterval(this.statusTimer);
+        this.statusTimer = null;
       }
       if (this.ws) {
         try { this.ws.close(1000, "status component stopped"); } catch {}
@@ -236,13 +257,60 @@
     handleWebSocketOpen() {
       logStatus(`WS <- open ${this.options.wsUrl}`);
       logStatus("WS state", { readyState: this.ws?.readyState ?? null });
-      this.applyState(this.buildState({ wsOk: true, detail: "WebSocket verbonden" }));
+      this.httpOk = true;
+      this.applyState(this.buildState({ httpOk: true, wsOk: true, detail: "WebSocket verbonden" }));
       try {
         this.ws?.send(JSON.stringify({ type: "getBrailleLine" }));
         logStatus("WS -> getBrailleLine");
       } catch (err) {
         logStatus("WS -> getBrailleLine failed", { error: err?.message || String(err) }, "warn");
       }
+    }
+
+    startStatusPolling() {
+      void this.refreshRuntimeStatus();
+      if (this.statusTimer) global.clearInterval(this.statusTimer);
+      this.statusTimer = global.setInterval(() => {
+        void this.refreshRuntimeStatus();
+      }, this.options.statusRefreshMs);
+    }
+
+    async refreshRuntimeStatus() {
+      const baseUrl = this.options.httpBaseUrl || httpBaseFromWsUrl(this.options.wsUrl);
+      const endpoints = ["/devices/active", "/brailledisplay/status"];
+      let lastError = null;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(`${baseUrl}${endpoint}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const payload = await response.json();
+          this.httpOk = true;
+          this.displayStatus = this.normalizeStatusMessage(payload);
+          this.runtimeVersion = this.displayStatus.bridgeVersion;
+          this.applyState(this.buildState({
+            httpOk: true,
+            wsOk: this.ws?.readyState === WebSocket.OPEN,
+            changing: this.displayStatus.reason === "samConfigStart",
+            detail: endpoint
+          }));
+          logStatus(`HTTP <- ${endpoint}`, payload);
+          return true;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      this.httpOk = this.ws?.readyState === WebSocket.OPEN;
+      if (!this.httpOk) {
+        this.runtimeVersion = "";
+        this.displayStatus = null;
+      }
+      logStatus("HTTP status failed", { error: lastError?.message || String(lastError || "Status niet beschikbaar") }, "warn");
+      this.applyState(this.buildState({
+        httpOk: this.httpOk,
+        wsOk: this.ws?.readyState === WebSocket.OPEN,
+        detail: lastError?.message || "Status niet beschikbaar"
+      }));
+      return false;
     }
 
     async handleWebSocketMessage(raw) {
@@ -279,6 +347,7 @@
         return;
       }
       logStatus(`WS <- ${messageType} [${messageId}]`, message);
+      this.httpOk = true;
       this.displayStatus = this.normalizeStatusMessage(message);
       this.runtimeVersion = this.displayStatus.bridgeVersion;
       this.applyState(this.buildState({
@@ -334,10 +403,8 @@
     }
 
     setOffline(detail) {
-      this.runtimeVersion = "";
-      this.displayStatus = null;
       this.lastIncomingLabel = "WS inkomend: geen";
-      this.applyState(this.buildState({ wsOk: false, detail }));
+      this.applyState(this.buildState({ httpOk: this.httpOk, wsOk: false, detail }));
     }
 
     buildState(overrides = {}) {
@@ -346,7 +413,7 @@
       const changing = Boolean(overrides.changing || displayPayload?.reason === "samConfigStart");
       const samOk = Boolean(displayPayload?.samLoaded && displayPayload?.samFound && displayPayload?.samActive);
       return {
-        httpOk: Boolean(overrides.wsOk),
+        httpOk: typeof overrides.httpOk === "boolean" ? overrides.httpOk : this.httpOk,
         wsOk: Boolean(overrides.wsOk),
         deviceOk,
         samOk,
@@ -470,7 +537,7 @@
       }
       if (this.titleEl) this.titleEl.textContent = state === "ready" ? "BrailleBridge" : (STATE_LABELS[state] || STATE_LABELS.checking);
       if (this.subtitleEl) this.subtitleEl.textContent = this.getSubtitle(state, data);
-      this.setBadge(this.httpEl, data.wsOk, data.wsOk ? "Runtime actief" : "Runtime offline");
+      this.setBadge(this.httpEl, data.httpOk, data.httpOk ? "Runtime actief" : "Runtime offline");
       this.setBadge(this.wsEl, data.wsOk, data.wsOk ? "WebSocket ok" : "WebSocket offline");
       this.setBadge(this.deviceEl, data.deviceOk, data.changing ? "Leesregel wijzigt" : (data.deviceOk ? "Leesregel verbonden" : "Geen leesregel"));
       this.setBadge(this.samEl, data.samOk, data.changing ? "SAM wijzigt" : (data.samOk ? "SAM actief" : "SAM niet actief"));
@@ -486,7 +553,7 @@
       }
       if (this.runtimeDetailEl) {
         const runtimeVersion = data.version?.version || "";
-        this.runtimeDetailEl.textContent = data.wsOk
+        this.runtimeDetailEl.textContent = data.httpOk
           ? `Actief${runtimeVersion ? `, versie ${runtimeVersion}` : ""}`
           : `Offline${data.detail ? `: ${data.detail}` : ""}`;
       }
@@ -563,6 +630,8 @@
       wsUrl: root.dataset.wsUrl || DEFAULTS.wsUrl,
       launchUrl: root.dataset.launchUrl || DEFAULTS.launchUrl,
       reconnectDelayMs: Number(root.dataset.reconnectDelayMs || DEFAULTS.reconnectDelayMs),
+      statusRefreshMs: Number(root.dataset.statusRefreshMs || DEFAULTS.statusRefreshMs),
+      httpBaseUrl: root.dataset.httpBaseUrl || "",
       autoLaunch: boolAttr(root.dataset.autoLaunch || "false")
     };
     return new BrailleBridgeStatus(root, options);
