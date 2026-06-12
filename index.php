@@ -290,7 +290,7 @@ function e(string $value): string
                         <?php foreach ($modules as $module): ?>
                             <?php if ($authUser === null && (($module['eyebrow'] ?? '') !== 'Leerling' || ($module['title'] ?? '') !== 'Oefenen')) { continue; } ?>
                             <?php if (isset($module['roles']) && ($authUser === null || !in_array($authUser['role'], $module['roles'], true))) { continue; } ?>
-                            <div class="col-12 col-md-6 col-xl-3">
+                            <div class="<?= $authUser === null ? 'col-12' : 'col-12 col-md-6 col-xl-3' ?>">
                                 <article class="card module-card h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-start mb-3">
