@@ -30,7 +30,21 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
 </head>
 <body class="bg-body">
-  <div class="page">
+  <div id="methodLoadingScreen" class="page page-center" aria-live="polite">
+    <div class="container-tight py-4">
+      <div class="card card-md">
+        <div class="card-body text-center py-5">
+          <div class="mb-3">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          </div>
+          <h1 class="h3 mb-2">Lesson Builder laden</h1>
+          <p id="methodLoadingMessage" class="text-secondary mb-0">Methodes voorbereiden.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="methodAppPage" class="page d-none" hidden>
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
         <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
@@ -186,6 +200,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
+    const methodLoadingScreen = document.getElementById('methodLoadingScreen');
+    const methodLoadingMessage = document.getElementById('methodLoadingMessage');
+    const methodAppPage = document.getElementById('methodAppPage');
     const methodsSelect = document.getElementById('methodsSelect');
     const methodIdInput = document.getElementById('methodIdInput');
     const methodTechnicalIdDisplay = document.getElementById('methodTechnicalIdDisplay');
@@ -216,6 +233,23 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     const APP_BASE_PATH = window.location.pathname.replace(/\/(?:api\/)?lessonbuilder(?:\/.*)?$/, '') || '';
     const APP_BASE_URL = new URL(`${APP_BASE_PATH.replace(/\/$/, '')}/`, window.location.origin);
     const METHODS_STORAGE_DIR = 'https://www.tastenbraille.com/braillestudio-data/data/methods/';
+
+    function setLoadingMessage(message) {
+      methodLoadingMessage.textContent = message;
+    }
+
+    function hideLoadingScreen() {
+      methodLoadingScreen.hidden = true;
+      methodLoadingScreen.classList.add('d-none');
+      methodAppPage.hidden = false;
+      methodAppPage.classList.remove('d-none');
+    }
+
+    function showLoadingError(message) {
+      methodLoadingMessage.textContent = message;
+      methodLoadingMessage.classList.remove('text-secondary');
+      methodLoadingMessage.classList.add('text-danger');
+    }
 
     function debugLines(data, prefix = '') {
       if (data == null) return [];
@@ -474,10 +508,12 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     async function init() {
       renderBasisFileOptions([]);
       try {
+        setLoadingMessage('Methodes en basisbestanden laden.');
         const basisFilesPromise = shared.listBasisFiles();
         methodsCache = await shared.listMethods();
         renderMethodOptions(methodsCache);
 
+        setLoadingMessage('Methodeformulier voorbereiden.');
         basisFileOptions = await basisFilesPromise;
         renderBasisFileOptions(shared.loadState().methodBasisFile || '');
         methodDataSourceInput.value = methodBasisFileSelect.value ? shared.resolveBasisFileUrl(methodBasisFileSelect.value) : '';
@@ -490,6 +526,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         methodImageUrlInput.value = state.methodImageUrl || '';
         renderMethodImagePreview();
         if (state.methodId) {
+          setLoadingMessage('Geselecteerde methode laden.');
           await loadMethodIntoForm(state.methodId);
         } else {
           renderRunmethodLink();
@@ -497,9 +534,11 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           setStatus('Ready.');
         }
         renderDebugLogVisibility();
+        hideLoadingScreen();
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
         renderDebugLogVisibility();
+        showLoadingError(`Laden mislukt: ${err.message}`);
       }
     }
 
