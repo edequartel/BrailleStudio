@@ -1234,7 +1234,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function ensureAutomaticStepLinkCodes(items = stepConfigs) {
       (Array.isArray(items) ? items : []).forEach((item, index) => {
         if (!item || typeof item !== 'object') return;
-        item.stepLinkCode = buildAutomaticStepLinkCode(index);
+        if (!String(item.stepLinkCode || '').trim()) {
+          item.stepLinkCode = buildAutomaticStepLinkCode(index);
+        }
       });
       return items;
     }
@@ -1279,9 +1281,15 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     async function syncStepLinkActivationAfterSave() {
       ensureAutomaticStepLinkCodes();
+      stepConfigs.forEach((stepConfig, index) => {
+        stepConfig.stepLinkCode = normalizeStepLinkCode(stepConfig.stepLinkCode, index);
+      });
       const method = shared.getDraftMethodMeta(state);
       const methodId = String(method.id || '').trim();
       const currentCodes = getStepLinkCodes(stepConfigs);
+      if (currentCodes.size !== stepConfigs.length) {
+        throw new Error('Iedere step moet een unieke step-linkcode hebben.');
+      }
       const updates = [];
 
       stepConfigs.forEach((stepConfig, index) => {
@@ -1369,7 +1377,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           title: meta.title,
           description: meta.description,
           instruction: meta.instruction,
-          stepLinkCode: String(source.stepLinkCode || '').trim(),
+          stepLinkCode: normalizeStepLinkCode(
+            row.querySelector('[data-step-link-code-input]')?.value || source.stepLinkCode || '',
+            index
+          ),
           inputs
         });
       });
@@ -1403,6 +1414,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         token += '-x';
       }
       return token.slice(0, 128).replace(/-+$/g, '') || 'step';
+    }
+
+    function normalizeStepLinkCode(value, stepIndex) {
+      return normalizeStepLinkToken(value, buildAutomaticStepLinkCode(stepIndex))
+        .slice(0, 64)
+        .replace(/-+$/g, '');
     }
 
     function buildAutomaticStepLinkCode(stepIndex) {
@@ -1467,7 +1484,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function renderStepLinkCodeCell(cell, code = '') {
       const normalizedCode = String(code || '').trim();
-      cell.querySelector('[data-step-link-code-text]').textContent = normalizedCode || 'No code yet';
+      const input = cell.querySelector('[data-step-link-code-input]');
+      if (input) {
+        input.value = normalizedCode;
+      }
       const copyBtn = cell.querySelector('[data-copy-step-link-code]');
       if (copyBtn) {
         copyBtn.disabled = !normalizedCode;
@@ -1636,15 +1656,28 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         const stepLink = document.createElement('div');
         stepLink.className = 'd-flex align-items-center flex-wrap gap-2 mt-2';
         stepLink.innerHTML = `
-          <code data-step-link-code-text class="text-truncate">No code yet</code>
+          <label class="visually-hidden" for="stepLinkCode${index}">Step-link code</label>
+          <input id="stepLinkCode${index}" type="text" data-step-link-code-input class="form-control form-control-sm font-monospace" maxlength="64" autocomplete="off" aria-label="Step-link code voor stap ${index + 1}">
           <button type="button" data-copy-step-link-code class="btn btn-outline-secondary btn-icon" aria-label="Copy link code" title="Copy link code">
             <i class="ti ti-copy" aria-hidden="true"></i>
           </button>
         `;
         title.appendChild(stepLink);
         renderStepLinkCodeCell(stepLink, cfg.stepLinkCode);
+        const stepLinkCodeInput = stepLink.querySelector('[data-step-link-code-input]');
+        stepLinkCodeInput.addEventListener('input', () => {
+          stepConfigs[index].stepLinkCode = stepLinkCodeInput.value.trim();
+          state = shared.updateState({ steps: serializeStepConfigs(stepConfigs) });
+          stepLink.querySelector('[data-copy-step-link-code]').disabled = !stepLinkCodeInput.value.trim();
+        });
+        stepLinkCodeInput.addEventListener('change', () => {
+          const normalizedCode = normalizeStepLinkCode(stepLinkCodeInput.value, index);
+          stepConfigs[index].stepLinkCode = normalizedCode;
+          renderStepLinkCodeCell(stepLink, normalizedCode);
+          state = shared.updateState({ steps: serializeStepConfigs(stepConfigs) });
+        });
         stepLink.querySelector('[data-copy-step-link-code]').addEventListener('click', async () => {
-          const code = String(stepConfigs[index]?.stepLinkCode || '').trim();
+          const code = String(stepLinkCodeInput.value || stepConfigs[index]?.stepLinkCode || '').trim();
           if (!code) return;
           try {
             await navigator.clipboard.writeText(code);
@@ -2271,6 +2304,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       stepConfigs = buildStepConfigsFromTable();
       ensureAutomaticStepLinkCodes();
       state = shared.updateState({ steps: stepConfigs });
+      if (getStepLinkCodes(stepConfigs).size !== stepConfigs.length) {
+        setStatus('Iedere step moet een unieke step-linkcode hebben.');
+        return;
+      }
       const method = shared.getDraftMethodMeta(state);
       const basisIndex = Number(state.basisIndex ?? -1);
       const basisItem = basisItems[basisIndex] || state.basisRecord || null;
