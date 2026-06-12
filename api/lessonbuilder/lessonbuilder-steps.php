@@ -927,7 +927,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       const normalizedVariables = variables
         .map((item) => {
           const name = String(item?.name || '').trim();
-          if (!name || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          if (!name || name === 'student_code' || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
           return {
             name,
             type: String(item?.type || 'string').trim() || 'string',
@@ -938,7 +938,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         .filter(Boolean);
       const seen = new Set(normalizedVariables.map((variable) => variable.name));
       collectExternalVariableNamesFromBlocks(blocklyState).forEach((name) => {
-        if (seen.has(name)) return;
+        if (name === 'student_code' || seen.has(name)) return;
         seen.add(name);
         normalizedVariables.push({
           name,
@@ -947,14 +947,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           description: 'External variable detected from Blockly blocks. Save the script again to add full metadata.'
         });
       });
-      if (!seen.has('student_code')) {
-        normalizedVariables.unshift({
-          name: 'student_code',
-          type: 'string',
-          defaultValue: '',
-          description: 'Required student code for learning progress. Progress tracking is skipped when empty.'
-        });
-      }
       return normalizedVariables;
     }
 
@@ -1189,6 +1181,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function normalizeEditableStepInputs(inputs = {}, scriptId = '') {
       const normalized = shared.normalizeInputs(inputs || {});
+      delete normalized.student_code;
       const scriptKey = String(scriptId || '').trim();
       if (scriptKey && !scriptDataCache.has(scriptKey)) {
         normalized.repeat = Math.max(1, Math.floor(Number(normalized.repeat ?? 1) || 1));

@@ -82,6 +82,7 @@ session_api_respond([
 function session_api_normalize_step_inputs(array $stepInputs): array
 {
     unset($stepInputs['repeat']);
+    unset($stepInputs['student_code']);
     return $stepInputs;
 }
 

@@ -1198,6 +1198,7 @@
     function stripDeprecatedStepInputs(stepInputs = {}) {
       const normalized = stepInputs && typeof stepInputs === 'object' ? { ...stepInputs } : {};
       delete normalized.repeat;
+      delete normalized.student_code;
       return normalized;
     }
 

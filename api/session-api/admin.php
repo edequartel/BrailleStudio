@@ -953,6 +953,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     function stripDeprecatedStepInputs(stepInputs = {}) {
       const normalized = stepInputs && typeof stepInputs === 'object' ? { ...stepInputs } : {};
       delete normalized.repeat;
+      delete normalized.student_code;
       return normalized;
     }
 
@@ -1004,7 +1005,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       const normalized = variables
         .map((item) => {
           const name = String(item?.name || '').trim();
-          if (!name || name === 'repeat' || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          if (!name || name === 'repeat' || name === 'student_code' || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
           return {
             name,
             type: String(item?.type || 'string').trim() || 'string',
@@ -1015,7 +1016,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         .filter(Boolean);
       const seen = new Set(normalized.map((variable) => variable.name));
       collectExternalVariableNamesFromBlocks(blocklyState).forEach((name) => {
-        if (seen.has(name)) return;
+        if (name === 'student_code' || seen.has(name)) return;
         seen.add(name);
         normalized.push({
           name,

@@ -153,10 +153,10 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
   <script src="./runtime.js?v=20260609-static-sounds-1"></script>
   <script src="./instructions-catalog.js?v=20260416-session-player-3"></script>
   <script src="./preload-instructions.js?v=20260416-session-player-3"></script>
-  <script src="./blocks.js?v=20260608-track-progress-1"></script>
-  <script src="./generators.js?v=20260609-static-sounds-1"></script>
+  <script src="./blocks.js?v=20260612-global-student-code-1"></script>
+  <script src="./generators.js?v=20260612-global-student-code-1"></script>
   <script src="../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1"></script>
   <script src="../components/braillebridge-status/braillebridge-status.js?v=20260608-ws-only-1"></script>
-  <script src="./app.js?v=20260609-static-sounds-1"></script>
+  <script src="./app.js?v=20260612-global-student-code-1"></script>
 </body>
 </html>

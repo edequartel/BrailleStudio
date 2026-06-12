@@ -51,6 +51,7 @@
   }
 
   const EXTERNAL_VARIABLE_COLOUR = '#2563EB';
+  const GLOBAL_VARIABLE_COLOUR = '#7C3AED';
   function getVariableOptions(scope) {
     if (typeof window.BrailleBlocklyVariableOptions === 'function') {
       const options = window.BrailleBlocklyVariableOptions(scope);
@@ -111,6 +112,27 @@
       this.setOutput(true);
       this.setColour(EXTERNAL_VARIABLE_COLOUR);
       this.setTooltip(() => getVariableTooltip('external', this) + ' Reads a property from an object or array value.');
+    }
+  };
+
+  Blockly.Blocks['global_student_code_get'] = {
+    init() {
+      this.appendDummyInput().appendField('global student_code');
+      this.setOutput(true, 'String');
+      this.setColour(GLOBAL_VARIABLE_COLOUR);
+      this.setTooltip('Reads the global student code entered on the BrailleStudio start page.');
+    }
+  };
+
+  Blockly.Blocks['global_student_code_set'] = {
+    init() {
+      this.appendValueInput('VALUE')
+        .setCheck('String')
+        .appendField('set global student_code to');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(GLOBAL_VARIABLE_COLOUR);
+      this.setTooltip('Changes the global student code for this browser session.');
     }
   };
 

@@ -273,7 +273,7 @@ function normalize_step_inputs($inputs): array
 
     foreach ($inputs as $key => $value) {
         $safeKey = trim((string)$key);
-        if ($safeKey === '' || in_array($safeKey, ['text', 'word', 'letters', 'repeat'], true)) {
+        if ($safeKey === '' || in_array($safeKey, ['text', 'word', 'letters', 'repeat', 'student_code'], true)) {
             continue;
         }
         $normalized[$safeKey] = $value;
@@ -1593,7 +1593,7 @@ $pagePayload = [
         repeat: Number(inputs.repeat || 1)
       };
       Object.entries(inputs).forEach(([key, value]) => {
-        if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+        if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat' || key === 'student_code') return;
         normalizedInputs[key] = value;
       });
       return {
@@ -1727,7 +1727,7 @@ $pagePayload = [
         if (Array.isArray(inputs.letters) && inputs.letters.length) parts.push(`letters: ${inputs.letters.join(', ')}`);
         if (Number(inputs.repeat || 1) > 1) parts.push(`repeat: ${inputs.repeat}`);
         Object.entries(inputs).forEach(([key, value]) => {
-          if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat') return;
+          if (key === 'text' || key === 'word' || key === 'letters' || key === 'repeat' || key === 'student_code') return;
           const displayValue = value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
           externalVariables.push({ name: key, value: displayValue });
         });

@@ -36,6 +36,15 @@
     return [`BrailleStudioAPI.getExternalProperty(${fieldName(block)}, ${propertyCode})`, ORDER_ATOMIC];
   };
 
+  javascriptGenerator.forBlock['global_student_code_get'] = function () {
+    return ['BrailleStudioAPI.getGlobalStudentCode()', ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['global_student_code_set'] = function (block) {
+    const valueCode = valueToCodeOr(block, 'VALUE', "''");
+    return `BrailleStudioAPI.setGlobalStudentCode(${valueCode});\n`;
+  };
+
   javascriptGenerator.forBlock['list_pick_random'] = function (block) {
     const listCode = valueToCodeOr(block, 'LIST', '[]');
     return [`BrailleStudioAPI.pickRandom(${listCode})`, ORDER_ATOMIC];

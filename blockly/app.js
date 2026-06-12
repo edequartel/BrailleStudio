@@ -381,23 +381,13 @@ function normalizeScriptVariable(raw = {}, fallbackScope = 'internal') {
   };
 }
 
-const STANDARD_EXTERNAL_VARIABLES = Object.freeze([
-  Object.freeze({
-    id: 'external_student_code_standard',
-    name: 'student_code',
-    scope: 'external',
-    type: 'string',
-    defaultValue: '',
-    description: 'Required student code for learning progress. Progress tracking is skipped when empty.'
-  })
-]);
-
 function normalizeScriptVariables(items) {
-  const source = Array.isArray(items) ? [...items, ...STANDARD_EXTERNAL_VARIABLES] : [...STANDARD_EXTERNAL_VARIABLES];
+  const source = Array.isArray(items) ? items : [];
   const seen = new Set();
   return source
     .map((item) => normalizeScriptVariable(item))
     .filter(Boolean)
+    .filter((item) => item.name !== 'student_code')
     .filter((item) => {
       const key = `${item.scope}:${item.name}`;
       if (seen.has(key)) return false;
@@ -4458,7 +4448,7 @@ function collectExternalVariablesFromState(state) {
   ]);
   const addExternalVariable = (name, defaultValue) => {
     const normalizedName = String(name || '').trim();
-    if (!normalizedName || variablesByName.has(normalizedName)) return;
+    if (!normalizedName || normalizedName === 'student_code' || variablesByName.has(normalizedName)) return;
     variablesByName.set(normalizedName, normalizeScriptVariable({
       name: normalizedName,
       scope: 'external',
@@ -4513,7 +4503,28 @@ function extractWorkspaceVariablesFromState(state, metadata = null) {
 function getBlocklySerializableState(state) {
   if (!state || typeof state !== 'object') return state;
   const { scriptVariables: _scriptVariables, variablesMetadata: _variablesMetadata, ...blocklyState } = state;
-  return blocklyState;
+  const migratedState = structuredClone(blocklyState);
+  const migrateBlock = (block) => {
+    if (!block || typeof block !== 'object') return;
+    const variableName = String(block.fields?.VAR || '').trim();
+    if (variableName === 'student_code' && block.type === 'external_variable_get') {
+      block.type = 'global_student_code_get';
+      delete block.fields;
+    } else if (variableName === 'student_code' && block.type === 'external_variable_set') {
+      block.type = 'global_student_code_set';
+      delete block.fields;
+    }
+    Object.values(block.inputs || {}).forEach((input) => {
+      migrateBlock(input?.block);
+      migrateBlock(input?.shadow);
+    });
+    migrateBlock(block.next?.block);
+  };
+  const rootBlocks = migratedState?.blocks?.blocks;
+  if (Array.isArray(rootBlocks)) {
+    rootBlocks.forEach(migrateBlock);
+  }
+  return migratedState;
 }
 
 function buildLessonDataCandidates(source) {
@@ -4812,12 +4823,18 @@ function findExternalRuntimeKey(name) {
 }
 
 function externalVariableExists(name) {
+  if (String(name || '').trim() === 'student_code') {
+    return getGlobalStudentCode() !== '';
+  }
   const key = findExternalRuntimeKey(name);
   log(`External exists: requested=${JSON.stringify(String(name || ''))} resolved=${JSON.stringify(key)} exists=${key !== ''}`);
   return key !== '';
 }
 
 function getExternalVariable(name) {
+  if (String(name || '').trim() === 'student_code') {
+    return getGlobalStudentCode();
+  }
   const key = findExternalRuntimeKey(name);
   if (!key) {
     log(`External get: requested=${JSON.stringify(String(name || ''))} resolved="" value=undefined`);
@@ -4832,6 +4849,10 @@ function getExternalVariable(name) {
 function setExternalVariable(name, value) {
   const key = String(name || '').trim();
   if (!key) return;
+  if (key === 'student_code') {
+    setGlobalStudentCode(value);
+    return;
+  }
   const rt = getRuntime();
   if (!rt.external || typeof rt.external !== 'object') rt.external = {};
   rt.external[key] = value;
@@ -4842,6 +4863,30 @@ function setExternalVariable(name, value) {
   });
   log(`External set: requested=${JSON.stringify(key)} aliases=${JSON.stringify([variable?.name, variable?.id].filter(Boolean))} value=${formatLogValue(value)}`);
   renderStatus();
+}
+
+const GLOBAL_STUDENT_CODE_STORAGE_KEY = 'braillestudio_global_student_code';
+
+function getGlobalStudentCode() {
+  try {
+    return String(window.sessionStorage?.getItem(GLOBAL_STUDENT_CODE_STORAGE_KEY) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function setGlobalStudentCode(value) {
+  const code = String(value ?? '').trim();
+  try {
+    if (code) {
+      window.sessionStorage?.setItem(GLOBAL_STUDENT_CODE_STORAGE_KEY, code);
+    } else {
+      window.sessionStorage?.removeItem(GLOBAL_STUDENT_CODE_STORAGE_KEY);
+    }
+  } catch {}
+  log(`Global student_code set: ${JSON.stringify(code)}`);
+  renderStatus();
+  return code;
 }
 
 function getExternalProperty(name, property) {
@@ -4861,7 +4906,9 @@ Object.assign(window.BrailleStudioAPI, {
   getExternalVariable,
   setExternalVariable,
   externalVariableExists,
-  getExternalProperty
+  getExternalProperty,
+  getGlobalStudentCode,
+  setGlobalStudentCode
 });
 
 function readStoredResolvedSessionPayload() {
@@ -5158,7 +5205,7 @@ async function reportProgress(verb, data = undefined) {
     throw new Error(`Unsupported progress verb: ${normalizedVerb || '(empty)'}`);
   }
 
-  const studentCode = String(getExternalVariable('student_code') ?? '').trim();
+  const studentCode = getGlobalStudentCode();
   if (!studentCode) {
     log(`Progress skipped: student_code is empty (${normalizedVerb})`);
     return null;
@@ -5772,6 +5819,9 @@ async function evalValue(block) {
 
     case 'external_variable_get':
       return getExternalVariable(block.getFieldValue('VAR'));
+
+    case 'global_student_code_get':
+      return getGlobalStudentCode();
 
     case 'external_variable_exists':
       return externalVariableExists(block.getFieldValue('VAR'));
@@ -6391,6 +6441,11 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         break;
       }
 
+      case 'global_student_code_set': {
+        setGlobalStudentCode(await evalValue(current.getInputTargetBlock('VALUE')));
+        break;
+      }
+
       case 'lesson_set_active_record_index': {
         if (getRuntime().lockInjectedLessonRecord) {
           log('Ignored lesson_set_active_record_index because injected record lock is active');
@@ -6828,6 +6883,7 @@ async function openWorkspaceFile() {
 function loadWorkspaceFromText(text, sourceName = null) {
   try {
     const xmlDom = parseWorkspaceXml(text);
+    migrateLegacyStudentCodeXml(xmlDom);
     suppressDirtyTracking++;
     workspace.clear();
     setScriptVariables(extractWorkspaceVariablesFromXml(xmlDom), { markDirty: false });
@@ -6845,6 +6901,23 @@ function loadWorkspaceFromText(text, sourceName = null) {
     log('Load failed: ' + err.message);
     alert('Could not load file: ' + err.message);
   }
+}
+
+function migrateLegacyStudentCodeXml(xmlDom) {
+  xmlDom?.querySelectorAll?.('block[type="external_variable_get"], block[type="external_variable_set"]')?.forEach((block) => {
+    const variableField = Array.from(block.children || []).find((child) => (
+      String(child?.tagName || '').toLowerCase() === 'field'
+      && child.getAttribute('name') === 'VAR'
+    ));
+    if (String(variableField?.textContent || '').trim() !== 'student_code') return;
+    block.setAttribute(
+      'type',
+      block.getAttribute('type') === 'external_variable_set'
+        ? 'global_student_code_set'
+        : 'global_student_code_get'
+    );
+    variableField.remove();
+  });
 }
 
 function collectBlockTypesFromState(state) {

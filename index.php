@@ -459,6 +459,18 @@ function e(string $value): string
     const indexLoadingScreen = document.getElementById('indexLoadingScreen');
     const indexLoadingMessage = document.getElementById('indexLoadingMessage');
     const indexAppPage = document.getElementById('indexAppPage');
+    const studentCodeInput = document.getElementById('studentCodeInput');
+    const globalStudentCodeStorageKey = 'braillestudio_global_student_code';
+
+    sessionStorage.removeItem(globalStudentCodeStorageKey);
+    studentCodeInput?.addEventListener('input', () => {
+        const studentCode = studentCodeInput.value.trim();
+        if (studentCode) {
+            sessionStorage.setItem(globalStudentCodeStorageKey, studentCode);
+        } else {
+            sessionStorage.removeItem(globalStudentCodeStorageKey);
+        }
+    });
 
     function setIndexLoadingMessage(message) {
         if (indexLoadingMessage) {
