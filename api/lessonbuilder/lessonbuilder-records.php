@@ -27,7 +27,21 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <script src="<?= $htmlUrl($urlFor($appBase, 'api/lessonbuilder/lessonbuilder-shared.js?v=20260612-fast-methods-1')) ?>"></script>
 </head>
 <body class="bg-body">
-  <div class="page">
+  <div id="recordsLoadingScreen" class="page page-center" aria-live="polite">
+    <div class="container-tight py-4">
+      <div class="card card-md">
+        <div class="card-body text-center py-5">
+          <div class="mb-3">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+          </div>
+          <h1 class="h3 mb-2">Lesson Builder laden</h1>
+          <p id="recordsLoadingMessage" class="text-secondary mb-0">Methodegegevens voorbereiden.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="recordsAppPage" class="page d-none" hidden>
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
         <a class="navbar-brand navbar-brand-autodark" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
@@ -164,6 +178,9 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script>
     const shared = window.LessonBuilderShared;
+    const recordsLoadingScreen = document.getElementById('recordsLoadingScreen');
+    const recordsLoadingMessage = document.getElementById('recordsLoadingMessage');
+    const recordsAppPage = document.getElementById('recordsAppPage');
     const basisRecordsList = document.getElementById('basisRecordsList');
     const methodSummary = document.getElementById('methodSummary');
     const recordEditorCaption = document.getElementById('recordEditorCaption');
@@ -188,6 +205,23 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     let lessonsCache = [];
     let pendingDeleteIndex = -1;
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
+
+    function setLoadingMessage(message) {
+      recordsLoadingMessage.textContent = message;
+    }
+
+    function hideLoadingScreen() {
+      recordsLoadingScreen.hidden = true;
+      recordsLoadingScreen.classList.add('d-none');
+      recordsAppPage.hidden = false;
+      recordsAppPage.classList.remove('d-none');
+    }
+
+    function showLoadingError(message) {
+      recordsLoadingMessage.textContent = message;
+      recordsLoadingMessage.classList.remove('text-secondary');
+      recordsLoadingMessage.classList.add('text-danger');
+    }
 
     function setStatus(message, data = null) {
       statusBox.replaceChildren();
@@ -616,13 +650,22 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
 
     async function init() {
       try {
+        setLoadingMessage('Methodegegevens voorbereiden.');
         state = shared.loadState();
         renderMethodSummary();
         const method = shared.getDraftMethodMeta(state);
-        basisItems = (await shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL)).map(ensureRecordUid);
-        originalBasisItems = cloneDeep(basisItems);
-        lessonsCache = method.id ? await shared.listLessons(method.id) : [];
 
+        setLoadingMessage('Basisrecords en lessons laden.');
+        const [loadedBasisItems, loadedLessons] = await Promise.all([
+          shared.loadBasisData(method.dataSource || shared.DEFAULT_BASIS_DATA_URL),
+          method.id ? shared.listLessons(method.id) : Promise.resolve([]),
+        ]);
+
+        basisItems = loadedBasisItems.map(ensureRecordUid);
+        originalBasisItems = cloneDeep(basisItems);
+        lessonsCache = loadedLessons;
+
+        setLoadingMessage('Editor klaarzetten.');
         if (Number.isInteger(state.basisIndex) && Number(state.basisIndex) >= 0 && Number(state.basisIndex) < basisItems.length) {
           selectBasisIndex(Number(state.basisIndex));
         } else if (basisItems.length) {
@@ -632,8 +675,10 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         }
 
         setStatus('Ready.');
+        hideLoadingScreen();
       } catch (err) {
         setStatus(`Init error: ${err.message}`);
+        showLoadingError(`Laden mislukt: ${err.message}`);
       }
     }
 
