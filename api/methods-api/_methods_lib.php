@@ -6,32 +6,11 @@ braillestudio_json_guard_start();
 
 require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 
-function methods_data_file(): string
-{
-    foreach (methods_data_file_candidates() as $file) {
-        if (is_file($file)) {
-            return $file;
-        }
-    }
-    return methods_data_file_candidates()[0];
-}
-
-function methods_data_file_candidates(): array
-{
-    return array_values(array_unique([
-        dirname(__DIR__, 2) . '/methods.json',
-        dirname(__DIR__) . '/methods.json',
-        __DIR__ . '/methods.json',
-    ]));
-}
-
 function methods_save_dirs(): array
 {
-    return array_values(array_unique([
+    return [
         dirname(__DIR__, 3) . '/braillestudio-data/data/methods',
-        dirname(__DIR__, 2) . '/data/methods',
-        dirname(__DIR__) . '/data/methods',
-    ]));
+    ];
 }
 
 function methods_save_dir(): string
@@ -73,16 +52,6 @@ function ensure_methods_storage_exists(): void
             'error' => 'No writable methods data directory found',
             'checked' => methods_save_dirs(),
         ], 500);
-    }
-}
-
-function ensure_methods_file_exists(): void
-{
-    $file = methods_data_file();
-    ensure_methods_storage_exists();
-
-    if (!file_exists($file)) {
-        @file_put_contents($file, "[]", LOCK_EX);
     }
 }
 
@@ -516,93 +485,36 @@ function methods_normalize_basis_items($value): array
     return $items;
 }
 
-function methods_load_legacy_all(): array
-{
-    ensure_methods_file_exists();
-    $json = @file_get_contents(methods_data_file());
-    if ($json === false || trim($json) === '') {
-        return [];
-    }
-
-    $decoded = json_decode($json, true);
-    if (!is_array($decoded)) {
-        return [];
-    }
-
-    $items = [];
-    foreach ($decoded as $item) {
-        if (is_array($item)) {
-            $normalized = methods_normalize_method($item);
-            if ($normalized['id'] !== '') {
-                $items[] = $normalized;
-            }
-        }
-    }
-    return $items;
-}
-
-function methods_migrate_legacy_if_needed(): void
-{
-    ensure_methods_storage_exists();
-    $existingFiles = [];
-    foreach (methods_save_dirs() as $dir) {
-        if (is_dir($dir)) {
-            $existingFiles = array_merge($existingFiles, glob($dir . '/*.json') ?: []);
-        }
-    }
-    if (count($existingFiles) > 0) {
-        return;
-    }
-
-    $legacyItems = methods_load_legacy_all();
-    foreach ($legacyItems as $item) {
-        $id = methods_normalize_id($item['id'] ?? '');
-        if ($id === '') {
-            continue;
-        }
-        @file_put_contents(
-            methods_file_path($id),
-            json_encode($item, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            LOCK_EX
-        );
-    }
-}
-
 function methods_load_all(): array
 {
-    $manifest = methods_load_remote_manifest('methods', ['methods.json']);
-    if (!is_array($manifest)) {
+    $dir = methods_save_dir();
+    if (!is_dir($dir)) {
         return [];
     }
-
-    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
 
     $items = [];
     $seen = [];
-    foreach ($rawItems as $item) {
-        if (is_string($item) || is_numeric($item)) {
-            $item = ['id' => (string)$item];
-        }
-        if (!is_array($item)) {
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        if (str_starts_with(basename($file), '._')) {
             continue;
         }
-        $id = methods_normalize_id($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME));
+
+        $content = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($content)) {
+            continue;
+        }
+
+        $id = methods_normalize_id($content['id'] ?? pathinfo($file, PATHINFO_FILENAME));
         if ($id === '' || isset($seen[$id])) {
             continue;
         }
         $seen[$id] = true;
 
-        $content = $item;
-        if (!array_key_exists('basisFile', $content) && !array_key_exists('dataSource', $content)) {
-            $remoteContent = methods_fetch_json_url(methods_remote_method_url($id));
-            if (is_array($remoteContent)) {
-                $content = array_replace_recursive($remoteContent, $item);
-            }
-        }
-
         $normalized = methods_normalize_method(['id' => $id] + $content);
         if ($normalized['id'] !== '') {
-            $normalized['filename'] = basename((string)($content['filename'] ?? ($normalized['id'] . '.json')));
+            $normalized['filename'] = basename($file);
             $normalized['url'] = methods_remote_method_url($normalized['id']);
             $items[] = $normalized;
         }
@@ -742,11 +654,9 @@ function methods_lessons_dir(): string
 
 function methods_lessons_dirs(): array
 {
-    return array_values(array_unique([
+    return [
         dirname(__DIR__, 3) . '/braillestudio-data/data/lessons',
-        dirname(__DIR__, 2) . '/data/lessons',
-        dirname(__DIR__) . '/data/lessons',
-    ]));
+    ];
 }
 
 function methods_rebuild_lessons_manifest(string $dir): bool
@@ -827,32 +737,26 @@ function methods_load_lessons_for_method(string $methodId): array
         return [];
     }
 
-    $manifest = methods_load_remote_manifest('lessons', ['lessons.json']);
-    if (!is_array($manifest)) {
+    $dir = methods_lessons_dir();
+    if (!is_dir($dir)) {
         return [];
     }
-    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
 
     $items = [];
     $seen = [];
-    foreach ($rawItems as $item) {
-        if (is_string($item) || is_numeric($item)) {
-            $item = ['id' => (string)$item];
-        }
-        if (!is_array($item)) {
+    $files = glob($dir . '/*.json') ?: [];
+    sort($files);
+    foreach ($files as $file) {
+        if (str_starts_with(basename($file), '._')) {
             continue;
         }
-        $lessonId = methods_normalize_id($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME));
+        $decoded = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        $lessonId = methods_normalize_id($decoded['id'] ?? pathinfo($file, PATHINFO_FILENAME));
         if ($lessonId === '' || isset($seen[$lessonId])) {
             continue;
-        }
-
-        $decoded = $item;
-        if (!array_key_exists('methodId', $decoded) && !array_key_exists('method', $decoded)) {
-            $remoteLesson = methods_fetch_json_url(methods_remote_data_base_url('lessons') . '/' . rawurlencode($lessonId) . '.json');
-            if (is_array($remoteLesson)) {
-                $decoded = array_replace_recursive($remoteLesson, $item);
-            }
         }
 
         $lessonMethodId = methods_normalize_id($decoded['methodId'] ?? ($decoded['method']['id'] ?? ''));
@@ -870,7 +774,7 @@ function methods_load_lessons_for_method(string $methodId): array
             'lessonNumber' => array_key_exists('lessonNumber', $decoded) ? (int)$decoded['lessonNumber'] : 1,
             'updatedAt' => methods_normalize_string($decoded['updatedAt'] ?? ''),
             'stepsCount' => is_array($decoded['steps'] ?? null) ? count($decoded['steps']) : (int)($decoded['stepsCount'] ?? 0),
-            'filename' => basename((string)($decoded['filename'] ?? ($lessonId . '.json'))),
+            'filename' => basename($file),
             'url' => methods_remote_data_base_url('lessons') . '/' . rawurlencode($lessonId) . '.json',
         ];
     }

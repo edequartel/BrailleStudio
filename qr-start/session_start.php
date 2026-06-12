@@ -29,7 +29,7 @@ if ($session === '') {
     respond(['ok' => false, 'error' => 'Missing session'], 400);
 }
 
-$file = __DIR__ . '/sessions/' . basename($session) . '.json';
+$file = dirname(__DIR__, 2) . '/braillestudio-data/data/sessions/' . basename($session) . '.json';
 if (!is_file($file)) {
     respond(['ok' => false, 'error' => 'Session not found'], 404);
 }

@@ -120,9 +120,8 @@ $items = [];
 $seen = [];
 $manifest = lessons_api_load_remote_manifest();
 if (!is_array($manifest)) {
-    lessons_api_json_error('Remote lessons data manifest not found', 404, [
-        'source' => lessons_api_remote_data_base_url(),
-        'expected' => lessons_api_remote_manifest_urls(),
+    lessons_api_json_error('Lessons data directory not found', 404, [
+        'source' => lessons_api_data_dir(),
     ]);
 }
 

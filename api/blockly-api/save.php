@@ -120,7 +120,7 @@ echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => 'data/blockly/' . $filename,
+    'path' => '../braillestudio-data/data/blockly/' . $filename,
     'url' => blockly_api_remote_script_url($safeId),
     'manifest' => 'temp/manifests/blockly.json',
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

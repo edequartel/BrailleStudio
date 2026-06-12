@@ -136,79 +136,6 @@ function read_remote_runmethod_payload(string $methodId): ?array
     return $payload;
 }
 
-function read_remote_method(string $methodId): ?array
-{
-    $methodId = normalize_id($methodId);
-    if ($methodId === '') {
-        return null;
-    }
-    $method = read_json_url(canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'));
-    if (is_array($method) && isset($method['dataSource'])) {
-        $method['dataSource'] = str_replace(
-            [
-                canonical_remote_base_url() . '/klanken/',
-                canonical_remote_base_url() . '/data/klanken/',
-                'https://www.tastenbraille.com/braillestudio-data/klanken/',
-            ],
-            canonical_remote_data_url('klanken') . '/',
-            (string)$method['dataSource']
-        );
-    }
-    return $method;
-}
-
-function read_remote_lessons_for_method(string $methodId, ?array &$diagnostics = null): array
-{
-    $methodId = normalize_id($methodId);
-    if ($methodId === '') {
-        return [];
-    }
-
-    $manifestUrl = canonical_remote_base_url() . '/temp/manifests/lessons.json';
-    $manifest = read_json_url($manifestUrl);
-    $items = is_array($manifest['items'] ?? null) ? $manifest['items'] : [];
-    $diagnostics = [
-        'manifestLoaded' => is_array($manifest),
-        'manifestItemCount' => count($items),
-        'matchingManifestItems' => 0,
-        'loadedLessonCount' => 0,
-        'failedLessonIds' => [],
-    ];
-    $lessons = [];
-    foreach ($items as $item) {
-        if (!is_array($item) || normalize_id((string)($item['methodId'] ?? '')) !== $methodId) {
-            continue;
-        }
-        $diagnostics['matchingManifestItems']++;
-        $lessonId = normalize_id((string)($item['id'] ?? ''));
-        if ($lessonId === '') {
-            continue;
-        }
-        $lessonUrl = trim((string)($item['url'] ?? ''));
-        if (!is_http_url($lessonUrl)) {
-            $lessonUrl = canonical_remote_data_url('lessons/' . rawurlencode($lessonId) . '.json');
-        }
-        $lesson = read_json_url($lessonUrl);
-        if (!is_array($lesson)) {
-            $diagnostics['failedLessonIds'][] = $lessonId;
-            continue;
-        }
-        $lesson['id'] = normalize_id((string)($lesson['id'] ?? $lessonId));
-        $lesson['methodId'] = normalize_id((string)($lesson['methodId'] ?? $methodId));
-        $lessons[] = $lesson;
-    }
-    $diagnostics['loadedLessonCount'] = count($lessons);
-
-    usort($lessons, static function (array $a, array $b): int {
-        $basisCompare = ((int)($a['basisIndex'] ?? -1)) <=> ((int)($b['basisIndex'] ?? -1));
-        if ($basisCompare !== 0) {
-            return $basisCompare;
-        }
-        return ((int)($a['lessonNumber'] ?? 1)) <=> ((int)($b['lessonNumber'] ?? 1));
-    });
-    return $lessons;
-}
-
 function normalize_id(string $value): string
 {
     $value = trim($value);
@@ -221,6 +148,12 @@ function local_data_dirs(string $section): array
     $section = trim($section, '/');
     if ($section === '') {
         return [];
+    }
+
+    if (in_array($section, ['methods', 'lessons'], true)) {
+        return [
+            dirname(__DIR__) . '/braillestudio-data/data/' . $section,
+        ];
     }
 
     return array_values(array_unique([
@@ -380,7 +313,7 @@ if ($methodId === '') {
         $candidate = read_json_file($path);
         $loadDiagnostics[] = [
             'stage' => 'local-method',
-            'source' => ['data/methods', 'api/data/methods', 'XXX data/methods'][$index] ?? ('method-source-' . $index),
+            'source' => '../braillestudio-data/data/methods',
             'fileExists' => is_file($path),
             'readable' => is_readable($path),
             'jsonValid' => is_array($candidate),
@@ -407,7 +340,7 @@ if ($methodId === '') {
         }
         $loadDiagnostics[] = [
             'stage' => 'local-lessons',
-            'source' => ['data/lessons', 'api/data/lessons', 'XXX data/lessons'][$index] ?? ('lesson-source-' . $index),
+            'source' => '../braillestudio-data/data/lessons',
             'directoryExists' => is_dir($dir),
             'jsonFileCount' => count($files),
             'matchingLessonCount' => $matching,
@@ -415,7 +348,7 @@ if ($methodId === '') {
         ];
     }
 
-    if (!$method || count($lessons) === 0) {
+    if ($method && count($lessons) === 0) {
         $remotePayload = read_remote_runmethod_payload($methodId);
         $loadDiagnostics[] = [
             'stage' => 'remote-runmethod-fallback',
@@ -425,35 +358,8 @@ if ($methodId === '') {
             'skipReason' => is_running_on_canonical_remote() ? 'Current host is treated as canonical remote.' : '',
         ];
         if (is_array($remotePayload)) {
-            if (!$method) {
-                $method = is_array($remotePayload['method'] ?? null) ? $remotePayload['method'] : null;
-            }
             $basisRecords = is_array($remotePayload['basisRecords'] ?? null) ? array_values($remotePayload['basisRecords']) : [];
-            if (count($lessons) === 0 && is_array($remotePayload['lessons'] ?? null)) {
-                $lessons = array_values($remotePayload['lessons']);
-            }
         }
-    }
-
-    if (!$method) {
-        $method = read_remote_method($methodId);
-        $loadDiagnostics[] = [
-            'stage' => 'remote-method-json',
-            'source' => canonical_remote_data_url('methods/' . rawurlencode($methodId) . '.json'),
-            'methodFound' => is_array($method),
-        ];
-    }
-
-    if (count($lessons) === 0) {
-        $remoteLessonsDiagnostics = [];
-        $lessons = read_remote_lessons_for_method($methodId, $remoteLessonsDiagnostics);
-        $loadDiagnostics[] = [
-            'stage' => 'remote-lessons-manifest',
-            'source' => canonical_remote_base_url() . '/temp/manifests/lessons.json',
-            'matchingLessonCount' => count($lessons),
-            'lessonIds' => array_map(static fn(array $lesson): string => (string)($lesson['id'] ?? ''), $lessons),
-            'details' => $remoteLessonsDiagnostics,
-        ];
     }
 
     if (!$method) {
@@ -489,14 +395,11 @@ if ($methodId === '') {
         }
     }
 
-    if ($errorMessage === '' && is_array($method) && count($lessons) === 0) {
+    if ($errorMessage === '' && is_array($method) && count($basisRecords) === 0) {
         $remotePayload = $remotePayload ?? read_remote_runmethod_payload($methodId);
         if (is_array($remotePayload)) {
-            if (count($basisRecords) === 0 && is_array($remotePayload['basisRecords'] ?? null)) {
+            if (is_array($remotePayload['basisRecords'] ?? null)) {
                 $basisRecords = array_values($remotePayload['basisRecords']);
-            }
-            if (is_array($remotePayload['lessons'] ?? null)) {
-                $lessons = array_values($remotePayload['lessons']);
             }
         }
     }

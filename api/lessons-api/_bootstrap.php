@@ -19,77 +19,9 @@ function lessons_api_remote_data_base_url(): string
     return 'https://www.tastenbraille.com/braillestudio-data/data/lessons';
 }
 
-function lessons_api_remote_manifest_url(): string
-{
-    return 'https://www.tastenbraille.com/braillestudio/temp/manifests/lessons.json';
-}
-
 function lessons_api_manifest_file(): string
 {
     return dirname(__DIR__, 2) . '/temp/manifests/lessons.json';
-}
-
-function lessons_api_is_canonical_host(): bool
-{
-    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
-    return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
-}
-
-function lessons_api_is_http_url(string $value): bool
-{
-    return preg_match('~^https?://~i', trim($value)) === 1;
-}
-
-function lessons_api_fetch_url(string $url): ?string
-{
-    if (!lessons_api_is_http_url($url)) {
-        return null;
-    }
-
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 8,
-            'ignore_errors' => true,
-            'header' => "User-Agent: BrailleStudioLessonsApi/1.0\r\n",
-        ],
-    ]);
-    $raw = @file_get_contents($url, false, $context);
-    if (is_string($raw) && trim($raw) !== '' && !preg_match('/^\s*</', $raw)) {
-        return $raw;
-    }
-
-    if (!function_exists('curl_init')) {
-        return null;
-    }
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_USERAGENT => 'BrailleStudioLessonsApi/1.0',
-    ]);
-    $result = curl_exec($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    if (PHP_VERSION_ID < 80500) {
-        curl_close($ch);
-    }
-
-    if (!is_string($result) || trim($result) === '' || $status >= 400 || preg_match('/^\s*</', $result)) {
-        return null;
-    }
-    return $result;
-}
-
-function lessons_api_fetch_json_url(string $url): ?array
-{
-    $raw = lessons_api_fetch_url($url);
-    if ($raw === null) {
-        return null;
-    }
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : null;
 }
 
 function lessons_api_remote_lesson_url(string $safeId): string
@@ -99,35 +31,18 @@ function lessons_api_remote_lesson_url(string $safeId): string
 
 function lessons_api_load_remote_lesson(string $safeId): ?array
 {
-    return lessons_api_fetch_json_url(lessons_api_remote_lesson_url($safeId));
-}
-
-function lessons_api_remote_manifest_urls(): array
-{
-    return [
-        lessons_api_remote_manifest_url() . '?_=' . rawurlencode((string)time()),
-    ];
+    $path = lessons_api_find_lesson_path($safeId);
+    if ($path === null) {
+        return null;
+    }
+    $content = json_decode((string)@file_get_contents($path), true);
+    return is_array($content) ? $content : null;
 }
 
 function lessons_api_load_remote_manifest(): ?array
 {
-    foreach (lessons_api_remote_manifest_urls() as $url) {
-        $manifest = lessons_api_fetch_json_url($url);
-        if (is_array($manifest)) {
-            return $manifest;
-        }
-    }
-
-    if (lessons_api_is_canonical_host()) {
-        $dir = lessons_api_writable_data_dir() ?? lessons_api_data_dir();
-        lessons_api_rebuild_manifest($dir);
-        $manifest = json_decode((string)@file_get_contents(lessons_api_manifest_file()), true);
-        if (is_array($manifest)) {
-            return $manifest;
-        }
-    }
-
-    return null;
+    $dir = lessons_api_data_dir();
+    return is_dir($dir) ? lessons_api_build_manifest_from_dir($dir) : null;
 }
 
 function lessons_api_data_dir(): string
@@ -142,11 +57,9 @@ function lessons_api_data_dir(): string
 
 function lessons_api_data_dirs(): array
 {
-    return array_values(array_unique([
+    return [
         dirname(__DIR__, 3) . '/braillestudio-data/data/lessons',
-        dirname(__DIR__, 2) . '/data/lessons',
-        dirname(__DIR__) . '/data/lessons',
-    ]));
+    ];
 }
 
 function lessons_api_find_lesson_path(string $safeId): ?string
@@ -208,19 +121,13 @@ function lessons_api_normalize_manifest_item(array $content, string $fallbackId 
     ];
 }
 
-function lessons_api_rebuild_manifest(string $dir): bool
+function lessons_api_build_manifest_from_dir(string $dir): array
 {
-    $dir = rtrim($dir, '/');
-    if ($dir === '' || !is_dir($dir) || !is_writable($dir)) {
-        return false;
-    }
-
     $items = [];
-    $files = glob($dir . '/*.json') ?: [];
+    $files = glob(rtrim($dir, '/') . '/*.json') ?: [];
     sort($files);
     foreach ($files as $file) {
-        $name = basename($file);
-        if (str_starts_with($name, '._')) {
+        if (str_starts_with(basename($file), '._')) {
             continue;
         }
         $content = json_decode((string)@file_get_contents($file), true);
@@ -229,11 +136,27 @@ function lessons_api_rebuild_manifest(string $dir): bool
         }
         $id = trim((string)($content['id'] ?? pathinfo($file, PATHINFO_FILENAME)));
         $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
-        if ($safeId === '') {
-            continue;
+        if ($safeId !== '') {
+            $items[] = lessons_api_normalize_manifest_item($content, $safeId);
         }
-        $items[] = lessons_api_normalize_manifest_item($content, $safeId);
     }
+
+    return [
+        'ok' => true,
+        'updatedAt' => gmdate('c'),
+        'items' => $items,
+    ];
+}
+
+function lessons_api_rebuild_manifest(string $dir): bool
+{
+    $dir = rtrim($dir, '/');
+    if ($dir === '' || !is_dir($dir) || !is_writable($dir)) {
+        return false;
+    }
+
+    $manifest = lessons_api_build_manifest_from_dir($dir);
+    $items = $manifest['items'];
 
     usort($items, static function (array $a, array $b): int {
         $aIndex = (int)($a['basisIndex'] ?? -1);
@@ -248,11 +171,7 @@ function lessons_api_rebuild_manifest(string $dir): bool
         return strcmp((string)($b['updatedAt'] ?? ''), (string)($a['updatedAt'] ?? ''));
     });
 
-    $manifest = [
-        'ok' => true,
-        'updatedAt' => gmdate('c'),
-        'items' => $items,
-    ];
+    $manifest['items'] = $items;
     $encoded = json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (!is_string($encoded)) {
         return false;

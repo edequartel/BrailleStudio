@@ -104,9 +104,8 @@ $manifest = is_dir($localDataDir)
     ? blockly_api_build_manifest_from_dir($localDataDir)
     : blockly_api_load_remote_manifest();
 if (!is_array($manifest)) {
-    blockly_api_json_error('Remote Blockly data manifest not found', 404, [
-        'source' => blockly_api_remote_data_base_url(),
-        'expected' => blockly_api_remote_manifest_urls(),
+    blockly_api_json_error('Blockly data directory not found', 404, [
+        'source' => blockly_api_data_dir(),
     ]);
 }
 

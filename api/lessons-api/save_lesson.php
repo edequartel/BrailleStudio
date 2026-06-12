@@ -260,7 +260,7 @@ echo json_encode([
     'ok' => true,
     'id' => $safeId,
     'filename' => $filename,
-    'path' => 'data/lessons/' . $filename,
+    'path' => '../braillestudio-data/data/lessons/' . $filename,
     'url' => lessons_api_remote_lesson_url($safeId),
     'manifest' => 'temp/manifests/lessons.json',
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

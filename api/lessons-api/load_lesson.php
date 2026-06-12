@@ -39,7 +39,7 @@ if (!is_array($content)) {
     echo json_encode([
         'ok' => false,
         'error' => 'Lesson not found',
-        'source' => lessons_api_remote_lesson_url($safeId),
+        'source' => lessons_api_data_dir() . '/' . $safeId . '.json',
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }

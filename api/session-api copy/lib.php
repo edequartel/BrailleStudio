@@ -36,12 +36,7 @@ function session_api_project_root(): string
 
 function session_api_data_root(): string
 {
-    return session_api_project_root() . '/data';
-}
-
-function session_api_legacy_data_root(): string
-{
-    return dirname(__DIR__) . '/data';
+    return dirname(session_api_project_root()) . '/braillestudio-data/data';
 }
 
 function session_api_sessions_dir(): string
@@ -56,12 +51,7 @@ function session_api_step_links_dir(): string
 
 function session_api_step_links_dirs(): array
 {
-    $dirs = [session_api_step_links_dir()];
-    $legacyDir = session_api_legacy_data_root() . '/step-links';
-    if ($legacyDir !== $dirs[0] && is_dir($legacyDir)) {
-        $dirs[] = $legacyDir;
-    }
-    return $dirs;
+    return [session_api_step_links_dir()];
 }
 
 function session_api_step_links_method_dir(string $methodId): string

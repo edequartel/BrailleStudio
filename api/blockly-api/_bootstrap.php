@@ -19,113 +19,9 @@ function blockly_api_remote_data_base_url(): string
     return 'https://www.tastenbraille.com/braillestudio-data/data/blockly';
 }
 
-function blockly_api_remote_manifest_url(): string
-{
-    return blockly_api_canonical_public_base_url() . '/temp/manifests/blockly.json';
-}
-
-function blockly_api_canonical_public_base_url(): string
-{
-    if (blockly_api_is_canonical_host()) {
-        return 'https://www.tastenbraille.com/braillestudio';
-    }
-
-    return blockly_api_current_public_base_url();
-}
-
-function blockly_api_current_public_base_url(): string
-{
-    $https = strtolower((string)($_SERVER['HTTPS'] ?? ''));
-    $scheme = ($https !== '' && $https !== 'off') ? 'https' : 'http';
-    $host = trim((string)($_SERVER['HTTP_HOST'] ?? 'localhost'));
-    $scriptDir = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
-    $appPath = preg_replace('~/api/blockly-api$~', '', rtrim($scriptDir, '/')) ?? '';
-
-    return $scheme . '://' . $host . ($appPath === '' ? '' : $appPath);
-}
-
 function blockly_api_manifest_file(): string
 {
-    return blockly_api_storage_root() . '/temp/manifests/blockly.json';
-}
-
-function blockly_api_is_canonical_host(): bool
-{
-    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
-    return $host === 'www.tastenbraille.com' || $host === 'tastenbraille.com';
-}
-
-function blockly_api_should_prefer_local_data(): bool
-{
-    return true;
-}
-
-function blockly_api_storage_root(): string
-{
-    $projectRoot = dirname(__DIR__, 2);
-    if (!blockly_api_is_canonical_host()) {
-        return $projectRoot;
-    }
-
-    $canonicalRoot = dirname($projectRoot) . '/braillestudio';
-    return is_dir($canonicalRoot) ? $canonicalRoot : $projectRoot;
-}
-
-function blockly_api_is_http_url(string $value): bool
-{
-    return preg_match('~^https?://~i', trim($value)) === 1;
-}
-
-function blockly_api_fetch_url(string $url): ?string
-{
-    if (!blockly_api_is_http_url($url)) {
-        return null;
-    }
-
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 8,
-            'ignore_errors' => true,
-            'header' => "User-Agent: BrailleStudioBlocklyApi/1.0\r\n",
-        ],
-    ]);
-    $raw = @file_get_contents($url, false, $context);
-    if (is_string($raw) && trim($raw) !== '' && !preg_match('/^\s*</', $raw)) {
-        return $raw;
-    }
-
-    if (!function_exists('curl_init')) {
-        return null;
-    }
-
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_USERAGENT => 'BrailleStudioBlocklyApi/1.0',
-    ]);
-    $result = curl_exec($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    if (PHP_VERSION_ID < 80500) {
-        curl_close($ch);
-    }
-
-    if (!is_string($result) || trim($result) === '' || $status >= 400 || preg_match('/^\s*</', $result)) {
-        return null;
-    }
-    return $result;
-}
-
-function blockly_api_fetch_json_url(string $url): ?array
-{
-    $raw = blockly_api_fetch_url($url);
-    if ($raw === null) {
-        return null;
-    }
-    $decoded = json_decode($raw, true);
-    return is_array($decoded) ? $decoded : null;
+    return dirname(__DIR__, 2) . '/temp/manifests/blockly.json';
 }
 
 function blockly_api_remote_script_url(string $safeId): string
@@ -135,54 +31,12 @@ function blockly_api_remote_script_url(string $safeId): string
 
 function blockly_api_load_remote_script(string $safeId): ?array
 {
-    if (blockly_api_should_prefer_local_data()) {
-        $local = blockly_api_load_local_script($safeId);
-        if (is_array($local)) {
-            return $local;
-        }
-    }
-
-    $remote = blockly_api_fetch_json_url(blockly_api_remote_script_url($safeId));
-    if (is_array($remote)) {
-        return $remote;
-    }
-
     return blockly_api_load_local_script($safeId);
-}
-
-function blockly_api_remote_manifest_urls(): array
-{
-    return [
-        blockly_api_remote_manifest_url() . '?_=' . rawurlencode((string)time()),
-    ];
 }
 
 function blockly_api_load_remote_manifest(): ?array
 {
-    if (blockly_api_should_prefer_local_data()) {
-        $local = blockly_api_load_local_manifest();
-        if (is_array($local)) {
-            return $local;
-        }
-    }
-
-    foreach (blockly_api_remote_manifest_urls() as $url) {
-        $manifest = blockly_api_fetch_json_url($url);
-        if (is_array($manifest)) {
-            return $manifest;
-        }
-    }
-
-    if (blockly_api_is_canonical_host()) {
-        $dir = blockly_api_writable_data_dir() ?? blockly_api_data_dir();
-        blockly_api_rebuild_manifest($dir);
-        $manifest = json_decode((string)@file_get_contents(blockly_api_manifest_file()), true);
-        if (is_array($manifest)) {
-            return $manifest;
-        }
-    }
-
-    return null;
+    return blockly_api_load_local_manifest();
 }
 
 function blockly_api_data_dir(): string
@@ -198,18 +52,9 @@ function blockly_api_data_dir(): string
 
 function blockly_api_data_dirs(): array
 {
-    $envDir = trim((string)getenv('BRAILLESTUDIO_BLOCKLY_DATA_DIR'));
-    $dirs = [];
-    if ($envDir !== '') {
-        $dirs[] = $envDir;
-    }
-    $dirs[] = dirname(dirname(__DIR__, 2)) . '/braillestudio-data/data/blockly';
-    $storageRoot = blockly_api_storage_root();
-    $dirs[] = $storageRoot . '/data/blockly';
-    $dirs[] = $storageRoot . '/api/data/blockly';
-    $dirs[] = $storageRoot . '/XXX data/blockly';
-
-    return array_values(array_unique($dirs));
+    return [
+        dirname(dirname(__DIR__, 2)) . '/braillestudio-data/data/blockly',
+    ];
 }
 
 function blockly_api_load_local_script(string $safeId): ?array
@@ -224,18 +69,8 @@ function blockly_api_load_local_script(string $safeId): ?array
 
 function blockly_api_load_local_manifest(): ?array
 {
-    $manifest = json_decode((string)@file_get_contents(blockly_api_manifest_file()), true);
-    if (is_array($manifest)) {
-        return $manifest;
-    }
-
-    foreach (blockly_api_data_dirs() as $dir) {
-        if (is_dir($dir)) {
-            return blockly_api_build_manifest_from_dir($dir);
-        }
-    }
-
-    return null;
+    $dir = blockly_api_data_dir();
+    return is_dir($dir) ? blockly_api_build_manifest_from_dir($dir) : null;
 }
 
 function blockly_api_build_manifest_from_dir(string $dir): array

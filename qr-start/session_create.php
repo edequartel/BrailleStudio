@@ -4,7 +4,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 
-$sessionDir = __DIR__ . '/sessions';
+$sessionDir = dirname(__DIR__, 2) . '/braillestudio-data/data/sessions';
 if (!is_dir($sessionDir)) {
     mkdir($sessionDir, 0775, true);
 }

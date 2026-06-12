@@ -40,7 +40,7 @@ if (!is_array($content)) {
     echo json_encode([
         'ok' => false,
         'error' => 'Script not found',
-        'source' => blockly_api_remote_script_url($safeId),
+        'source' => blockly_api_data_dir() . '/' . $safeId . '.json',
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
