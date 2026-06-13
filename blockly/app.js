@@ -2554,7 +2554,16 @@ async function loadWorkspaceOnline(id) {
   if (!targetId) throw new Error('Online script id is required');
   log(`Online load requested: id=${targetId}`);
 
-  const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}&_=${Date.now()}`);
+  const sessionCode = String(new URLSearchParams(window.location.search).get('session') || '').trim();
+  const sessionScriptLoadUrl = String(BRAILLE_BLOCKLY_MODE_CONFIG.sessionScriptLoadUrl || '').trim();
+  const data = IS_EMBEDDED_SESSION_PLAYER && sessionCode && sessionScriptLoadUrl
+    ? await apiFetchJsonFromBases(
+      [`${sessionScriptLoadUrl}?session_code=${encodeURIComponent(sessionCode)}`],
+      `&id=${encodeURIComponent(targetId)}&_=${Date.now()}`,
+      {},
+      'Session script API'
+    )
+    : await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(targetId)}&_=${Date.now()}`);
   const apiLoadedAt = performance.now();
   const state = data?.blockly;
   if (!state || typeof state !== 'object') {

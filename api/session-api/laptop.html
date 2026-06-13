@@ -645,7 +645,7 @@
     const SESSION_STATE_URL = './session-state.php';
     const LIST_LINKS_URL = './list-links.php';
     const SCRIPT_META_URL = './script-meta.php';
-    const BLOCKLY_URL = '../../blockly/session-player.php?v=20260602-headless-session-player-1';
+    const BLOCKLY_URL = '../../blockly/session-player.php?v=20260613-public-session-load-1';
     const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
     const PHONE_HOST_STORAGE_KEY = 'braillestudioSessionPhoneHost';
     const BRAILLE_MONITOR_PLACEHOLDER = '';
@@ -1602,11 +1602,13 @@
     }
 
     async function bootstrap() {
-      $('builderFrame').src = BLOCKLY_URL;
       setStatus('Er wordt een sessiecode aangemaakt.', '', 'Sessie wordt voorbereid');
       setRowMeta({ session_code: activeSessionCode });
       log('Laptop sessie start.', { session: activeSessionCode || '(random)' });
       const config = await createOrResetSession();
+      const runnerUrl = new URL(BLOCKLY_URL, window.location.href);
+      runnerUrl.searchParams.set('session', config.session_code);
+      $('builderFrame').src = runnerUrl.toString();
       updateAddressBar(config);
       resetSessionIdleTimer();
       renderSessionQr(config);

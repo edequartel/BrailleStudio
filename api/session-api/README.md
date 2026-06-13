@@ -19,6 +19,7 @@ De laptoppagina:
 - reset of maakt de sessierij via `create-session.php`;
 - gebruikt alleen de publieke Supabase anon key in de browser;
 - luistert naar `UPDATE` events op `public.sessions` met filter `session_code=eq.<code>`;
+- laadt het aan de sessie toegewezen Blockly-script via `load-session-script.php`, zonder gebruikerslogin;
 - roept `loadWorkspaceOnline(row.script_id)` aan bij gewone script-opdrachten;
 - haalt bij `command === "load_step_link:<code>[:methodId]"` de actuele step-link op en past de opgeslagen `stepInputs` toe voordat de step-link start.
 
@@ -37,6 +38,8 @@ Scan de QR-code op de laptop. Die opent:
 ```
 
 Daarna scan je op de telefoon de step-link QR-code uit het boek. De telefoon stuurt de code naar `send-step-link.php`. Dat endpoint resolve't de step-link naar `scriptId` en patcht `public.sessions` met `load_step_link:<code>[:methodId]`, zodat de laptop de actuele externe variabelen kan ophalen.
+
+De sessiecode werkt hierbij als beperkte toegangssleutel: `load-session-script.php` geeft alleen het script terug dat op dat moment aan die sessie is toegewezen. De algemene Blockly API blijft authenticatie vereisen.
 
 Met de knop **Stop step** verstuurt de telefoon via `stop-step.php` het commando `stop_step`. De laptop stopt daarop het actieve Blockly-programma en de actieve audio.
 

@@ -19,6 +19,7 @@ if (strpos($script, '/api/session-api/') !== false) {
         'laptop.html',
         'laptop.php',
         'list-links.php',
+        'load-session-script.php',
         'mark-session-open.php',
         'phone.html',
         'script-meta.php',
