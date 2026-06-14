@@ -77,8 +77,22 @@ if ($user !== null && $message === '') {
   <title>BrailleStudio Login</title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
+  <style>
+    .authentication-page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      width: 100%;
+      padding: 1.5rem;
+    }
+
+    .authentication-page .container-tight {
+      margin: 0 auto;
+    }
+  </style>
 </head>
-<body class="bg-body d-flex align-items-center justify-content-center min-vh-100">
+<body class="bg-body">
+  <main class="authentication-page">
   <div class="container container-tight py-4 w-100">
     <div class="text-center mb-4">
       <a class="navbar-brand navbar-brand-autodark justify-content-center" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
@@ -142,6 +156,7 @@ if ($user !== null && $message === '') {
       <a class="btn btn-link" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">Terug naar home</a>
     </div>
   </div>
+  </main>
 
   <script src="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/js/tabler.min.js')) ?>"></script>
   <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
