@@ -283,9 +283,9 @@ function normalize_step_inputs($inputs): array
 }
 
 $defaultRunnerUrl = './blockly/session-player.php?v=20260602-headless-highlight-1';
-$blocklyApiBase = './api/blockly-api';
 
 $methodId = normalize_id((string)($_GET['id'] ?? $_GET['method'] ?? ''));
+$runmethodScriptUrl = './runmethod-script.php?method=' . rawurlencode($methodId);
 $errorMessage = '';
 $method = null;
 $basisRecords = [];
@@ -420,7 +420,7 @@ $pagePayload = [
     'basisRecords' => $basisRecords,
     'lessons' => $lessons,
     'runnerUrl' => $defaultRunnerUrl,
-    'blocklyApiBase' => $blocklyApiBase,
+    'runmethodScriptUrl' => $runmethodScriptUrl,
     'error' => $errorMessage,
     'loadDiagnostics' => $loadDiagnostics,
 ];
@@ -1012,7 +1012,7 @@ $pagePayload = [
     const basisRecords = Array.isArray(bootstrap.basisRecords) ? bootstrap.basisRecords : [];
     const lessons = Array.isArray(bootstrap.lessons) ? bootstrap.lessons : [];
     const runnerUrl = String(bootstrap.runnerUrl || '');
-    const blocklyApiBase = String(bootstrap.blocklyApiBase || '');
+    const runmethodScriptUrl = String(bootstrap.runmethodScriptUrl || '');
     const loadDiagnostics = Array.isArray(bootstrap.loadDiagnostics) ? bootstrap.loadDiagnostics : [];
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
@@ -1033,12 +1033,6 @@ $pagePayload = [
     const runSelectedStepBtn = document.getElementById('runSelectedStepBtn');
     const runCurrentBtn = document.getElementById('runCurrentBtn');
     const runAllBtn = document.getElementById('runAllBtn');
-    const authBtn = document.getElementById('authBtn');
-    const runmethodAuthPanel = document.getElementById('runmethodAuthPanel');
-    const runmethodUsernameInput = document.getElementById('runmethodUsernameInput');
-    const runmethodPasswordInput = document.getElementById('runmethodPasswordInput');
-    const runmethodLoginBtn = document.getElementById('runmethodLoginBtn');
-    const runmethodAuthStatus = document.getElementById('runmethodAuthStatus');
     const brailleMonitorRow = document.getElementById('brailleMonitorRow');
     const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
     const simThumbLeftBtn = document.getElementById('simThumbLeftBtn');
@@ -2029,89 +2023,6 @@ $pagePayload = [
       return wait ? brailleBridgeWarmup.pending : Promise.resolve(false);
     }
 
-    function getBrailleStudioAuthToken() {
-      const sessionPrimary = String(sessionStorage.getItem('runmethodAuthToken') || '').trim();
-      if (sessionPrimary) return sessionPrimary;
-      return String(localStorage.getItem('runmethodAuthToken') || '').trim();
-    }
-
-    function getBrailleStudioAuthHeaders(extra = {}) {
-      const headers = { ...extra };
-      const token = getBrailleStudioAuthToken();
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      return headers;
-    }
-
-    function setBrailleStudioAuthToken(token) {
-      const normalized = String(token || '').trim();
-      if (normalized) {
-        sessionStorage.setItem('runmethodAuthToken', normalized);
-        localStorage.setItem('runmethodAuthToken', normalized);
-      } else {
-        sessionStorage.removeItem('runmethodAuthToken');
-        localStorage.removeItem('runmethodAuthToken');
-      }
-    }
-
-    function renderRunmethodAuthStatus(message = '', isError = false) {
-      if (!runmethodAuthStatus) return;
-      const text = String(message || '').trim();
-      runmethodAuthStatus.textContent = text;
-      runmethodAuthStatus.className = isError ? 'text-danger small' : 'text-secondary small';
-      runmethodAuthStatus.classList.toggle('hidden', !text);
-    }
-
-    function renderAuthButton() {
-      renderRunmethodAuthStatus('');
-      renderLessonsList();
-      renderCurrentLesson();
-    }
-
-    function requireAuthForRun() {
-      return true;
-    }
-
-    async function loginRunmethodAuth() {
-      const username = String(runmethodUsernameInput?.value || '').trim();
-      const password = String(runmethodPasswordInput?.value || '');
-      if (!username || !password) {
-        renderRunmethodAuthStatus('Enter username and password first.', true);
-        return '';
-      }
-      if (runmethodLoginBtn) runmethodLoginBtn.disabled = true;
-      renderRunmethodAuthStatus('Logging in...');
-      try {
-        const res = await fetch('https://www.tastenbraille.com/braillestudio/authentication-api/login.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username,
-            password,
-            audience: 'braillestudio-api'
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || !data?.ok || !data?.token) {
-          throw new Error(data?.error || `HTTP ${res.status}`);
-        }
-        setBrailleStudioAuthToken(data.token);
-        if (runmethodPasswordInput) runmethodPasswordInput.value = '';
-        if (runmethodAuthPanel) {
-          runmethodAuthPanel.dataset.open = '';
-        }
-        renderAuthButton();
-        renderRunmethodAuthStatus(`Authenticated as ${String(data?.user?.username || username)}.`);
-        return data.token;
-      } catch (err) {
-        renderRunmethodAuthStatus(`Login failed: ${err.message || String(err)}`, true);
-        throw err;
-      } finally {
-        if (runmethodLoginBtn) runmethodLoginBtn.disabled = false;
-      }
-    }
-
     async function loadScriptData(id) {
       const scriptId = String(id || '').trim();
       if (!scriptId) throw new Error('Missing script id');
@@ -2119,13 +2030,13 @@ $pagePayload = [
         appendStatus('Script load cache hit.', { scriptId });
         return scriptDataCache.get(scriptId);
       }
-      const url = `${blocklyApiBase}/load.php?id=${encodeURIComponent(scriptId)}`;
+      const url = `${runmethodScriptUrl}&id=${encodeURIComponent(scriptId)}`;
       appendStatus('Script load requested.', {
         scriptId,
         url,
-        authenticated: Boolean(getBrailleStudioAuthToken())
+        publicMethodRunner: true
       });
-      const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
+      const res = await fetch(url, { cache: 'no-store' });
       const responseText = await res.text();
       let data = null;
       try {
@@ -2163,12 +2074,12 @@ $pagePayload = [
     }
 
     async function loadScriptsList() {
-      const url = `${blocklyApiBase}/list.php`;
+      const url = runmethodScriptUrl;
       appendStatus('Script list requested.', {
         url,
-        authenticated: Boolean(getBrailleStudioAuthToken())
+        publicMethodRunner: true
       });
-      const res = await fetch(url, { cache: 'no-store', headers: getBrailleStudioAuthHeaders() });
+      const res = await fetch(url, { cache: 'no-store' });
       const responseText = await res.text();
       let data = null;
       try {
@@ -2540,10 +2451,6 @@ $pagePayload = [
 
     async function runSelectedStep() {
       appendStatus('Run step knop ingedrukt.', getRunControlDebugSnapshot());
-      if (!requireAuthForRun()) {
-        appendStatus('Run step geblokkeerd door authenticatie.', getRunControlDebugSnapshot());
-        return;
-      }
       try {
         const lesson = getSelectedLesson();
         if (!lesson) throw new Error('No lesson selected');
@@ -2658,7 +2565,6 @@ $pagePayload = [
     }
 
     async function runCurrentLesson() {
-      if (!requireAuthForRun()) return;
       const lesson = getSelectedLesson();
       try {
         selectedStepIndex = 0;
@@ -2690,7 +2596,6 @@ $pagePayload = [
     }
 
     async function runAllLessons() {
-      if (!requireAuthForRun()) return;
       startRunSession('all', null, null);
       setLessonRunningState(true, 'Running all lessons');
       stopRequested = false;
@@ -2907,56 +2812,12 @@ $pagePayload = [
       event.preventDefault();
       event.stopPropagation();
     }, true);
-    renderAuthButton();
-    authBtn?.addEventListener('click', async () => {
-      if (getBrailleStudioAuthToken()) {
-        setBrailleStudioAuthToken('');
-        if (runmethodAuthPanel) {
-          runmethodAuthPanel.dataset.open = '1';
-        }
-        renderAuthButton();
-        renderRunmethodAuthStatus('Logged out.');
-        if (runmethodUsernameInput) {
-          runmethodUsernameInput.focus();
-        }
-        appendStatus('Runmethod authentication logged out.');
-        return;
-      }
-      if (runmethodAuthPanel) {
-        runmethodAuthPanel.dataset.open = runmethodAuthPanel.dataset.open ? '' : '1';
-      }
-      renderAuthButton();
-    });
-    runmethodLoginBtn?.addEventListener('click', async () => {
-      try {
-        await loginRunmethodAuth();
-        appendStatus('Runmethod authentication completed.');
-      } catch (err) {
-        appendStatus('Runmethod authentication failed.', { error: err.message || String(err) });
-      }
-    });
-    runmethodPasswordInput?.addEventListener('keydown', async (event) => {
-      if (event.key !== 'Enter') return;
-      event.preventDefault();
-      try {
-        await loginRunmethodAuth();
-        appendStatus('Runmethod authentication completed.');
-      } catch (err) {
-        appendStatus('Runmethod authentication failed.', { error: err.message || String(err) });
-      }
-    });
     if (toggleRunnerBtn) {
       toggleRunnerBtn.addEventListener('click', () => {
         isRunnerVisible = !isRunnerVisible;
         renderRunnerVisibility();
       });
     }
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'runmethodAuthToken') {
-        renderAuthButton();
-      }
-    });
-
     renderMonitorSourceVisibility(false);
 
     if (toggleDebugLogBtn) {
