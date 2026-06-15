@@ -400,7 +400,7 @@ function e(string $value): string
                                 </ul>
                                 <div class="tab-content">
                                     <div class="tab-pane active show" id="tab-starten" role="tabpanel">
-                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/content/README.nl.md">
+                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/README.nl.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-9"></span>
                                                 <span class="placeholder col-12"></span>
@@ -424,7 +424,7 @@ function e(string $value): string
                                                 Download als PDF
                                             </a>
                                         </div>
-                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/content/docentenhandleiding-sessie-step.md">
+                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-10"></span>
                                                 <span class="placeholder col-12"></span>
@@ -529,15 +529,12 @@ function e(string $value): string
             return loadMarkdownBlock(activeMarkdownTarget);
         };
 
+        await loadActiveDocumentation();
+
         if (documentationCollapse) {
             documentationCollapse.addEventListener('shown.bs.collapse', () => {
                 loadActiveDocumentation();
             });
-            if (documentationCollapse.classList.contains('show')) {
-                await loadActiveDocumentation();
-            }
-        } else {
-            await loadActiveDocumentation();
         }
 
         document.querySelectorAll('[data-bs-toggle="tab"]').forEach((tab) => {
