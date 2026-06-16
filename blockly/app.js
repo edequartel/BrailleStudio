@@ -3864,6 +3864,7 @@ function registerProcedures(workspaceJson, runtimeState = null) {
   if (workspaceJson && typeof workspaceJson.getAllBlocks === 'function') {
     workspaceJson.getAllBlocks(false).forEach(block => {
       if (block.type !== 'procedures_defnoreturn') return;
+      if (isBlockDisabled(block)) return;
       const name = getProcedureName(block);
       setProcedure(name, {
         name,
@@ -3878,6 +3879,7 @@ function registerProcedures(workspaceJson, runtimeState = null) {
     topBlocks.forEach(topBlock => {
       walkSerializedBlocks(topBlock, block => {
         if (block?.type !== 'procedures_defnoreturn') return;
+        if (isBlockDisabled(block)) return;
         const name = getProcedureName(block);
         setProcedure(name, {
           name,
@@ -4392,6 +4394,33 @@ function highlightBlock(blockId) {
 function toNumber(v) {
   const n = Number(v);
   return Number.isNaN(n) ? 0 : n;
+}
+
+function isBlockDisabled(block) {
+  if (!block) return false;
+  if (Array.isArray(block.disabledReasons) && block.disabledReasons.length > 0) {
+    return true;
+  }
+  if (typeof block.isEnabled === 'function') {
+    return !block.isEnabled();
+  }
+  if (typeof block.getDisabled === 'function') {
+    return !!block.getDisabled();
+  }
+  return !!block.disabled;
+}
+
+function getEnabledInputTargetBlock(block, inputName) {
+  const target = block?.getInputTargetBlock?.(inputName) || null;
+  return target && !isBlockDisabled(target) ? target : null;
+}
+
+function getEnabledStatementInputTargetBlock(block, inputName) {
+  let target = block?.getInputTargetBlock?.(inputName) || null;
+  while (target && isBlockDisabled(target)) {
+    target = target.getNextBlock?.() || null;
+  }
+  return target || null;
 }
 
 function toList(v) {
@@ -5415,6 +5444,7 @@ function getPhonemeCategorySetByList(fonemenData, selectedCategories) {
 
 async function evalValue(block) {
   if (!block) return null;
+  if (isBlockDisabled(block)) return null;
 
   switch (block.type) {
     case 'text':
@@ -6050,7 +6080,7 @@ async function runProcedureCall(block, ctx = {}) {
     return;
   }
 
-  const firstStatement = definition.getInputTargetBlock('STACK');
+  const firstStatement = getEnabledStatementInputTargetBlock(definition, 'STACK');
   if (firstStatement) {
     await executeChain(firstStatement, generation);
   }
@@ -6060,6 +6090,10 @@ async function executeChain(startBlock, generation, allowStopped = false) {
   let current = startBlock;
 
   while (current && (allowStopped || !getRuntime().stopped) && generation === runGeneration) {
+    if (isBlockDisabled(current)) {
+      current = current.getNextBlock();
+      continue;
+    }
     highlightBlock(current.id);
     try {
       switch (current.type) {
@@ -6418,7 +6452,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'controls_for_each_audio_item': {
         const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
-        const body = current.getInputTargetBlock('DO');
+        const body = getEnabledStatementInputTargetBlock(current, 'DO');
         const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
         const varId = varModel ? varModel.getId() : null;
         for (const item of list) {
@@ -6434,7 +6468,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'list_for_each_item': {
         const list = toList(await evalValue(current.getInputTargetBlock('LIST')));
-        const body = current.getInputTargetBlock('DO');
+        const body = getEnabledStatementInputTargetBlock(current, 'DO');
         const varModel = workspace.getVariableById(current.getFieldValue('VAR'));
         const varId = varModel ? varModel.getId() : null;
         for (const item of list) {
@@ -6564,14 +6598,14 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         for (let i = 0; current.getInput('IF' + i); i++) {
           const cond = Boolean(await evalValue(current.getInputTargetBlock('IF' + i)));
           if (cond) {
-            const branch = current.getInputTargetBlock('DO' + i);
+            const branch = getEnabledStatementInputTargetBlock(current, 'DO' + i);
             if (branch) await executeChain(branch, generation, allowStopped);
             handled = true;
             break;
           }
         }
         if (!handled && current.getInput('ELSE')) {
-          const elseBranch = current.getInputTargetBlock('ELSE');
+          const elseBranch = getEnabledStatementInputTargetBlock(current, 'ELSE');
           if (elseBranch) await executeChain(elseBranch, generation, allowStopped);
         }
         break;
@@ -6579,7 +6613,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'controls_repeat_ext': {
         const count = toNumber(await evalValue(current.getInputTargetBlock('TIMES')));
-        const body = current.getInputTargetBlock('DO');
+        const body = getEnabledStatementInputTargetBlock(current, 'DO');
         for (let i = 0; i < count && !getRuntime().stopped && generation === runGeneration; i++) {
           if (body) await executeChain(body, generation, allowStopped);
         }
@@ -6587,7 +6621,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       }
 
       case 'controls_while_do': {
-        const body = current.getInputTargetBlock('DO');
+        const body = getEnabledStatementInputTargetBlock(current, 'DO');
         let guard = 0;
         while (
           !getRuntime().stopped &&
@@ -6604,7 +6638,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
       }
 
       case 'controls_do_while': {
-        const body = current.getInputTargetBlock('DO');
+        const body = getEnabledStatementInputTargetBlock(current, 'DO');
         let guard = 0;
         do {
           if (getRuntime().stopped || generation !== runGeneration) break;
@@ -6649,6 +6683,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 }
 
 async function eventMatches(block, event) {
+  if (isBlockDisabled(block)) return false;
   switch (block.type) {
     case 'event_when_started':
       return event.type === 'started';
@@ -6669,7 +6704,7 @@ async function eventMatches(block, event) {
 
     case 'event_when_cursor_routing': {
       if (event.type !== 'cursorRouting') return false;
-      const valueBlock = block.getInputTargetBlock('CELL');
+      const valueBlock = getEnabledInputTargetBlock(block, 'CELL');
       const expectedCell = valueBlock ? Number(await evalValue(valueBlock)) : 0;
       return expectedCell === Number(event.cell);
     }
@@ -6679,7 +6714,7 @@ async function eventMatches(block, event) {
 
     case 'event_when_chord': {
       if (event.type !== 'chord') return false;
-      const valueBlock = block.getInputTargetBlock('DOTS');
+      const valueBlock = getEnabledInputTargetBlock(block, 'DOTS');
       const expectedDots = normalizeChordValue(valueBlock ? await evalValue(valueBlock) : '1');
       const actualDots = normalizeChordValue(event.dots);
       return expectedDots === actualDots;
@@ -6716,7 +6751,7 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
     for (const block of topBlocks) {
       if (generation !== runGeneration && reason !== 'stopped') return;
       if (await eventMatches(block, event)) {
-        const first = block.getInputTargetBlock('DO');
+        const first = getEnabledStatementInputTargetBlock(block, 'DO');
         if (first) await executeChain(first, generation, true);
       }
     }
@@ -6783,7 +6818,7 @@ async function dispatchEvent(event, generation = runGeneration) {
   for (const block of topBlocks) {
     if (generation !== runGeneration || getRuntime().stopped) return;
     if (await eventMatches(block, event)) {
-      const first = block.getInputTargetBlock('DO');
+      const first = getEnabledStatementInputTargetBlock(block, 'DO');
       if (first) await executeChain(first, generation);
     }
   }
