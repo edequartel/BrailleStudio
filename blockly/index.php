@@ -1194,6 +1194,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <category name="Events" colour="#F59E0B">
     <block type="event_when_started"></block>
     <block type="event_when_program_ended"></block>
+    <block type="event_end_program"></block>
     <block type="event_when_timer"></block>
     <block type="event_when_thumb_key"></block>
     <block type="event_when_any_thumb_key"></block>
@@ -1402,8 +1403,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <category name="Lesson" colour="#14B8A6">
     <block type="lesson_track_progress"></block>
     <block type="lesson_progress_data"></block>
-    <block type="lesson_complete_lesson"></block>
-    <block type="lesson_get_step_repeat"></block>
   </category>
 
   <category name="Phonemes" colour="#14B8A6">

@@ -72,6 +72,7 @@ Workspace rules
   - `event_when_thumb_key`
   - `event_when_any_thumb_key`
   - `event_when_program_ended`
+  - `event_end_program`
   - `event_when_timer`
 - Connect sequential logic using `next`.
 - Put child statement stacks under `inputs.DO.block`, `inputs.STACK.block`, or the specific input name required by the block.
@@ -101,8 +102,7 @@ Important project conventions
 
 2. Step-link aware scripts
 - If a script is intended to run from step-links or lessonbuilder steps, prefer these inputs:
-  - `lesson_get_step_input` with field values such as `text`, `word`, `letters`
-  - `lesson_get_step_repeat`
+  - `lesson_get_step_input` with field values such as `text`, `word`, `letters`, `repeat`
 - Use these when the runtime data is expected to come from `stepInputs`.
 
 3. Thumb events
@@ -115,9 +115,10 @@ Important project conventions
 - If you generate `event_when_thumb_key`, use exact field values that exist in the project dropdown.
 
 4. Completion behavior
-- If the script should explicitly mark the lesson as completed, use:
-  - `lesson_complete_lesson`
+- If the script should explicitly end the current run and trigger `event_when_program_ended`, use:
+  - `event_end_program`
 - Do not use `lesson_complete_step` in new scripts. It is deprecated and only retained so older saved scripts keep working.
+- Do not use `lesson_complete_lesson` in new scripts. It is deprecated and only retained so older saved scripts keep working.
 - If the script is intended to keep listening for input, use event-based top-level blocks rather than a single finite `event_when_started` chain that immediately ends.
 
 5. Learning progress

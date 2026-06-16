@@ -6458,6 +6458,11 @@ async function executeChain(startBlock, generation, allowStopped = false) {
         break;
       }
 
+      case 'event_end_program': {
+        await dispatchProgramEnded(generation, 'ended');
+        return;
+      }
+
       case 'lesson_set_active_record_index': {
         if (getRuntime().lockInjectedLessonRecord) {
           log('Ignored lesson_set_active_record_index because injected record lock is active');
@@ -7259,6 +7264,9 @@ window.BrailleBlocklyApp = {
   },
   async stopProgram() {
     await onStopClicked();
+  },
+  async endProgram() {
+    await dispatchProgramEnded(runGeneration, 'ended');
   },
   async stopAudio() {
     const hadActiveAudio = Boolean(activeAudio) || audioQueuePending > 0;

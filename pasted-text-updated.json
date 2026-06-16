@@ -1,0 +1,851 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "event_when_started",
+        "id": "start_evt",
+        "x": -330,
+        "y": -170,
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "bb_set_caret_visibility",
+              "id": "wZQKgDR.d,v11|L!Zo^6",
+              "fields": {
+                "VISIBLE": "false"
+              },
+              "next": {
+                "block": {
+                  "type": "procedures_callnoreturn",
+                  "id": "hSQ`w+O;/hD-BUk8!2dn",
+                  "extraState": {
+                    "name": "instructie"
+                  },
+                  "next": {
+                    "block": {
+                      "type": "variables_set",
+                      "id": "set_letters",
+                      "fields": {
+                        "VAR": {
+                          "id": "var_letters"
+                        }
+                      },
+                      "inputs": {
+                        "VALUE": {
+                          "block": {
+                            "type": "list_from_text_items",
+                            "id": "letters_list",
+                            "inputs": {
+                              "TEXT": {
+                                "block": {
+                                  "type": "external_variable_get",
+                                  "id": "mb$~`1nlozmIrH1p1q.O",
+                                  "fields": {
+                                    "VAR": "letters"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "variables_set",
+                          "id": "set_rounds",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_rounds"
+                            }
+                          },
+                          "inputs": {
+                            "VALUE": {
+                              "block": {
+                                "type": "math_number",
+                                "id": "rounds_zero",
+                                "fields": {
+                                  "NUM": 0
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "variables_set",
+                              "id": "set_max_rounds",
+                              "fields": {
+                                "VAR": {
+                                  "id": "var_max_rounds"
+                                }
+                              },
+                              "inputs": {
+                                "VALUE": {
+                                  "block": {
+                                    "type": "external_variable_get",
+                                    "id": "get_external_repeat",
+                                    "fields": {
+                                      "VAR": "repeat"
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "log_value",
+                                  "id": "log_max_rounds_start",
+                                  "inputs": {
+                                    "VALUE": {
+                                      "block": {
+                                        "type": "variables_get",
+                                        "id": "get_max_rounds_start",
+                                        "fields": {
+                                          "VAR": {
+                                            "id": "var_max_rounds"
+                                          }
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "next": {
+                                    "block": {
+                                      "type": "procedures_callnoreturn",
+                                      "id": "call_next_round_start",
+                                      "extraState": {
+                                        "name": "nextRound"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "event_when_thumb_key",
+        "id": "thumb_left_evt",
+        "x": 270,
+        "y": -170,
+        "fields": {
+          "KEY": "left"
+        },
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "controls_if",
+              "id": "if_left_correct",
+              "extraState": {
+                "hasElse": true
+              },
+              "inputs": {
+                "IF0": {
+                  "block": {
+                    "type": "logic_compare",
+                    "id": "cmp_left",
+                    "fields": {
+                      "OP": "NEQ"
+                    },
+                    "inputs": {
+                      "A": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "get_shown_left",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_shown"
+                            }
+                          }
+                        }
+                      },
+                      "B": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "get_target_left",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_target"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "DO0": {
+                  "block": {
+                    "type": "sound_play_ux_success",
+                    "id": "left_success"
+                  }
+                },
+                "ELSE": {
+                  "block": {
+                    "type": "sound_play_ux_failure",
+                    "id": "left_fail"
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "math_change",
+                  "id": "rounds_up_left",
+                  "fields": {
+                    "VAR": {
+                      "id": "var_rounds"
+                    }
+                  },
+                  "inputs": {
+                    "DELTA": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "rounds_one_left",
+                        "fields": {
+                          "NUM": 1
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "procedures_callnoreturn",
+                      "id": "call_finish_or_next_left",
+                      "extraState": {
+                        "name": "finishOrNext"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "event_when_thumb_key",
+        "id": "thumb_right_evt",
+        "x": 450,
+        "y": 110,
+        "fields": {
+          "KEY": "right"
+        },
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "controls_if",
+              "id": "if_right_correct",
+              "extraState": {
+                "hasElse": true
+              },
+              "inputs": {
+                "IF0": {
+                  "block": {
+                    "type": "logic_compare",
+                    "id": "cmp_right",
+                    "fields": {
+                      "OP": "EQ"
+                    },
+                    "inputs": {
+                      "A": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "get_shown_right",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_shown"
+                            }
+                          }
+                        }
+                      },
+                      "B": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "get_target_right",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_target"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "DO0": {
+                  "block": {
+                    "type": "sound_play_ux_success",
+                    "id": "right_success"
+                  }
+                },
+                "ELSE": {
+                  "block": {
+                    "type": "sound_play_ux_failure",
+                    "id": "right_fail"
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "math_change",
+                  "id": "rounds_up_right",
+                  "fields": {
+                    "VAR": {
+                      "id": "var_rounds"
+                    }
+                  },
+                  "inputs": {
+                    "DELTA": {
+                      "block": {
+                        "type": "math_number",
+                        "id": "rounds_one_right",
+                        "fields": {
+                          "NUM": 1
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "procedures_callnoreturn",
+                      "id": "call_finish_or_next_right",
+                      "extraState": {
+                        "name": "finishOrNext"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "procedures_defnoreturn",
+        "id": "def_next_round",
+        "x": -327,
+        "y": 163,
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "nextRound"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "variables_set",
+              "id": "set_target_each_round",
+              "fields": {
+                "VAR": {
+                  "id": "var_target"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "list_pick_random",
+                    "id": "pick_target",
+                    "inputs": {
+                      "LIST": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "get_letters_for_target",
+                          "fields": {
+                            "VAR": {
+                              "id": "var_letters"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "controls_if",
+                  "id": "if_match",
+                  "extraState": {
+                    "hasElse": true
+                  },
+                  "inputs": {
+                    "IF0": {
+                      "block": {
+                        "type": "logic_random_boolean",
+                        "id": "random_match"
+                      }
+                    },
+                    "DO0": {
+                      "block": {
+                        "type": "variables_set",
+                        "id": "set_shown_equal",
+                        "fields": {
+                          "VAR": {
+                            "id": "var_shown"
+                          }
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "block": {
+                              "type": "variables_get",
+                              "id": "get_target_for_shown_equal",
+                              "fields": {
+                                "VAR": {
+                                  "id": "var_target"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "ELSE": {
+                      "block": {
+                        "type": "variables_set",
+                        "id": "set_shown_other",
+                        "fields": {
+                          "VAR": {
+                            "id": "var_shown"
+                          }
+                        },
+                        "inputs": {
+                          "VALUE": {
+                            "block": {
+                              "type": "list_random_other_item",
+                              "id": "pick_other",
+                              "inputs": {
+                                "LIST": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "get_letters_for_other",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "var_letters"
+                                      }
+                                    }
+                                  }
+                                },
+                                "EXCLUDE": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "get_target_exclude",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "var_target"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "bb_set_text",
+                      "id": "show_compare_text",
+                      "inputs": {
+                        "TEXT": {
+                          "block": {
+                            "type": "text_join",
+                            "id": "join_compare_text",
+                            "extraState": {
+                              "itemCount": 3
+                            },
+                            "inputs": {
+                              "ADD0": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "get_shown_text",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "var_shown"
+                                    }
+                                  }
+                                }
+                              },
+                              "ADD1": {
+                                "block": {
+                                  "type": "text",
+                                  "id": "space_between_letters",
+                                  "fields": {
+                                    "TEXT": "   "
+                                  }
+                                }
+                              },
+                              "ADD2": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "get_target_text",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "var_target"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "bb_wait_ms",
+                          "id": ".yK$^VXR(w:bX8oxf/o.",
+                          "inputs": {
+                            "MILLISECONDS": {
+                              "shadow": {
+                                "type": "math_number",
+                                "id": "@PJ^H0)Q2R2IM_oqg*dd",
+                                "fields": {
+                                  "NUM": 500
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "sound_play_letters_file",
+                              "id": "play_shown_sound",
+                              "inputs": {
+                                "FILE": {
+                                  "block": {
+                                    "type": "variables_get",
+                                    "id": "get_shown_sound",
+                                    "fields": {
+                                      "VAR": {
+                                        "id": "var_shown"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "bb_wait_ms",
+                                  "id": "HSA6H.?TatED*||?o%DN",
+                                  "inputs": {
+                                    "MILLISECONDS": {
+                                      "shadow": {
+                                        "type": "math_number",
+                                        "id": "WD_CYrBLwCo+*(OmB?/0",
+                                        "fields": {
+                                          "NUM": 500
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "next": {
+                                    "block": {
+                                      "type": "sound_play_letters_file",
+                                      "id": "play_target_sound",
+                                      "inputs": {
+                                        "FILE": {
+                                          "block": {
+                                            "type": "variables_get",
+                                            "id": "get_target_sound",
+                                            "fields": {
+                                              "VAR": {
+                                                "id": "var_target"
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "procedures_defnoreturn",
+        "id": "def_finish_or_next",
+        "x": 830,
+        "y": 50,
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "finishOrNext"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "log_value",
+              "id": "log_rounds_current",
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "variables_get",
+                    "id": "get_rounds_current",
+                    "fields": {
+                      "VAR": {
+                        "id": "var_rounds"
+                      }
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "log_value",
+                  "id": "log_max_rounds_current",
+                  "inputs": {
+                    "VALUE": {
+                      "block": {
+                        "type": "variables_get",
+                        "id": "get_max_rounds_current",
+                        "fields": {
+                          "VAR": {
+                            "id": "var_max_rounds"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "controls_if",
+                      "id": "if_finished",
+                      "extraState": {
+                        "hasElse": true
+                      },
+                      "inputs": {
+                        "IF0": {
+                          "block": {
+                            "type": "logic_compare",
+                            "id": "cmp_rounds_done",
+                            "fields": {
+                              "OP": "GTE"
+                            },
+                            "inputs": {
+                              "A": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "get_rounds_done",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "var_rounds"
+                                    }
+                                  }
+                                }
+                              },
+                              "B": {
+                                "block": {
+                                  "type": "variables_get",
+                                  "id": "get_max_rounds_done",
+                                  "fields": {
+                                    "VAR": {
+                                      "id": "var_max_rounds"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "DO0": {
+                          "block": {
+                            "type": "lesson_complete_lesson",
+                            "id": "complete_lesson"
+                          }
+                        },
+                        "ELSE": {
+                          "block": {
+                            "type": "procedures_callnoreturn",
+                            "id": "call_next_round_again",
+                            "extraState": {
+                              "name": "nextRound"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "procedures_defnoreturn",
+        "id": "y*JtE}i@|v:C0b=PwqMy",
+        "x": 830,
+        "y": -130,
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "instructie"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "list_for_each_item",
+              "id": "yppUK7Jd3Q@o{d`b.Vi/",
+              "fields": {
+                "VAR": {
+                  "id": "gUGS5^`{h0ifLJD1`Z!V"
+                }
+              },
+              "inputs": {
+                "LIST": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "id": "_,aoMQ.Ya;o`Sv`L_paU",
+                    "extraState": {
+                      "itemCount": 1
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "block": {
+                          "type": "text",
+                          "id": "R}Xu##?aP}_D=.^]z^[h",
+                          "fields": {
+                            "TEXT": "../nl/instructions/tactiele-discriminatie-letters-001.mp3"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "DO": {
+                  "block": {
+                    "type": "sound_play_sounds_relative",
+                    "id": "B.b#eaK_7-Nc=^lVWr%l",
+                    "inputs": {
+                      "PATH": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": "c;ey`_FHRA6WvmesltIp",
+                          "fields": {
+                            "VAR": {
+                              "id": "gUGS5^`{h0ifLJD1`Z!V"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "event_when_key_name",
+        "id": "QEEQ8B9$ajKN#z=b?~|S",
+        "x": 262,
+        "y": 145,
+        "fields": {
+          "KEY": "F2"
+        },
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "procedures_callnoreturn",
+              "id": ";I!35(/=vr[@fnyy4)Dz",
+              "extraState": {
+                "name": "instructie"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "letters",
+      "id": "var_letters"
+    },
+    {
+      "name": "target",
+      "id": "var_target"
+    },
+    {
+      "name": "shown",
+      "id": "var_shown"
+    },
+    {
+      "name": "rounds",
+      "id": "var_rounds"
+    },
+    {
+      "name": "maxRounds",
+      "id": "var_max_rounds"
+    },
+    {
+      "name": "count",
+      "id": "O6q@?xIOSq8Tez(#hl%$"
+    },
+    {
+      "name": "item",
+      "id": "gUGS5^`{h0ifLJD1`Z!V"
+    }
+  ],
+  "scriptVariables": [
+    {
+      "id": "external_word_mpmhjiek_qwyoy",
+      "name": "word",
+      "scope": "external",
+      "type": "string",
+      "defaultValue": "bal",
+      "description": ""
+    },
+    {
+      "id": "external_letters_mqggddyq_5icsa",
+      "name": "letters",
+      "scope": "external",
+      "type": "string",
+      "defaultValue": "a,b,k",
+      "description": ""
+    },
+    {
+      "id": "external_repeat_mz6z7q9n_n6z2x",
+      "name": "repeat",
+      "scope": "external",
+      "type": "number",
+      "defaultValue": 10,
+      "description": "Aantal keer dat de oefening wordt gedaan"
+    }
+  ]
+}

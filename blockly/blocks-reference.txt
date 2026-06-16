@@ -38,6 +38,7 @@ Thumb values
 Important event blocks
 - event_when_started
 - event_when_program_ended
+- event_end_program
 - event_when_timer
 - event_when_thumb_key
 - event_when_any_thumb_key
@@ -95,9 +96,9 @@ Important statement/action blocks
 - list_add_item
 - list_remove_item
 - list_for_each_item
+- event_end_program
 - lesson_set_active_record_index
 - lesson_track_progress
-- lesson_complete_lesson
 - klanken_play_word_sounds
 - klanken_play_word_sounds_with_pause
 - klanken_play_word_phonemes_nl
@@ -145,7 +146,6 @@ Important output/value blocks
 - lesson_get_active_category
 - lesson_get_active_category_count
 - lesson_get_step_input
-- lesson_get_step_repeat
 - lesson_progress_data
 - klanken_get_speech_audio_by_onlyletters
 - audio_get_speech_audio_by_letters_klanken
@@ -182,9 +182,10 @@ Important output/value blocks
 
 Lesson and step rules
 - If a script uses lesson_get_active_field or lesson_get_active_word, set the active lesson record first with lesson_set_active_record_index.
-- In step-link flows, prefer lesson_get_step_input and lesson_get_step_repeat when the script depends on external step input.
+- In step-link flows, use lesson_get_step_input when the script depends on external step input. Use the repeat field for repeat counts.
 - Do not add lesson_complete_step to new scripts. It is deprecated and supported only for older saved scripts.
 - Use lesson_track_progress for learning analytics and lesson_progress_data only for optional details.
+- Use event_end_program when a script should explicitly end and trigger event_when_program_ended.
 - student_code is always available as a standard external variable; progress tracking is skipped when it is empty.
 - Basic progress verbs are initialized, attempted, answered, typed, used-hint, completed, passed, and failed.
 - Progress data can include word, letter, response, correct response, success, score, braille cell, and attempt number.

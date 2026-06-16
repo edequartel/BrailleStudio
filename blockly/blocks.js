@@ -386,6 +386,15 @@
     }
   };
 
+  Blockly.Blocks['event_end_program'] = {
+    init() {
+      this.appendDummyInput().appendField('end program');
+      this.setPreviousStatement(true);
+      this.setColour('#F59E0B');
+      this.setTooltip('Ends the current run and triggers when program ended.');
+    }
+  };
+
   Blockly.Blocks['event_when_timer'] = {
     init() {
       this.appendDummyInput()
@@ -1580,6 +1589,7 @@
     }
   };
 
+  // Legacy compatibility: hidden from the toolbox, but required by older saved scripts.
   Blockly.Blocks['lesson_complete_lesson'] = {
     init() {
       this.appendDummyInput()
