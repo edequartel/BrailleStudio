@@ -217,6 +217,26 @@
       line-height: 1.35;
     }
 
+    .scan-prompt.is-waiting::before {
+      content: "";
+      width: 18px;
+      height: 18px;
+      justify-self: center;
+      border-radius: 999px;
+      background: var(--amber);
+      box-shadow: 0 0 0 0 rgba(245, 159, 0, .35);
+      animation: waitPulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes waitPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(245, 159, 0, .35);
+      }
+      50% {
+        box-shadow: 0 0 0 10px rgba(245, 159, 0, 0);
+      }
+    }
+
     .qr-panel img {
       width: min(320px, 76vw);
       height: min(320px, 76vw);
@@ -626,9 +646,9 @@
               <div class="meta-row"><strong>Code</strong><code id="sessionCodeText">-</code></div>
             </div>
             <div id="qrPanel" class="qr-panel" hidden>
-              <div class="scan-prompt">
-                <strong>Start sessie</strong>
-                <span>Scan code met mobiel</span>
+              <div id="sessionPrompt" class="scan-prompt">
+                <strong id="sessionPromptTitle">Start sessie</strong>
+                <span id="sessionPromptText">Scan code met mobiel</span>
               </div>
               <img id="qrImage" alt="QR-code voor deze sessie">
               <code id="laptopUrlText" class="technical-url">-</code>
@@ -795,6 +815,24 @@
 
     function setRowMeta(row) {
       $('sessionCodeText').textContent = row?.session_code || activeSessionCode || '-';
+    }
+
+    function setSessionPrompt(title, text, showQr = true, mode = '') {
+      const prompt = $('sessionPrompt');
+      $('sessionPromptTitle').textContent = title;
+      $('sessionPromptText').textContent = text;
+      if (prompt) {
+        prompt.className = `scan-prompt ${mode ? `is-${mode}` : ''}`.trim();
+      }
+      const qr = $('qrImage');
+      if (qr) {
+        qr.hidden = !showQr;
+      }
+      const controls = $('localPhoneHostControls');
+      if (controls && !showQr) {
+        controls.hidden = true;
+      }
+      $('qrPanel').hidden = false;
     }
 
     function audioFileLabel(url) {
@@ -1079,8 +1117,10 @@
         return;
       }
       $('qrImage').src = `${QR_IMAGE_BASE_URL}${encodeURIComponent(phoneUrl)}`;
+      $('qrImage').hidden = false;
       $('laptopUrlText').textContent = phoneUrl;
       renderLocalPhoneHostControls(config);
+      setSessionPrompt('Start sessie', 'Scan code met mobiel', true);
       panel.hidden = false;
     }
 
@@ -1370,10 +1410,11 @@
 
       setRowMeta({ ...row, script_id: scriptId });
       $('qrPanel').hidden = true;
+      $('sessionCard').hidden = true;
       $('playerPanel').hidden = false;
       ensureBrailleMonitorReady();
       renderStepDetails(payload);
-      setStatus('Even wachten.', 'connected', 'Step starten');
+      setStatus('De step-link wordt gestart.', 'connected', 'Step starten');
       const targetWindow = await waitForLoadWorkspaceOnline();
       if (!targetWindow) {
         console.error('[BrailleStudio session-api] loadWorkspaceOnline is niet beschikbaar in de pagina of het BrailleStudio iframe.');
@@ -1521,15 +1562,15 @@
       setRowMeta(row);
 
       if (isPhoneConnectedCommand(row)) {
-        $('qrPanel').hidden = true;
-        setStatus('Scan nu de step-link.', 'connected', 'Telefoon gekoppeld');
+        setSessionPrompt('Wacht op code', 'Scan de step-code op mobiel', false, 'waiting');
+        setStatus('Scan de step-code op mobiel.', 'connected', 'Telefoon gekoppeld');
         log('Mobiele sessie gekoppeld.', row);
         return;
       }
 
       if (isInactiveStepLinkCommand(row)) {
         const code = String(row?.command || '').replace(/^step_link_inactive:/, '').split(':')[0] || 'deze step-link';
-        $('qrPanel').hidden = true;
+        setSessionPrompt('Code inactief', `${code} kan niet worden gestart`, false);
         setStatus(`${code} kan niet worden gestart.`, 'error', 'Step-link inactief');
         log('Inactieve step-link gescand.', row);
         return;
@@ -1701,6 +1742,7 @@
       updateAddressBar(config);
       resetSessionIdleTimer();
       renderSessionQr(config);
+      $('sessionCard').hidden = false;
       setRowMeta({ session_code: config.session_code, status: 'waiting' });
       setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
       log('Sessie aangemaakt of gereset.', config);

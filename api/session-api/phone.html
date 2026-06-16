@@ -186,7 +186,7 @@
     </div>
 
     <section class="card">
-      <h1 class="scan-title">Scan code</h1>
+      <h1 class="scan-title">Scan step-code</h1>
       <p class="scan-subtitle">Richt je camera op de QR-code.</p>
 
       <button id="scanBtn" type="button">Camera starten</button>
@@ -245,13 +245,13 @@
         throw new Error('Geen sessie gevonden.');
       }
       if (!code) {
-        throw new Error('Scan of typ een code.');
+        throw new Error('Scan of typ de step-code.');
       }
 
       busy = true;
       $('sendBtn').disabled = true;
       $('codeInput').value = code;
-      setStatus('Code versturen...');
+      setStatus('Step starten...');
       try {
         const response = await fetch(SEND_STEP_LINK_URL, {
           method: 'POST',
@@ -265,7 +265,7 @@
         if (!response.ok || !data.ok) {
           throw new Error(data.error || `HTTP ${response.status}`);
         }
-      setStatus('Gestart.', 'ok');
+        setStatus('Step gestart.', 'ok');
         console.log('[BrailleStudio phone] Step-link sent.', { source, data });
       } finally {
         busy = false;
@@ -284,7 +284,7 @@
       if (!response.ok || !data.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
       }
-      setStatus('Scan de code.');
+      setStatus('Scan de step-code.');
     }
 
     function detectQrWithJsQr(video) {
