@@ -84,6 +84,13 @@ function methods_remote_data_base_url(string $section = ''): string
         . ($section !== '' ? '/' . $section : '');
 }
 
+function methods_remote_assets_base_url(string $path = ''): string
+{
+    $path = trim($path, '/');
+    return 'https://www.tastenbraille.com/braillestudio-data/assets'
+        . ($path !== '' ? '/' . $path : '');
+}
+
 function methods_manifest_name(string $section): string
 {
     return match ($section) {
@@ -282,6 +289,10 @@ function methods_normalize_method(array $item): array
         'https://www.tastenbraille.com/braillestudio-data/data/klanken/',
     ], methods_remote_data_base_url('klanken') . '/', $dataSource);
     $imageUrl = methods_normalize_string($item['imageUrl'] ?? '');
+    $imageUrl = str_replace([
+        'https://www.tastenbraille.com/braillestudio/assets/',
+        'https://tastenbraille.com/braillestudio/assets/',
+    ], methods_remote_assets_base_url() . '/', $imageUrl);
     if ($basisFile !== '' && $dataSource === '') {
         $dataSource = methods_remote_data_base_url('klanken') . '/' . rawurlencode($basisFile);
     }

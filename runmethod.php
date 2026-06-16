@@ -98,6 +98,32 @@ function canonical_remote_data_url(string $path = ''): string
         . ($path !== '' ? '/' . $path : '');
 }
 
+function canonical_remote_assets_url(string $path = ''): string
+{
+    $path = ltrim($path, '/');
+    return 'https://www.tastenbraille.com/braillestudio-data/assets'
+        . ($path !== '' ? '/' . $path : '');
+}
+
+function normalize_method_image_url(string $imageUrl): string
+{
+    $imageUrl = trim($imageUrl);
+    if ($imageUrl === '') {
+        return '';
+    }
+
+    return str_replace([
+        'https://www.tastenbraille.com/braillestudio/assets/',
+        'https://tastenbraille.com/braillestudio/assets/',
+    ], canonical_remote_assets_url() . '/', $imageUrl);
+}
+
+function normalize_method_record(array $method): array
+{
+    $method['imageUrl'] = normalize_method_image_url((string)($method['imageUrl'] ?? ''));
+    return $method;
+}
+
 function is_running_on_canonical_remote(): bool
 {
     $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
@@ -132,6 +158,9 @@ function read_remote_runmethod_payload(string $methodId): ?array
     $payload = json_decode($matches[1], true);
     if (!is_array($payload) || (string)($payload['error'] ?? '') !== '') {
         return null;
+    }
+    if (is_array($payload['method'] ?? null)) {
+        $payload['method'] = normalize_method_record($payload['method']);
     }
     return $payload;
 }
@@ -174,7 +203,7 @@ function read_local_method(string $methodId): ?array
     foreach (local_data_dirs('methods') as $dir) {
         $method = read_json_file($dir . '/' . $methodId . '.json');
         if (is_array($method)) {
-            return $method;
+            return normalize_method_record($method);
         }
     }
 
