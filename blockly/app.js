@@ -40,7 +40,7 @@ let reconnectTimer = null;
 let autoConnectEnabled = true;
 let bridgeLaunchState = 'idle';
 let gridSnapEnabled = true;
-let brailleMonitorVisible = true;
+let brailleMonitorVisible = false;
 let sidebarWidth = 780;
 var pendingStart = false;
 var pendingStartGeneration = 0;
@@ -3647,7 +3647,10 @@ function bindAppControls() {
 
   const monitorToggleBtn = document.getElementById('monitorToggleBtn');
   if (monitorToggleBtn && !monitorToggleBtn.dataset.initialized) {
-    brailleMonitorVisible = localStorage.getItem(BLOCKLY_MONITOR_VISIBLE_KEY) !== 'false';
+    const savedMonitorVisibility = localStorage.getItem(BLOCKLY_MONITOR_VISIBLE_KEY);
+    brailleMonitorVisible = savedMonitorVisibility === null
+      ? false
+      : savedMonitorVisibility === 'true';
     renderBrailleMonitorToggleControl();
     monitorToggleBtn.dataset.initialized = '1';
   }
@@ -4094,7 +4097,7 @@ workspace = IS_HEADLESS_SESSION_PLAYER
       zoom: {
         controls: true,
         wheel: true,
-        startScale: 1,
+        startScale: 0.9,
         maxScale: 2,
         minScale: 0.5,
         scaleSpeed: 1.1

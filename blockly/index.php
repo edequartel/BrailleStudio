@@ -111,6 +111,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 
   <style>
     :root {
+      --app-zoom: 90%;
       --bg: var(--tblr-body-bg);
       --panel: var(--tblr-bg-surface);
       --panel-soft: var(--tblr-bg-surface);
@@ -137,8 +138,10 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     #app {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      width: 111.111vw;
+      height: 111.111vh;
       min-height: 0;
+      zoom: var(--app-zoom);
     }
 
     #topbar {
@@ -993,7 +996,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <button id="gridSnapBtn" class="btn btn-outline-secondary btn-icon btn-lg active" type="button" aria-pressed="true" aria-label="Disable grid snap" title="Disable grid snap">
         <i class="ti ti-grid-dots" aria-hidden="true"></i>
       </button>
-      <button id="monitorToggleBtn" class="btn btn-outline-secondary btn-icon btn-lg active" type="button" aria-pressed="false" aria-label="Hide monitor" title="Hide monitor">
+      <button id="monitorToggleBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-pressed="false" aria-label="Show monitor" title="Show monitor">
         <i class="ti ti-device-desktop" aria-hidden="true"></i>
       </button>
       <button id="sidebarToggleBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-pressed="true" aria-label="Hide status panel" title="Hide status panel">
@@ -1001,15 +1004,15 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       </button>
     </div>
 
-    <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor">
+    <div id="brailleMonitorRow" class="topbar-row topbar-row--monitor is-hidden">
       <div id="brailleMonitorComponent" class="braille-monitor-host"></div>
     </div>
 
-    <div id="scriptBrailleMonitorRow" class="topbar-row topbar-row--monitor">
+    <div id="scriptBrailleMonitorRow" class="topbar-row topbar-row--monitor is-hidden">
       <div id="scriptBrailleMonitorComponent" class="braille-monitor-host"></div>
     </div>
 
-    <div id="thumbControlsRow" class="topbar-row topbar-row--thumbs">
+    <div id="thumbControlsRow" class="topbar-row topbar-row--thumbs is-hidden">
       <div class="thumb-controls">
         <button id="simThumbLeftBtn" class="btn btn-outline-secondary btn-icon btn-lg" type="button" aria-label="Left thumb" title="Left thumb">
           <i class="ti ti-chevrons-left" aria-hidden="true"></i>
