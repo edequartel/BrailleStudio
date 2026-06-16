@@ -955,10 +955,22 @@ $pagePayload = [
       <section class="card">
         <div class="card-body method-stack">
         <div class="action-row">
-          <button id="runSelectedStepBtn" class="btn btn-outline-primary" type="button">Run step</button>
-          <button id="runCurrentBtn" class="btn btn-primary" type="button">Run lesson</button>
-          <button id="runAllBtn" class="btn btn-outline-primary" type="button">Run all</button>
-          <button id="stopRunBtn" class="btn btn-danger" type="button">Stop</button>
+          <button id="runSelectedStepBtn" class="btn btn-outline-primary" type="button">
+            <i class="ti ti-player-track-next me-2" aria-hidden="true"></i>
+            Run step
+          </button>
+          <button id="runCurrentBtn" class="btn btn-primary" type="button">
+            <i class="ti ti-player-play me-2" aria-hidden="true"></i>
+            Run lesson
+          </button>
+          <button id="runAllBtn" class="btn btn-outline-primary" type="button">
+            <i class="ti ti-player-skip-forward me-2" aria-hidden="true"></i>
+            Run all
+          </button>
+          <button id="stopRunBtn" class="btn btn-danger" type="button">
+            <i class="ti ti-player-stop me-2" aria-hidden="true"></i>
+            Stop
+          </button>
           <button id="toggleRunnerBtn" type="button" class="btn btn-outline-secondary ms-auto">Unhide</button>
         </div>
         <div id="runStatusBanner" class="status-banner">
@@ -1178,6 +1190,16 @@ $pagePayload = [
       return currentRun.stepIndex;
     }
 
+    function setIconButtonLabel(button, iconClass, label) {
+      if (!button) return;
+      button.replaceChildren();
+      const icon = document.createElement('i');
+      icon.className = `ti ${iconClass} me-2`;
+      icon.setAttribute('aria-hidden', 'true');
+      button.appendChild(icon);
+      button.appendChild(document.createTextNode(label));
+    }
+
     function renderRunControls() {
       const active = currentRun && (currentRun.status === 'running' || currentRun.status === 'stopping') ? currentRun : null;
       const runnerActive = getRunnerRuntimeSnapshot()?.isActive === true;
@@ -1185,34 +1207,34 @@ $pagePayload = [
       const isStopping = Boolean(active && active.status === 'stopping');
       if (runSelectedStepBtn) {
         runSelectedStepBtn.disabled = hasActiveRun;
-        runSelectedStepBtn.textContent = active?.mode === 'step'
+        setIconButtonLabel(runSelectedStepBtn, 'ti-player-track-next', active?.mode === 'step'
           ? (isStopping ? 'Stopping step...' : 'Running step...')
-          : 'Run step';
+          : 'Run step');
         runSelectedStepBtn.className = active?.mode === 'step'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-outline-primary';
       }
       if (runCurrentBtn) {
         runCurrentBtn.disabled = hasActiveRun;
-        runCurrentBtn.textContent = active?.mode === 'lesson'
+        setIconButtonLabel(runCurrentBtn, 'ti-player-play', active?.mode === 'lesson'
           ? (isStopping ? 'Stopping lesson...' : 'Running lesson...')
-          : 'Run lesson';
+          : 'Run lesson');
         runCurrentBtn.className = active?.mode === 'lesson'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-primary';
       }
       if (runAllBtn) {
         runAllBtn.disabled = hasActiveRun;
-        runAllBtn.textContent = active?.mode === 'all'
+        setIconButtonLabel(runAllBtn, 'ti-player-skip-forward', active?.mode === 'all'
           ? (isStopping ? 'Stopping all...' : 'Running all...')
-          : 'Run all';
+          : 'Run all');
         runAllBtn.className = active?.mode === 'all'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-outline-primary';
       }
       if (stopRunBtn) {
         stopRunBtn.disabled = false;
-        stopRunBtn.textContent = isStopping ? 'Stopping...' : 'Stop';
+        setIconButtonLabel(stopRunBtn, 'ti-player-stop', isStopping ? 'Stopping...' : 'Stop');
         stopRunBtn.className = `btn ${isStopping ? 'btn-warning' : 'btn-danger'}`;
       }
 
