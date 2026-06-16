@@ -75,7 +75,7 @@
     }
 
     .badge {
-      display: inline-flex;
+      display: none;
       align-items: center;
       gap: 8px;
       min-height: 34px;
@@ -145,7 +145,7 @@
     }
 
     .flow-status {
-      display: grid;
+      display: none;
       justify-items: center;
       gap: 10px;
       max-width: 520px;
@@ -166,7 +166,7 @@
     }
 
     .meta {
-      display: inline-grid;
+      display: none;
       gap: 6px;
       font-size: 14px;
     }
@@ -199,6 +199,24 @@
       margin-top: 0;
     }
 
+    .scan-prompt {
+      display: grid;
+      gap: 4px;
+      text-align: center;
+    }
+
+    .scan-prompt strong {
+      color: var(--text);
+      font-size: 26px;
+      line-height: 1.15;
+    }
+
+    .scan-prompt span {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
     .qr-panel img {
       width: min(320px, 76vw);
       height: min(320px, 76vw);
@@ -219,12 +237,7 @@
     }
 
     .technical-url {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      white-space: nowrap;
+      display: none;
     }
 
     .local-phone-host {
@@ -613,8 +626,11 @@
               <div class="meta-row"><strong>Code</strong><code id="sessionCodeText">-</code></div>
             </div>
             <div id="qrPanel" class="qr-panel" hidden>
+              <div class="scan-prompt">
+                <strong>Start sessie</strong>
+                <span>Scan code met mobiel</span>
+              </div>
               <img id="qrImage" alt="QR-code voor deze sessie">
-              <p class="caption">Scan met je telefoon</p>
               <code id="laptopUrlText" class="technical-url">-</code>
               <details id="localPhoneHostControls" class="local-phone-host mt-2" hidden>
                 <summary>QR werkt niet op de telefoon?</summary>
