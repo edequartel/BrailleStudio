@@ -20,9 +20,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 <html lang="nl">
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/braillestudio/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/braillestudio/favicon-16x16.png">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#206bc4">
