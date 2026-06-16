@@ -740,6 +740,12 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       resize: vertical;
     }
 
+    #scriptMetaDescription,
+    #scriptMetaInstruction {
+      min-height: 144px;
+      max-height: calc(30 * 1.2em + 16px);
+    }
+
     .variable-list {
       display: grid;
       gap: 6px;
