@@ -37,7 +37,26 @@
     main {
       width: min(560px, 100%);
       margin: 0 auto;
-      padding: 18px;
+      padding: 24px 18px;
+    }
+
+    .brand {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      margin: 0 0 22px;
+    }
+
+    .brand__logo {
+      width: 72px;
+      height: 72px;
+      object-fit: contain;
+    }
+
+    .brand__text {
+      width: min(320px, 86vw);
+      max-height: 46px;
+      object-fit: contain;
     }
 
     .card {
@@ -45,16 +64,21 @@
       border-radius: 8px;
       background: var(--panel);
       box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
-      padding: 18px;
+      padding: 22px;
+      text-align: center;
     }
 
-    h1 {
-      margin: 0 0 8px;
-      font-size: 24px;
+    .scan-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 28px;
+      line-height: 1.15;
     }
 
-    p {
+    .scan-subtitle {
+      margin: 8px 0 0;
       color: var(--muted);
+      font-size: 16px;
       line-height: 1.45;
     }
 
@@ -75,8 +99,8 @@
 
     button {
       width: 100%;
-      min-height: 46px;
-      margin-top: 12px;
+      min-height: 52px;
+      margin-top: 18px;
       border: 0;
       border-radius: 8px;
       padding: 10px 14px;
@@ -87,6 +111,8 @@
     }
 
     button.secondary {
+      min-height: 44px;
+      margin-top: 10px;
       background: #eef4ff;
       color: var(--blue);
       border: 1px solid #c7d7ff;
@@ -98,7 +124,7 @@
 
     video {
       width: 100%;
-      margin-top: 14px;
+      margin-top: 18px;
       border: 1px solid var(--border);
       border-radius: 8px;
       background: #0f172a;
@@ -125,6 +151,23 @@
       background: #fff1f1;
     }
 
+    .manual-entry {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .manual-entry summary {
+      cursor: pointer;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .manual-entry__body {
+      margin-top: 8px;
+    }
+
     code {
       word-break: break-word;
     }
@@ -137,19 +180,30 @@
 </head>
 <body>
   <main>
-    <section class="card">
-      <h1>Step-link scannen</h1>
-      <p>Sessie <strong id="sessionText">-</strong> is gekoppeld. Scan nu de QR-code van de step-link.</p>
+    <div class="brand" aria-label="BrailleStudio">
+      <img class="brand__logo" src="../../style/logo.png" alt="">
+      <img class="brand__text" src="../../style/braillestudio_banner_text.png" alt="BrailleStudio">
+    </div>
 
-      <label for="codeInput">Step-link code</label>
-      <input id="codeInput" type="text" autocomplete="off" placeholder="Scan of typ de code">
-      <button id="sendBtn" type="button">Verstuur step-link</button>
-      <button id="scanBtn" class="secondary" type="button">Camera gebruiken</button>
+    <section class="card">
+      <h1 class="scan-title">Scan code</h1>
+      <p class="scan-subtitle">Richt je camera op de QR-code.</p>
+
+      <button id="scanBtn" type="button">Camera starten</button>
 
       <video id="video" playsinline muted hidden></video>
       <canvas id="canvas" hidden></canvas>
 
-      <div id="status" class="status">Klaar om een step-link te scannen.</div>
+      <details class="manual-entry">
+        <summary>Code typen</summary>
+        <div class="manual-entry__body">
+          <label for="codeInput">Code</label>
+          <input id="codeInput" type="text" autocomplete="off" placeholder="Code">
+          <button id="sendBtn" class="secondary" type="button">Verstuur code</button>
+        </div>
+      </details>
+
+      <div id="status" class="status">Klaar om te scannen.</div>
     </section>
   </main>
 
@@ -188,16 +242,16 @@
       if (busy) return;
       const code = normalizeStepLinkCode($('codeInput').value);
       if (!sessionCode) {
-        throw new Error('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.');
+        throw new Error('Geen sessie gevonden.');
       }
       if (!code) {
-        throw new Error('Scan of typ eerst een step-link code.');
+        throw new Error('Scan of typ een code.');
       }
 
       busy = true;
       $('sendBtn').disabled = true;
       $('codeInput').value = code;
-      setStatus('Step-link wordt verstuurd...');
+      setStatus('Code versturen...');
       try {
         const response = await fetch(SEND_STEP_LINK_URL, {
           method: 'POST',
@@ -211,7 +265,7 @@
         if (!response.ok || !data.ok) {
           throw new Error(data.error || `HTTP ${response.status}`);
         }
-        setStatus(`Step-link ${code} verstuurd. Script ${data.scriptId} start op de laptop.`, 'ok');
+      setStatus('Gestart.', 'ok');
         console.log('[BrailleStudio phone] Step-link sent.', { source, data });
       } finally {
         busy = false;
@@ -230,7 +284,7 @@
       if (!response.ok || !data.ok) {
         throw new Error(data.error || `HTTP ${response.status}`);
       }
-      setStatus('Sessie is gestart. Scan nu de step-link.');
+      setStatus('Scan de code.');
     }
 
     function detectQrWithJsQr(video) {
@@ -274,10 +328,10 @@
 
     async function startScanner() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error('Camera is niet beschikbaar op dit apparaat.');
+        throw new Error('Camera niet beschikbaar.');
       }
       if (typeof BarcodeDetector === 'undefined' && typeof window.jsQR !== 'function') {
-        throw new Error('QR-scannen is niet beschikbaar. Typ de code handmatig in.');
+        throw new Error('QR-scannen lukt niet. Typ de code.');
       }
       stopScanner();
       stream = await navigator.mediaDevices.getUserMedia({
@@ -288,8 +342,8 @@
       video.srcObject = stream;
       video.hidden = false;
       await video.play();
-      $('scanBtn').textContent = 'Camera stoppen';
-      setStatus('Camera staat aan. Richt op de step-link QR-code.');
+      $('scanBtn').textContent = 'Stop camera';
+      setStatus('Richt op de QR-code.');
       scanTimer = window.setInterval(() => {
         scanFrame().catch((err) => setStatus(err.message || String(err), 'error'));
       }, 500);
@@ -308,13 +362,12 @@
       video.pause();
       video.srcObject = null;
       video.hidden = true;
-      $('scanBtn').textContent = 'Camera gebruiken';
+      $('scanBtn').textContent = 'Camera starten';
     }
 
     function bootstrap() {
-      $('sessionText').textContent = sessionCode || '-';
       if (!sessionCode) {
-        setStatus('Geen sessiecode gevonden. Scan eerst de sessie-QR op de laptop.', 'error');
+        setStatus('Geen sessie gevonden.', 'error');
       } else {
         markSessionOpen().catch((err) => setStatus(err.message || String(err), 'error'));
       }
@@ -330,7 +383,7 @@
       $('scanBtn').addEventListener('click', () => {
         if (stream) {
           stopScanner();
-          setStatus('Camera gestopt. Je kunt een code typen of opnieuw scannen.');
+          setStatus('Camera gestopt.');
           return;
         }
         startScanner().catch((err) => setStatus(err.message || String(err), 'error'));
