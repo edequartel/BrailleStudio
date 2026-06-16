@@ -40,31 +40,38 @@
     }
 
     header {
-      border-bottom: 1px solid var(--border);
-      background: var(--panel);
+      background: #ffffff;
     }
 
     .header-inner {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      max-width: 960px;
+      gap: 18px;
+      max-width: 900px;
       margin: 0 auto;
-      padding: 18px 22px;
+      padding: 24px 22px 12px;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      line-height: 1.2;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
     }
 
-    .subtitle {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 14px;
+    .brand__logo {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .brand__text {
+      width: min(330px, 54vw);
+      max-height: 50px;
+      object-fit: contain;
+      object-position: left center;
     }
 
     .badge {
@@ -79,6 +86,7 @@
       color: var(--muted);
       font-weight: 700;
       font-size: 13px;
+      white-space: nowrap;
     }
 
     .dot {
@@ -101,9 +109,9 @@
     }
 
     main {
-      width: min(960px, 100%);
+      width: min(900px, 100%);
       margin: 0 auto;
-      padding: 18px 22px 24px;
+      padding: 16px 22px 30px;
     }
 
     .flow {
@@ -124,7 +132,10 @@
 
     .flow-card .card-body {
       display: grid;
-      gap: 14px;
+      gap: 18px;
+      justify-items: center;
+      padding: 26px;
+      text-align: center;
     }
 
     .status-text {
@@ -134,33 +145,40 @@
     }
 
     .flow-status {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      max-width: 520px;
     }
 
     .flow-status .dot {
-      flex: 0 0 auto;
-      margin-top: 6px;
+      width: 14px;
+      height: 14px;
+      margin-top: 0;
     }
 
     .flow-status strong {
       display: block;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
       color: var(--text);
-      font-size: 17px;
+      font-size: 26px;
+      line-height: 1.15;
     }
 
     .meta {
-      display: grid;
-      gap: 8px;
+      display: inline-grid;
+      gap: 6px;
       font-size: 14px;
     }
 
     .meta-row {
-      display: grid;
-      grid-template-columns: 110px 1fr;
-      gap: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #f8fafc;
     }
 
     .meta-row strong {
@@ -175,27 +193,55 @@
     .qr-panel {
       display: grid;
       justify-items: center;
-      gap: 10px;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
+      gap: 14px;
+      width: 100%;
+      max-width: 460px;
+      margin-top: 0;
     }
 
     .qr-panel img {
-      width: 220px;
-      height: 220px;
-      border: 1px solid var(--border);
+      width: min(320px, 76vw);
+      height: min(320px, 76vw);
+      border: 1px solid #cfd8e6;
       border-radius: 8px;
       background: #ffffff;
-      padding: 8px;
+      padding: 12px;
+      box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
     }
 
     .qr-panel .caption {
       margin: 0;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .technical-url {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .local-phone-host {
+      width: min(460px, 100%);
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.4;
+      text-align: left;
+    }
+
+    .local-phone-host summary {
+      cursor: pointer;
       text-align: center;
+      font-weight: 700;
+    }
+
+    .local-phone-host__body {
+      margin-top: 10px;
     }
 
     .braille-monitor-standard-card .card-body {
@@ -503,6 +549,24 @@
     }
 
     @media (max-width: 900px) {
+      .header-inner {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .brand {
+        justify-content: center;
+      }
+
+      .brand__text {
+        object-position: center;
+      }
+
+      .flow-status strong {
+        font-size: 22px;
+      }
+
       .braille-monitor-thumb-row {
         grid-template-columns: 1fr;
       }
@@ -523,9 +587,9 @@
   <div class="page">
     <header>
       <div class="header-inner">
-        <div>
-          <h1>BrailleStudio sessie</h1>
-          <div class="subtitle">Scan de sessie-QR met de mobiel en scan daarna de step-link.</div>
+        <div class="brand" aria-label="BrailleStudio">
+          <img class="brand__logo" src="../../style/logo.png" alt="">
+          <img class="brand__text" src="../../style/braillestudio_banner_text.png" alt="BrailleStudio">
         </div>
         <div id="statusBadge" class="badge">
           <span class="dot" aria-hidden="true"></span>
@@ -541,25 +605,28 @@
             <div class="flow-status">
               <span class="dot" aria-hidden="true"></span>
               <div>
-                <strong id="flowTitle">Sessie wordt voorbereid</strong>
-                <p id="statusText" class="status-text">Er wordt een sessiecode aangemaakt.</p>
+                <strong id="flowTitle">Sessie maken</strong>
+                <p id="statusText" class="status-text">Even wachten.</p>
               </div>
             </div>
-            <div class="meta" aria-label="Sessiegegevens">
-              <div class="meta-row"><strong>Sessie</strong><code id="sessionCodeText">-</code></div>
+            <div class="meta" aria-label="Sessiecode">
+              <div class="meta-row"><strong>Code</strong><code id="sessionCodeText">-</code></div>
             </div>
             <div id="qrPanel" class="qr-panel" hidden>
               <img id="qrImage" alt="QR-code voor deze sessie">
-              <p class="caption">Scan deze QR-code met de mobiel. Daarna wacht deze pagina op de step-link die op de mobiel wordt gescand.</p>
-              <code id="laptopUrlText">-</code>
-              <div id="localPhoneHostControls" class="mt-3" hidden>
-                <label class="form-label" for="phoneHostInput">Phone URL host</label>
-                <div class="input-group">
-                  <input id="phoneHostInput" class="form-control font-monospace" type="text" placeholder="192.168.1.23:8000">
-                  <button id="applyPhoneHostBtn" class="btn btn-outline-primary" type="button">Update QR</button>
+              <p class="caption">Scan met je telefoon</p>
+              <code id="laptopUrlText" class="technical-url">-</code>
+              <details id="localPhoneHostControls" class="local-phone-host mt-2" hidden>
+                <summary>QR werkt niet op de telefoon?</summary>
+                <div class="local-phone-host__body">
+                  <label class="form-label" for="phoneHostInput">Adres van deze computer</label>
+                  <div class="input-group">
+                    <input id="phoneHostInput" class="form-control font-monospace" type="text" placeholder="192.168.1.23:8000">
+                    <button id="applyPhoneHostBtn" class="btn btn-outline-primary" type="button">QR bijwerken</button>
+                  </div>
+                  <div class="form-hint">Gebruik het netwerkadres van deze computer.</div>
                 </div>
-                <div class="form-hint">Gebruik hier het LAN-adres van deze computer. Een telefoon kan geen localhost van je Mac openen.</div>
-              </div>
+              </details>
             </div>
           </div>
         </section>
@@ -1164,17 +1231,17 @@
         log('BrailleBridge voorbereiding overgeslagen: runner API ontbreekt.');
         return false;
       }
-      setStatus('BrailleBridge wordt gecontroleerd voordat de step-link start...', 'connected', 'Leesregel controleren');
+      setStatus('Even wachten.', 'connected', 'Leesregel controleren');
       try {
         const connected = await app.ensureBrailleBridgeConnection(3000);
         log('BrailleBridge voorbereiding klaar.', { connected });
         if (!connected) {
-          setStatus('Geen fysieke leesregelverbinding gevonden. De step-link draait in simulatie.', 'connected', 'Simulatie actief');
+          setStatus('De step loopt in simulatie.', 'connected', 'Simulatie actief');
         }
         return Boolean(connected);
       } catch (err) {
         log('BrailleBridge voorbereiding mislukt.', { message: err.message || String(err) });
-        setStatus('BrailleBridge kon niet worden gecontroleerd. De step-link draait in simulatie.', 'connected', 'Simulatie actief');
+        setStatus('De step loopt in simulatie.', 'connected', 'Simulatie actief');
         return false;
       }
     }
@@ -1290,7 +1357,7 @@
       $('playerPanel').hidden = false;
       ensureBrailleMonitorReady();
       renderStepDetails(payload);
-      setStatus(`Step-link ${payload.code} wordt geladen en automatisch gestart.`, 'connected', 'Step-link ontvangen');
+      setStatus('Even wachten.', 'connected', 'Step starten');
       const targetWindow = await waitForLoadWorkspaceOnline();
       if (!targetWindow) {
         console.error('[BrailleStudio session-api] loadWorkspaceOnline is niet beschikbaar in de pagina of het BrailleStudio iframe.');
@@ -1316,7 +1383,7 @@
           }
         });
         startBrailleMonitorSync();
-        setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
+        setStatus('De step is actief.', 'loaded', 'Step actief');
         log('Step-link met opgeslagen externe variabelen gestart.', payload);
         if (typeof app.runCurrentWorkspace === 'function') {
           await app.runCurrentWorkspace();
@@ -1337,7 +1404,7 @@
           }
         });
         startBrailleMonitorSync();
-        setStatus(`Step-link ${payload.code} is gestart.`, 'loaded', 'Step-link actief');
+        setStatus('De step is actief.', 'loaded', 'Step actief');
         log('Step-link met opgeslagen externe variabelen gestart.', payload);
         if (typeof targetWindow.onRunClicked === 'function') {
           await targetWindow.onRunClicked();
@@ -1348,7 +1415,7 @@
       }
 
       await targetWindow.loadWorkspaceOnline(scriptId);
-      setStatus(`Script ${scriptId} geladen zonder step-link variabelen`, 'loaded');
+      setStatus('De step is geladen.', 'loaded', 'Step geladen');
       log('Fallback gebruikt: applyResolvedSessionPayload is niet beschikbaar.', payload);
     }
 
@@ -1359,7 +1426,7 @@
       }
 
       setRowMeta(row);
-      setStatus(`Script ${row.script_id} laden...`, 'connected');
+      setStatus('Even wachten.', 'connected', 'Script laden');
       const targetWindow = await waitForLoadWorkspaceOnline();
       if (!targetWindow) {
         console.error('[BrailleStudio session-api] loadWorkspaceOnline is niet beschikbaar in de pagina of het BrailleStudio iframe.');
@@ -1367,7 +1434,7 @@
         return;
       }
       await targetWindow.loadWorkspaceOnline(row.script_id);
-      setStatus(`Script ${row.script_id} geladen`, 'loaded');
+      setStatus('Het script is geladen.', 'loaded', 'Script geladen');
       log('loadWorkspaceOnline aangeroepen.', { script_id: row.script_id });
     }
 
@@ -1410,7 +1477,7 @@
       } else {
         throw new Error('Start API is niet beschikbaar.');
       }
-      setStatus('De actieve step is gestart op de laptop.', 'loaded', 'Step actief');
+      setStatus('De step is actief.', 'loaded', 'Step actief');
       log('Step gestart op de laptop.');
     }
 
@@ -1427,7 +1494,7 @@
       stopActiveSessionAudio();
       const sourceLabel = source === 'laptop' ? 'op de laptop' : 'via een stopopdracht';
       setAudioIndicator('idle', `Step gestopt ${sourceLabel}.`);
-      setStatus(`De actieve step is gestopt ${sourceLabel}.`, 'connected', 'Step gestopt');
+      setStatus(`Gestopt ${sourceLabel}.`, 'connected', 'Step gestopt');
       log(`Step gestopt ${sourceLabel}.`);
     }
 
@@ -1439,7 +1506,7 @@
 
       if (isPhoneConnectedCommand(row)) {
         $('qrPanel').hidden = true;
-        setStatus('De mobiele telefoon is gekoppeld. Scan nu de step-link op de mobiel.', 'connected', 'Sessie gestart');
+        setStatus('Scan nu de step-link.', 'connected', 'Telefoon gekoppeld');
         log('Mobiele sessie gekoppeld.', row);
         return;
       }
@@ -1447,7 +1514,7 @@
       if (isInactiveStepLinkCommand(row)) {
         const code = String(row?.command || '').replace(/^step_link_inactive:/, '').split(':')[0] || 'deze step-link';
         $('qrPanel').hidden = true;
-        setStatus(`Step-link ${code} is inactief en kan niet worden gestart.`, 'error', 'Step-link inactief');
+        setStatus(`${code} kan niet worden gestart.`, 'error', 'Step-link inactief');
         log('Inactieve step-link gescand.', row);
         return;
       }
@@ -1561,7 +1628,7 @@
     async function startRealtime(config) {
       if (!config.supabase_url || !config.supabase_anon_key) {
         startSessionPolling(config.session_code, 'missing-browser-config');
-        setStatus('Realtime config ontbreekt; lokale polling is actief.', 'connected', 'Wacht op mobiel');
+        setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
         return;
       }
 
@@ -1570,7 +1637,7 @@
         ({ createClient } = await import('https://esm.sh/@supabase/supabase-js@2'));
       } catch (err) {
         startSessionPolling(config.session_code, 'supabase-module-unavailable');
-        setStatus('Realtime module niet beschikbaar; lokale polling is actief.', 'connected', 'Wacht op mobiel');
+        setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
         log('Supabase browsermodule laden mislukt; polling actief.', { message: err.message || String(err) });
         return;
       }
@@ -1599,16 +1666,16 @@
         .subscribe((status, err) => {
           log('Realtime kanaalstatus.', { status, error: err?.message || null });
           if (status === 'SUBSCRIBED') {
-            setStatus('Scan de sessie-QR met de mobiel om de sessie te starten.', 'connected', 'Wacht op mobiel');
+            setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             startSessionPolling(config.session_code, status);
-            setStatus('Realtime niet beschikbaar; lokale polling is actief.', 'connected', 'Wacht op mobiel');
+            setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
           }
         });
     }
 
     async function bootstrap() {
-      setStatus('Er wordt een sessiecode aangemaakt.', '', 'Sessie wordt voorbereid');
+      setStatus('Even wachten.', '', 'Sessie maken');
       setRowMeta({ session_code: activeSessionCode });
       log('Laptop sessie start.', { session: activeSessionCode || '(random)' });
       const config = await createOrResetSession();
@@ -1619,7 +1686,7 @@
       resetSessionIdleTimer();
       renderSessionQr(config);
       setRowMeta({ session_code: config.session_code, status: 'waiting' });
-      setStatus('Scan de sessie-QR met de mobiel om de sessie te starten.', 'connected', 'Wacht op mobiel');
+      setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
       log('Sessie aangemaakt of gereset.', config);
       await startRealtime(config);
 
