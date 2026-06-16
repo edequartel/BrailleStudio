@@ -956,7 +956,7 @@ $pagePayload = [
         <div class="card-body method-stack">
         <div class="action-row">
           <button id="runSelectedStepBtn" class="btn btn-outline-primary" type="button">
-            <i class="ti ti-player-track-next me-2" aria-hidden="true"></i>
+            <i class="ti ti-player-play me-2" aria-hidden="true"></i>
             Run step
           </button>
           <button id="runCurrentBtn" class="btn btn-primary" type="button">
@@ -964,7 +964,7 @@ $pagePayload = [
             Run lesson
           </button>
           <button id="runAllBtn" class="btn btn-outline-primary" type="button">
-            <i class="ti ti-player-skip-forward me-2" aria-hidden="true"></i>
+            <i class="ti ti-player-play me-2" aria-hidden="true"></i>
             Run all
           </button>
           <button id="stopRunBtn" class="btn btn-danger" type="button">
@@ -1207,7 +1207,7 @@ $pagePayload = [
       const isStopping = Boolean(active && active.status === 'stopping');
       if (runSelectedStepBtn) {
         runSelectedStepBtn.disabled = hasActiveRun;
-        setIconButtonLabel(runSelectedStepBtn, 'ti-player-track-next', active?.mode === 'step'
+        setIconButtonLabel(runSelectedStepBtn, 'ti-player-play', active?.mode === 'step'
           ? (isStopping ? 'Stopping step...' : 'Running step...')
           : 'Run step');
         runSelectedStepBtn.className = active?.mode === 'step'
@@ -1225,7 +1225,7 @@ $pagePayload = [
       }
       if (runAllBtn) {
         runAllBtn.disabled = hasActiveRun;
-        setIconButtonLabel(runAllBtn, 'ti-player-skip-forward', active?.mode === 'all'
+        setIconButtonLabel(runAllBtn, 'ti-player-play', active?.mode === 'all'
           ? (isStopping ? 'Stopping all...' : 'Running all...')
           : 'Run all');
         runAllBtn.className = active?.mode === 'all'
