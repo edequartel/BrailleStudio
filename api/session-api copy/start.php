@@ -106,10 +106,8 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         <div class="container-tight">
           <div class="d-flex align-items-center justify-content-between gap-3">
             <a class="navbar-brand navbar-brand-autodark m-0" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">
-              <span class="avatar avatar-sm bg-primary-lt me-2">
-                <i class="ti ti-braille text-primary" aria-hidden="true"></i>
-              </span>
-              <span>BrailleStudio</span>
+        <img src="../../style/logo.png" alt="" aria-hidden="true" class="me-2" style="height: 2rem; width: auto;">
+        <img src="../../style/braillestudio_banner_text.png" alt="BrailleStudio" style="height: 1.5rem; width: auto;">
             </a>
             <img src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png" width="132" alt="Bartiméus">
           </div>

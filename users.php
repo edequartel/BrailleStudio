@@ -153,8 +153,8 @@ try {
   <header class="navbar navbar-expand-md d-print-none">
     <div class="container-xl">
       <a class="navbar-brand navbar-brand-autodark" href="<?= $html($baseUrl) ?>index.php">
-        <span class="avatar avatar-sm bg-primary-lt me-2"><i class="ti ti-braille text-primary" aria-hidden="true"></i></span>
-        <span>BrailleStudio</span>
+        <img src="style/logo.png" alt="" aria-hidden="true" class="me-2" style="height: 2rem; width: auto;">
+        <img src="style/braillestudio_banner_text.png" alt="BrailleStudio" style="height: 1.5rem; width: auto;">
       </a>
       <div class="navbar-nav flex-row ms-auto">
         <a class="btn btn-outline-secondary" href="<?= $html($baseUrl) ?>index.php">
