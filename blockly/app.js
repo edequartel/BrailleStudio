@@ -2904,6 +2904,29 @@ function waitForAudioStopped() {
   });
 }
 
+function waitRuntimeMs(ms, generation = runGeneration) {
+  const totalMs = Math.max(0, Math.floor(Number(ms) || 0));
+  if (totalMs <= 0 || generation !== runGeneration || getRuntime().stopped) {
+    return Promise.resolve();
+  }
+  const endAt = Date.now() + totalMs;
+  return new Promise((resolve) => {
+    const tick = () => {
+      if (generation !== runGeneration || getRuntime().stopped) {
+        resolve();
+        return;
+      }
+      const remaining = endAt - Date.now();
+      if (remaining <= 0) {
+        resolve();
+        return;
+      }
+      setTimeout(tick, Math.min(remaining, 50));
+    };
+    tick();
+  });
+}
+
 function isInputBlockedByAudio() {
   return Boolean(activeAudio) || audioQueuePending > 0;
 }
@@ -6134,13 +6157,13 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'bb_wait': {
         const seconds = toNumber(await evalValue(current.getInputTargetBlock('SECONDS')));
-        await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+        await waitRuntimeMs(seconds * 1000, generation);
         break;
       }
 
       case 'bb_wait_ms': {
         const ms = Math.max(0, Math.floor(toNumber(await evalValue(current.getInputTargetBlock('MILLISECONDS')))));
-        await new Promise(resolve => setTimeout(resolve, ms));
+        await waitRuntimeMs(ms, generation);
         break;
       }
 
@@ -6251,7 +6274,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
             await playSound(resolveFolderSoundUrl('letters', sounds[i]));
             await waitForAudioStopped();
             if (pauseMs > 0 && i < sounds.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, pauseMs));
+              await waitRuntimeMs(pauseMs, generation);
             }
           }
         } catch (err) {
@@ -6306,7 +6329,7 @@ async function executeChain(startBlock, generation, allowStopped = false) {
             await playSound(audioUrl);
             await waitForAudioStopped();
             if (pauseMs > 0 && i < fonemen.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, pauseMs));
+              await waitRuntimeMs(pauseMs, generation);
             }
           }
         } catch (err) {
@@ -6688,23 +6711,36 @@ async function dispatchProgramEnded(generation = runGeneration, reason = 'comple
   const event = { type: 'programEnded', reason: String(reason || 'completed') };
   log('Event: ' + JSON.stringify(event));
 
-  const topBlocks = workspace.getTopBlocks(true);
-  for (const block of topBlocks) {
-    if (generation !== runGeneration && reason !== 'stopped') return;
-    if (await eventMatches(block, event)) {
-      const first = block.getInputTargetBlock('DO');
-      if (first) await executeChain(first, generation, true);
+  try {
+    const topBlocks = workspace.getTopBlocks(true);
+    for (const block of topBlocks) {
+      if (generation !== runGeneration && reason !== 'stopped') return;
+      if (await eventMatches(block, event)) {
+        const first = block.getInputTargetBlock('DO');
+        if (first) await executeChain(first, generation, true);
+      }
     }
+  } catch (err) {
+    const message = err && err.message ? err.message : String(err || 'Unknown error');
+    log('Program ended handler failed: ' + message);
+  } finally {
+    if (generation !== runGeneration && reason !== 'stopped') {
+      renderStatus();
+      return;
+    }
+    pendingStart = false;
+    stopAllTimers();
+    stopSound('program-ended');
+    rt.programEndedCompletedGeneration = generation;
+    rt.stopped = true;
+    setExecutionUiState(
+      reason === 'stopped' ? 'stopped' : 'completed',
+      reason === 'stopped'
+        ? 'Script stopped.'
+        : 'Script finished. You can press Run Again to start it once more.'
+    );
+    renderStatus();
   }
-  rt.programEndedCompletedGeneration = generation;
-  rt.stopped = true;
-  setExecutionUiState(
-    reason === 'stopped' ? 'stopped' : 'completed',
-    reason === 'stopped'
-      ? 'Script stopped.'
-      : 'Script finished. You can press Run Again to start it once more.'
-  );
-  renderStatus();
 }
 
 async function dispatchEvent(event, generation = runGeneration) {
