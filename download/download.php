@@ -48,6 +48,41 @@ $projectRoot = dirname(__DIR__);
 $centralDownloadDir = dirname($projectRoot) . '/braillestudio-data/downloads';
 $usesCentralDownloads = is_dir($centralDownloadDir) && is_readable($centralDownloadDir);
 $downloadDir = $usesCentralDownloads ? $centralDownloadDir : $projectRoot . '/downloads';
+
+$requestedFile = $_GET['file'] ?? null;
+if (is_string($requestedFile) && $requestedFile !== '') {
+    $file = basename($requestedFile);
+    if ($file !== $requestedFile) {
+        http_response_code(400);
+        exit('Invalid download filename.');
+    }
+
+    $path = $downloadDir . '/' . $file;
+    if (!is_file($path) || !is_readable($path)) {
+        http_response_code(404);
+        exit('Download not found.');
+    }
+
+    $mimeType = match (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
+        'pdf' => 'application/pdf',
+        'zip' => 'application/zip',
+        default => 'application/octet-stream',
+    };
+    $quotedFile = addcslashes($file, "\\\"");
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: ' . $mimeType);
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Disposition: attachment; filename="' . $quotedFile . '"; filename*=UTF-8\'\'' . rawurlencode($file));
+    header('Content-Length: ' . (string)filesize($path));
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', (int)filemtime($path)) . ' GMT');
+    readfile($path);
+    exit;
+}
+
 $downloads = [];
 if (is_dir($downloadDir) && is_readable($downloadDir)) {
     $entries = scandir($downloadDir) ?: [];
@@ -73,8 +108,8 @@ usort($downloads, static function (array $a, array $b): int {
     return strnatcasecmp((string)$a['title'], (string)$b['title']);
 });
 
-$downloadUrl = static function (string $file): string {
-    return 'https://www.tastenbraille.com/braillestudio-data/downloads/' . rawurlencode($file);
+$downloadUrl = static function (string $file) use ($appBase, $urlFor): string {
+    return $urlFor($appBase, 'download/download.php') . '?file=' . rawurlencode($file);
 };
 ?>
 <!doctype html>
