@@ -139,6 +139,47 @@
       text-align: center;
     }
 
+    .session-intro {
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      width: 100%;
+      max-width: 560px;
+      padding: 18px 8px;
+    }
+
+    .session-intro__icon {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #e7f1ff;
+      color: var(--blue);
+      font-size: 38px;
+    }
+
+    .session-intro h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+    }
+
+    .session-intro p {
+      max-width: 480px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.55;
+    }
+
+    .session-intro .btn {
+      min-height: 48px;
+      padding-inline: 22px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
     .status-text {
       margin: 0;
       color: var(--muted);
@@ -636,6 +677,20 @@
       <div class="flow">
         <section id="sessionCard" class="card flow-card">
           <div class="card-body">
+            <div id="sessionIntro" class="session-intro">
+              <div class="session-intro__icon" aria-hidden="true">
+                <i class="ti ti-device-mobile"></i>
+              </div>
+              <h1>Sessie starten</h1>
+              <p>
+                In de volgende stap verschijnt de sessie-QR-code.
+                Scan deze code met de telefoon of tablet die je wilt verbinden.
+              </p>
+              <button id="showSessionQrBtn" class="btn btn-primary" type="button">
+                Verder naar QR-code
+                <i class="ti ti-arrow-right ms-2" aria-hidden="true"></i>
+              </button>
+            </div>
             <div class="flow-status">
               <span class="dot" aria-hidden="true"></span>
               <div>
@@ -1732,7 +1787,7 @@
         });
     }
 
-    async function bootstrap() {
+    async function startSession() {
       setStatus('Even wachten.', '', 'Sessie maken');
       setRowMeta({ session_code: activeSessionCode });
       log('Laptop sessie start.', { session: activeSessionCode || '(random)' });
@@ -1743,6 +1798,7 @@
       updateAddressBar(config);
       resetSessionIdleTimer();
       renderSessionQr(config);
+      $('sessionIntro').hidden = true;
       $('sessionCard').hidden = false;
       setRowMeta({ session_code: config.session_code, status: 'waiting' });
       setStatus('Scan met je telefoon.', 'connected', 'Scan de code');
@@ -1804,15 +1860,34 @@
       });
     }
 
+    function bootstrap() {
+      const button = $('showSessionQrBtn');
+      setStatus('Klik op de knop om verder te gaan.', '', 'Sessie starten');
+      setRowMeta({ session_code: activeSessionCode });
+      $('sessionCard').hidden = false;
+
+      button.addEventListener('click', async () => {
+        if (button.disabled) return;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Sessie voorbereiden';
+
+        try {
+          await startSession();
+        } catch (err) {
+          console.error('[BrailleStudio session-api] Starten mislukt.', err);
+          setStatus(err.message || String(err), 'error', 'Starten mislukt');
+          log('Starten mislukt.', { message: err.message || String(err) });
+          button.disabled = false;
+          button.innerHTML = 'Opnieuw proberen <i class="ti ti-refresh ms-2" aria-hidden="true"></i>';
+        }
+      });
+    }
+
     window.addEventListener('beforeunload', () => {
       stopRealtime();
     });
 
-    bootstrap().catch((err) => {
-      console.error('[BrailleStudio session-api] Starten mislukt.', err);
-      setStatus(err.message || String(err), 'error');
-      log('Starten mislukt.', { message: err.message || String(err) });
-    });
+    bootstrap();
   </script>
   <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>
 </body>
