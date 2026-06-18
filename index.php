@@ -267,6 +267,21 @@ function e(string $value): string
                                     BrailleStudio ondersteunt leerlingen, docenten en specialisten met korte activiteiten,
                                     directe feedback, sessiebeheer en koppeling met brailleleesregels via BrailleBridge.
                                 </p>
+                                <?php if ($authUser !== null): ?>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-sm-8 col-md-6">
+                                            <label class="form-label" for="studentCodeInput">Leerlingcode</label>
+                                            <input
+                                                id="studentCodeInput"
+                                                class="form-control"
+                                                type="text"
+                                                value=""
+                                                autocomplete="off"
+                                                placeholder="Voer je leerlingcode in"
+                                            >
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                             <div class="col-lg-4">
                                 <div class="row g-3">
@@ -332,32 +347,6 @@ function e(string $value): string
                             </div>
                         <?php endforeach; ?>
 
-                        <?php if ($authUser !== null): ?>
-                            <div class="col-12">
-                                <article class="card module-card">
-                                    <div class="card-body">
-                                        <div class="d-flex align-items-start mb-3">
-                                            <span class="module-icon rounded bg-azure-lt text-azure me-3">
-                                                <i class="ti ti-user-code" aria-hidden="true"></i>
-                                            </span>
-                                            <div>
-                                                <div class="subheader">Leerling</div>
-                                                <h3 class="card-title mb-0">Leerlingcode</h3>
-                                            </div>
-                                        </div>
-                                        <label class="form-label" for="studentCodeInput">Voer je leerlingcode in</label>
-                                        <input
-                                            id="studentCodeInput"
-                                            class="form-control"
-                                            type="text"
-                                            value=""
-                                            autocomplete="off"
-                                            placeholder="Leerlingcode"
-                                        >
-                                    </div>
-                                </article>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </section>
 
