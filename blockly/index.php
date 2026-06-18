@@ -288,7 +288,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       flex: 1 1 auto;
     }
 
-    #instructionTtsVoiceSelect {
+    #instructionTtsVoiceSelect,
+    #instructionTtsSpacePauseSelect {
       min-height: 40px;
       height: 40px;
       padding: 8px 12px;
@@ -686,7 +687,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 
     .instruction-tts-controls {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
       gap: 8px;
       margin-bottom: 8px;
       align-items: center;
@@ -1120,6 +1121,17 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
             <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig</option>
+          </select>
+          <select
+            id="instructionTtsSpacePauseSelect"
+            class="form-select"
+            aria-label="Pause at spaces"
+            title="Replace each space with an ElevenLabs pause"
+            style="min-width:0;"
+          >
+            <option value="">No pause at spaces</option>
+            <option value="[short pause]">Short pause at spaces</option>
+            <option value="[long pause]">Long pause at spaces</option>
           </select>
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
@@ -1692,7 +1704,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-awaited-audio-queue-1');
+    await loadScript('./app.js?v=20260618-space-pause-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

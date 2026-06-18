@@ -974,13 +974,24 @@ function getInstructionTtsState() {
   const instruction = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
   const scriptId = String(currentOnlineScriptId || '').trim();
   const voiceId = String(document.getElementById('instructionTtsVoiceSelect')?.value || 'yO6w2xlECAQRFP6pX7Hw').trim();
+  const spacePauseTag = String(document.getElementById('instructionTtsSpacePauseSelect')?.value || '').trim();
   return {
     scriptId,
     instruction,
     voiceId,
+    spacePauseTag,
     canPlay: instruction !== '',
     canSave: scriptId !== '' && instruction !== ''
   };
+}
+
+function addInstructionSpacePauses(text, pauseTag) {
+  const normalizedText = String(text || '');
+  const normalizedTag = String(pauseTag || '').trim();
+  if (!normalizedTag) {
+    return normalizedText;
+  }
+  return normalizedText.replace(/ +/g, ` ${normalizedTag} `);
 }
 
 function getCurrentInstructionOption() {
@@ -1278,7 +1289,7 @@ async function saveInstructionAsMp3() {
         body: JSON.stringify({
         voice_id: state.voiceId,
         model_id: 'eleven_v3',
-        text: segment.text,
+        text: addInstructionSpacePauses(segment.text, state.spacePauseTag),
         save_to_file: true,
         save_path: 'braillestudio-data/sounds/nl/instructions',
           file_name: segment.fileName
@@ -1291,7 +1302,8 @@ async function saveInstructionAsMp3() {
       }
     }
 
-    const summary = `${parsed.generatedSegments.length} generated, ${parsed.segments.length} playlist items`;
+    const pauseSummary = state.spacePauseTag ? `, spaces use ${state.spacePauseTag}` : '';
+    const summary = `${parsed.generatedSegments.length} generated, ${parsed.segments.length} playlist items${pauseSummary}`;
     log(`Instruction playlist saved: ${state.scriptId} (${summary})`);
     renderInstructionTtsControl(`Instruction playlist saved: ${summary}.`);
   } catch (err) {
@@ -3728,6 +3740,11 @@ function bindAppControls() {
   if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
     instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());
     instructionTtsVoiceSelect.dataset.initialized = '1';
+  }
+  const instructionTtsSpacePauseSelect = document.getElementById('instructionTtsSpacePauseSelect');
+  if (instructionTtsSpacePauseSelect && !instructionTtsSpacePauseSelect.dataset.initialized) {
+    instructionTtsSpacePauseSelect.addEventListener('change', () => renderInstructionTtsControl());
+    instructionTtsSpacePauseSelect.dataset.initialized = '1';
   }
   renderElevenLabsAuthStatus();
   if (metaPrompt && !metaPrompt.dataset.initialized) {
