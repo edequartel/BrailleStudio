@@ -1120,7 +1120,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth (NL)</option>
-            <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig (NL)</option>
+            <option value="UNBIyLbtFB9k7FKW8wJv">Serge (NL)</option>
           </select>
           <button
             id="instructionTtsVoiceInfoBtn"
