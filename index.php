@@ -413,7 +413,7 @@ function e(string $value): string
                                         </div>
                                     </div>
                                     <div class="tab-pane" id="tab-expertise" role="tabpanel">
-                                        <div class="doc-content" data-markdown-source="https://www.tastenbraille.com/braillestudio-data/assets/tastenbraille.md">
+                                        <div class="doc-content" data-markdown-source="/braillestudio-data/assets/tastenbraille.md">
                                             <div class="placeholder-glow">
                                                 <span class="placeholder col-8"></span>
                                                 <span class="placeholder col-12"></span>
