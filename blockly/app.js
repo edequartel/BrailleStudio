@@ -1300,30 +1300,38 @@ function insertTextListBlockFromField(fieldId, fieldLabel = 'Text') {
   }
 
   const sourceField = document.getElementById(fieldId);
-  const sourceText = String(sourceField?.value || '').trim();
-  if (!sourceText) {
+  const items = String(sourceField?.value || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (items.length === 0) {
     sourceField?.focus();
     throw new Error(`${fieldLabel} is empty.`);
   }
 
   Blockly.Events.setGroup(true);
   try {
-    const listBlock = workspace.newBlock('list_from_text_items');
-    const textBlock = workspace.newBlock('text');
-    textBlock.setFieldValue(sourceText, 'TEXT');
-
-    const textInput = listBlock.getInput('TEXT');
-    if (!textInput?.connection || !textBlock.outputConnection) {
-      listBlock.dispose(false);
-      textBlock.dispose(false);
-      throw new Error('Could not connect the text to the list block.');
+    const listBlock = workspace.newBlock('lists_create_with');
+    if (typeof listBlock.itemCount_ === 'number' && typeof listBlock.updateShape_ === 'function') {
+      listBlock.itemCount_ = items.length;
+      listBlock.updateShape_();
     }
-    textInput.connection.connect(textBlock.outputConnection);
-
     listBlock.initSvg();
-    textBlock.initSvg();
     listBlock.render();
-    textBlock.render();
+
+    items.forEach((item, index) => {
+      const textBlock = workspace.newBlock('text');
+      textBlock.setFieldValue(item, 'TEXT');
+      textBlock.initSvg();
+      textBlock.render();
+
+      const itemInput = listBlock.getInput(`ADD${index}`);
+      if (!itemInput?.connection || !textBlock.outputConnection) {
+        textBlock.dispose(false);
+        throw new Error(`Could not connect list item ${index + 1}.`);
+      }
+      itemInput.connection.connect(textBlock.outputConnection);
+    });
 
     const metrics = workspace.getMetrics?.();
     const viewLeft = metrics?.viewLeft ?? 0;
@@ -1336,7 +1344,7 @@ function insertTextListBlockFromField(fieldId, fieldLabel = 'Text') {
     );
     listBlock.select();
     refreshWorkspaceDirtyState();
-    log(`${fieldLabel} inserted as text-list block`);
+    log(`${fieldLabel} inserted as list with ${items.length} text items`);
     return listBlock;
   } finally {
     Blockly.Events.setGroup(false);
