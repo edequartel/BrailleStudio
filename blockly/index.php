@@ -1117,6 +1117,10 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         </div>
         <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptMetaInstruction" class="form-control meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <button id="insertInstructionTextListBtn" class="btn btn-outline-primary w-100" type="button" style="margin-bottom:8px;">
+          <i class="ti ti-list me-2" aria-hidden="true"></i>
+          Instruction → tekstlijst
+        </button>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth (NL)</option>
@@ -1723,7 +1727,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-voice-info-permission-fallback-1');
+    await loadScript('./app.js?v=20260618-instruction-text-list-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

@@ -1294,6 +1294,55 @@ function createInstructionGeneratedItem(instructionId) {
   return buildGeneratedInstructionItem(normalizedId, instructionText);
 }
 
+function insertTextListBlockFromField(fieldId, fieldLabel = 'Text') {
+  if (!workspace) {
+    throw new Error('Blockly workspace is not ready');
+  }
+
+  const sourceField = document.getElementById(fieldId);
+  const sourceText = String(sourceField?.value || '').trim();
+  if (!sourceText) {
+    sourceField?.focus();
+    throw new Error(`${fieldLabel} is empty.`);
+  }
+
+  Blockly.Events.setGroup(true);
+  try {
+    const listBlock = workspace.newBlock('list_from_text_items');
+    const textBlock = workspace.newBlock('text');
+    textBlock.setFieldValue(sourceText, 'TEXT');
+
+    const textInput = listBlock.getInput('TEXT');
+    if (!textInput?.connection || !textBlock.outputConnection) {
+      listBlock.dispose(false);
+      textBlock.dispose(false);
+      throw new Error('Could not connect the text to the list block.');
+    }
+    textInput.connection.connect(textBlock.outputConnection);
+
+    listBlock.initSvg();
+    textBlock.initSvg();
+    listBlock.render();
+    textBlock.render();
+
+    const metrics = workspace.getMetrics?.();
+    const viewLeft = metrics?.viewLeft ?? 0;
+    const viewTop = metrics?.viewTop ?? 0;
+    const viewWidth = metrics?.viewWidth ?? 320;
+    const viewHeight = metrics?.viewHeight ?? 240;
+    listBlock.moveBy(
+      viewLeft + (viewWidth / 2) - (listBlock.width / 2),
+      viewTop + (viewHeight / 2) - (listBlock.height / 2)
+    );
+    listBlock.select();
+    refreshWorkspaceDirtyState();
+    log(`${fieldLabel} inserted as text-list block`);
+    return listBlock;
+  } finally {
+    Blockly.Events.setGroup(false);
+  }
+}
+
 function insertInstructionPlayBlock() {
   const state = getInstructionTtsState();
   if (!workspace) {
@@ -3763,6 +3812,14 @@ function bindAppControls() {
   bind('stopSoundBtn', 'click', stopSound);
   bind('copyLogBtn', 'click', copyLogBox);
   bind('clearLogBtn', 'click', clearLogBox);
+  bind('insertInstructionTextListBtn', 'click', () => {
+    try {
+      insertTextListBlockFromField('scriptMetaInstruction', 'Instruction');
+    } catch (err) {
+      log(`Instruction text-list insert failed: ${err.message}`);
+      alert('Could not insert the instruction as a text list: ' + err.message);
+    }
+  });
   bind('saveInstructionTtsBtn', 'click', async () => {
     try {
       await saveInstructionPlaylistAndInsertBlock();
