@@ -1189,7 +1189,6 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <option value="string">string</option>
       <option value="number">number</option>
       <option value="boolean">boolean</option>
-      <option value="list">list</option>
       <option value="array">array</option>
       <option value="object">object</option>
     </select>
@@ -1734,7 +1733,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-list-variable-1');
+    await loadScript('./app.js?v=20260618-internal-list-variable-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

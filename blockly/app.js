@@ -420,7 +420,7 @@ function parseVariableDefaultValue(variable) {
   if (raw == null) {
     if (type === 'number') return 0;
     if (type === 'boolean') return false;
-    if (type === 'list' || type === 'array') return [];
+    if (type === 'array') return [];
     if (type === 'object') return {};
     return '';
   }
@@ -428,19 +428,6 @@ function parseVariableDefaultValue(variable) {
   if (type === 'boolean') {
     if (typeof raw === 'boolean') return raw;
     return ['true', '1', 'yes', 'ja'].includes(String(raw).trim().toLowerCase());
-  }
-  if (type === 'list') {
-    if (Array.isArray(raw)) return structuredClone(raw);
-    const source = String(raw || '').trim();
-    if (!source) return [];
-    try {
-      const parsed = JSON.parse(source);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
-    return source
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
   }
   if (type === 'array' || type === 'object') {
     if (typeof raw === 'object') return structuredClone(raw);
@@ -601,10 +588,6 @@ function renderVariableDefaultInputHint() {
   const elements = getVariableModalElements();
   if (!elements.defaultValue) return;
   const type = String(elements.type?.value || 'string');
-  if (type === 'list') {
-    elements.defaultValue.placeholder = 'Eén lijstitem per regel';
-    return;
-  }
   if (type === 'array') {
     elements.defaultValue.placeholder = 'JSON array, bijvoorbeeld [\"a\", \"b\"]';
     return;
@@ -1863,7 +1846,7 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
 
 /* ---------------- Runtime state ---------------- */
 const variableValues = {};
-const SCRIPT_VARIABLE_TYPES = Object.freeze(['string', 'number', 'boolean', 'list', 'array', 'object']);
+const SCRIPT_VARIABLE_TYPES = Object.freeze(['string', 'number', 'boolean', 'array', 'object']);
 const SCRIPT_VARIABLE_COLOURS = Object.freeze({
   external: '#2563EB'
 });
@@ -4218,7 +4201,80 @@ function registerCompoundLibraryToolboxCategory() {
 function registerVariableToolboxButtons() {
   if (!workspace || typeof workspace.registerButtonCallback !== 'function') return;
   workspace.registerButtonCallback('ADD_EXTERNAL_VARIABLE', () => openVariableModal('', 'external'));
-  workspace.registerButtonCallback('ADD_INTERNAL_VARIABLE', () => openVariableModal('', 'internal'));
+  workspace.registerButtonCallback('ADD_LIST_VARIABLE', createInternalListVariable);
+}
+
+function createInternalListVariable() {
+  if (!workspace) {
+    throw new Error('Blockly workspace is not ready');
+  }
+
+  const enteredName = prompt('Naam van de lijstvariabele:', 'lijst');
+  if (enteredName == null) return null;
+  const name = normalizeVariableName(enteredName);
+  if (!name) {
+    alert('Een variabelenaam is verplicht.');
+    return null;
+  }
+
+  const existing = typeof workspace.getVariable === 'function'
+    ? workspace.getVariable(name, '')
+    : workspace.getVariableMap?.().getVariable(name, '');
+  if (existing) {
+    alert(`De variabele "${name}" bestaat al.`);
+    return null;
+  }
+
+  Blockly.Events.setGroup(true);
+  try {
+    const variable = workspace.createVariable(name);
+    const setBlock = workspace.newBlock('variables_set');
+    const emptyListBlock = workspace.newBlock('lists_create_empty');
+    setBlock.setFieldValue(variable.getId(), 'VAR');
+
+    const valueInput = setBlock.getInput('VALUE');
+    if (!valueInput?.connection || !emptyListBlock.outputConnection) {
+      setBlock.dispose(false);
+      emptyListBlock.dispose(false);
+      throw new Error('De lege lijst kon niet aan de variabele worden gekoppeld.');
+    }
+    valueInput.connection.connect(emptyListBlock.outputConnection);
+
+    setBlock.initSvg();
+    emptyListBlock.initSvg();
+    setBlock.render();
+    emptyListBlock.render();
+
+    const metrics = workspace.getMetrics?.();
+    const viewLeft = metrics?.viewLeft ?? 0;
+    const viewTop = metrics?.viewTop ?? 0;
+    const viewWidth = metrics?.viewWidth ?? 320;
+    const viewHeight = metrics?.viewHeight ?? 240;
+    setBlock.moveBy(
+      viewLeft + (viewWidth / 2) - (setBlock.width / 2),
+      viewTop + (viewHeight / 2) - (setBlock.height / 2)
+    );
+    setBlock.select();
+    refreshWorkspaceDirtyState();
+    refreshVariableToolbox();
+    log(`Interne lijstvariabele toegevoegd: ${name}`);
+    return setBlock;
+  } finally {
+    Blockly.Events.setGroup(false);
+  }
+}
+
+function registerInternalVariableToolboxCategory() {
+  if (!workspace || typeof workspace.registerToolboxCategoryCallback !== 'function') return;
+  workspace.registerToolboxCategoryCallback('VARIABLE', () => {
+    const items = Blockly.Variables.flyoutCategory(workspace, false);
+    items.splice(1, 0, {
+      kind: 'button',
+      text: 'Nieuwe lijstvariabele',
+      callbackkey: 'ADD_LIST_VARIABLE'
+    });
+    return items;
+  });
 }
 
 function unregisterContextMenuItem(id) {
@@ -4396,6 +4452,7 @@ workspace = IS_HEADLESS_SESSION_PLAYER
 if (!IS_HEADLESS_SESSION_PLAYER) {
   registerCompoundLibraryToolboxCategory();
   registerVariableToolboxButtons();
+  registerInternalVariableToolboxCategory();
   registerMyBlocksFlyoutContextMenu();
 }
 setBootStage('workspace-injected');
