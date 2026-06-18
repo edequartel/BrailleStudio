@@ -1289,6 +1289,7 @@ async function saveInstructionAsMp3() {
         body: JSON.stringify({
         voice_id: state.voiceId,
         model_id: 'eleven_v3',
+        language_code: 'nl',
         text: addInstructionSpacePauses(segment.text, state.spacePauseTag),
         save_to_file: true,
         save_path: 'braillestudio-data/sounds/nl/instructions',
@@ -1300,10 +1301,13 @@ async function saveInstructionAsMp3() {
       if (!res.ok || !data.ok) {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
+      if (data.model_id !== 'eleven_v3' || data.language_code !== 'nl') {
+        throw new Error('Server did not confirm Eleven v3 with Dutch language enforcement.');
+      }
     }
 
     const pauseSummary = state.spacePauseTag ? `, spaces use ${state.spacePauseTag}` : '';
-    const summary = `${parsed.generatedSegments.length} generated, ${parsed.segments.length} playlist items${pauseSummary}`;
+    const summary = `${parsed.generatedSegments.length} generated, ${parsed.segments.length} playlist items, Eleven v3, Dutch (nl)${pauseSummary}`;
     log(`Instruction playlist saved: ${state.scriptId} (${summary})`);
     renderInstructionTtsControl(`Instruction playlist saved: ${summary}.`);
   } catch (err) {

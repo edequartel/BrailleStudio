@@ -1119,8 +1119,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         <textarea id="scriptMetaInstruction" class="form-control meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
-            <option value="yO6w2xlECAQRFP6pX7Hw">Ruth</option>
-            <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig</option>
+            <option value="yO6w2xlECAQRFP6pX7Hw">Ruth (NL)</option>
+            <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig (NL)</option>
           </select>
           <select
             id="instructionTtsSpacePauseSelect"
@@ -1135,6 +1135,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           </select>
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
         </div>
+        <div class="small" style="margin-top:-4px; margin-bottom:4px;">ElevenLabs model: Eleven v3 · language: Dutch (nl)</div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
         <div id="statusBox" class="mono"></div>
         </div>
@@ -1704,7 +1705,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-space-pause-1');
+    await loadScript('./app.js?v=20260618-eleven-v3-dutch-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

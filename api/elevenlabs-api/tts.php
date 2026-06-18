@@ -80,7 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = elevenlabs_get_json_input();
 $text = elevenlabs_normalize_text($input['text'] ?? '');
 $voiceId = elevenlabs_normalize_text($input['voice_id'] ?? '');
-$modelId = elevenlabs_normalize_text($input['model_id'] ?? 'eleven_v3');
+$modelId = 'eleven_v3';
+$languageCode = strtolower(elevenlabs_normalize_text($input['language_code'] ?? 'nl'));
 $savePath = elevenlabs_normalize_text($input['save_path'] ?? '');
 $fileName = elevenlabs_normalize_text($input['file_name'] ?? '');
 $saveToFile = !empty($input['save_to_file']);
@@ -99,9 +100,17 @@ if ($voiceId === '') {
     ], 400);
 }
 
+if ($languageCode !== 'nl') {
+    elevenlabs_json_response([
+        'ok' => false,
+        'error' => 'Unsupported language_code. Instruction audio must use Dutch (nl).'
+    ], 400);
+}
+
 $payload = [
     'text' => $text,
     'model_id' => $modelId,
+    'language_code' => $languageCode,
 ];
 
 $result = elevenlabs_request(
@@ -138,6 +147,9 @@ if ($saveToFile) {
     elevenlabs_json_response([
         'ok' => true,
         'saved' => true,
+        'voice_id' => $voiceId,
+        'model_id' => $modelId,
+        'language_code' => $languageCode,
         'file_name' => basename($destination['target_file']),
         'public_path' => $destination['public_path'],
         'public_url' => ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://')
