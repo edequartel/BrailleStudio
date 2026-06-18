@@ -21,7 +21,10 @@ const FONEMEN_NL_JSON_URLS = [
 const COMPOUND_LIBRARY_API_BASES = [
   'https://www.tastenbraille.com/braillestudio/blockly-library'
 ];
-const ELEVENLABS_TTS_API_URL = 'https://www.tastenbraille.com/braillestudio/api/elevenlabs-api/tts.php';
+const ELEVENLABS_TTS_API_URL = new URL(
+  '/braillestudio/api/elevenlabs-api/tts.php',
+  window.location.origin
+).toString();
 const XAPI_PROGRESS_API_URL = window.BrailleStudioXapiEndpoint || '../api/xapi-api/xapi.php';
 const BRAILLE_BLOCKLY_AUTH_CONFIG = window.BrailleBlocklyAuth || {};
 const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || '/braillestudio/authentication-api/';
