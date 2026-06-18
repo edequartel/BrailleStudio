@@ -3098,6 +3098,7 @@ function queueSound(url) {
         resolveAudioStoppedWaiters();
       }
     });
+  return audioQueue;
 }
 
 async function playSound(input) {
@@ -3106,7 +3107,7 @@ async function playSound(input) {
     log('Sound skipped: empty filename/url');
     return;
   }
-  queueSound(url);
+  await queueSound(url);
 }
 
 if (window.BrailleStudioAPI && typeof window.BrailleStudioAPI.setPlayHandler === 'function') {
