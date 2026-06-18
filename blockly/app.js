@@ -1012,7 +1012,7 @@ function closeInstructionTtsVoiceInfo() {
   }
 }
 
-function renderInstructionTtsVoiceInfo(voice) {
+function renderInstructionTtsVoiceInfo(voice, metadata = {}) {
   const content = document.getElementById('instructionTtsVoiceInfoContent');
   const title = document.getElementById('instructionTtsVoiceInfoTitle');
   const preview = document.getElementById('instructionTtsVoicePreview');
@@ -1047,6 +1047,12 @@ function renderInstructionTtsVoiceInfo(voice) {
     ? `ElevenLabs voice: ${voice.name}`
     : 'ElevenLabs voice information';
   content.replaceChildren();
+  if (metadata.warning) {
+    const warning = document.createElement('div');
+    warning.className = 'alert alert-warning py-2 px-3 mb-2';
+    warning.textContent = String(metadata.warning);
+    content.appendChild(warning);
+  }
   const table = document.createElement('table');
   table.className = 'table table-sm mb-0';
   const body = document.createElement('tbody');
@@ -1092,7 +1098,10 @@ async function openInstructionTtsVoiceInfo() {
     if (!response.ok || !data.ok || !data.voice) {
       throw new Error(data.error || `HTTP ${response.status}`);
     }
-    renderInstructionTtsVoiceInfo(data.voice);
+    renderInstructionTtsVoiceInfo(data.voice, {
+      source: data.source || 'elevenlabs_api',
+      warning: data.warning || ''
+    });
   } catch (err) {
     content.textContent = `Voice information could not be loaded: ${err.message}`;
   } finally {
