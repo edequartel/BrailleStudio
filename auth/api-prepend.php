@@ -32,6 +32,13 @@ if (strpos($script, '/api/session-api/') !== false) {
     }
 }
 
+if (
+    strpos($script, '/api/xapi-api/') !== false
+    && basename($script) === 'xapi.php'
+) {
+    return;
+}
+
 if (strpos($script, '/api/') !== false) {
     bs_auth_require_login(['admin', 'docent', 'leerling'], 'json');
 }
