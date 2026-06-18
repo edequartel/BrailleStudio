@@ -742,7 +742,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     }
 
     #scriptMetaDescription,
-    #scriptMetaInstruction {
+    #scriptTextInput {
       min-height: 144px;
       max-height: calc(30 * 1.2em + 16px);
     }
@@ -1116,10 +1116,10 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <span id="statusScriptName">Geen script geopend</span>
         </div>
         <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
-        <textarea id="scriptMetaInstruction" class="form-control meta-textarea meta-textarea--compact" placeholder="Instruction" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptTextInput" class="form-control meta-textarea meta-textarea--compact" placeholder="Tekst — één lijst- en audio-item per regel" aria-label="Tekst voor lijst en audio" style="margin-bottom:8px;"></textarea>
         <button id="insertInstructionTextListBtn" class="btn btn-outline-primary w-100" type="button" style="margin-bottom:8px;">
           <i class="ti ti-list me-2" aria-hidden="true"></i>
-          Instruction → tekstlijst
+          Maak lijst
         </button>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
@@ -1144,10 +1144,10 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
             <option value="[short pause]">Short pause at spaces</option>
             <option value="[long pause]">Long pause at spaces</option>
           </select>
-          <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Produce</button>
+          <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Maak audio</button>
         </div>
         <div class="small" style="margin-top:-4px; margin-bottom:4px;">ElevenLabs model: Eleven v3 · language: Dutch (nl)</div>
-        <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Load an online Blockly script to save its instruction playlist.</div>
+        <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Open een online script om audio van de tekst te maken.</div>
         <div id="statusBox" class="mono"></div>
         </div>
       </div>
@@ -1727,7 +1727,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-instruction-lines-list-1');
+    await loadScript('./app.js?v=20260618-shared-text-input-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

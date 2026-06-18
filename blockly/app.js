@@ -323,7 +323,7 @@ function renderScriptBrailleLine() {
 function renderScriptMetadata(meta = null) {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
-  const instructionInput = document.getElementById('scriptMetaInstruction');
+  const instructionInput = document.getElementById('scriptTextInput');
   const promptInput = document.getElementById('scriptMetaPrompt');
   if (titleInput) titleInput.value = String(meta?.title || '');
   if (descriptionInput) descriptionInput.value = String(meta?.description || '');
@@ -346,7 +346,7 @@ function renderStatusScriptName() {
 function readScriptMetadataFromInputs() {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
-  const instructionInput = document.getElementById('scriptMetaInstruction');
+  const instructionInput = document.getElementById('scriptTextInput');
   const promptInput = document.getElementById('scriptMetaPrompt');
   return {
     title: String(titleInput?.value || '').trim(),
@@ -975,7 +975,7 @@ function openBrailleStudioAuthPopup() {
 }
 
 function getInstructionTtsState() {
-  const instruction = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
+  const instruction = String(document.getElementById('scriptTextInput')?.value || '').trim();
   const scriptId = String(currentOnlineScriptId || '').trim();
   const voiceId = String(document.getElementById('instructionTtsVoiceSelect')?.value || 'yO6w2xlECAQRFP6pX7Hw').trim();
   const spacePauseTag = String(document.getElementById('instructionTtsSpacePauseSelect')?.value || '').trim();
@@ -1232,7 +1232,7 @@ async function fetchGeneratedInstructionItemByScriptId(scriptId) {
 
   let instructionText = '';
   if (normalizedId === String(currentOnlineScriptId || '').trim()) {
-    instructionText = String(document.getElementById('scriptMetaInstruction')?.value || '').trim();
+    instructionText = String(document.getElementById('scriptTextInput')?.value || '').trim();
   }
 
   if (!instructionText) {
@@ -1271,12 +1271,12 @@ function renderInstructionTtsControl(message = '') {
   }
 
   if (!state.scriptId) {
-    status.textContent = 'Load an online Blockly script to save its instruction playlist.';
+    status.textContent = 'Open een online script om audio van de tekst te maken.';
     return;
   }
 
   if (!state.instruction) {
-    status.textContent = 'Add instruction text before saving the instruction playlist.';
+    status.textContent = 'Voer eerst tekst in. Iedere niet-lege regel wordt een apart audio-item.';
     return;
   }
 
@@ -1289,7 +1289,7 @@ function createInstructionGeneratedItem(instructionId) {
     return null;
   }
   const instructionText = normalizedId === String(currentOnlineScriptId || '').trim()
-    ? String(document.getElementById('scriptMetaInstruction')?.value || '').trim()
+    ? String(document.getElementById('scriptTextInput')?.value || '').trim()
     : '';
   return buildGeneratedInstructionItem(normalizedId, instructionText);
 }
@@ -3822,10 +3822,10 @@ function bindAppControls() {
   bind('clearLogBtn', 'click', clearLogBox);
   bind('insertInstructionTextListBtn', 'click', () => {
     try {
-      insertTextListBlockFromField('scriptMetaInstruction', 'Instruction');
+      insertTextListBlockFromField('scriptTextInput', 'Tekst');
     } catch (err) {
       log(`Instruction text-list insert failed: ${err.message}`);
-      alert('Could not insert the instruction as a text list: ' + err.message);
+      alert('De tekst kon niet als lijst worden toegevoegd: ' + err.message);
     }
   });
   bind('saveInstructionTtsBtn', 'click', async () => {
@@ -3914,7 +3914,7 @@ function bindAppControls() {
 
   const metaTitle = document.getElementById('scriptMetaTitle');
   const metaDescription = document.getElementById('scriptMetaDescription');
-  const metaInstruction = document.getElementById('scriptMetaInstruction');
+  const metaInstruction = document.getElementById('scriptTextInput');
   const metaPrompt = document.getElementById('scriptMetaPrompt');
   const onlineTitle = document.getElementById('onlineScriptTitleInput');
   const onlineStatus = document.getElementById('onlineScriptStatusInput');
