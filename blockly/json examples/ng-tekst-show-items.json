@@ -1,0 +1,254 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "event_when_started",
+        "id": "start-show-list",
+        "x": 120,
+        "y": 100,
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "variables_set",
+              "id": "set-text-lines",
+              "fields": {
+                "VAR": {
+                  "id": "variable-text-lines"
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "id": "create-text-lines",
+                    "extraState": {
+                      "itemCount": 16
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-01",
+                          "fields": {
+                            "TEXT": "ring, ving, zing, hing, ding, ging."
+                          }
+                        }
+                      },
+                      "ADD1": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-02",
+                          "fields": {
+                            "TEXT": "de ring is te groot."
+                          }
+                        }
+                      },
+                      "ADD2": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-03",
+                          "fields": {
+                            "TEXT": "ik ving de bal."
+                          }
+                        }
+                      },
+                      "ADD3": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-04",
+                          "fields": {
+                            "TEXT": "ik zing en ik fluit."
+                          }
+                        }
+                      },
+                      "ADD4": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-05",
+                          "fields": {
+                            "TEXT": "ik hing uit het raam."
+                          }
+                        }
+                      },
+                      "ADD5": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-06",
+                          "fields": {
+                            "TEXT": "dat ding is heel klein."
+                          }
+                        }
+                      },
+                      "ADD6": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-07",
+                          "fields": {
+                            "TEXT": "ik ging met de trein op reis."
+                          }
+                        }
+                      },
+                      "ADD7": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-08",
+                          "fields": {
+                            "TEXT": "gang wang lang hang bang slang"
+                          }
+                        }
+                      },
+                      "ADD8": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-09",
+                          "fields": {
+                            "TEXT": "die gang is niet lang, maar kort."
+                          }
+                        }
+                      },
+                      "ADD9": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-10",
+                          "fields": {
+                            "TEXT": "jouw wang is zacht."
+                          }
+                        }
+                      },
+                      "ADD10": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-11",
+                          "fields": {
+                            "TEXT": "ik hang de klok aan de muur."
+                          }
+                        }
+                      },
+                      "ADD11": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-12",
+                          "fields": {
+                            "TEXT": "ik ben bang voor een slang."
+                          }
+                        }
+                      },
+                      "ADD12": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-13",
+                          "fields": {
+                            "TEXT": "long, gong, zong."
+                          }
+                        }
+                      },
+                      "ADD13": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-14",
+                          "fields": {
+                            "TEXT": "frans sloeg op de gong."
+                          }
+                        }
+                      },
+                      "ADD14": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-15",
+                          "fields": {
+                            "TEXT": "ik zong heel zacht."
+                          }
+                        }
+                      },
+                      "ADD15": {
+                        "block": {
+                          "type": "text",
+                          "id": "text-line-16",
+                          "fields": {
+                            "TEXT": "er zit lucht in mijn long."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "list_for_each_item",
+                  "id": "for-each-text-line",
+                  "fields": {
+                    "VAR": {
+                      "id": "variable-current-item"
+                    }
+                  },
+                  "inputs": {
+                    "LIST": {
+                      "block": {
+                        "type": "variables_get",
+                        "id": "get-text-lines",
+                        "fields": {
+                          "VAR": {
+                            "id": "variable-text-lines"
+                          }
+                        }
+                      }
+                    },
+                    "DO": {
+                      "block": {
+                        "type": "bb_set_text",
+                        "id": "show-current-item",
+                        "inputs": {
+                          "TEXT": {
+                            "block": {
+                              "type": "variables_get",
+                              "id": "get-current-item",
+                              "fields": {
+                                "VAR": {
+                                  "id": "variable-current-item"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "next": {
+                          "block": {
+                            "type": "bb_wait",
+                            "id": "wait-after-item",
+                            "inputs": {
+                              "SECONDS": {
+                                "shadow": {
+                                  "type": "math_number",
+                                  "id": "wait-one-second",
+                                  "fields": {
+                                    "NUM": 1
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "regels",
+      "id": "variable-text-lines"
+    },
+    {
+      "name": "item",
+      "id": "variable-current-item"
+    }
+  ],
+  "scriptVariables": []
+}
