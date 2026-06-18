@@ -25,6 +25,10 @@ const ELEVENLABS_TTS_API_URL = new URL(
   '/braillestudio/api/elevenlabs-api/tts.php',
   window.location.origin
 ).toString();
+const ELEVENLABS_VOICE_API_URL = new URL(
+  '/braillestudio/api/elevenlabs-api/voice.php',
+  window.location.origin
+).toString();
 const XAPI_PROGRESS_API_URL = window.BrailleStudioXapiEndpoint || '../api/xapi-api/xapi.php';
 const BRAILLE_BLOCKLY_AUTH_CONFIG = window.BrailleBlocklyAuth || {};
 const ELEVENLABS_AUTH_API_BASE = BRAILLE_BLOCKLY_AUTH_CONFIG.authApiBasePath || '/braillestudio/authentication-api/';
@@ -992,6 +996,108 @@ function addInstructionSpacePauses(text, pauseTag) {
     return normalizedText;
   }
   return normalizedText.replace(/ +/g, ` ${normalizedTag} `);
+}
+
+function closeInstructionTtsVoiceInfo() {
+  const modal = document.getElementById('instructionTtsVoiceInfoModal');
+  const preview = document.getElementById('instructionTtsVoicePreview');
+  if (preview) {
+    preview.pause();
+    preview.removeAttribute('src');
+    preview.style.display = 'none';
+  }
+  if (modal) {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function renderInstructionTtsVoiceInfo(voice) {
+  const content = document.getElementById('instructionTtsVoiceInfoContent');
+  const title = document.getElementById('instructionTtsVoiceInfoTitle');
+  const preview = document.getElementById('instructionTtsVoicePreview');
+  if (!content || !title) return;
+
+  const labels = voice?.labels && typeof voice.labels === 'object' ? voice.labels : {};
+  const verifiedLanguages = Array.isArray(voice?.verified_languages)
+    ? voice.verified_languages
+        .map((item) => [item.language, item.locale, item.accent, item.model_id].filter(Boolean).join(' · '))
+        .filter(Boolean)
+    : [];
+  const models = Array.isArray(voice?.high_quality_base_model_ids)
+    ? voice.high_quality_base_model_ids.filter(Boolean)
+    : [];
+  const rows = [
+    ['Name', voice?.name],
+    ['Voice ID', voice?.voice_id],
+    ['Category', voice?.category],
+    ['Description', voice?.description],
+    ['Language label', labels.language],
+    ['Accent', labels.accent],
+    ['Gender', labels.gender],
+    ['Age', labels.age],
+    ['Use case', labels.use_case],
+    ['Verified languages', verifiedLanguages.join(', ')],
+    ['High-quality models', models.join(', ')],
+    ['Owned by this account', voice?.is_owner ? 'Yes' : 'No'],
+    ['Legacy voice', voice?.is_legacy ? 'Yes' : 'No']
+  ].filter(([, value]) => String(value ?? '').trim() !== '');
+
+  title.textContent = voice?.name
+    ? `ElevenLabs voice: ${voice.name}`
+    : 'ElevenLabs voice information';
+  content.replaceChildren();
+  const table = document.createElement('table');
+  table.className = 'table table-sm mb-0';
+  const body = document.createElement('tbody');
+  rows.forEach(([label, value]) => {
+    const row = document.createElement('tr');
+    const heading = document.createElement('th');
+    const cell = document.createElement('td');
+    heading.scope = 'row';
+    heading.textContent = label;
+    cell.textContent = String(value);
+    row.append(heading, cell);
+    body.appendChild(row);
+  });
+  table.appendChild(body);
+  content.appendChild(table);
+
+  if (preview && voice?.preview_url) {
+    preview.src = String(voice.preview_url);
+    preview.style.display = 'block';
+  }
+}
+
+async function openInstructionTtsVoiceInfo() {
+  const modal = document.getElementById('instructionTtsVoiceInfoModal');
+  const content = document.getElementById('instructionTtsVoiceInfoContent');
+  const button = document.getElementById('instructionTtsVoiceInfoBtn');
+  const voiceId = getInstructionTtsState().voiceId;
+  if (!modal || !content || !voiceId) return;
+
+  modal.classList.add('is-open');
+  modal.setAttribute('aria-hidden', 'false');
+  content.textContent = 'Loading current information from ElevenLabs...';
+  if (button) button.disabled = true;
+
+  try {
+    const url = new URL(ELEVENLABS_VOICE_API_URL);
+    url.searchParams.set('voice_id', voiceId);
+    const response = await fetch(url.toString(), {
+      credentials: 'same-origin',
+      headers: getElevenLabsAuthHeaders()
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok || !data.voice) {
+      throw new Error(data.error || `HTTP ${response.status}`);
+    }
+    renderInstructionTtsVoiceInfo(data.voice);
+  } catch (err) {
+    content.textContent = `Voice information could not be loaded: ${err.message}`;
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function getCurrentInstructionOption() {
@@ -3656,6 +3762,22 @@ function bindAppControls() {
       alert('Could not save instruction playlist and insert block: ' + err.message);
     }
   });
+  bind('instructionTtsVoiceInfoBtn', 'click', openInstructionTtsVoiceInfo);
+  bind('instructionTtsVoiceInfoClose', 'click', closeInstructionTtsVoiceInfo);
+  const voiceInfoModal = document.getElementById('instructionTtsVoiceInfoModal');
+  if (voiceInfoModal && !voiceInfoModal.dataset.initialized) {
+    voiceInfoModal.addEventListener('click', (event) => {
+      if (event.target === voiceInfoModal) {
+        closeInstructionTtsVoiceInfo();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && voiceInfoModal.classList.contains('is-open')) {
+        closeInstructionTtsVoiceInfo();
+      }
+    });
+    voiceInfoModal.dataset.initialized = '1';
+  }
   bind('elevenlabsLoginBtn', 'click', async () => {
     if (getElevenLabsAuthToken()) {
       logoutElevenLabsAuth();

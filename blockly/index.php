@@ -687,7 +687,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
 
     .instruction-tts-controls {
       display: grid;
-      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+      grid-template-columns: minmax(0, 0.8fr) auto minmax(0, 1.4fr) auto;
       gap: 8px;
       margin-bottom: 8px;
       align-items: center;
@@ -1122,6 +1122,13 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
             <option value="yO6w2xlECAQRFP6pX7Hw">Ruth (NL)</option>
             <option value="tRyB8BgRzpNUv3o2XWD4">Ludwig (NL)</option>
           </select>
+          <button
+            id="instructionTtsVoiceInfoBtn"
+            class="btn btn-outline-secondary btn-icon"
+            type="button"
+            aria-label="Information about selected ElevenLabs voice"
+            title="Voice information from ElevenLabs"
+          >?</button>
           <select
             id="instructionTtsSpacePauseSelect"
             class="form-select"
@@ -1204,6 +1211,17 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <button id="confirmModalCancel" class="btn btn-outline-secondary" type="button">Cancel</button>
       <button id="confirmModalDiscard" class="btn btn-outline-danger" type="button">Don't Save</button>
       <button id="confirmModalSave" class="btn btn-primary" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="instructionTtsVoiceInfoModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="instructionTtsVoiceInfoTitle">
+    <h3 id="instructionTtsVoiceInfoTitle">ElevenLabs voice information</h3>
+    <div id="instructionTtsVoiceInfoContent" class="small">Loading voice information...</div>
+    <audio id="instructionTtsVoicePreview" controls style="display:none; width:100%; margin-top:12px;"></audio>
+    <div class="modal-actions">
+      <button id="instructionTtsVoiceInfoClose" class="btn btn-primary" type="button">Close</button>
     </div>
   </div>
 </div>
@@ -1705,7 +1723,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-eleven-v3-dutch-1');
+    await loadScript('./app.js?v=20260618-voice-info-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {
