@@ -422,19 +422,11 @@ function e(string $value): string
                                         </div>
                                     </div>
                                     <div class="tab-pane" id="tab-handleiding" role="tabpanel">
-                                        <div class="doc-toolbar d-flex justify-content-end mb-3">
-                                            <a class="btn btn-primary" href="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step-pdf.php">
-                                                <i class="ti ti-file-type-pdf me-2" aria-hidden="true"></i>
-                                                Download als PDF
-                                            </a>
-                                        </div>
-                                        <div class="doc-content" data-markdown-source="<?= e($baseUrl) ?>content/docentenhandleiding-sessie-step.md">
-                                            <div class="placeholder-glow">
-                                                <span class="placeholder col-10"></span>
-                                                <span class="placeholder col-12"></span>
-                                                <span class="placeholder col-8"></span>
-                                            </div>
-                                        </div>
+                                        <img
+                                            class="img-fluid d-block mx-auto"
+                                            src="<?= e($baseUrl) ?>style/kaart.png"
+                                            alt="Handleiding"
+                                        >
                                     </div>
                                 </div>
                             </div>
