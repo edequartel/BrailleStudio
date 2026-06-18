@@ -420,7 +420,7 @@ function parseVariableDefaultValue(variable) {
   if (raw == null) {
     if (type === 'number') return 0;
     if (type === 'boolean') return false;
-    if (type === 'array') return [];
+    if (type === 'list' || type === 'array') return [];
     if (type === 'object') return {};
     return '';
   }
@@ -428,6 +428,19 @@ function parseVariableDefaultValue(variable) {
   if (type === 'boolean') {
     if (typeof raw === 'boolean') return raw;
     return ['true', '1', 'yes', 'ja'].includes(String(raw).trim().toLowerCase());
+  }
+  if (type === 'list') {
+    if (Array.isArray(raw)) return structuredClone(raw);
+    const source = String(raw || '').trim();
+    if (!source) return [];
+    try {
+      const parsed = JSON.parse(source);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+    return source
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
   }
   if (type === 'array' || type === 'object') {
     if (typeof raw === 'object') return structuredClone(raw);
@@ -584,6 +597,25 @@ function getVariableModalElements() {
   };
 }
 
+function renderVariableDefaultInputHint() {
+  const elements = getVariableModalElements();
+  if (!elements.defaultValue) return;
+  const type = String(elements.type?.value || 'string');
+  if (type === 'list') {
+    elements.defaultValue.placeholder = 'Eén lijstitem per regel';
+    return;
+  }
+  if (type === 'array') {
+    elements.defaultValue.placeholder = 'JSON array, bijvoorbeeld [\"a\", \"b\"]';
+    return;
+  }
+  if (type === 'object') {
+    elements.defaultValue.placeholder = 'JSON object, bijvoorbeeld {\"naam\":\"waarde\"}';
+    return;
+  }
+  elements.defaultValue.placeholder = 'Default value';
+}
+
 function openVariableModal(variableId = '', initialScope = 'external') {
   const elements = getVariableModalElements();
   if (!elements.modal) return;
@@ -594,6 +626,7 @@ function openVariableModal(variableId = '', initialScope = 'external') {
   elements.name.value = variable?.name || '';
   elements.type.value = variable?.type || 'string';
   elements.defaultValue.value = formatVariableValue(variable?.defaultValue ?? '');
+  renderVariableDefaultInputHint();
   elements.description.value = variable?.description || '';
   if (elements.deleteButton) elements.deleteButton.style.display = variable ? '' : 'none';
   elements.modal.classList.add('is-open');
@@ -687,6 +720,11 @@ function bindVariableEditorControls() {
   if (deleteButton && !deleteButton.dataset.initialized) {
     deleteButton.addEventListener('click', () => deleteScriptVariable(String(document.getElementById('variableEditId')?.value || '').trim()));
     deleteButton.dataset.initialized = '1';
+  }
+  const typeInput = document.getElementById('variableTypeInput');
+  if (typeInput && !typeInput.dataset.initialized) {
+    typeInput.addEventListener('change', renderVariableDefaultInputHint);
+    typeInput.dataset.initialized = '1';
   }
   const editContext = document.getElementById('variableContextEdit');
   if (editContext && !editContext.dataset.initialized) {
@@ -1825,7 +1863,7 @@ async function confirmActionWithUnsavedChanges(actionLabel) {
 
 /* ---------------- Runtime state ---------------- */
 const variableValues = {};
-const SCRIPT_VARIABLE_TYPES = Object.freeze(['string', 'number', 'boolean', 'array', 'object']);
+const SCRIPT_VARIABLE_TYPES = Object.freeze(['string', 'number', 'boolean', 'list', 'array', 'object']);
 const SCRIPT_VARIABLE_COLOURS = Object.freeze({
   external: '#2563EB'
 });

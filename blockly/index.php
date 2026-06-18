@@ -1117,9 +1117,15 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         </div>
         <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
         <textarea id="scriptTextInput" class="form-control meta-textarea meta-textarea--compact" placeholder="Tekst — één lijst- en audio-item per regel" aria-label="Tekst voor lijst en audio" style="margin-bottom:8px;"></textarea>
-        <button id="insertInstructionTextListBtn" class="btn btn-outline-primary w-100" type="button" style="margin-bottom:8px;">
-          <i class="ti ti-list me-2" aria-hidden="true"></i>
-          Maak lijst
+        <button
+          id="insertInstructionTextListBtn"
+          class="btn btn-outline-primary btn-icon"
+          type="button"
+          aria-label="Maak lijst"
+          title="Maak lijst van de tekstregels"
+          style="margin-bottom:8px;"
+        >
+          <i class="ti ti-list" aria-hidden="true"></i>
         </button>
         <div class="instruction-tts-controls">
           <select id="instructionTtsVoiceSelect" class="form-select" style="min-width:0;">
@@ -1183,6 +1189,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <option value="string">string</option>
       <option value="number">number</option>
       <option value="boolean">boolean</option>
+      <option value="list">list</option>
       <option value="array">array</option>
       <option value="object">object</option>
     </select>
@@ -1727,7 +1734,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-shared-text-input-1');
+    await loadScript('./app.js?v=20260618-list-variable-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {
