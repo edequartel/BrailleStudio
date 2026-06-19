@@ -70,6 +70,31 @@ $modules = [
     ],
 ];
 
+$publicModules = [
+    [
+        'title' => 'Runmethod',
+        'eyebrow' => 'Leerling',
+        'description' => 'Start direct de MPOP-brailleoefening.',
+        'icon' => 'ti-player-play',
+        'theme' => 'primary',
+        'links' => [
+            ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
+        ],
+    ],
+    [
+        'title' => 'Braille sessie',
+        'eyebrow' => 'Leerling',
+        'description' => 'Open een braillesessie en verbind het apparaat via de sessiecode.',
+        'icon' => 'ti-device-laptop',
+        'theme' => 'green',
+        'links' => [
+            ['label' => 'Braille sessie starten', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
+        ],
+    ],
+];
+
+$visibleModules = $authUser === null ? $publicModules : $modules;
+
 $stats = [
     ['label' => 'Brailleleesregel', 'value' => 'USB of Bluetooth', 'icon' => 'ti-device-desktop'],
     ['label' => 'Runtime', 'value' => 'Browser en BrailleBridge', 'icon' => 'ti-browser'],
@@ -306,10 +331,9 @@ function e(string $value): string
 
                 <section id="modules">
                     <div class="row row-cards">
-                        <?php foreach ($modules as $module): ?>
-                            <?php if ($authUser === null && (($module['eyebrow'] ?? '') !== 'Leerling' || ($module['title'] ?? '') !== 'Oefenen')) { continue; } ?>
+                        <?php foreach ($visibleModules as $module): ?>
                             <?php if (isset($module['roles']) && ($authUser === null || !in_array($authUser['role'], $module['roles'], true))) { continue; } ?>
-                            <div class="<?= $authUser === null ? 'col-12' : 'col-12 col-md-6 col-xl-3' ?>">
+                            <div class="col-12 col-md-6 <?= $authUser === null ? '' : 'col-xl-3' ?>">
                                 <article class="card module-card h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-start mb-3">
