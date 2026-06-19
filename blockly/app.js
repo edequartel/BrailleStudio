@@ -1961,6 +1961,19 @@ function shouldIgnoreRuntimeKeyboardEvent(event) {
   return false;
 }
 
+function enableNativeClipboardShortcuts(field) {
+  if (!field || field.dataset.nativeClipboardShortcuts === '1') return;
+  field.addEventListener('keydown', (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const key = String(event.key || '').toLowerCase();
+    if (key !== 'x' && key !== 'c' && key !== 'v') return;
+    // Keep the browser's native cut/copy/paste behavior inside metadata fields.
+    // Stopping propagation prevents Blockly's workspace shortcuts from handling it.
+    event.stopPropagation();
+  });
+  field.dataset.nativeClipboardShortcuts = '1';
+}
+
 function getKeyboardVirtualKeyCode(event) {
   const raw = event?.keyCode ?? event?.which ?? event?.charCode ?? 0;
   return Math.floor(Number(raw) || 0);
@@ -3965,6 +3978,7 @@ function bindAppControls() {
   const metaDescription = document.getElementById('scriptMetaDescription');
   const metaInstruction = document.getElementById('scriptTextInput');
   const metaMemo = document.getElementById('scriptMemoInput');
+  const logBox = document.getElementById('logBox');
   const metaPrompt = document.getElementById('scriptMetaPrompt');
   const onlineTitle = document.getElementById('onlineScriptTitleInput');
   const onlineStatus = document.getElementById('onlineScriptStatusInput');
@@ -3980,16 +3994,19 @@ function bindAppControls() {
     metaDescription.dataset.initialized = '1';
   }
   if (metaInstruction && !metaInstruction.dataset.initialized) {
+    enableNativeClipboardShortcuts(metaInstruction);
     metaInstruction.addEventListener('input', () => refreshWorkspaceDirtyState());
     metaInstruction.dataset.initialized = '1';
   }
   if (metaMemo && !metaMemo.dataset.initialized) {
+    enableNativeClipboardShortcuts(metaMemo);
     metaMemo.addEventListener('input', () => {
       refreshWorkspaceDirtyState();
       renderInstructionTtsControl();
     });
     metaMemo.dataset.initialized = '1';
   }
+  enableNativeClipboardShortcuts(logBox);
   renderRuntimeStatusToggleControl();
   const instructionTtsVoiceSelect = document.getElementById('instructionTtsVoiceSelect');
   if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
