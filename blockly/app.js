@@ -1600,6 +1600,25 @@ function toggleRuntimeStatus() {
   renderRuntimeStatusToggleControl();
 }
 
+function renderLogToggleControl() {
+  const btn = document.getElementById('logToggleBtn');
+  const logBody = document.getElementById('logCardBody');
+  if (!btn || !logBody) return;
+  const isVisible = !logBody.hidden;
+  btn.classList.toggle('active', isVisible);
+  btn.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+  btn.setAttribute('aria-label', isVisible ? 'Verberg log' : 'Toon log');
+  btn.title = isVisible ? 'Verberg log' : 'Toon log';
+  setIconButtonContent(btn, isVisible ? 'ti ti-eye-off' : 'ti ti-eye');
+}
+
+function toggleLogCard() {
+  const logBody = document.getElementById('logCardBody');
+  if (!logBody) return;
+  logBody.hidden = !logBody.hidden;
+  renderLogToggleControl();
+}
+
 function applySidebarWidth(nextWidth) {
   const normalized = Math.max(360, Math.min(1200, Math.round(Number(nextWidth) || 780)));
   sidebarWidth = normalized;
@@ -3750,6 +3769,7 @@ function bindAppControls() {
     toggleSidebarPanel();
   });
   bind('runtimeStatusToggleBtn', 'click', toggleRuntimeStatus);
+  bind('logToggleBtn', 'click', toggleLogCard);
   bind('newBtn', 'click', newWorkspace);
   bind('onlineRefreshBtn', 'click', async () => {
     if (IS_EMBEDDED_SESSION_PLAYER) {
@@ -4008,6 +4028,7 @@ function bindAppControls() {
   }
   enableNativeClipboardShortcuts(logBox);
   renderRuntimeStatusToggleControl();
+  renderLogToggleControl();
   const instructionTtsVoiceSelect = document.getElementById('instructionTtsVoiceSelect');
   if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
     instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());

@@ -1177,6 +1177,17 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         <div class="card-header">
           <h3 class="card-title">Log</h3>
           <div class="card-actions">
+            <button
+              id="logToggleBtn"
+              class="btn btn-outline-secondary btn-icon"
+              type="button"
+              aria-controls="logCardBody"
+              aria-expanded="false"
+              aria-label="Toon log"
+              title="Toon log"
+            >
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
             <button id="copyLogBtn" class="btn btn-outline-secondary btn-icon" type="button" aria-label="Copy log" title="Copy log">
               <i class="ti ti-copy" aria-hidden="true"></i>
             </button>
@@ -1185,7 +1196,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
             </button>
           </div>
         </div>
-        <div class="card-body">
+        <div id="logCardBody" class="card-body" hidden>
           <textarea id="logBox" class="mono" aria-label="Log"></textarea>
         </div>
       </div>
@@ -1748,7 +1759,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260619-textarea-clipboard-shortcuts-1');
+    await loadScript('./app.js?v=20260619-log-toggle-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {
