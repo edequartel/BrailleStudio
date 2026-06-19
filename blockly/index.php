@@ -742,7 +742,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     }
 
     #scriptMetaDescription,
-    #scriptTextInput {
+    #scriptTextInput,
+    #scriptMemoInput {
       min-height: 144px;
       max-height: calc(30 * 1.2em + 16px);
     }
@@ -1109,6 +1110,19 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Status</h3>
+          <div class="card-actions">
+            <button
+              id="runtimeStatusToggleBtn"
+              class="btn btn-outline-secondary btn-icon"
+              type="button"
+              aria-controls="statusBox"
+              aria-expanded="false"
+              aria-label="Toon technische status"
+              title="Toon technische status"
+            >
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+          </div>
         </div>
         <div class="card-body">
         <div class="status-card-script-name" title="Script-id">
@@ -1116,13 +1130,14 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <span id="statusScriptName">Geen script geopend</span>
         </div>
         <textarea id="scriptMetaDescription" class="form-control meta-textarea meta-textarea--compact" placeholder="Description / notes" style="margin-bottom:8px;"></textarea>
-        <textarea id="scriptTextInput" class="form-control meta-textarea meta-textarea--compact" placeholder="Tekst — één lijst- en audio-item per regel" aria-label="Tekst voor lijst en audio" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptTextInput" class="form-control meta-textarea meta-textarea--compact" placeholder="Instructie — alleen opslaan bij het script" aria-label="Instructie" style="margin-bottom:8px;"></textarea>
+        <textarea id="scriptMemoInput" class="form-control meta-textarea meta-textarea--compact" placeholder="Memo — één lijst- en audio-item per regel" aria-label="Memo voor lijst en audio" style="margin-bottom:8px;"></textarea>
         <button
           id="insertInstructionTextListBtn"
           class="btn btn-outline-primary btn-icon"
           type="button"
           aria-label="Maak lijst"
-          title="Maak lijst van de tekstregels"
+          title="Maak lijst van de memoregels"
           style="margin-bottom:8px;"
         >
           <i class="ti ti-list" aria-hidden="true"></i>
@@ -1153,8 +1168,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
           <button id="saveInstructionTtsBtn" class="btn btn-primary" type="button" disabled>Maak audio</button>
         </div>
         <div class="small" style="margin-top:-4px; margin-bottom:4px;">ElevenLabs model: Eleven v3 · language: Dutch (nl)</div>
-        <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Open een online script om audio van de tekst te maken.</div>
-        <div id="statusBox" class="mono"></div>
+        <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Open een online script om audio van de memo te maken.</div>
+        <div id="statusBox" class="mono" hidden></div>
         </div>
       </div>
 
@@ -1733,7 +1748,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260618-internal-list-variable-1');
+    await loadScript('./app.js?v=20260619-memo-status-toggle-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

@@ -83,6 +83,7 @@ $normalizedMeta = [
     'title' => isset($meta['title']) ? trim((string)$meta['title']) : $title,
     'description' => isset($meta['description']) ? trim((string)$meta['description']) : '',
     'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : '',
+    'memo' => isset($meta['memo']) ? trim((string)$meta['memo']) : '',
     'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : '',
     'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
 ];

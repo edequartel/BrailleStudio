@@ -324,10 +324,12 @@ function renderScriptMetadata(meta = null) {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
   const instructionInput = document.getElementById('scriptTextInput');
+  const memoInput = document.getElementById('scriptMemoInput');
   const promptInput = document.getElementById('scriptMetaPrompt');
   if (titleInput) titleInput.value = String(meta?.title || '');
   if (descriptionInput) descriptionInput.value = String(meta?.description || '');
   if (instructionInput) instructionInput.value = String(meta?.instruction || '');
+  if (memoInput) memoInput.value = String(meta?.memo || '');
   if (promptInput) promptInput.value = String(meta?.prompt || '');
   renderInstructionTtsControl();
   renderStatusScriptName();
@@ -347,11 +349,13 @@ function readScriptMetadataFromInputs() {
   const titleInput = document.getElementById('scriptMetaTitle');
   const descriptionInput = document.getElementById('scriptMetaDescription');
   const instructionInput = document.getElementById('scriptTextInput');
+  const memoInput = document.getElementById('scriptMemoInput');
   const promptInput = document.getElementById('scriptMetaPrompt');
   return {
     title: String(titleInput?.value || '').trim(),
     description: String(descriptionInput?.value || '').trim(),
     instruction: String(instructionInput?.value || '').trim(),
+    memo: String(memoInput?.value || '').trim(),
     prompt: String(promptInput?.value || '').trim()
   };
 }
@@ -996,7 +1000,7 @@ function openBrailleStudioAuthPopup() {
 }
 
 function getInstructionTtsState() {
-  const instruction = String(document.getElementById('scriptTextInput')?.value || '').trim();
+  const instruction = String(document.getElementById('scriptMemoInput')?.value || '').trim();
   const scriptId = String(currentOnlineScriptId || '').trim();
   const voiceId = String(document.getElementById('instructionTtsVoiceSelect')?.value || 'yO6w2xlECAQRFP6pX7Hw').trim();
   const spacePauseTag = String(document.getElementById('instructionTtsSpacePauseSelect')?.value || '').trim();
@@ -1253,13 +1257,13 @@ async function fetchGeneratedInstructionItemByScriptId(scriptId) {
 
   let instructionText = '';
   if (normalizedId === String(currentOnlineScriptId || '').trim()) {
-    instructionText = String(document.getElementById('scriptTextInput')?.value || '').trim();
+    instructionText = String(document.getElementById('scriptMemoInput')?.value || '').trim();
   }
 
   if (!instructionText) {
     try {
       const data = await onlineApiFetchJson(`/load.php?id=${encodeURIComponent(normalizedId)}&_=${Date.now()}`);
-      instructionText = String(data?.meta?.instruction || '').trim();
+      instructionText = String(data?.meta?.memo || '').trim();
     } catch {
       instructionText = '';
     }
@@ -1292,12 +1296,12 @@ function renderInstructionTtsControl(message = '') {
   }
 
   if (!state.scriptId) {
-    status.textContent = 'Open een online script om audio van de tekst te maken.';
+    status.textContent = 'Open een online script om audio van de memo te maken.';
     return;
   }
 
   if (!state.instruction) {
-    status.textContent = 'Voer eerst tekst in. Iedere niet-lege regel wordt een apart audio-item.';
+    status.textContent = 'Voer eerst een memo in. Iedere niet-lege regel wordt een apart audio-item.';
     return;
   }
 
@@ -1310,7 +1314,7 @@ function createInstructionGeneratedItem(instructionId) {
     return null;
   }
   const instructionText = normalizedId === String(currentOnlineScriptId || '').trim()
-    ? String(document.getElementById('scriptTextInput')?.value || '').trim()
+    ? String(document.getElementById('scriptMemoInput')?.value || '').trim()
     : '';
   return buildGeneratedInstructionItem(normalizedId, instructionText);
 }
@@ -1453,19 +1457,19 @@ async function saveInstructionAsMp3() {
   const state = getInstructionTtsState();
 
   if (!state.scriptId) {
-    renderInstructionTtsControl('Load an online Blockly script before saving the instruction playlist.');
+    renderInstructionTtsControl('Open eerst een online Blockly-script om de memo-audio op te slaan.');
     if (status) status.classList.add('is-error');
     return;
   }
   if (!state.instruction) {
-    renderInstructionTtsControl('Instruction text is empty.');
+    renderInstructionTtsControl('De memo is leeg.');
     if (status) status.classList.add('is-error');
     return;
   }
   if (button) button.disabled = true;
   if (status) {
     status.classList.remove('is-error');
-    status.textContent = 'Saving instruction playlist MP3 files...';
+    status.textContent = 'Memo-audio wordt opgeslagen...';
   }
 
   try {
@@ -1538,6 +1542,8 @@ function applyMetadataToXmlDom(xmlDom) {
   else xmlDom.removeAttribute('data-description');
   if (meta.instruction) xmlDom.setAttribute('data-instruction', meta.instruction);
   else xmlDom.removeAttribute('data-instruction');
+  if (meta.memo) xmlDom.setAttribute('data-memo', meta.memo);
+  else xmlDom.removeAttribute('data-memo');
   if (meta.prompt) xmlDom.setAttribute('data-prompt', meta.prompt);
   else xmlDom.removeAttribute('data-prompt');
   if (variables.length) xmlDom.setAttribute('data-variables', JSON.stringify(variables));
@@ -1573,6 +1579,25 @@ function renderSidebarToggleControl() {
   btn.setAttribute('aria-label', isVisible ? 'Hide status panel' : 'Show status panel');
   btn.title = isVisible ? 'Hide status panel' : 'Show status panel';
   setIconButtonContent(btn, 'ti ti-layout-sidebar-right');
+}
+
+function renderRuntimeStatusToggleControl() {
+  const btn = document.getElementById('runtimeStatusToggleBtn');
+  const statusBox = document.getElementById('statusBox');
+  if (!btn || !statusBox) return;
+  const isVisible = !statusBox.hidden;
+  btn.classList.toggle('active', isVisible);
+  btn.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+  btn.setAttribute('aria-label', isVisible ? 'Verberg technische status' : 'Toon technische status');
+  btn.title = isVisible ? 'Verberg technische status' : 'Toon technische status';
+  setIconButtonContent(btn, isVisible ? 'ti ti-eye-off' : 'ti ti-eye');
+}
+
+function toggleRuntimeStatus() {
+  const statusBox = document.getElementById('statusBox');
+  if (!statusBox) return;
+  statusBox.hidden = !statusBox.hidden;
+  renderRuntimeStatusToggleControl();
 }
 
 function applySidebarWidth(nextWidth) {
@@ -2622,6 +2647,7 @@ async function saveWorkspaceOnline({ overwrite = true } = {}) {
         title: metadata.title || title,
         description: metadata.description || '',
         instruction: metadata.instruction || '',
+        memo: metadata.memo || '',
         prompt: metadata.prompt || '',
         status
       }
@@ -2806,6 +2832,7 @@ async function loadWorkspaceOnline(id) {
     title: String(meta.title || data.title || targetId),
     description: String(meta.description || ''),
     instruction: String(meta.instruction || ''),
+    memo: String(meta.memo || ''),
     prompt: String(meta.prompt || '')
   });
   const metadataRenderedAt = performance.now();
@@ -3709,6 +3736,7 @@ function bindAppControls() {
   bind('sidebarToggleBtn', 'click', () => {
     toggleSidebarPanel();
   });
+  bind('runtimeStatusToggleBtn', 'click', toggleRuntimeStatus);
   bind('newBtn', 'click', newWorkspace);
   bind('onlineRefreshBtn', 'click', async () => {
     if (IS_EMBEDDED_SESSION_PLAYER) {
@@ -3843,10 +3871,10 @@ function bindAppControls() {
   bind('clearLogBtn', 'click', clearLogBox);
   bind('insertInstructionTextListBtn', 'click', () => {
     try {
-      insertTextListBlockFromField('scriptTextInput', 'Tekst');
+      insertTextListBlockFromField('scriptMemoInput', 'Memo');
     } catch (err) {
-      log(`Instruction text-list insert failed: ${err.message}`);
-      alert('De tekst kon niet als lijst worden toegevoegd: ' + err.message);
+      log(`Memo text-list insert failed: ${err.message}`);
+      alert('De memo kon niet als lijst worden toegevoegd: ' + err.message);
     }
   });
   bind('saveInstructionTtsBtn', 'click', async () => {
@@ -3936,6 +3964,7 @@ function bindAppControls() {
   const metaTitle = document.getElementById('scriptMetaTitle');
   const metaDescription = document.getElementById('scriptMetaDescription');
   const metaInstruction = document.getElementById('scriptTextInput');
+  const metaMemo = document.getElementById('scriptMemoInput');
   const metaPrompt = document.getElementById('scriptMetaPrompt');
   const onlineTitle = document.getElementById('onlineScriptTitleInput');
   const onlineStatus = document.getElementById('onlineScriptStatusInput');
@@ -3951,12 +3980,17 @@ function bindAppControls() {
     metaDescription.dataset.initialized = '1';
   }
   if (metaInstruction && !metaInstruction.dataset.initialized) {
-    metaInstruction.addEventListener('input', () => {
+    metaInstruction.addEventListener('input', () => refreshWorkspaceDirtyState());
+    metaInstruction.dataset.initialized = '1';
+  }
+  if (metaMemo && !metaMemo.dataset.initialized) {
+    metaMemo.addEventListener('input', () => {
       refreshWorkspaceDirtyState();
       renderInstructionTtsControl();
     });
-    metaInstruction.dataset.initialized = '1';
+    metaMemo.dataset.initialized = '1';
   }
+  renderRuntimeStatusToggleControl();
   const instructionTtsVoiceSelect = document.getElementById('instructionTtsVoiceSelect');
   if (instructionTtsVoiceSelect && !instructionTtsVoiceSelect.dataset.initialized) {
     instructionTtsVoiceSelect.addEventListener('change', () => renderInstructionTtsControl());
@@ -4789,14 +4823,16 @@ function extractWorkspaceMetadata(xmlDom, sourceName = null) {
       title: sourceName || '',
       description: '',
       instruction: '',
+      memo: '',
       prompt: ''
     };
   }
   const title = String(xmlDom.getAttribute('data-title') || sourceName || '').trim();
   const description = String(xmlDom.getAttribute('data-description') || '').trim();
   const instruction = String(xmlDom.getAttribute('data-instruction') || '').trim();
+  const memo = String(xmlDom.getAttribute('data-memo') || '').trim();
   const prompt = String(xmlDom.getAttribute('data-prompt') || '').trim();
-  return { title, description, instruction, prompt };
+  return { title, description, instruction, memo, prompt };
 }
 
 function extractWorkspaceVariablesFromXml(xmlDom) {
@@ -7424,10 +7460,11 @@ function loadWorkspaceFromState(state, sourceName = null, metadata = null) {
         title: String(metadata.title || sourceName || ''),
         description: String(metadata.description || ''),
         instruction: String(metadata.instruction || ''),
+        memo: String(metadata.memo || ''),
         prompt: String(metadata.prompt || '')
       });
     } else {
-      renderScriptMetadata(sourceName ? { title: String(sourceName), description: '', instruction: '', prompt: '' } : null);
+      renderScriptMetadata(sourceName ? { title: String(sourceName), description: '', instruction: '', memo: '', prompt: '' } : null);
     }
     if (sourceName) setSelectedFileName(sourceName);
     suppressDirtyTracking--;

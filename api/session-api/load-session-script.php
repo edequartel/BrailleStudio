@@ -55,6 +55,7 @@ $content['meta'] = [
     'title' => trim((string)($meta['title'] ?? ($content['title'] ?? ''))),
     'description' => trim((string)($meta['description'] ?? '')),
     'instruction' => trim((string)($meta['instruction'] ?? '')),
+    'memo' => trim((string)($meta['memo'] ?? '')),
     'prompt' => trim((string)($meta['prompt'] ?? '')),
     'status' => trim((string)($meta['status'] ?? 'draft')),
 ];
