@@ -1583,9 +1583,9 @@ function renderSidebarToggleControl() {
 
 function renderRuntimeStatusToggleControl() {
   const btn = document.getElementById('runtimeStatusToggleBtn');
-  const statusBox = document.getElementById('statusBox');
-  if (!btn || !statusBox) return;
-  const isVisible = !statusBox.hidden;
+  const statusBody = document.getElementById('statusCardBody');
+  if (!btn || !statusBody) return;
+  const isVisible = !statusBody.hidden;
   btn.classList.toggle('active', isVisible);
   btn.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
   btn.setAttribute('aria-label', isVisible ? 'Verberg technische status' : 'Toon technische status');
@@ -1594,9 +1594,9 @@ function renderRuntimeStatusToggleControl() {
 }
 
 function toggleRuntimeStatus() {
-  const statusBox = document.getElementById('statusBox');
-  if (!statusBox) return;
-  statusBox.hidden = !statusBox.hidden;
+  const statusBody = document.getElementById('statusCardBody');
+  if (!statusBody) return;
+  statusBody.hidden = !statusBody.hidden;
   renderRuntimeStatusToggleControl();
 }
 

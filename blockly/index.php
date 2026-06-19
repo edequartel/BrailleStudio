@@ -1109,20 +1109,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
     <div id="sidebar">
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">Status</h3>
-          <div class="card-actions">
-            <button
-              id="runtimeStatusToggleBtn"
-              class="btn btn-outline-secondary btn-icon"
-              type="button"
-              aria-controls="statusBox"
-              aria-expanded="false"
-              aria-label="Toon technische status"
-              title="Toon technische status"
-            >
-              <i class="ti ti-eye" aria-hidden="true"></i>
-            </button>
-          </div>
+          <h3 class="card-title">Script</h3>
         </div>
         <div class="card-body">
         <div class="status-card-script-name" title="Script-id">
@@ -1169,7 +1156,28 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         </div>
         <div class="small" style="margin-top:-4px; margin-bottom:4px;">ElevenLabs model: Eleven v3 · language: Dutch (nl)</div>
         <div id="instructionTtsStatus" class="small" style="margin-bottom:8px;">Open een online script om audio van de memo te maken.</div>
-        <div id="statusBox" class="mono" hidden></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Status</h3>
+          <div class="card-actions">
+            <button
+              id="runtimeStatusToggleBtn"
+              class="btn btn-outline-secondary btn-icon"
+              type="button"
+              aria-controls="statusCardBody"
+              aria-expanded="false"
+              aria-label="Toon technische status"
+              title="Toon technische status"
+            >
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div id="statusCardBody" class="card-body" hidden>
+          <div id="statusBox" class="mono"></div>
         </div>
       </div>
 
@@ -1759,7 +1767,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260619-log-toggle-1');
+    await loadScript('./app.js?v=20260619-separate-status-card-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {
