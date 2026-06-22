@@ -78,6 +78,16 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       margin: -1px;
     }
   </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:secure_url" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1729">
+  <meta property="og:image:height" content="910">
+  <meta property="og:image:alt" content="BrailleStudio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta name="twitter:image:alt" content="BrailleStudio">
 </head>
 <body>
   <main class="session-player">

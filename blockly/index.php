@@ -946,6 +946,16 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       display: none;
     }
   </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:secure_url" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1729">
+  <meta property="og:image:height" content="910">
+  <meta property="og:image:alt" content="BrailleStudio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta name="twitter:image:alt" content="BrailleStudio">
 </head>
 <body class="bg-body">
 <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 z-3 d-flex align-items-center justify-content-center bg-body p-3" role="status" aria-live="polite" aria-atomic="true">

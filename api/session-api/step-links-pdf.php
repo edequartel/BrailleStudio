@@ -100,7 +100,17 @@ body { margin: 0; font-family: DejaVu Sans, Helvetica, Arial, sans-serif; color:
 .qr-fallback { width: 13.6mm; height: 13.6mm; margin: 0 auto 1mm; border: 0.25mm solid #9ca3af; line-height: 13.6mm; font-size: 8pt; font-weight: 700; color: #6b7280; }
 .code { font-size: 9pt; line-height: 1; font-weight: 700; letter-spacing: 0; }
 .empty { color: transparent; }
-</style></head><body>';
+</style>  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:secure_url" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1729">
+  <meta property="og:image:height" content="910">
+  <meta property="og:image:alt" content="BrailleStudio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta name="twitter:image:alt" content="BrailleStudio">
+</head><body>';
 
 foreach ($pages as $pageRecords) {
     $html .= '<div class="page"><table class="sheet"><tbody>';

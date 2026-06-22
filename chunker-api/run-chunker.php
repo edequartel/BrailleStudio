@@ -52,6 +52,16 @@ $token = 'CHANGE_THIS_TO_A_LONG_SECRET_TOKEN';
             color: #555;
         }
     </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:secure_url" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1729">
+  <meta property="og:image:height" content="910">
+  <meta property="og:image:alt" content="BrailleStudio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta name="twitter:image:alt" content="BrailleStudio">
 </head>
 <body>
     <h1>Run Chunker</h1>

@@ -256,6 +256,16 @@ $contentHtml = render_markdown(load_markdown_source($markdownUrl, $markdownPath)
       color: inherit;
     }
   </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:secure_url" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1729">
+  <meta property="og:image:height" content="910">
+  <meta property="og:image:alt" content="BrailleStudio">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
+  <meta name="twitter:image:alt" content="BrailleStudio">
 </head>
 <body class="bg-slate-100 text-slate-900">
   <div class="mx-auto max-w-7xl p-6 space-y-6">
