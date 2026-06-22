@@ -1556,5 +1556,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     bootstrap();
   </script>
+  <script src="../../components/log-visibility/log-visibility.js?v=20260622-1"></script>
 </body>
 </html>

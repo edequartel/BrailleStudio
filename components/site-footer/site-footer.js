@@ -1,7 +1,17 @@
 (() => {
   const FOOTER_ID = 'brailleStudioSiteFooter';
+  const LOG_VISIBILITY_SCRIPT_ID = 'brailleStudioLogVisibilityScript';
   const BARTIMEUS_URL = 'https://www.bartimeus.nl';
   const LOGO_URL = 'https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png';
+
+  function loadLogVisibility() {
+    if (document.getElementById(LOG_VISIBILITY_SCRIPT_ID)) return;
+
+    const script = document.createElement('script');
+    script.id = LOG_VISIBILITY_SCRIPT_ID;
+    script.src = '/braillestudio/components/log-visibility/log-visibility.js?v=20260622-1';
+    document.head.appendChild(script);
+  }
 
   function findPageContainer() {
     return document.querySelector('[id$="AppPage"]')
@@ -10,6 +20,7 @@
   }
 
   function renderSiteFooter() {
+    loadLogVisibility();
     document.querySelectorAll('footer').forEach((footer) => footer.remove());
     document.getElementById(FOOTER_ID)?.remove();
 
