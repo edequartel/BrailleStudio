@@ -432,14 +432,15 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     async function scriptHasExternalWord(scriptId) {
       try {
         const data = await loadScriptData(scriptId);
-        return getExternalVariablesFromScriptData(data).includes('word');
+        return getExternalVariablesFromScriptData(data)
+          .some((name) => String(name || '').trim().toLowerCase() === 'word');
       } catch {
         return false;
       }
     }
 
-    async function applySourceLessonWordToCopiedSteps(steps, sourceLesson) {
-      const lessonWord = String(sourceLesson?.basisWord || '').trim();
+    async function applyTargetLessonWordToCopiedSteps(steps, targetLesson) {
+      const lessonWord = String(targetLesson?.basisWord || '').trim();
       if (!lessonWord || !Array.isArray(steps) || !steps.length) {
         return steps;
       }
@@ -460,11 +461,13 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       const lessons = Array.isArray(lessonsCache)
         ? lessonsCache.filter((lesson) => String(lesson?.id || '').trim())
         : [];
-      const selectedDraftLesson = buildDraftLessonForBasis(getSelectedIndex());
       const targetLessons = lessons.slice();
-      if (selectedDraftLesson && !targetLessons.some((lesson) => String(lesson?.id || '').trim() === selectedDraftLesson.id)) {
-        targetLessons.push(selectedDraftLesson);
-      }
+      basisItems.forEach((item, index) => {
+        const draftLesson = buildDraftLessonForBasis(index);
+        if (draftLesson && !targetLessons.some((lesson) => String(lesson?.id || '').trim() === draftLesson.id)) {
+          targetLessons.push(draftLesson);
+        }
+      });
       const selectedLessonId = String(state.lessonId || '').trim();
       const previousSource = String(copySourceLessonSelect.value || '').trim();
       const previousTarget = String(copyTargetLessonSelect.value || '').trim();
@@ -681,7 +684,9 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       try {
         targetLesson = await shared.loadLesson(targetLessonId);
       } catch (err) {
-        const draftLesson = buildDraftLessonForBasis(getSelectedIndex());
+        const draftLesson = basisItems
+          .map((item, index) => buildDraftLessonForBasis(index))
+          .find((lesson) => lesson && lesson.id === targetLessonId);
         if (!draftLesson || draftLesson.id !== targetLessonId) {
           throw err;
         }
@@ -689,7 +694,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       }
       const sourceSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
         .map((step) => ({ ...step, stepLinkCode: '' }));
-      const copiedSteps = await applySourceLessonWordToCopiedSteps(sourceSteps, sourceLesson);
+      const copiedSteps = await applyTargetLessonWordToCopiedSteps(sourceSteps, targetLesson);
       if (!copiedSteps.length) {
         setStatus('De bronlesson heeft geen steps.');
         return;
