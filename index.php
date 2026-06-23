@@ -16,6 +16,10 @@ try {
     $authUser = null;
 }
 
+$staffRoles = ['docent', 'admin', 'developer'];
+$managerRoles = ['admin', 'developer'];
+$allRoles = ['leerling', ...$staffRoles];
+
 $modules = [
     [
         'title' => 'Oefenen',
@@ -24,7 +28,7 @@ $modules = [
         'icon' => 'ti-book',
         'theme' => 'primary',
         'public' => true,
-        'roles' => ['leerling', 'docent', 'admin', 'developer'],
+        'roles' => $allRoles,
         'links' => [
             ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
             ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
@@ -36,10 +40,11 @@ $modules = [
         'description' => 'Bouw interactieve lessen, methodes en sessies voor begeleide brailletraining.',
         'icon' => 'ti-layout-dashboard',
         'theme' => 'green',
-        'roles' => ['docent', 'admin', 'developer'],
+        'roles' => $staffRoles,
         'links' => [
             ['label' => 'Teacher Dashboard', 'href' => $baseUrl . 'api/xapi-api/teacher-dashboard.php', 'icon' => 'ti-chart-bar'],
             ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.php', 'icon' => 'ti-music'],
+            ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
         ],
     ],
     [
@@ -48,7 +53,7 @@ $modules = [
         'description' => 'Ontwikkel en beheer Blockly-activiteiten voor interactieve braillelessen.',
         'icon' => 'ti-puzzle',
         'theme' => 'orange',
-        'roles' => ['admin', 'developer'],
+        'roles' => $managerRoles,
         'links' => [
             ['label' => 'Lesson Builder', 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
             ['label' => 'Session Builder', 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
@@ -61,14 +66,13 @@ $modules = [
         'description' => 'Koppel leesregels, bekijk tabellen en gebruik hulpmiddelen voor testen en beheer.',
         'icon' => 'ti-tools',
         'theme' => 'purple',
-        'roles' => ['admin', 'developer'],
+        'roles' => $managerRoles,
         'links' => [
             ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
             ['label' => 'Brailletabellen', 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],
             ['label' => 'Fonemen', 'href' => $baseUrl . 'api/phonemes-api/index.php', 'icon' => 'ti-wave-saw-tool'],
             ['label' => 'Sounds optimaliseren', 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
             ['label' => 'QR-code', 'href' => $baseUrl . 'api/qr-api/qr.php', 'icon' => 'ti-qrcode'],
-            ['label' => 'Download', 'href' => $baseUrl . 'download/download.php', 'icon' => 'ti-download'],
             ['label' => 'Git pull', 'postHref' => $baseUrl . 'tools/git-pull.php', 'icon' => 'ti-git-pull-request'],
         ],
     ],
