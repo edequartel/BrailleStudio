@@ -1478,18 +1478,22 @@ async function saveInstructionAsMp3() {
       throw new Error('Instruction has no playable items.');
     }
 
-    for (const segment of parsed.generatedSegments) {
+    for (const [segmentIndex, segment] of parsed.generatedSegments.entries()) {
+      const previousSegment = parsed.generatedSegments[segmentIndex - 1];
+      const nextSegment = parsed.generatedSegments[segmentIndex + 1];
       const res = await fetch(ELEVENLABS_TTS_API_URL, {
         method: 'POST',
         credentials: 'same-origin',
         headers: getElevenLabsAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
-        voice_id: state.voiceId,
-        model_id: 'eleven_v3',
-        language_code: 'nl',
-        text: addInstructionSpacePauses(segment.text, state.spacePauseTag),
-        save_to_file: true,
-        save_path: 'braillestudio-data/sounds/nl/instructions',
+          voice_id: state.voiceId,
+          model_id: 'eleven_v3',
+          language_code: 'nl',
+          text: addInstructionSpacePauses(segment.text, state.spacePauseTag),
+          previous_text: previousSegment?.text || 'Dit is een Nederlandse leesles met Nederlandse woorden.',
+          next_text: nextSegment?.text || '',
+          save_to_file: true,
+          save_path: 'braillestudio-data/sounds/nl/instructions',
           file_name: segment.fileName
         })
       });

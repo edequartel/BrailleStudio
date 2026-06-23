@@ -82,6 +82,8 @@ $text = elevenlabs_normalize_text($input['text'] ?? '');
 $voiceId = elevenlabs_normalize_text($input['voice_id'] ?? '');
 $modelId = 'eleven_v3';
 $languageCode = strtolower(elevenlabs_normalize_text($input['language_code'] ?? 'nl'));
+$previousText = elevenlabs_normalize_text($input['previous_text'] ?? '');
+$nextText = elevenlabs_normalize_text($input['next_text'] ?? '');
 $savePath = elevenlabs_normalize_text($input['save_path'] ?? '');
 $fileName = elevenlabs_normalize_text($input['file_name'] ?? '');
 $saveToFile = !empty($input['save_to_file']);
@@ -112,6 +114,12 @@ $payload = [
     'model_id' => $modelId,
     'language_code' => $languageCode,
 ];
+if ($previousText !== '') {
+    $payload['previous_text'] = $previousText;
+}
+if ($nextText !== '') {
+    $payload['next_text'] = $nextText;
+}
 
 $result = elevenlabs_request(
     'POST',
