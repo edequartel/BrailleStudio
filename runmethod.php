@@ -239,6 +239,9 @@ function read_local_lessons_for_method(string $methodId): array
             if ($lessonId === '' || isset($seen[$lessonId])) {
                 continue;
             }
+            if (!array_key_exists('visible', $lesson) || (bool)$lesson['visible'] !== true) {
+                continue;
+            }
             $seen[$lessonId] = true;
             $lesson['id'] = $lessonId;
             $lesson['methodId'] = $lessonMethodId;

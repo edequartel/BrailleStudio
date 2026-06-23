@@ -272,6 +272,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                       <label class="form-label" for="lessonNewSoundsInput">newSounds</label>
                       <input id="lessonNewSoundsInput" class="form-control" type="text" readonly>
                     </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-check mt-4">
+                        <input id="lessonVisibleInput" class="form-check-input" type="checkbox">
+                        <span class="form-check-label">Visible in runmethod</span>
+                      </label>
+                    </div>
                     <div class="col-12">
                       <label class="form-label" for="lessonKnownSoundsInput">knownSounds</label>
                       <textarea id="lessonKnownSoundsInput" class="form-control" rows="2" readonly aria-readonly="true"></textarea>
@@ -398,6 +404,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const lessonWordInput = document.getElementById('lessonWordInput');
     const lessonSoundsInput = document.getElementById('lessonSoundsInput');
     const lessonNewSoundsInput = document.getElementById('lessonNewSoundsInput');
+    const lessonVisibleInput = document.getElementById('lessonVisibleInput');
     const lessonKnownSoundsInput = document.getElementById('lessonKnownSoundsInput');
     const lessonDescriptionInput = document.getElementById('lessonDescriptionInput');
     const stepsTableBody = document.getElementById('stepsTableBody');
@@ -2265,6 +2272,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         id: lessonIdInput.value.trim(),
         title: lessonTitleInput.value.trim(),
         description: String(lessonDescriptionInput.value.trim() || '').trim(),
+        visible: Boolean(lessonVisibleInput?.checked),
         methodId: method.id,
         method: method,
         methodTitle: method.title,
@@ -2295,6 +2303,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         lessonTitle: payload.title,
         lessonMetaTitle: String(payload.title || '').trim(),
         lessonDescription: String(payload.description || '').trim(),
+        lessonVisible: Boolean(payload.visible),
         lessonWord: payload.basisWord,
         steps: stepConfigs
       });
@@ -2374,6 +2383,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
             lessonId: shared.buildLessonIdFromBasis(method.id, basisIndex, basisItem, lessonNumber),
             lessonTitle: shared.buildLessonTitleFromBasis(basisItem, lessonNumber, basisIndex),
             lessonWord: shared.getBasisWord(basisItem, basisIndex),
+            lessonVisible: false,
             steps: []
           });
         }
@@ -2387,6 +2397,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
               lessonTitle: loadedLesson.title || state.lessonTitle || '',
               lessonMetaTitle: String(loadedLesson?.title || state.lessonMetaTitle || '').trim(),
               lessonDescription: String(loadedLesson?.description || state.lessonDescription || '').trim(),
+              lessonVisible: Boolean(loadedLesson?.visible ?? state.lessonVisible ?? false),
               lessonNumber: loadedLesson.lessonNumber || state.lessonNumber || 1,
               lessonWord: loadedLesson.basisWord || state.lessonWord || state.basisWord || '',
               steps: shared.normalizeStepConfigs(loadedLesson.steps || [])
@@ -2404,6 +2415,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         lessonWordInput.value = state.lessonWord || state.basisWord || '';
         renderLessonMetadata(basisItem || state.basisRecord || null);
         lessonDescriptionInput.value = state.lessonDescription || '';
+        if (lessonVisibleInput) lessonVisibleInput.checked = Boolean(state.lessonVisible);
         stepConfigs = serializeStepConfigs(shared.normalizeStepConfigs(state.steps || []));
         hydrateStepConfigsWithScriptMetadata();
         savedStepLinkCodes = getStepLinkCodes(stepConfigs);
@@ -2605,7 +2617,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         const deactivationResult = await deactivateStepLinkCodes(codesToDeactivate);
         appendStatus('Step-links deactivated after lesson delete.', deactivationResult);
         savedStepLinkCodes = new Set();
-        state = shared.updateState({ lessonId: '', lessonTitle: '', lessonWord: '', steps: [] });
+        state = shared.updateState({ lessonId: '', lessonTitle: '', lessonWord: '', lessonVisible: false, steps: [] });
         lessonIdInput.value = '';
         lessonTitleInput.value = '';
         lessonWordInput.value = '';
@@ -2681,6 +2693,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     lessonDescriptionInput.addEventListener('input', () => {
       state = shared.updateState({
         lessonDescription: lessonDescriptionInput.value.trim()
+      });
+    });
+
+    lessonVisibleInput?.addEventListener('change', () => {
+      state = shared.updateState({
+        lessonVisible: Boolean(lessonVisibleInput.checked)
       });
     });
 

@@ -114,6 +114,7 @@ function lessons_api_normalize_manifest_item(array $content, string $fallbackId 
         'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
         'basisWord' => trim((string)($content['basisWord'] ?? '')),
         'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
+        'visible' => array_key_exists('visible', $content) ? (bool)$content['visible'] : false,
         'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
         'updatedAt' => trim((string)($content['updatedAt'] ?? '')),
         'filename' => $id !== '' ? $id . '.json' : '',

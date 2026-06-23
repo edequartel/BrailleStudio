@@ -179,6 +179,7 @@ $out['description'] = trim((string)($content['description'] ?? ''));
 $out['basisIndex'] = array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1;
 $out['basisWord'] = trim((string)($content['basisWord'] ?? ''));
 $out['lessonNumber'] = array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1;
+$out['visible'] = array_key_exists('visible', $content) ? (bool)$content['visible'] : false;
 $out['basisRecord'] = is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [];
 $out['steps'] = $normalizedSteps;
 $out['url'] = lessons_api_remote_lesson_url($safeId);
