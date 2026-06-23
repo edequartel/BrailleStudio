@@ -9,7 +9,7 @@
 
     const script = document.createElement('script');
     script.id = LOG_VISIBILITY_SCRIPT_ID;
-    script.src = '/braillestudio/components/log-visibility/log-visibility.js?v=20260622-1';
+    script.src = '/braillestudio/components/log-visibility/log-visibility.js?v=20260623-1';
     document.head.appendChild(script);
   }
 

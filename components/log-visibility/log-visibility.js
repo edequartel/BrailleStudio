@@ -44,7 +44,6 @@
 
   function loggingContainer(element) {
     return element.closest('.card, section, .log-panel, .event-log, .run-log-panel')
-      || element.parentElement
       || element;
   }
 
