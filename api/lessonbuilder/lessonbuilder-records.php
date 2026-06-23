@@ -251,6 +251,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     let lessonsCache = [];
     let pendingDeleteIndex = -1;
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
+    const scriptDataCache = new Map();
 
     function setLoadingMessage(message) {
       recordsLoadingMessage.textContent = message;
@@ -368,21 +369,116 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       return `${prefix}${String(lesson?.title || lesson?.id || '').trim()}${slot}`;
     }
 
+    function collectExternalVariableNamesFromBlocks(blocklyState = {}) {
+      const names = new Set();
+      const visitBlock = (block) => {
+        if (!block || typeof block !== 'object') return;
+        if (
+          ['external_variable_get', 'external_variable_set', 'external_variable_exists', 'external_property_get'].includes(String(block.type || ''))
+        ) {
+          const name = String(block.fields?.VAR || '').trim();
+          if (name) names.add(name);
+        }
+        Object.values(block.inputs || {}).forEach((input) => {
+          visitBlock(input?.block);
+          visitBlock(input?.shadow);
+        });
+        visitBlock(block.next?.block);
+      };
+      const rootBlocks = Array.isArray(blocklyState?.blocks?.blocks)
+        ? blocklyState.blocks.blocks
+        : (Array.isArray(blocklyState?.blocks) ? blocklyState.blocks : []);
+      rootBlocks.forEach(visitBlock);
+      return Array.from(names);
+    }
+
+    function getExternalVariablesFromScriptData(data = null) {
+      const blocklyState = data?.blockly && typeof data.blockly === 'object' ? data.blockly : {};
+      const variables = [
+        data?.scriptVariables,
+        data?.variablesMetadata,
+        data?.meta?.scriptVariables,
+        data?.meta?.variables,
+        blocklyState.scriptVariables,
+        blocklyState.variablesMetadata
+      ].find((items) => Array.isArray(items)) || [];
+      const normalizedVariables = variables
+        .map((item) => {
+          const name = String(item?.name || '').trim();
+          if (!name || name === 'student_code' || String(item?.scope || '').trim().toLowerCase() !== 'external') return null;
+          return name;
+        })
+        .filter(Boolean);
+      const seen = new Set(normalizedVariables);
+      collectExternalVariableNamesFromBlocks(blocklyState).forEach((name) => {
+        if (name === 'student_code' || seen.has(name)) return;
+        seen.add(name);
+        normalizedVariables.push(name);
+      });
+      return normalizedVariables;
+    }
+
+    async function loadScriptData(scriptId) {
+      const id = String(scriptId || '').trim();
+      if (!id) return null;
+      if (scriptDataCache.has(id)) {
+        return scriptDataCache.get(id);
+      }
+      const data = await shared.loadScript(id);
+      scriptDataCache.set(id, data);
+      return data;
+    }
+
+    async function scriptHasExternalWord(scriptId) {
+      try {
+        const data = await loadScriptData(scriptId);
+        return getExternalVariablesFromScriptData(data).includes('word');
+      } catch {
+        return false;
+      }
+    }
+
+    async function applySourceLessonWordToCopiedSteps(steps, sourceLesson) {
+      const lessonWord = String(sourceLesson?.basisWord || '').trim();
+      if (!lessonWord || !Array.isArray(steps) || !steps.length) {
+        return steps;
+      }
+      const checks = await Promise.all(steps.map((step) => scriptHasExternalWord(step?.id)));
+      return steps.map((step, index) => {
+        if (!checks[index]) return step;
+        return {
+          ...step,
+          inputs: {
+            ...(step.inputs || {}),
+            word: lessonWord
+          }
+        };
+      });
+    }
+
     function renderLessonStepCopyControls() {
       const lessons = Array.isArray(lessonsCache)
         ? lessonsCache.filter((lesson) => String(lesson?.id || '').trim())
         : [];
+      const selectedDraftLesson = buildDraftLessonForBasis(getSelectedIndex());
+      const targetLessons = lessons.slice();
+      if (selectedDraftLesson && !targetLessons.some((lesson) => String(lesson?.id || '').trim() === selectedDraftLesson.id)) {
+        targetLessons.push(selectedDraftLesson);
+      }
       const selectedLessonId = String(state.lessonId || '').trim();
       const previousSource = String(copySourceLessonSelect.value || '').trim();
       const previousTarget = String(copyTargetLessonSelect.value || '').trim();
 
-      [copySourceLessonSelect, copyTargetLessonSelect].forEach((select) => {
-        select.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = lessons.length ? 'Select lesson' : 'Geen lessons beschikbaar';
-        select.appendChild(placeholder);
-      });
+      copySourceLessonSelect.innerHTML = '';
+      copyTargetLessonSelect.innerHTML = '';
+      const sourcePlaceholder = document.createElement('option');
+      sourcePlaceholder.value = '';
+      sourcePlaceholder.textContent = lessons.length ? 'Select lesson' : 'Geen bronlessons beschikbaar';
+      copySourceLessonSelect.appendChild(sourcePlaceholder);
+      const targetPlaceholder = document.createElement('option');
+      targetPlaceholder.value = '';
+      targetPlaceholder.textContent = targetLessons.length ? 'Select lesson' : 'Geen doellessons beschikbaar';
+      copyTargetLessonSelect.appendChild(targetPlaceholder);
 
       lessons
         .slice()
@@ -402,7 +498,22 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
           sourceOption.value = id;
           sourceOption.textContent = label;
           copySourceLessonSelect.appendChild(sourceOption);
+        });
 
+      targetLessons
+        .slice()
+        .sort((a, b) => {
+          const aIndex = Number(a?.basisIndex ?? 0);
+          const bIndex = Number(b?.basisIndex ?? 0);
+          if (aIndex !== bIndex) return aIndex - bIndex;
+          const aNumber = Number(a?.lessonNumber || 0);
+          const bNumber = Number(b?.lessonNumber || 0);
+          if (aNumber !== bNumber) return aNumber - bNumber;
+          return String(a?.title || a?.id || '').localeCompare(String(b?.title || b?.id || ''));
+        })
+        .forEach((lesson) => {
+          const id = String(lesson?.id || '').trim();
+          const label = `${getLessonLabel(lesson)}${lesson?.isDraft ? ' - nieuw/leeg' : ''}`;
           const targetOption = document.createElement('option');
           targetOption.value = id;
           targetOption.textContent = label;
@@ -412,20 +523,20 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       if (previousSource && lessons.some((lesson) => String(lesson?.id || '').trim() === previousSource)) {
         copySourceLessonSelect.value = previousSource;
       }
-      if (previousTarget && lessons.some((lesson) => String(lesson?.id || '').trim() === previousTarget)) {
+      if (previousTarget && targetLessons.some((lesson) => String(lesson?.id || '').trim() === previousTarget)) {
         copyTargetLessonSelect.value = previousTarget;
-      } else if (selectedLessonId && lessons.some((lesson) => String(lesson?.id || '').trim() === selectedLessonId)) {
+      } else if (selectedLessonId && targetLessons.some((lesson) => String(lesson?.id || '').trim() === selectedLessonId)) {
         copyTargetLessonSelect.value = selectedLessonId;
       }
 
-      const enabled = lessons.length >= 2;
+      const enabled = lessons.length >= 1 && targetLessons.length >= 1;
       copySourceLessonSelect.disabled = !enabled;
       copyTargetLessonSelect.disabled = !enabled;
       replaceLessonStepsBtn.disabled = !enabled;
       appendLessonStepsBtn.disabled = !enabled;
       stepsCopyCaption.textContent = enabled
-        ? 'Kopieer alle steps van één bestaande lesson naar een andere bestaande lesson.'
-        : 'Maak of bewaar eerst minimaal twee lessons om steps te kopiëren.';
+        ? 'Kopieer alle steps van een bestaande bronlesson naar een bestaande of lege doellesson.'
+        : 'Maak of bewaar eerst een bronlesson met steps om steps te kopiëren.';
     }
 
     function buildDraftLessonForBasis(basisIndex) {
@@ -435,6 +546,10 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       return {
         id: shared.buildLessonIdFromBasis(method.id, basisIndex, item, 1),
         title: shared.buildLessonTitleFromBasis(item, 1, basisIndex),
+        methodId: method.id,
+        methodTitle: method.title || '',
+        methodDataSource: method.dataSource || '',
+        method,
         lessonNumber: 1,
         basisIndex,
         basisWord: shared.getBasisWord(item, basisIndex),
@@ -461,6 +576,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         });
         renderEditor();
         renderBasisList();
+        renderLessonStepCopyControls();
         return;
       }
 
@@ -561,9 +677,19 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       }
 
       const sourceLesson = await shared.loadLesson(sourceLessonId);
-      const targetLesson = await shared.loadLesson(targetLessonId);
-      const copiedSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
+      let targetLesson = null;
+      try {
+        targetLesson = await shared.loadLesson(targetLessonId);
+      } catch (err) {
+        const draftLesson = buildDraftLessonForBasis(getSelectedIndex());
+        if (!draftLesson || draftLesson.id !== targetLessonId) {
+          throw err;
+        }
+        targetLesson = draftLesson;
+      }
+      const sourceSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
         .map((step) => ({ ...step, stepLinkCode: '' }));
+      const copiedSteps = await applySourceLessonWordToCopiedSteps(sourceSteps, sourceLesson);
       if (!copiedSteps.length) {
         setStatus('De bronlesson heeft geen steps.');
         return;
