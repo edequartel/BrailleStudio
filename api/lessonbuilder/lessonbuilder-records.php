@@ -146,30 +146,32 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
                 </div>
               </div>
 
-              <div class="card mt-3">
-                <div class="card-header">
-                  <div>
-                    <h2 class="card-title">Steps kopiëren</h2>
-                    <div id="stepsCopyCaption" class="card-subtitle">Kopieer alle steps van één lesson naar een andere lesson.</div>
-                  </div>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Steps kopiëren</h2>
+                <div id="stepsCopyCaption" class="card-subtitle">Kopieer alle steps van één lesson naar een andere lesson.</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 align-items-start">
+                <div class="col-12 col-lg-4">
+                  <label class="form-label" for="copySourceLessonSelect">Van lesson</label>
+                  <select id="copySourceLessonSelect" class="form-select"></select>
                 </div>
-                <div class="card-body">
-                  <div class="row g-3 align-items-end">
-                    <div class="col-12 col-lg-5">
-                      <label class="form-label" for="copySourceLessonSelect">Van lesson</label>
-                      <select id="copySourceLessonSelect" class="form-select"></select>
-                    </div>
-                    <div class="col-12 col-lg-5">
-                      <label class="form-label" for="copyTargetLessonSelect">Naar lesson(s)</label>
-                      <select id="copyTargetLessonSelect" class="form-select" multiple size="8"></select>
-                      <div class="form-hint">Gebruik Cmd/Ctrl of Shift om meerdere targets te kiezen.</div>
-                    </div>
-                    <div class="col-12 col-lg-2">
-                      <div class="btn-list">
-                        <button id="replaceLessonStepsBtn" type="button" class="btn btn-outline-warning w-100">Replace</button>
-                        <button id="appendLessonStepsBtn" type="button" class="btn btn-outline-secondary w-100">Append</button>
-                      </div>
-                    </div>
+                <div class="col-12 col-lg-6">
+                  <label class="form-label" for="copyTargetLessonSelect">Naar lesson(s)</label>
+                  <select id="copyTargetLessonSelect" class="form-select" multiple size="10"></select>
+                  <div class="form-hint">Gebruik Cmd/Ctrl of Shift om meerdere targets te kiezen.</div>
+                </div>
+                <div class="col-12 col-lg-2">
+                  <label class="form-label">&nbsp;</label>
+                  <div class="btn-list">
+                    <button id="replaceLessonStepsBtn" type="button" class="btn btn-outline-warning w-100">Replace</button>
+                    <button id="appendLessonStepsBtn" type="button" class="btn btn-outline-secondary w-100">Append</button>
                   </div>
                 </div>
               </div>
