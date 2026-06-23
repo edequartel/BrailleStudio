@@ -145,6 +145,33 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
                   </div>
                 </div>
               </div>
+
+              <div class="card mt-3">
+                <div class="card-header">
+                  <div>
+                    <h2 class="card-title">Steps kopiëren</h2>
+                    <div id="stepsCopyCaption" class="card-subtitle">Kopieer alle steps van één lesson naar een andere lesson.</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-5">
+                      <label class="form-label" for="copySourceLessonSelect">Van lesson</label>
+                      <select id="copySourceLessonSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-12 col-lg-5">
+                      <label class="form-label" for="copyTargetLessonSelect">Naar lesson</label>
+                      <select id="copyTargetLessonSelect" class="form-select"></select>
+                    </div>
+                    <div class="col-12 col-lg-2">
+                      <div class="btn-list">
+                        <button id="replaceLessonStepsBtn" type="button" class="btn btn-outline-warning w-100">Replace</button>
+                        <button id="appendLessonStepsBtn" type="button" class="btn btn-outline-secondary w-100">Append</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -209,6 +236,11 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     const moveUpBtn = document.getElementById('moveUpBtn');
     const moveDownBtn = document.getElementById('moveDownBtn');
     const deleteRecordBtn = document.getElementById('deleteRecordBtn');
+    const copySourceLessonSelect = document.getElementById('copySourceLessonSelect');
+    const copyTargetLessonSelect = document.getElementById('copyTargetLessonSelect');
+    const replaceLessonStepsBtn = document.getElementById('replaceLessonStepsBtn');
+    const appendLessonStepsBtn = document.getElementById('appendLessonStepsBtn');
+    const stepsCopyCaption = document.getElementById('stepsCopyCaption');
     const deleteConfirmModalElement = document.getElementById('deleteConfirmModal');
     const deleteConfirmText = document.getElementById('deleteConfirmText');
     const confirmDeleteRecordBtn = document.getElementById('confirmDeleteRecordBtn');
@@ -328,6 +360,74 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       return shared.getLessonsForBasis(lessonsCache, basisIndex);
     }
 
+    function getLessonLabel(lesson) {
+      const basisIndex = Number(lesson?.basisIndex ?? -1);
+      const lessonNumber = Number(lesson?.lessonNumber || 0);
+      const prefix = basisIndex >= 0 ? `${basisIndex + 1}. ` : '';
+      const slot = lessonNumber > 0 ? ` (${lessonNumber})` : '';
+      return `${prefix}${String(lesson?.title || lesson?.id || '').trim()}${slot}`;
+    }
+
+    function renderLessonStepCopyControls() {
+      const lessons = Array.isArray(lessonsCache)
+        ? lessonsCache.filter((lesson) => String(lesson?.id || '').trim())
+        : [];
+      const selectedLessonId = String(state.lessonId || '').trim();
+      const previousSource = String(copySourceLessonSelect.value || '').trim();
+      const previousTarget = String(copyTargetLessonSelect.value || '').trim();
+
+      [copySourceLessonSelect, copyTargetLessonSelect].forEach((select) => {
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = lessons.length ? 'Select lesson' : 'Geen lessons beschikbaar';
+        select.appendChild(placeholder);
+      });
+
+      lessons
+        .slice()
+        .sort((a, b) => {
+          const aIndex = Number(a?.basisIndex ?? 0);
+          const bIndex = Number(b?.basisIndex ?? 0);
+          if (aIndex !== bIndex) return aIndex - bIndex;
+          const aNumber = Number(a?.lessonNumber || 0);
+          const bNumber = Number(b?.lessonNumber || 0);
+          if (aNumber !== bNumber) return aNumber - bNumber;
+          return String(a?.title || a?.id || '').localeCompare(String(b?.title || b?.id || ''));
+        })
+        .forEach((lesson) => {
+          const id = String(lesson?.id || '').trim();
+          const label = getLessonLabel(lesson);
+          const sourceOption = document.createElement('option');
+          sourceOption.value = id;
+          sourceOption.textContent = label;
+          copySourceLessonSelect.appendChild(sourceOption);
+
+          const targetOption = document.createElement('option');
+          targetOption.value = id;
+          targetOption.textContent = label;
+          copyTargetLessonSelect.appendChild(targetOption);
+        });
+
+      if (previousSource && lessons.some((lesson) => String(lesson?.id || '').trim() === previousSource)) {
+        copySourceLessonSelect.value = previousSource;
+      }
+      if (previousTarget && lessons.some((lesson) => String(lesson?.id || '').trim() === previousTarget)) {
+        copyTargetLessonSelect.value = previousTarget;
+      } else if (selectedLessonId && lessons.some((lesson) => String(lesson?.id || '').trim() === selectedLessonId)) {
+        copyTargetLessonSelect.value = selectedLessonId;
+      }
+
+      const enabled = lessons.length >= 2;
+      copySourceLessonSelect.disabled = !enabled;
+      copyTargetLessonSelect.disabled = !enabled;
+      replaceLessonStepsBtn.disabled = !enabled;
+      appendLessonStepsBtn.disabled = !enabled;
+      stepsCopyCaption.textContent = enabled
+        ? 'Kopieer alle steps van één bestaande lesson naar een andere bestaande lesson.'
+        : 'Maak of bewaar eerst minimaal twee lessons om steps te kopiëren.';
+    }
+
     function buildDraftLessonForBasis(basisIndex) {
       const item = basisItems[basisIndex];
       const method = shared.getDraftMethodMeta(state);
@@ -380,6 +480,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       });
       renderBasisList();
       renderEditor();
+      renderLessonStepCopyControls();
     }
 
     function renderBasisList() {
@@ -445,6 +546,63 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       soundsInput.value = (item.sounds || []).join(', ');
       newSoundsInput.value = (item.newSounds || []).join(', ');
       knownSoundsInput.value = (item.knownSounds || []).join(', ');
+    }
+
+    async function copyLessonSteps(mode = 'replace') {
+      const sourceLessonId = String(copySourceLessonSelect.value || '').trim();
+      const targetLessonId = String(copyTargetLessonSelect.value || '').trim();
+      if (!sourceLessonId || !targetLessonId) {
+        setStatus('Kies een bronlesson en een doellesson.');
+        return;
+      }
+      if (sourceLessonId === targetLessonId) {
+        setStatus('Kies twee verschillende lessons.');
+        return;
+      }
+
+      const sourceLesson = await shared.loadLesson(sourceLessonId);
+      const targetLesson = await shared.loadLesson(targetLessonId);
+      const copiedSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
+        .map((step) => ({ ...step, stepLinkCode: '' }));
+      if (!copiedSteps.length) {
+        setStatus('De bronlesson heeft geen steps.');
+        return;
+      }
+
+      const existingSteps = shared.normalizeStepConfigs(targetLesson?.steps || []);
+      const nextSteps = mode === 'append'
+        ? [...existingSteps, ...copiedSteps]
+        : copiedSteps;
+
+      try {
+        replaceLessonStepsBtn.disabled = true;
+        appendLessonStepsBtn.disabled = true;
+        const result = await shared.saveLesson({
+          ...targetLesson,
+          overwrite: true,
+          steps: nextSteps
+        });
+
+        const method = shared.getDraftMethodMeta(state);
+        lessonsCache = method.id ? await shared.listLessons(method.id) : [];
+        if (String(state.lessonId || '').trim() === targetLessonId) {
+          state = shared.updateState({ steps: nextSteps });
+        }
+        renderLessonStepCopyControls();
+        setStatus(
+          mode === 'append'
+            ? `${copiedSteps.length} step(s) toegevoegd aan ${targetLessonId}.`
+            : `${copiedSteps.length} step(s) gekopieerd naar ${targetLessonId}.`,
+          {
+            sourceLesson: sourceLessonId,
+            targetLesson: targetLessonId,
+            totalSteps: nextSteps.length,
+            result: result?.status || 'saved'
+          }
+        );
+      } finally {
+        renderLessonStepCopyControls();
+      }
     }
 
     function updateSelectedRecordFromInputs() {
@@ -706,6 +864,20 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
     moveUpBtn.addEventListener('click', () => moveSelectedRecord(-1));
     moveDownBtn.addEventListener('click', () => moveSelectedRecord(1));
     deleteRecordBtn.addEventListener('click', deleteSelectedRecord);
+    replaceLessonStepsBtn.addEventListener('click', async () => {
+      try {
+        await copyLessonSteps('replace');
+      } catch (err) {
+        setStatus(`Steps kopiëren mislukt: ${err.message}`);
+      }
+    });
+    appendLessonStepsBtn.addEventListener('click', async () => {
+      try {
+        await copyLessonSteps('append');
+      } catch (err) {
+        setStatus(`Steps toevoegen mislukt: ${err.message}`);
+      }
+    });
     confirmDeleteRecordBtn.addEventListener('click', confirmDeleteRecord);
     deleteConfirmModalElement.addEventListener('hidden.bs.modal', () => {
       pendingDeleteIndex = -1;
