@@ -1,0 +1,397 @@
+{
+  "blocks": {
+    "languageVersion": 0,
+    "blocks": [
+      {
+        "type": "event_when_started",
+        "id": "+jS+Bps12jS8|9`ong0}",
+        "x": 48,
+        "y": 40,
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "variables_set",
+              "id": "lichtkrant_init_set",
+              "fields": {
+                "VAR": {
+                  "id": "lichtkrant_items",
+                  "name": "lichtkrant_items",
+                  "type": ""
+                }
+              },
+              "inputs": {
+                "VALUE": {
+                  "block": {
+                    "type": "lists_create_with",
+                    "id": "lichtkrant_list",
+                    "extraState": {
+                      "itemCount": 4
+                    },
+                    "inputs": {
+                      "ADD0": {
+                        "block": {
+                          "type": "text",
+                          "id": "lichtkrant_text_0",
+                          "fields": {
+                            "TEXT": "Welkom bij BrailleStudio"
+                          }
+                        }
+                      },
+                      "ADD1": {
+                        "block": {
+                          "type": "text",
+                          "id": "lichtkrant_text_1",
+                          "fields": {
+                            "TEXT": "Vandaag oefenen we braille"
+                          }
+                        }
+                      },
+                      "ADD2": {
+                        "block": {
+                          "type": "text",
+                          "id": "lichtkrant_text_2",
+                          "fields": {
+                            "TEXT": "Lees rustig mee"
+                          }
+                        }
+                      },
+                      "ADD3": {
+                        "block": {
+                          "type": "text",
+                          "id": "lichtkrant_text_3",
+                          "fields": {
+                            "TEXT": "Goed gedaan"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "bb_set_text",
+                  "id": "lichtkrant_first_display",
+                  "inputs": {
+                    "TEXT": {
+                      "block": {
+                        "type": "list_next_item",
+                        "id": "lichtkrant_first_next",
+                        "inputs": {
+                          "LIST": {
+                            "block": {
+                              "type": "variables_get",
+                              "id": "lichtkrant_items_get_first",
+                              "fields": {
+                                "VAR": {
+                                  "id": "lichtkrant_items",
+                                  "name": "lichtkrant_items",
+                                  "type": ""
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "timer_start",
+                      "id": "lichtkrant_timer_start",
+                      "fields": {
+                        "NAME": "lichtkrant"
+                      },
+                      "inputs": {
+                        "SECONDS": {
+                          "block": {
+                            "type": "math_number",
+                            "id": "lichtkrant_seconds",
+                            "fields": {
+                              "NUM": 3
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "bb_set_text",
+                          "id": "ba{@viH}Cd[M*g@ZyQT|",
+                          "inputs": {
+                            "TEXT": {
+                              "shadow": {
+                                "type": "text",
+                                "id": "qt^*[H(NmM7h^K.F?%m2",
+                                "fields": {
+                                  "TEXT": "bal"
+                                }
+                              },
+                              "block": {
+                                "type": "external_variable_get",
+                                "id": "3VL}[:$Yup6@lx%3(iJW",
+                                "fields": {
+                                  "VAR": "woord"
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "procedures_callnoreturn",
+                              "id": "7[8bHn#sFI+0{T?gSM#!",
+                              "extraState": {
+                                "name": "play instruction"
+                              },
+                              "next": {
+                                "block": {
+                                  "type": "sound_play_folder_file",
+                                  "id": "ffG#]i+_M$O/o`]C)j=Z",
+                                  "fields": {
+                                    "FOLDER": "story"
+                                  },
+                                  "inputs": {
+                                    "FILE": {
+                                      "shadow": {
+                                        "type": "text",
+                                        "id": "K,6)LJ4o}(}aAYl:LjZH",
+                                        "fields": {
+                                          "TEXT": "bal"
+                                        }
+                                      },
+                                      "block": {
+                                        "type": "external_variable_get",
+                                        "id": "bsDTt7Wz7C+6.W0[~k*w",
+                                        "fields": {
+                                          "VAR": "woord"
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "procedures_defnoreturn",
+        "id": "G96sy~ycfB]T)/|=wQoC",
+        "x": 496,
+        "y": 40,
+        "icons": {
+          "comment": {
+            "text": "Describe this function...",
+            "pinned": false,
+            "height": 80,
+            "width": 160
+          }
+        },
+        "fields": {
+          "NAME": "play instruction"
+        },
+        "inputs": {
+          "STACK": {
+            "block": {
+              "type": "sound_play_sounds_relative",
+              "id": "az}m?-jc?!v^+d;]Sq-V",
+              "inputs": {
+                "PATH": {
+                  "shadow": {
+                    "type": "text",
+                    "id": "p;ct{g.iq)*L$r%TsP%w",
+                    "fields": {
+                      "TEXT": "../nl/instructions/Story-001.mp3"
+                    }
+                  },
+                  "block": {
+                    "type": "text",
+                    "id": "OuC}v+8A~%;ypJJ-I@2Q",
+                    "fields": {
+                      "TEXT": "../nl/instructions/luister-verhaal-2-001.mp3"
+                    }
+                  }
+                }
+              },
+              "next": {
+                "block": {
+                  "type": "sound_play_folder_file",
+                  "id": "9k$@{i1XVJ76P|Y%GC?$",
+                  "fields": {
+                    "FOLDER": "speech"
+                  },
+                  "inputs": {
+                    "FILE": {
+                      "shadow": {
+                        "type": "text",
+                        "id": "c+Z)J%d7];-vm0S31!m2",
+                        "fields": {
+                          "TEXT": "bal"
+                        }
+                      },
+                      "block": {
+                        "type": "external_variable_get",
+                        "id": "My;UV3.3.X:Xjerq]a%~",
+                        "fields": {
+                          "VAR": "woord"
+                        }
+                      }
+                    }
+                  },
+                  "next": {
+                    "block": {
+                      "type": "sound_play_sounds_relative",
+                      "id": "CO5U@RC[XjHf?-^ekqhF",
+                      "inputs": {
+                        "PATH": {
+                          "shadow": {
+                            "type": "text",
+                            "id": "|)(stR7#OTF|w{;d;^v!",
+                            "fields": {
+                              "TEXT": "../nl/instructions/Story-002.mp3"
+                            }
+                          },
+                          "block": {
+                            "type": "text",
+                            "id": "KIXH0yHeK.q~,nC2$^FF",
+                            "fields": {
+                              "TEXT": "../nl/instructions/luister-verhaal-2-002.mp3"
+                            }
+                          }
+                        }
+                      },
+                      "next": {
+                        "block": {
+                          "type": "klanken_play_word_phonemes_nl",
+                          "id": "Dwh*Kd%Jz7G,^{H;XYCh",
+                          "inputs": {
+                            "WORD": {
+                              "shadow": {
+                                "type": "text",
+                                "id": "o9{7+2wfFZb))Q=9IhQY",
+                                "fields": {
+                                  "TEXT": "bal"
+                                }
+                              },
+                              "block": {
+                                "type": "external_variable_get",
+                                "id": "+5m?7(bc]y84EkR~nBE2",
+                                "fields": {
+                                  "VAR": "woord"
+                                }
+                              }
+                            }
+                          },
+                          "next": {
+                            "block": {
+                              "type": "sound_play_sounds_relative",
+                              "id": "}dz|Riz#lkcYirD7FifO",
+                              "inputs": {
+                                "PATH": {
+                                  "shadow": {
+                                    "type": "text",
+                                    "id": "Ho_(U2!@eRfo8Wv@)8fB",
+                                    "fields": {
+                                      "TEXT": "../nl/instructions/Story-003.mp3"
+                                    }
+                                  },
+                                  "block": {
+                                    "type": "text",
+                                    "id": "KB#JY#;g,HojK,29_1wG",
+                                    "fields": {
+                                      "TEXT": "../nl/instructions/luister-verhaal-2-003.mp3"
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "event_when_timer",
+        "id": "sBEunX]2PGJ+VQdC?cPU",
+        "x": 815,
+        "y": 316,
+        "fields": {
+          "NAME": "lichtkrant"
+        },
+        "inputs": {
+          "DO": {
+            "block": {
+              "type": "bb_set_text",
+              "id": "bnN+Z[$gYxHUu/nf6Vh+",
+              "inputs": {
+                "TEXT": {
+                  "block": {
+                    "type": "list_next_item",
+                    "id": "+Ca[$HeC:I1pzX_ui66R",
+                    "inputs": {
+                      "LIST": {
+                        "block": {
+                          "type": "variables_get",
+                          "id": ",ivcLBukOiA~~eZ@_x+q",
+                          "fields": {
+                            "VAR": {
+                              "id": "lichtkrant_items",
+                              "name": "lichtkrant_items",
+                              "type": ""
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "score",
+      "id": "bn1W64E~q%]7uzunD@cG"
+    },
+    {
+      "name": "count",
+      "id": "kgkYGM1`l1PN^w9G{jD2"
+    },
+    {
+      "name": "item",
+      "id": "Z*2dsu;zRihn6v@,k,E/"
+    },
+    {
+      "name": "lichtkrant_items",
+      "id": "lichtkrant_items",
+      "type": ""
+    }
+  ],
+  "scriptVariables": [
+    {
+      "id": "external_woord_mpnzekcq_7zco1",
+      "name": "woord",
+      "scope": "external",
+      "type": "string",
+      "defaultValue": "bal",
+      "description": "Het woord waar een luister verhaal aan is gekoppeld."
+    }
+  ]
+}

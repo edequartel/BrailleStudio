@@ -159,7 +159,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           </div>
           <h1 class="h2 mb-2">Steps laden</h1>
           <p id="stepsLoadingMessage" class="text-secondary mb-0">De lesson steps worden voorbereid.</p>
-          <pre id="stepsLoadingDebugLog" class="form-control font-monospace text-start mt-4 mb-0" style="max-height: 16rem; overflow: auto; white-space: pre-wrap;"></pre>
+          <pre id="stepsLoadingDebugLog" class="form-control font-monospace text-start mt-4 mb-0 d-none" style="max-height: 16rem; overflow: auto; white-space: pre-wrap;" hidden></pre>
         </div>
       </div>
     </div>
@@ -294,10 +294,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
                       <i class="ti ti-player-play me-2" aria-hidden="true"></i>
                       Run
                     </button>
-                    <button id="stopLessonBtn" class="btn btn-danger" type="button">
-                      <i class="ti ti-player-stop me-2" aria-hidden="true"></i>
-                      Stop
-                    </button>
                   </div>
                   <div id="lessonActionHint" class="form-hint mt-2">Use Save to store the current steps, Delete to remove the lesson, and Run to test the current steps.</div>
                 </div>
@@ -422,7 +418,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const authBtn = document.getElementById('authBtn');
     const saveLessonBtn = document.getElementById('saveLessonBtn');
     const deleteLessonBtn = document.getElementById('deleteLessonBtn');
-    const stopLessonBtn = document.getElementById('stopLessonBtn');
     const lessonActionHint = document.getElementById('lessonActionHint');
     const brailleMonitorRow = document.getElementById('brailleMonitorRow');
     const scriptBrailleMonitorRow = document.getElementById('scriptBrailleMonitorRow');
@@ -454,6 +449,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
     const authRedirected = Boolean(shared?.requireAuthOnProduction?.());
     const pageStartedAt = performance.now();
+    const loadingDebugEntries = [];
+    const MAX_STATUS_ITEMS = 80;
+    const MAX_LOADING_DEBUG_ENTRIES = 40;
 
     function setLoadingMessage(message) {
       if (stepsLoadingMessage) {
@@ -487,6 +485,7 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         stepsLoadingMessage.classList.add('text-danger');
       }
       if (stepsLoadingDebugLog) {
+        stepsLoadingDebugLog.textContent = loadingDebugEntries.join('\n');
         stepsLoadingDebugLog.hidden = false;
         stepsLoadingDebugLog.classList.remove('d-none');
       }
@@ -550,6 +549,9 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         });
       }
       statusBox.prepend(item);
+      while (statusBox.children.length > MAX_STATUS_ITEMS) {
+        statusBox.lastElementChild?.remove();
+      }
       return `[${timestamp}] ${message}${formatted ? `\n${formatted}` : ''}`;
     }
 
@@ -559,9 +561,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
 
     function appendStatus(message, data = null) {
       const block = addStatus(message, data);
-      if (stepsLoadingDebugLog) {
-        stepsLoadingDebugLog.textContent = stepsLoadingDebugLog.textContent ? `${block}\n${stepsLoadingDebugLog.textContent}` : block;
-        stepsLoadingDebugLog.scrollTop = 0;
+      loadingDebugEntries.unshift(block);
+      if (loadingDebugEntries.length > MAX_LOADING_DEBUG_ENTRIES) {
+        loadingDebugEntries.length = MAX_LOADING_DEBUG_ENTRIES;
+      }
+      if (stepsLoadingDebugLog && !stepsLoadingDebugLog.hidden) {
+        stepsLoadingDebugLog.textContent = loadingDebugEntries.join('\n');
       }
     }
 
@@ -851,11 +856,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         runLessonBtn.innerHTML = isLessonRunning
           ? `<i class="ti ti-player-stop me-2" aria-hidden="true"></i>${isStoppingLesson ? 'Stopping...' : 'Stop'}`
           : '<i class="ti ti-player-play me-2" aria-hidden="true"></i>Run';
-      }
-      if (stopLessonBtn) {
-        const isStopping = isStoppingCurrentStep || isStoppingLesson;
-        stopLessonBtn.disabled = isStopping;
-        stopLessonBtn.innerHTML = `<i class="ti ti-player-stop me-2" aria-hidden="true"></i>${isStopping ? 'Stopping...' : 'Stop'}`;
       }
     }
 
@@ -2127,34 +2127,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
       await activeStopPromise;
     }
 
-    async function stopLessonAndAudio() {
-      appendStatus('Stop requested for lesson script and audio.');
-      const app = await waitForRunnerReady(5000);
-      const audioStopped = app && typeof app.stopAudio === 'function'
-        ? await app.stopAudio()
-        : false;
-
-      if (currentRunningStepIndex >= 0) {
-        await stopCurrentStep({ alsoStopLesson: true });
-      } else {
-        isStoppingLesson = true;
-        renderStepRunButtons();
-        try {
-          if (app && typeof app.stopProgram === 'function') {
-            await app.stopProgram();
-          }
-        } finally {
-          isLessonRunning = false;
-          isStoppingLesson = false;
-          renderStepRunButtons();
-        }
-      }
-
-      appendStatus('Lesson script and audio stopped.', {
-        audioStopped: Boolean(audioStopped)
-      });
-    }
-
     async function runSingleStep(index) {
       if (activeStopPromise) {
         await activeStopPromise;
@@ -2350,7 +2322,12 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
           lessonId: state.lessonId || '',
           basisIndex: state.basisIndex ?? null
         });
-        const runnerWarmupPromise = waitForRunnerReady(15000).catch((err) => {
+        const runnerWarmupPromise = waitForRunnerReady(15000).then((app) => {
+          appendStatus('Runner warmup klaar.', {
+            ready: Boolean(app)
+          });
+          return app;
+        }).catch((err) => {
           appendStatus('Runner warmup failed during init.', {
             error: err.message || String(err),
             runnerState: getRunnerDebugState()
@@ -2437,7 +2414,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         const preloadSummary = await timeStep('Referenced scripts preload', () => preloadReferencedScriptData(stepConfigs));
         setLoadingMessage('Editor klaarzetten.');
         await timeStep('Selected script metadata refresh', () => refreshSelectedScriptMeta());
-        await timeStep('Runner warmup wait', () => runnerWarmupPromise);
         renderStepsTable();
         renderDebugLogVisibility();
         renderAuthenticationState();
@@ -2649,14 +2625,6 @@ $jsValue = static fn (string $value): string => json_encode($value, JSON_UNESCAP
         await runLesson();
       } catch (err) {
         setStatus(`Run error: ${err.message}`);
-      }
-    });
-
-    stopLessonBtn.addEventListener('click', async () => {
-      try {
-        await stopLessonAndAudio();
-      } catch (err) {
-        setStatus(`Stop error: ${err.message}`);
       }
     });
 
