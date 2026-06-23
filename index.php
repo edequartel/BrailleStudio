@@ -38,17 +38,17 @@ $modules = [
             ['label' => 'Lesson Builder', 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
             ['label' => 'Session Builder', 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
             ['label' => 'Teacher Dashboard', 'href' => $baseUrl . 'api/xapi-api/teacher-dashboard.php', 'icon' => 'ti-chart-bar'],
+            ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.php', 'icon' => 'ti-music'],
         ],
     ],
     [
-        'title' => 'Taal en klanken',
-        'eyebrow' => 'Materiaal',
-        'description' => 'Werk met fonemen, klanken en taalontwikkeling voor beginnende braillelezers.',
-        'icon' => 'ti-volume',
+        'title' => 'Blockly ontwikkelen',
+        'eyebrow' => 'Ontwikkeling',
+        'description' => 'Ontwikkel en beheer Blockly-activiteiten voor interactieve braillelessen.',
+        'icon' => 'ti-puzzle',
         'theme' => 'orange',
         'links' => [
             ['label' => 'Blockly editor', 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
-            ['label' => 'Klanken', 'href' => $baseUrl . 'klanken/index.php', 'icon' => 'ti-music'],
         ],
     ],
     [
