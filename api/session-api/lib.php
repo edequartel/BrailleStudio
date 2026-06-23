@@ -4,26 +4,11 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
 
 $sessionApiScript = str_replace('\\', '/', (string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
-$sessionApiPublicScripts = [
-    'cleanup-sessions.php',
-    'delete-session.php',
-    'join.php',
-    'list-links.php',
-    'mark-session-open.php',
-    'resolve.php',
-    'runtime-state.php',
-    'send-step-link.php',
-    'script-meta.php',
-    'start-session.php',
-    'status.php',
-    'stop-step.php',
-    'wait.php',
-];
 if (
     strpos($sessionApiScript, '/api/session-api/') !== false
-    && !in_array(basename($sessionApiScript), $sessionApiPublicScripts, true)
+    && !bs_auth_is_public_session_api_script($sessionApiScript)
 ) {
-    bs_auth_require_login(['admin', 'docent', 'leerling'], 'json');
+    bs_auth_require_login(['admin', 'developer', 'docent', 'leerling'], 'json');
 }
 
 /*

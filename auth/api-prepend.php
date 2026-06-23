@@ -12,25 +12,8 @@ if (strpos($script, '/api/authentication-api/') !== false) {
     return;
 }
 
-if (strpos($script, '/api/session-api/') !== false) {
-    $publicSessionApiFiles = [
-        'create-session.php',
-        'delete-session.php',
-        'laptop.html',
-        'laptop.php',
-        'list-links.php',
-        'load-session-script.php',
-        'mark-session-open.php',
-        'phone.html',
-        'qr-image.php',
-        'script-meta.php',
-        'send-step-link.php',
-        'session-state.php',
-    ];
-
-    if (in_array(basename($script), $publicSessionApiFiles, true)) {
-        return;
-    }
+if (bs_auth_is_public_session_api_script($script)) {
+    return;
 }
 
 if (
@@ -41,5 +24,5 @@ if (
 }
 
 if (strpos($script, '/api/') !== false) {
-    bs_auth_require_login(['admin', 'docent', 'leerling'], 'json');
+    bs_auth_require_login(['admin', 'developer', 'docent', 'leerling'], 'json');
 }

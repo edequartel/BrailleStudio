@@ -365,6 +365,40 @@ function bs_auth_json_response(array $payload, int $status = 200): never
     exit;
 }
 
+function bs_auth_public_session_api_files(): array
+{
+    return [
+        'cleanup-sessions.php',
+        'create-session.php',
+        'delete-session.php',
+        'join.php',
+        'laptop.html',
+        'laptop.php',
+        'list-links.php',
+        'load-session-script.php',
+        'mark-session-open.php',
+        'phone.html',
+        'resolve.php',
+        'runtime-state.php',
+        'script-meta.php',
+        'send-script.php',
+        'send-step-link.php',
+        'session-state.php',
+        'start-session.php',
+        'start.php',
+        'status.php',
+        'stop-step.php',
+        'wait.php',
+    ];
+}
+
+function bs_auth_is_public_session_api_script(string $script): bool
+{
+    $script = str_replace('\\', '/', $script);
+    return strpos($script, '/api/session-api/') !== false
+        && in_array(basename($script), bs_auth_public_session_api_files(), true);
+}
+
 function bs_auth_require_login(array $roles = [], string $mode = 'page'): array
 {
     if (empty($_COOKIE[bs_auth_session_cookie_name()])) {

@@ -825,8 +825,7 @@
     const LIST_LINKS_URL = './list-links.php';
     const SCRIPT_META_URL = './script-meta.php';
     const BLOCKLY_URL = '../../blockly/session-player.php?v=20260613-public-session-load-1';
-    const QR_IMAGE_PROXY_URL = './qr-image.php?data=';
-    const QR_IMAGE_FALLBACK_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=';
+    const QR_IMAGE_BASE_URL = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=';
     const PHONE_HOST_STORAGE_KEY = 'braillestudioSessionPhoneHost';
     const BRAILLE_MONITOR_PLACEHOLDER = '';
     const SESSION_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
@@ -1189,45 +1188,35 @@
       }
 
       const qrImage = $('qrImage');
-      const qrUrls = [
-        `${QR_IMAGE_PROXY_URL}${encodeURIComponent(phoneUrl)}`,
-        `${QR_IMAGE_FALLBACK_URL}${encodeURIComponent(phoneUrl)}`
-      ];
-      $('laptopUrlText').textContent = phoneUrl;
-      renderLocalPhoneHostControls(config);
-      setSessionPrompt('Start sessie', 'Scan code met mobiel', false);
-      panel.hidden = false;
+      const qrUrl = `${QR_IMAGE_BASE_URL}${encodeURIComponent(phoneUrl)}`;
+      panel.hidden = true;
       qrImage.hidden = true;
 
-      let loaded = false;
-      for (const qrUrl of qrUrls) {
-        loaded = await new Promise((resolve) => {
-          const cleanup = () => {
-            qrImage.removeEventListener('load', handleLoad);
-            qrImage.removeEventListener('error', handleError);
-          };
-          const handleLoad = () => {
-            cleanup();
-            resolve(qrImage.naturalWidth > 0);
-          };
-          const handleError = () => {
-            cleanup();
-            resolve(false);
-          };
-          qrImage.addEventListener('load', handleLoad);
-          qrImage.addEventListener('error', handleError);
-          qrImage.src = qrUrl;
-          if (qrImage.complete) {
-            handleLoad();
-          }
-        });
-        if (loaded) break;
-      }
+      await new Promise((resolve, reject) => {
+        const cleanup = () => {
+          qrImage.removeEventListener('load', handleLoad);
+          qrImage.removeEventListener('error', handleError);
+        };
+        const handleLoad = () => {
+          cleanup();
+          resolve();
+        };
+        const handleError = () => {
+          cleanup();
+          reject(new Error('De sessie-QR-code kon niet worden geladen.'));
+        };
+        qrImage.addEventListener('load', handleLoad);
+        qrImage.addEventListener('error', handleError);
+        qrImage.src = qrUrl;
+        if (qrImage.complete && qrImage.naturalWidth > 0) {
+          handleLoad();
+        }
+      });
 
-      if (!loaded) {
-        throw new Error('De sessie-QR-code kon niet worden geladen.');
-      }
+      $('laptopUrlText').textContent = phoneUrl;
+      renderLocalPhoneHostControls(config);
       setSessionPrompt('Start sessie', 'Scan code met mobiel', true);
+      panel.hidden = false;
     }
 
     function updateAddressBar(config) {
