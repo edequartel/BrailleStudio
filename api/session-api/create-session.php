@@ -61,7 +61,7 @@ $status = $response['curl_error'] !== ''
     ? 502
     : ($response['http_code'] > 0 ? $response['http_code'] : 500);
 $baseUrl = session_api_public_base_url();
-$laptopUrl = $baseUrl . '/laptop.html?session=' . rawurlencode($sessionCode);
+$laptopUrl = $baseUrl . '/laptop.html?session=' . rawurlencode($sessionCode) . '&v=20260623-2';
 $phoneUrl = $baseUrl . '/phone.html?session=' . rawurlencode($sessionCode);
 $sendUrl = $baseUrl . '/send-script.php?session_code=' . rawurlencode($sessionCode) . '&script_id=SCRIPT_ID';
 

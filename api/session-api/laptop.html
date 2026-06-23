@@ -9,6 +9,9 @@
   <link rel="manifest" href="/braillestudio/site.webmanifest">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>BrailleStudio realtime sessie</title>
   <link rel="stylesheet" href="../../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../../tabler/icons-webfont/dist/tabler-icons.min.css">
@@ -809,7 +812,9 @@
         </section>
 
         <iframe id="builderFrame" class="runner-frame" title="BrailleStudio runner" allow="autoplay"></iframe>
-        <pre id="logBox" hidden>Ready.</pre>
+        <div class="log-panel" hidden>
+          <pre id="logBox">Ready.</pre>
+        </div>
       </div>
     </main>
   </div>
