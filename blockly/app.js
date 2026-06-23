@@ -15,6 +15,12 @@ const BLOCKLY_MONITOR_VISIBLE_KEY = 'blockly_monitor_visible';
 const BLOCKLY_SIDEBAR_WIDTH_KEY = 'blockly_sidebar_width';
 const DEFAULT_LESSON_DATA_URL = 'https://www.tastenbraille.com/braillestudio-data/klanken/aanvankelijklijst.json';
 const FONEMEN_NL_JSON_URLS = [
+  new URL('../klanken/fonemen_nl_standaard.json', window.location.href).toString(),
+  new URL('/braillestudio/klanken/fonemen_nl_standaard.json', window.location.origin).toString(),
+  new URL('/braillestudio-data/klanken/fonemen_nl_standaard.json', window.location.origin).toString(),
+  new URL('/braillestudio-data/data/klanken/fonemen_nl_standaard.json', window.location.origin).toString(),
+  'https://tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json',
+  'https://tastenbraille.com/braillestudio-data/data/klanken/fonemen_nl_standaard.json',
   'https://www.tastenbraille.com/braillestudio-data/klanken/fonemen_nl_standaard.json',
   'https://www.tastenbraille.com/braillestudio-data/data/klanken/fonemen_nl_standaard.json'
 ];
