@@ -74,13 +74,37 @@ $modules = [
     ],
 ];
 
-$visibleModules = array_values(array_filter($modules, static function (array $module) use ($authUser): bool {
-    if ($authUser === null) {
-        return !empty($module['public']);
-    }
+$publicModules = [
+    [
+        'title' => 'MPOP',
+        'eyebrow' => 'Leerling',
+        'description' => 'Start direct de MPOP-brailleoefening.',
+        'icon' => 'ti-player-play',
+        'theme' => 'primary',
+        'links' => [
+            ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
+        ],
+    ],
+    [
+        'title' => 'Braille sessie',
+        'eyebrow' => 'Leerling',
+        'description' => 'Open een braillesessie en verbind het apparaat via de sessiecode.',
+        'icon' => 'ti-device-laptop',
+        'theme' => 'green',
+        'links' => [
+            ['label' => 'Braille sessie starten', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
+        ],
+    ],
+];
 
-    return !isset($module['roles']) || in_array($authUser['role'], $module['roles'], true);
-}));
+$visibleModules = $authUser === null
+    ? $publicModules
+    : array_values(array_filter($modules, static function (array $module) use ($authUser): bool {
+        return !isset($module['roles']) || in_array($authUser['role'], $module['roles'], true);
+    }));
+
+$moduleCount = count($visibleModules);
+$moduleGridColumns = max(1, min(4, $moduleCount));
 
 $stats = [
     ['label' => 'Brailleleesregel', 'value' => 'USB of Bluetooth', 'icon' => 'ti-device-desktop'],
@@ -327,9 +351,9 @@ function e(string $value): string
                 </section>
 
                 <section id="modules">
-                    <div class="row row-cards">
+                    <div class="row row-cards row-cols-1 row-cols-md-<?= e((string) min(2, $moduleGridColumns)) ?> row-cols-xl-<?= e((string) $moduleGridColumns) ?>">
                         <?php foreach ($visibleModules as $module): ?>
-                            <div class="col-12 col-md-6 <?= $authUser === null ? '' : 'col-xl-3' ?>">
+                            <div class="col">
                                 <article class="card module-card h-100">
                                     <div class="card-body">
                                         <div class="d-flex align-items-start mb-3">
