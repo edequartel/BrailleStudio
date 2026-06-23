@@ -378,6 +378,7 @@ function bs_auth_public_session_api_files(): array
         'load-session-script.php',
         'mark-session-open.php',
         'phone.html',
+        'qr-image.php',
         'resolve.php',
         'runtime-state.php',
         'script-meta.php',
