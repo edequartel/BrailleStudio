@@ -17,7 +17,7 @@ if ($isSessionPlayerEmbed) {
 
 $authUser = $isSessionPlayerEmbed
     ? ['display' => 'Sessie', 'role' => 'session']
-    : bs_auth_require_login(['admin', 'docent']);
+    : bs_auth_require_login(['admin', 'developer']);
 
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = rtrim($scriptDir, '/');
