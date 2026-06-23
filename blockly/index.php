@@ -1227,10 +1227,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="variableModalTitle">
     <h3 id="variableModalTitle">Variable</h3>
     <input id="variableEditId" type="hidden">
-    <select id="variableScopeInput" class="form-select" style="margin-bottom:8px;">
-      <option value="external">external</option>
-      <option value="internal">internal</option>
-    </select>
+    <input id="variableScopeExternal" type="hidden" value="external">
     <input id="variableNameInput" class="form-control" type="text" placeholder="Name" style="margin-bottom:8px;">
     <select id="variableTypeInput" class="form-select" style="margin-bottom:8px;">
       <option value="string">string</option>
@@ -1661,19 +1658,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
   <category name="External Variables" colour="#2563EB">
     <button text="Add external variable" callbackKey="ADD_EXTERNAL_VARIABLE"></button>
-    <button text="Add internal variable" callbackKey="ADD_INTERNAL_SCRIPT_VARIABLE"></button>
     <label text="External variables are runtime input/context."></label>
     <block type="external_variable_get"></block>
     <block type="external_variable_set">
-      <value name="VALUE">
-        <shadow type="text">
-          <field name="TEXT"></field>
-        </shadow>
-      </value>
-    </block>
-    <label text="Internal script variables are saved with this script."></label>
-    <block type="internal_variable_get"></block>
-    <block type="internal_variable_set">
       <value name="VALUE">
         <shadow type="text">
           <field name="TEXT"></field>
