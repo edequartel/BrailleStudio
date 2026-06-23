@@ -51,6 +51,7 @@
   }
 
   const EXTERNAL_VARIABLE_COLOUR = '#2563EB';
+  const INTERNAL_VARIABLE_COLOUR = '#EA580C';
   const GLOBAL_VARIABLE_COLOUR = '#7C3AED';
   function getVariableOptions(scope) {
     if (typeof window.BrailleBlocklyVariableOptions === 'function') {
@@ -100,6 +101,30 @@
       this.setNextStatement(true);
       this.setColour(EXTERNAL_VARIABLE_COLOUR);
       this.setTooltip(() => getVariableTooltip('external', this) + '\nSets the runtime value for this script run. Injected step input still has priority when a run starts.');
+    }
+  };
+
+  Blockly.Blocks['internal_variable_get'] = {
+    init() {
+      this.appendDummyInput()
+        .appendField('internal')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('internal')), 'VAR');
+      this.setOutput(true);
+      this.setColour(INTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('internal', this));
+    }
+  };
+
+  Blockly.Blocks['internal_variable_set'] = {
+    init() {
+      this.appendValueInput('VALUE')
+        .appendField('set internal')
+        .appendField(new Blockly.FieldDropdown(() => getVariableOptions('internal')), 'VAR')
+        .appendField('to');
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setColour(INTERNAL_VARIABLE_COLOUR);
+      this.setTooltip(() => getVariableTooltip('internal', this) + '\nSets the internal value for this script run.');
     }
   };
 

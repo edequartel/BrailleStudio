@@ -1227,7 +1227,10 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="variableModalTitle">
     <h3 id="variableModalTitle">Variable</h3>
     <input id="variableEditId" type="hidden">
-    <input id="variableScopeExternal" type="hidden" value="external">
+    <select id="variableScopeInput" class="form-select" style="margin-bottom:8px;">
+      <option value="external">external</option>
+      <option value="internal">internal</option>
+    </select>
     <input id="variableNameInput" class="form-control" type="text" placeholder="Name" style="margin-bottom:8px;">
     <select id="variableTypeInput" class="form-select" style="margin-bottom:8px;">
       <option value="string">string</option>
@@ -1658,9 +1661,19 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   </category>
   <category name="External Variables" colour="#2563EB">
     <button text="Add external variable" callbackKey="ADD_EXTERNAL_VARIABLE"></button>
+    <button text="Add internal variable" callbackKey="ADD_INTERNAL_SCRIPT_VARIABLE"></button>
     <label text="External variables are runtime input/context."></label>
     <block type="external_variable_get"></block>
     <block type="external_variable_set">
+      <value name="VALUE">
+        <shadow type="text">
+          <field name="TEXT"></field>
+        </shadow>
+      </value>
+    </block>
+    <label text="Internal script variables are saved with this script."></label>
+    <block type="internal_variable_get"></block>
+    <block type="internal_variable_set">
       <value name="VALUE">
         <shadow type="text">
           <field name="TEXT"></field>
@@ -1765,8 +1778,8 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       await window.BrailleStudioInstructionCatalogReady;
     }
 
-    await loadScript('./blocks.js?v=20260612-global-student-code-1');
-    await loadScript('./generators.js?v=20260612-global-student-code-1');
+    await loadScript('./blocks.js?v=20260623-script-variable-delete-1');
+    await loadScript('./generators.js?v=20260623-script-variable-delete-1');
     await loadScriptCandidates([
       '../components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
       '/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1',
@@ -1777,7 +1790,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
         '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
         'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
     ], { required: false });
-    await loadScript('./app.js?v=20260623-phoneme-json-local-1');
+    await loadScript('./app.js?v=20260623-script-variable-delete-1');
   })().catch((err) => {
     console.error('Blockly bootstrap failed', err);
     if (typeof window.__setBrailleBlocklyBootStage === 'function') {

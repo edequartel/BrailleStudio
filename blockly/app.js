@@ -380,8 +380,9 @@ function normalizeVariableName(name) {
   return String(name || '').trim();
 }
 
-function normalizeScriptVariable(raw = {}, fallbackScope = 'internal') {
-  const scope = 'external';
+function normalizeScriptVariable(raw = {}, fallbackScope = 'external') {
+  const rawScope = String(raw.scope || fallbackScope || 'internal').trim().toLowerCase();
+  const scope = rawScope === 'external' ? 'external' : 'internal';
   const type = SCRIPT_VARIABLE_TYPES.includes(String(raw.type || '').toLowerCase())
     ? String(raw.type).toLowerCase()
     : 'string';
@@ -585,7 +586,7 @@ function getVariableModalElements() {
     modal: document.getElementById('variableModal'),
     title: document.getElementById('variableModalTitle'),
     id: document.getElementById('variableEditId'),
-    external: document.getElementById('variableScopeExternal'),
+    scope: document.getElementById('variableScopeInput'),
     name: document.getElementById('variableNameInput'),
     type: document.getElementById('variableTypeInput'),
     defaultValue: document.getElementById('variableDefaultInput'),
@@ -613,9 +614,11 @@ function openVariableModal(variableId = '', initialScope = 'external') {
   const elements = getVariableModalElements();
   if (!elements.modal) return;
   const variable = scriptVariables.find((item) => item.id === variableId) || null;
-  const scope = 'external';
-  elements.title.textContent = variable ? 'Edit external variable' : 'Add external variable';
+  const initial = String(initialScope || 'external').trim().toLowerCase();
+  const scope = variable?.scope || (initial === 'internal' ? 'internal' : 'external');
+  elements.title.textContent = variable ? `Edit ${scope} variable` : `Add ${scope} variable`;
   elements.id.value = variable?.id || '';
+  if (elements.scope) elements.scope.value = scope;
   elements.name.value = variable?.name || '';
   elements.type.value = variable?.type || 'string';
   elements.defaultValue.value = formatVariableValue(variable?.defaultValue ?? '');
@@ -637,7 +640,7 @@ function closeVariableModal() {
 function saveVariableFromModal() {
   const elements = getVariableModalElements();
   const existingId = String(elements.id?.value || '').trim();
-  const scope = 'external';
+  const scope = String(elements.scope?.value || 'external').trim().toLowerCase() === 'internal' ? 'internal' : 'external';
   const name = normalizeVariableName(elements.name?.value);
   if (!name) {
     elements.name?.focus();
@@ -652,7 +655,7 @@ function saveVariableFromModal() {
   }
   const variable = normalizeScriptVariable({
     id: existingId || makeVariableId(name, scope),
-    scope: 'external',
+    scope,
     name,
     type: elements.type?.value || 'string',
     defaultValue: elements.defaultValue?.value || '',
@@ -698,6 +701,11 @@ function bindVariableEditorControls() {
   if (addExternalButton && !addExternalButton.dataset.initialized) {
     addExternalButton.addEventListener('click', () => openVariableModal('', 'external'));
     addExternalButton.dataset.initialized = '1';
+  }
+  const addInternalButton = document.getElementById('addInternalVariableBtn');
+  if (addInternalButton && !addInternalButton.dataset.initialized) {
+    addInternalButton.addEventListener('click', () => openVariableModal('', 'internal'));
+    addInternalButton.dataset.initialized = '1';
   }
   const saveButton = document.getElementById('variableModalSave');
   if (saveButton && !saveButton.dataset.initialized) {
@@ -4283,6 +4291,7 @@ function registerCompoundLibraryToolboxCategory() {
 function registerVariableToolboxButtons() {
   if (!workspace || typeof workspace.registerButtonCallback !== 'function') return;
   workspace.registerButtonCallback('ADD_EXTERNAL_VARIABLE', () => openVariableModal('', 'external'));
+  workspace.registerButtonCallback('ADD_INTERNAL_SCRIPT_VARIABLE', () => openVariableModal('', 'internal'));
   workspace.registerButtonCallback('ADD_LIST_VARIABLE', createInternalListVariable);
 }
 
@@ -4378,6 +4387,7 @@ function registerCustomContextMenuItems() {
   unregisterContextMenuItem('braille_save_to_my_blocks');
   unregisterContextMenuItem('braille_paste_block_from_clipboard');
   unregisterContextMenuItem('braille_edit_script_variable');
+  unregisterContextMenuItem('braille_delete_script_variable');
 
   registry.register({
     id: 'braille_copy_block_to_clipboard',
@@ -4439,18 +4449,50 @@ function registerCustomContextMenuItems() {
         'external_variable_get',
         'external_variable_set',
         'external_variable_exists',
-        'external_property_get'
+        'external_property_get',
+        'internal_variable_get',
+        'internal_variable_set'
       ]);
       return variableBlockTypes.has(block.type) ? 'enabled' : 'hidden';
     },
     callback: (scope) => {
       const block = scope?.block;
       const name = String(block?.getFieldValue?.('VAR') || '').trim();
-      const scopeName = 'external';
+      const scopeName = String(block?.type || '').startsWith('internal_') ? 'internal' : 'external';
       const variable = findScriptVariable(scopeName, name);
       if (variable) openVariableModal(variable.id, scopeName);
     },
     weight: 204,
+  });
+
+  registry.register({
+    id: 'braille_delete_script_variable',
+    scopeType: ScopeType.BLOCK,
+    displayText: () => 'Delete Script Variable',
+    preconditionFn: (scope) => {
+      const block = scope?.block;
+      if (!block || block.isInFlyout) return 'hidden';
+      const variableBlockTypes = new Set([
+        'external_variable_get',
+        'external_variable_set',
+        'external_variable_exists',
+        'external_property_get',
+        'internal_variable_get',
+        'internal_variable_set'
+      ]);
+      if (!variableBlockTypes.has(block.type)) return 'hidden';
+      const scopeName = String(block.type || '').startsWith('internal_') ? 'internal' : 'external';
+      const name = String(block.getFieldValue?.('VAR') || '').trim();
+      return findScriptVariable(scopeName, name) ? 'enabled' : 'hidden';
+    },
+    callback: (scope) => {
+      const block = scope?.block;
+      const name = String(block?.getFieldValue?.('VAR') || '').trim();
+      const scopeName = String(block?.type || '').startsWith('internal_') ? 'internal' : 'external';
+      const variable = findScriptVariable(scopeName, name);
+      if (variable) deleteScriptVariable(variable.id);
+    },
+    weight: 203,
   });
 }
 
@@ -5257,10 +5299,21 @@ function initializeRuntimeVariableScopes(externalOverrides = null) {
     });
   });
 
+  const internal = {};
+  getScriptVariables('internal').forEach((variable) => {
+    const value = parseVariableDefaultValue(variable);
+    [variable.name, variable.id].forEach((key) => {
+      const normalizedKey = String(key || '').trim();
+      if (normalizedKey) internal[normalizedKey] = value;
+    });
+  });
+
   rt.external = external;
+  rt.internal = internal;
   log(`External runtime initialized: ${JSON.stringify({
     injectedKeys: Object.keys(injected),
     externalKeys: Object.keys(external),
+    internalKeys: Object.keys(internal),
     preservedActiveStepOverrides: debug.preservedActiveStepOverrides,
     variables: debug.variables
   })}`);
@@ -5329,6 +5382,40 @@ function setExternalVariable(name, value) {
   renderStatus();
 }
 
+function findInternalRuntimeKey(name) {
+  const key = String(name || '').trim();
+  if (!key) return '';
+  const internal = getRuntime().internal || {};
+  if (Object.prototype.hasOwnProperty.call(internal, key)) return key;
+  const variable = findScriptVariable('internal', key);
+  const keys = [variable?.name, variable?.id].map((item) => String(item || '').trim()).filter(Boolean);
+  return keys.find((item) => Object.prototype.hasOwnProperty.call(internal, item)) || key;
+}
+
+function getInternalVariable(name) {
+  const key = findInternalRuntimeKey(name);
+  if (!key) return undefined;
+  const internal = getRuntime().internal || {};
+  const value = internal[key];
+  log(`Internal get: requested=${JSON.stringify(String(name || ''))} resolved=${JSON.stringify(key)} value=${formatLogValue(value)}`);
+  return value;
+}
+
+function setInternalVariable(name, value) {
+  const key = String(name || '').trim();
+  if (!key) return;
+  const rt = getRuntime();
+  if (!rt.internal || typeof rt.internal !== 'object') rt.internal = {};
+  rt.internal[key] = value;
+  const variable = findScriptVariable('internal', key);
+  [variable?.name, variable?.id].forEach((alias) => {
+    const aliasKey = String(alias || '').trim();
+    if (aliasKey) rt.internal[aliasKey] = value;
+  });
+  log(`Internal set: requested=${JSON.stringify(key)} aliases=${JSON.stringify([variable?.name, variable?.id].filter(Boolean))} value=${formatLogValue(value)}`);
+  renderStatus();
+}
+
 const GLOBAL_STUDENT_CODE_STORAGE_KEY = 'braillestudio_global_student_code';
 
 function getGlobalStudentCode() {
@@ -5369,6 +5456,8 @@ window.BrailleStudioAPI = window.BrailleStudioAPI || {};
 Object.assign(window.BrailleStudioAPI, {
   getExternalVariable,
   setExternalVariable,
+  getInternalVariable,
+  setInternalVariable,
   externalVariableExists,
   getExternalProperty,
   getGlobalStudentCode,
@@ -6285,6 +6374,9 @@ async function evalValue(block) {
     case 'external_variable_get':
       return getExternalVariable(block.getFieldValue('VAR'));
 
+    case 'internal_variable_get':
+      return getInternalVariable(block.getFieldValue('VAR'));
+
     case 'global_student_code_get':
       return getGlobalStudentCode();
 
@@ -6905,6 +6997,11 @@ async function executeChain(startBlock, generation, allowStopped = false) {
 
       case 'external_variable_set': {
         setExternalVariable(current.getFieldValue('VAR'), await evalValue(current.getInputTargetBlock('VALUE')));
+        break;
+      }
+
+      case 'internal_variable_set': {
+        setInternalVariable(current.getFieldValue('VAR'), await evalValue(current.getInputTargetBlock('VALUE')));
         break;
       }
 

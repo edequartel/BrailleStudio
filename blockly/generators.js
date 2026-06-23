@@ -31,6 +31,15 @@
     return `BrailleStudioAPI.setExternalVariable(${fieldName(block)}, ${valueCode});\n`;
   };
 
+  javascriptGenerator.forBlock['internal_variable_get'] = function (block) {
+    return [`BrailleStudioAPI.getInternalVariable(${fieldName(block)})`, ORDER_ATOMIC];
+  };
+
+  javascriptGenerator.forBlock['internal_variable_set'] = function (block) {
+    const valueCode = valueToCodeOr(block, 'VALUE', 'null');
+    return `BrailleStudioAPI.setInternalVariable(${fieldName(block)}, ${valueCode});\n`;
+  };
+
   javascriptGenerator.forBlock['external_property_get'] = function (block) {
     const propertyCode = valueToCodeOr(block, 'PROPERTY', "''");
     return [`BrailleStudioAPI.getExternalProperty(${fieldName(block)}, ${propertyCode})`, ORDER_ATOMIC];
