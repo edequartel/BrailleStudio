@@ -128,7 +128,7 @@
   left: 50%;
   top: 50%;
   z-index: 1061;
-  width: min(44rem, calc(100vw - 2rem));
+  width: min(64rem, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
   overflow: auto;
   transform: translate(-50%, -50%);
@@ -151,6 +151,8 @@
 }
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
+  align-items: flex-start;
+  gap: 1.5rem;
   padding-right: 3.75rem;
 }
 
@@ -160,6 +162,8 @@
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__details {
   display: grid;
+  grid-template-columns: repeat(2, minmax(16rem, 1fr));
+  gap: .75rem;
 }
 
 .braillebridge-status__detail {
@@ -181,9 +185,8 @@
   margin-top: .125rem;
   color: var(--tblr-body-color);
   font-size: .8125rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .braillebridge-status__main {
@@ -253,6 +256,10 @@
   gap: .5rem;
 }
 
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__meta {
+  max-width: 38rem;
+}
+
 .braillebridge-status__badge {
   display: inline-flex;
   align-items: center;
@@ -273,7 +280,7 @@
 }
 
 .braillebridge-status__incoming {
-  max-width: 16rem;
+  max-width: 24rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -291,6 +298,14 @@
 
   .braillebridge-status__details {
     grid-template-columns: 1fr;
+  }
+
+  .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__details {
+    grid-template-columns: 1fr;
+  }
+
+  .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__meta {
+    max-width: none;
   }
 
   .braillebridge-status__subtitle {

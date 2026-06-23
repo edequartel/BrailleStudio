@@ -26,7 +26,7 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1')) ?>">
-  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3')) ?>">
+  <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'components/braillebridge-status/braillebridge-status.css?v=20260623-popup-size-1')) ?>">
   <style>
     .braille-monitor-standard-card .card-body {
       display: grid;
@@ -80,10 +80,20 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       padding: .625rem .75rem;
     }
 
+    .braille-monitor-bridge-status.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
+      padding: 1rem 3.75rem 1rem 1rem;
+    }
+
     .braille-monitor-bridge-status .braillebridge-status__icon {
       width: 2.25rem;
       height: 2.25rem;
       font-size: 1.15rem;
+    }
+
+    .braille-monitor-bridge-status.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      font-size: 1.35rem;
     }
 
     .braille-monitor-bridge-status .braillebridge-status__toggle {
