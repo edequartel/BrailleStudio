@@ -23,6 +23,8 @@ $modules = [
         'description' => 'Start brailleleesactiviteiten met woorden, verhalen, auditieve feedback en tactiele herkenning.',
         'icon' => 'ti-book',
         'theme' => 'primary',
+        'public' => true,
+        'roles' => ['leerling', 'docent', 'admin', 'developer'],
         'links' => [
             ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
             ['label' => 'Braille sessie', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
@@ -34,6 +36,7 @@ $modules = [
         'description' => 'Bouw interactieve lessen, methodes en sessies voor begeleide brailletraining.',
         'icon' => 'ti-layout-dashboard',
         'theme' => 'green',
+        'roles' => ['docent', 'admin', 'developer'],
         'links' => [
             ['label' => 'Lesson Builder', 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
             ['label' => 'Session Builder', 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
@@ -47,6 +50,7 @@ $modules = [
         'description' => 'Ontwikkel en beheer Blockly-activiteiten voor interactieve braillelessen.',
         'icon' => 'ti-puzzle',
         'theme' => 'orange',
+        'roles' => ['admin', 'developer'],
         'links' => [
             ['label' => 'Blockly editor', 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
         ],
@@ -70,30 +74,13 @@ $modules = [
     ],
 ];
 
-$publicModules = [
-    [
-        'title' => 'Runmethod',
-        'eyebrow' => 'Leerling',
-        'description' => 'Start direct de MPOP-brailleoefening.',
-        'icon' => 'ti-player-play',
-        'theme' => 'primary',
-        'links' => [
-            ['label' => 'MPOP starten', 'href' => $baseUrl . 'runmethod.php?id=mpop-1775631274214', 'icon' => 'ti-player-play'],
-        ],
-    ],
-    [
-        'title' => 'Braille sessie',
-        'eyebrow' => 'Leerling',
-        'description' => 'Open een braillesessie en verbind het apparaat via de sessiecode.',
-        'icon' => 'ti-device-laptop',
-        'theme' => 'green',
-        'links' => [
-            ['label' => 'Braille sessie starten', 'href' => $baseUrl . 'api/session-api/laptop.html', 'icon' => 'ti-device-laptop'],
-        ],
-    ],
-];
+$visibleModules = array_values(array_filter($modules, static function (array $module) use ($authUser): bool {
+    if ($authUser === null) {
+        return !empty($module['public']);
+    }
 
-$visibleModules = $authUser === null ? $publicModules : $modules;
+    return !isset($module['roles']) || in_array($authUser['role'], $module['roles'], true);
+}));
 
 $stats = [
     ['label' => 'Brailleleesregel', 'value' => 'USB of Bluetooth', 'icon' => 'ti-device-desktop'],
@@ -342,7 +329,6 @@ function e(string $value): string
                 <section id="modules">
                     <div class="row row-cards">
                         <?php foreach ($visibleModules as $module): ?>
-                            <?php if (isset($module['roles']) && ($authUser === null || !in_array($authUser['role'], $module['roles'], true))) { continue; } ?>
                             <div class="col-12 col-md-6 <?= $authUser === null ? '' : 'col-xl-3' ?>">
                                 <article class="card module-card h-100">
                                     <div class="card-body">
