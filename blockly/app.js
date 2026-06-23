@@ -6728,7 +6728,6 @@ async function executeChain(startBlock, generation, allowStopped = false) {
             const audioUrl = resolveFolderSoundUrl('letters', foneem);
             log(`Phoneme audio URL: ${audioUrl}`);
             await playSound(audioUrl);
-            await waitForAudioStopped();
           }
         } catch (err) {
           log(`Phonemes play failed: ${err}`);
@@ -6755,7 +6754,6 @@ async function executeChain(startBlock, generation, allowStopped = false) {
             const audioUrl = resolveFolderSoundUrl('letters', fonemen[i]);
             log(`Phoneme audio URL with pause: ${audioUrl}`);
             await playSound(audioUrl);
-            await waitForAudioStopped();
             if (pauseMs > 0 && i < fonemen.length - 1) {
               await waitRuntimeMs(pauseMs, generation);
             }
