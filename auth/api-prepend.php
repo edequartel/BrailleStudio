@@ -22,6 +22,7 @@ if (strpos($script, '/api/session-api/') !== false) {
         'load-session-script.php',
         'mark-session-open.php',
         'phone.html',
+        'qr-image.php',
         'script-meta.php',
         'send-step-link.php',
         'session-state.php',
