@@ -34,7 +34,7 @@ function authenticate_require_bearer_token(string $audience): array
 
 function authenticate_require_bearer_token_for_audiences(array $audiences): array
 {
-    $user = bs_auth_require_login(['admin', 'docent'], 'json');
+    $user = bs_auth_require_login(['admin', 'developer'], 'json');
     return [
         'sub' => $user['email'] !== '' ? $user['email'] : $user['username'],
         'username' => $user['display'],
