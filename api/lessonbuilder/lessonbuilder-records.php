@@ -160,8 +160,9 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
                       <select id="copySourceLessonSelect" class="form-select"></select>
                     </div>
                     <div class="col-12 col-lg-5">
-                      <label class="form-label" for="copyTargetLessonSelect">Naar lesson</label>
-                      <select id="copyTargetLessonSelect" class="form-select"></select>
+                      <label class="form-label" for="copyTargetLessonSelect">Naar lesson(s)</label>
+                      <select id="copyTargetLessonSelect" class="form-select" multiple size="8"></select>
+                      <div class="form-hint">Gebruik Cmd/Ctrl of Shift om meerdere targets te kiezen.</div>
                     </div>
                     <div class="col-12 col-lg-2">
                       <div class="btn-list">
@@ -470,7 +471,11 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       });
       const selectedLessonId = String(state.lessonId || '').trim();
       const previousSource = String(copySourceLessonSelect.value || '').trim();
-      const previousTarget = String(copyTargetLessonSelect.value || '').trim();
+      const previousTargets = new Set(
+        Array.from(copyTargetLessonSelect.selectedOptions || [])
+          .map((option) => String(option.value || '').trim())
+          .filter(Boolean)
+      );
 
       copySourceLessonSelect.innerHTML = '';
       copyTargetLessonSelect.innerHTML = '';
@@ -526,9 +531,12 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       if (previousSource && lessons.some((lesson) => String(lesson?.id || '').trim() === previousSource)) {
         copySourceLessonSelect.value = previousSource;
       }
-      if (previousTarget && targetLessons.some((lesson) => String(lesson?.id || '').trim() === previousTarget)) {
-        copyTargetLessonSelect.value = previousTarget;
-      } else if (selectedLessonId && targetLessons.some((lesson) => String(lesson?.id || '').trim() === selectedLessonId)) {
+      const targetIds = new Set(targetLessons.map((lesson) => String(lesson?.id || '').trim()).filter(Boolean));
+      if (previousTargets.size > 0) {
+        Array.from(copyTargetLessonSelect.options).forEach((option) => {
+          option.selected = previousTargets.has(String(option.value || '').trim());
+        });
+      } else if (selectedLessonId && targetIds.has(selectedLessonId)) {
         copyTargetLessonSelect.value = selectedLessonId;
       }
 
@@ -667,22 +675,15 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
       knownSoundsInput.value = (item.knownSounds || []).join(', ');
     }
 
-    async function copyLessonSteps(mode = 'replace') {
-      const sourceLessonId = String(copySourceLessonSelect.value || '').trim();
-      const targetLessonId = String(copyTargetLessonSelect.value || '').trim();
-      if (!sourceLessonId || !targetLessonId) {
-        setStatus('Kies een bronlesson en een doellesson.');
-        return;
-      }
-      if (sourceLessonId === targetLessonId) {
-        setStatus('Kies twee verschillende lessons.');
-        return;
-      }
+    function getSelectedTargetLessonIds() {
+      return Array.from(copyTargetLessonSelect.selectedOptions || [])
+        .map((option) => String(option.value || '').trim())
+        .filter(Boolean);
+    }
 
-      const sourceLesson = await shared.loadLesson(sourceLessonId);
-      let targetLesson = null;
+    async function resolveTargetLesson(targetLessonId) {
       try {
-        targetLesson = await shared.loadLesson(targetLessonId);
+        return await shared.loadLesson(targetLessonId);
       } catch (err) {
         const draftLesson = basisItems
           .map((item, index) => buildDraftLessonForBasis(index))
@@ -690,45 +691,81 @@ $htmlUrl = static fn (string $url): string => htmlspecialchars($url, ENT_QUOTES,
         if (!draftLesson || draftLesson.id !== targetLessonId) {
           throw err;
         }
-        targetLesson = draftLesson;
+        return draftLesson;
       }
-      const sourceSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
-        .map((step) => ({ ...step, stepLinkCode: '' }));
-      const copiedSteps = await applyTargetLessonWordToCopiedSteps(sourceSteps, targetLesson);
-      if (!copiedSteps.length) {
-        setStatus('De bronlesson heeft geen steps.');
-        return;
-      }
+    }
 
+    async function copyLessonStepsToTarget({ mode, sourceLessonId, targetLessonId, sourceSteps }) {
+      const targetLesson = await resolveTargetLesson(targetLessonId);
+      const copiedSteps = await applyTargetLessonWordToCopiedSteps(sourceSteps, targetLesson);
       const existingSteps = shared.normalizeStepConfigs(targetLesson?.steps || []);
       const nextSteps = mode === 'append'
         ? [...existingSteps, ...copiedSteps]
         : copiedSteps;
+      const result = await shared.saveLesson({
+        ...targetLesson,
+        overwrite: true,
+        steps: nextSteps
+      });
+      return {
+        result,
+        targetLesson,
+        targetLessonId,
+        totalSteps: nextSteps.length,
+        copiedCount: copiedSteps.length
+      };
+    }
+
+    async function copyLessonSteps(mode = 'replace') {
+      const sourceLessonId = String(copySourceLessonSelect.value || '').trim();
+      const targetLessonIds = getSelectedTargetLessonIds();
+      if (!sourceLessonId || !targetLessonIds.length) {
+        setStatus('Kies een bronlesson en minimaal één doellesson.');
+        return;
+      }
+      const uniqueTargetLessonIds = Array.from(new Set(targetLessonIds));
+      if (uniqueTargetLessonIds.includes(sourceLessonId)) {
+        setStatus('De bronlesson kan niet ook een doellesson zijn.');
+        return;
+      }
+
+      const sourceLesson = await shared.loadLesson(sourceLessonId);
+      const sourceSteps = shared.normalizeStepConfigs(sourceLesson?.steps || [])
+        .map((step) => ({ ...step, stepLinkCode: '' }));
+      if (!sourceSteps.length) {
+        setStatus('De bronlesson heeft geen steps.');
+        return;
+      }
 
       try {
         replaceLessonStepsBtn.disabled = true;
         appendLessonStepsBtn.disabled = true;
-        const result = await shared.saveLesson({
-          ...targetLesson,
-          overwrite: true,
-          steps: nextSteps
-        });
+        const results = [];
+        for (const targetLessonId of uniqueTargetLessonIds) {
+          results.push(await copyLessonStepsToTarget({
+            mode,
+            sourceLessonId,
+            targetLessonId,
+            sourceSteps
+          }));
+        }
 
         const method = shared.getDraftMethodMeta(state);
         lessonsCache = method.id ? await shared.listLessons(method.id) : [];
-        if (String(state.lessonId || '').trim() === targetLessonId) {
-          state = shared.updateState({ steps: nextSteps });
+        const activeResult = results.find((item) => String(state.lessonId || '').trim() === item.targetLessonId);
+        if (activeResult) {
+          const loadedActiveLesson = await shared.loadLesson(activeResult.targetLessonId);
+          state = shared.updateState({ steps: shared.normalizeStepConfigs(loadedActiveLesson?.steps || []) });
         }
         renderLessonStepCopyControls();
         setStatus(
           mode === 'append'
-            ? `${copiedSteps.length} step(s) toegevoegd aan ${targetLessonId}.`
-            : `${copiedSteps.length} step(s) gekopieerd naar ${targetLessonId}.`,
+            ? `${sourceSteps.length} step(s) toegevoegd aan ${results.length} lesson(s).`
+            : `${sourceSteps.length} step(s) gekopieerd naar ${results.length} lesson(s).`,
           {
             sourceLesson: sourceLessonId,
-            targetLesson: targetLessonId,
-            totalSteps: nextSteps.length,
-            result: result?.status || 'saved'
+            targetLessons: results.map((item) => item.targetLessonId).join(', '),
+            result: results.every((item) => item.result?.ok !== false) ? 'saved' : 'partial'
           }
         );
       } finally {
