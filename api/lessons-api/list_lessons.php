@@ -116,83 +116,89 @@ function normalize_list_step_inputs($inputs, $fallbackVariable = '')
     return $normalized;
 }
 
-$items = [];
-$seen = [];
-$manifest = lessons_api_load_remote_manifest();
-if (!is_array($manifest)) {
-    lessons_api_json_error('Lessons data directory not found', 404, [
-        'source' => lessons_api_data_dir(),
-    ]);
-}
+$localDataDir = lessons_api_data_dir();
+$fingerprint = braillestudio_cache_files_fingerprint($localDataDir);
+$items = braillestudio_cache_remember('lessons-list-items-v1', $fingerprint, static function (): array {
+    $items = [];
+    $seen = [];
+    $manifest = lessons_api_load_remote_manifest();
+    if (!is_array($manifest)) {
+        lessons_api_json_error('Lessons data directory not found', 404, [
+            'source' => lessons_api_data_dir(),
+        ]);
+    }
 
-$rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
-foreach ($rawItems as $item) {
-    if (is_string($item) || is_numeric($item)) {
-        $item = ['id' => (string)$item];
-    }
-    if (!is_array($item)) {
-        continue;
-    }
-    $id = trim((string)($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME)));
-    $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
-    if ($safeId === '' || isset($seen[$safeId])) {
-        continue;
-    }
-    $seen[$safeId] = true;
-
-    $content = $item;
-    if (!isset($content['steps'])) {
-        $remoteContent = lessons_api_load_remote_lesson($safeId);
-        if (is_array($remoteContent)) {
-            $content = array_replace_recursive($remoteContent, $item);
+    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
+    foreach ($rawItems as $item) {
+        if (is_string($item) || is_numeric($item)) {
+            $item = ['id' => (string)$item];
         }
-    }
-
-    $rawSteps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
-    $normalizedSteps = [];
-    foreach ($rawSteps as $row) {
-        if (!is_array($row)) {
+        if (!is_array($item)) {
             continue;
         }
-        $rowId = lessons_api_step_script_id($row);
-        if ($rowId === '') {
+        $id = trim((string)($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME)));
+        $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
+        if ($safeId === '' || isset($seen[$safeId])) {
             continue;
         }
-        $rowVariable = trim((string)($row['variable'] ?? ''));
-        $normalizedSteps[] = [
-            'id' => $rowId,
-            'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
-            'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
-            'stepLinkCode' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string)($row['stepLinkCode'] ?? $row['stepCode'] ?? ''))),
-            'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
+        $seen[$safeId] = true;
+
+        $content = $item;
+        if (!isset($content['steps'])) {
+            $remoteContent = lessons_api_load_remote_lesson($safeId);
+            if (is_array($remoteContent)) {
+                $content = array_replace_recursive($remoteContent, $item);
+            }
+        }
+
+        $rawSteps = is_array($content['steps'] ?? null) ? $content['steps'] : [];
+        $normalizedSteps = [];
+        foreach ($rawSteps as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $rowId = lessons_api_step_script_id($row);
+            if ($rowId === '') {
+                continue;
+            }
+            $rowVariable = trim((string)($row['variable'] ?? ''));
+            $normalizedSteps[] = [
+                'id' => $rowId,
+                'title' => trim((string)($row['title'] ?? $row['scriptTitle'] ?? '')),
+                'description' => trim((string)($row['description'] ?? $row['scriptDescription'] ?? ($row['meta']['description'] ?? ''))),
+                'stepLinkCode' => preg_replace('/[^a-zA-Z0-9_-]/', '', trim((string)($row['stepLinkCode'] ?? $row['stepCode'] ?? ''))),
+                'inputs' => normalize_list_step_inputs($row['inputs'] ?? [], $rowVariable),
+            ];
+        }
+
+        $method = is_array($content['method'] ?? null) ? $content['method'] : [];
+        $items[] = [
+            'id' => $safeId,
+            'title' => trim((string)($content['title'] ?? '')),
+            'description' => trim((string)($content['description'] ?? '')),
+            'methodId' => trim((string)($content['methodId'] ?? ($method['id'] ?? ''))),
+            'method' => $method !== [] ? $method : [
+                'id' => trim((string)($content['methodId'] ?? '')),
+                'title' => '',
+                'description' => '',
+                'imageUrl' => '',
+                'basisFile' => '',
+                'dataSource' => '',
+            ],
+            'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
+            'basisWord' => trim((string)($content['basisWord'] ?? '')),
+            'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
+            'visible' => array_key_exists('visible', $content) ? (bool)$content['visible'] : false,
+            'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
+            'updatedAt' => $content['updatedAt'] ?? '',
+            'steps' => $normalizedSteps,
+            'filename' => basename((string)($content['filename'] ?? ($safeId . '.json'))),
+            'url' => lessons_api_remote_lesson_url($safeId),
         ];
     }
 
-    $method = is_array($content['method'] ?? null) ? $content['method'] : [];
-    $items[] = [
-        'id' => $safeId,
-        'title' => trim((string)($content['title'] ?? '')),
-        'description' => trim((string)($content['description'] ?? '')),
-        'methodId' => trim((string)($content['methodId'] ?? ($method['id'] ?? ''))),
-        'method' => $method !== [] ? $method : [
-            'id' => trim((string)($content['methodId'] ?? '')),
-            'title' => '',
-            'description' => '',
-            'imageUrl' => '',
-            'basisFile' => '',
-            'dataSource' => '',
-        ],
-        'basisIndex' => array_key_exists('basisIndex', $content) ? (int)$content['basisIndex'] : -1,
-        'basisWord' => trim((string)($content['basisWord'] ?? '')),
-        'lessonNumber' => array_key_exists('lessonNumber', $content) ? (int)$content['lessonNumber'] : 1,
-        'visible' => array_key_exists('visible', $content) ? (bool)$content['visible'] : false,
-        'basisRecord' => is_array($content['basisRecord'] ?? null) ? $content['basisRecord'] : [],
-        'updatedAt' => $content['updatedAt'] ?? '',
-        'steps' => $normalizedSteps,
-        'filename' => basename((string)($content['filename'] ?? ($safeId . '.json'))),
-        'url' => lessons_api_remote_lesson_url($safeId),
-    ];
-}
+    return $items;
+});
 
 if ($filterMethodId !== '') {
     $items = array_values(array_filter($items, static function (array $item) use ($filterMethodId): bool {

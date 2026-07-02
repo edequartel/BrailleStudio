@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/json-guard.php';
 braillestudio_json_guard_start();
+require_once dirname(__DIR__) . '/cache.php';
 
 require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 

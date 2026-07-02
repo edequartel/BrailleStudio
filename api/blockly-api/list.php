@@ -100,62 +100,67 @@ function blockly_api_has_legacy_variable_format(array $content): bool
 }
 
 $localDataDir = blockly_api_data_dir();
-$manifest = is_dir($localDataDir)
-    ? blockly_api_build_manifest_from_dir($localDataDir)
-    : blockly_api_load_remote_manifest();
-if (!is_array($manifest)) {
-    blockly_api_json_error('Blockly data directory not found', 404, [
-        'source' => blockly_api_data_dir(),
-    ]);
-}
-
-$rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
-$items = [];
-$seen = [];
-
-foreach ($rawItems as $item) {
-    if (is_string($item) || is_numeric($item)) {
-        $item = ['id' => (string)$item];
+$fingerprint = braillestudio_cache_files_fingerprint($localDataDir);
+$items = braillestudio_cache_remember('blockly-list-items-v1', $fingerprint, static function () use ($localDataDir): array {
+    $manifest = is_dir($localDataDir)
+        ? blockly_api_build_manifest_from_dir($localDataDir)
+        : blockly_api_load_remote_manifest();
+    if (!is_array($manifest)) {
+        blockly_api_json_error('Blockly data directory not found', 404, [
+            'source' => blockly_api_data_dir(),
+        ]);
     }
-    if (!is_array($item)) {
-        continue;
-    }
-    $id = trim((string)($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME)));
-    $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
-    if ($safeId === '' || isset($seen[$safeId])) {
-        continue;
-    }
-    $seen[$safeId] = true;
 
-    $content = $item;
-    if (!isset($content['blockly'])) {
-        $scriptContent = blockly_api_load_local_script($safeId);
-        if (!is_array($scriptContent)) {
+    $rawItems = is_array($manifest['items'] ?? null) ? $manifest['items'] : $manifest;
+    $items = [];
+    $seen = [];
+
+    foreach ($rawItems as $item) {
+        if (is_string($item) || is_numeric($item)) {
+            $item = ['id' => (string)$item];
+        }
+        if (!is_array($item)) {
             continue;
         }
-        $content = array_replace_recursive($scriptContent, $item);
+        $id = trim((string)($item['id'] ?? pathinfo((string)($item['filename'] ?? ''), PATHINFO_FILENAME)));
+        $safeId = trim((string)preg_replace('/[^a-zA-Z0-9_-]/', '-', $id), '-_');
+        if ($safeId === '' || isset($seen[$safeId])) {
+            continue;
+        }
+        $seen[$safeId] = true;
+
+        $content = $item;
+        if (!isset($content['blockly'])) {
+            $scriptContent = blockly_api_load_local_script($safeId);
+            if (!is_array($scriptContent)) {
+                continue;
+            }
+            $content = array_replace_recursive($scriptContent, $item);
+        }
+
+        $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
+        $normalizedMeta = [
+            'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
+            'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
+            'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
+            'memo' => isset($meta['memo']) ? trim((string)$meta['memo']) : trim((string)($content['memo'] ?? '')),
+            'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
+            'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
+        ];
+
+        $items[] = [
+            'id' => $safeId,
+            'title' => $content['title'] ?? $normalizedMeta['title'],
+            'updatedAt' => $content['updatedAt'] ?? '',
+            'meta' => $normalizedMeta,
+            'filename' => basename((string)($content['filename'] ?? ($safeId . '.json'))),
+            'url' => blockly_api_remote_script_url($safeId),
+            'legacyVariableFormat' => isset($content['blockly']) ? blockly_api_has_legacy_variable_format($content) : false,
+        ];
     }
 
-    $meta = array_key_exists('meta', $content) && is_array($content['meta']) ? $content['meta'] : [];
-    $normalizedMeta = [
-        'title' => isset($meta['title']) ? trim((string)$meta['title']) : trim((string)($content['title'] ?? '')),
-        'description' => isset($meta['description']) ? trim((string)$meta['description']) : trim((string)($content['description'] ?? '')),
-        'instruction' => isset($meta['instruction']) ? trim((string)$meta['instruction']) : trim((string)($content['instruction'] ?? '')),
-        'memo' => isset($meta['memo']) ? trim((string)$meta['memo']) : trim((string)($content['memo'] ?? '')),
-        'prompt' => isset($meta['prompt']) ? trim((string)$meta['prompt']) : trim((string)($content['prompt'] ?? '')),
-        'status' => isset($meta['status']) ? trim((string)$meta['status']) : 'draft',
-    ];
-
-    $items[] = [
-        'id' => $safeId,
-        'title' => $content['title'] ?? $normalizedMeta['title'],
-        'updatedAt' => $content['updatedAt'] ?? '',
-        'meta' => $normalizedMeta,
-        'filename' => basename((string)($content['filename'] ?? ($safeId . '.json'))),
-        'url' => blockly_api_remote_script_url($safeId),
-        'legacyVariableFormat' => isset($content['blockly']) ? blockly_api_has_legacy_variable_format($content) : false,
-    ];
-}
+    return $items;
+});
 
 usort($items, function ($a, $b) {
     return strcmp($b['updatedAt'] ?? '', $a['updatedAt'] ?? '');

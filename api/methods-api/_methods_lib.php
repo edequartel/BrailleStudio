@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/json-guard.php';
 braillestudio_json_guard_start();
+require_once dirname(__DIR__) . '/cache.php';
 
 require_once dirname(__DIR__) . '/authentication-api/_bootstrap.php';
 
@@ -503,6 +504,14 @@ function methods_load_all(): array
         return [];
     }
 
+    $fingerprint = braillestudio_cache_files_fingerprint($dir);
+    return braillestudio_cache_remember('methods-load-all-v1', $fingerprint, static function () use ($dir): array {
+        return methods_load_all_uncached($dir);
+    });
+}
+
+function methods_load_all_uncached(string $dir): array
+{
     $items = [];
     $seen = [];
     $files = glob($dir . '/*.json') ?: [];
@@ -774,6 +783,14 @@ function methods_load_lessons_by_method(): array
         return [];
     }
 
+    $fingerprint = braillestudio_cache_files_fingerprint($dir);
+    return braillestudio_cache_remember('methods-lessons-by-method-v1', $fingerprint, static function () use ($dir): array {
+        return methods_load_lessons_by_method_uncached($dir);
+    });
+}
+
+function methods_load_lessons_by_method_uncached(string $dir): array
+{
     $itemsByMethod = [];
     $seen = [];
     $files = glob($dir . '/*.json') ?: [];
