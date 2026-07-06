@@ -122,7 +122,7 @@ function e(string $value): string
 }
 ?>
 <!doctype html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -268,6 +268,7 @@ function e(string $value): string
             </div>
 
             <div class="navbar-nav flex-row align-items-center order-md-last ms-auto">
+                <?= language_switcher('nav-item me-2') ?>
                 <?php if ($authUser !== null): ?>
                     <div class="nav-item me-2">
                         <span class="navbar-text text-secondary">

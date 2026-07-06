@@ -134,7 +134,7 @@ try {
 }
 ?>
 <!doctype html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -166,7 +166,8 @@ try {
         <img src="style/logo.png" alt="" aria-hidden="true" class="me-2" style="height: 2rem; width: auto;">
         <img src="style/braillestudio_banner_text.png" alt="BrailleStudio" style="height: 1.5rem; width: auto;">
       </a>
-      <div class="navbar-nav flex-row ms-auto">
+      <div class="navbar-nav flex-row align-items-center ms-auto">
+        <?= language_switcher('me-2') ?>
         <a class="btn btn-outline-secondary" href="<?= $html($baseUrl) ?>index.php">
           <i class="ti ti-arrow-left me-2" aria-hidden="true"></i>
           Start

@@ -70,7 +70,7 @@ if ($user !== null && $message === '') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -115,6 +115,9 @@ if ($user !== null && $message === '') {
         <img src="style/logo.png" alt="" aria-hidden="true" class="me-2" style="height: 2rem; width: auto;">
         <img src="style/braillestudio_banner_text.png" alt="BrailleStudio" style="height: 1.5rem; width: auto;">
       </a>
+    </div>
+    <div class="d-flex justify-content-center mb-3">
+      <?= language_switcher() ?>
     </div>
 
     <div class="card card-md">
