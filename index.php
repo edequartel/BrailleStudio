@@ -270,13 +270,13 @@ function e(string $value): string
             </div>
 
             <div class="navbar-nav flex-row align-items-center order-md-last ms-auto">
-                <?= language_switcher('nav-item me-2') ?>
                 <?php if ($authUser !== null): ?>
                     <div class="nav-item me-2">
                         <span class="navbar-text text-secondary">
                             <?= e(t('auth.status.logged_in_as', ['display' => $authUser['display'], 'role' => $authUser['role']])) ?>
                         </span>
                     </div>
+                    <?= language_switcher('nav-item me-2') ?>
                     <?php if ($authUser['role'] === 'admin'): ?>
                         <div class="nav-item me-2">
                             <a class="btn btn-outline-secondary" href="<?= e($baseUrl) ?>users.php">
@@ -297,6 +297,7 @@ function e(string $value): string
                         </form>
                     </div>
                 <?php else: ?>
+                    <?= language_switcher('nav-item me-2') ?>
                     <div class="nav-item">
                         <a class="btn btn-primary" href="<?= e($loginHref) ?>">
                             <i class="ti ti-login me-2" aria-hidden="true"></i>
