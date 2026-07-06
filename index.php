@@ -58,6 +58,8 @@ $modules = [
             ['label' => t('home.links.lesson_builder'), 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
             ['label' => t('home.links.session_builder'), 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
             ['label' => t('home.links.blockly_editor'), 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
+            ['label' => t('home.links.braillebridge_demo'), 'href' => $baseUrl . 'demo/braillebridge.php', 'icon' => 'ti-plug-connected'],
+            ['label' => t('home.links.translations'), 'href' => $baseUrl . 'admin/translations.php', 'icon' => 'ti-language'],
         ],
     ],
     [

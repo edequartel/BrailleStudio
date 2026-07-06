@@ -113,10 +113,11 @@
       "powered_by": "Powered by Bartimeus and the Braille Expertise Group"
     },
     "hero": {
-      "description": "BrailleStudio supports students, teachers, and specialists with short activities, direct feedback, session management, and braille display integration through BrailleBridge.",
-      "title": "Practice braille and build lessons in a calm workspace."
+      "description": "BrailleStudio helps teachers prepare braille lessons, guide students step by step, and follow progress clearly. The learning environment is browser-based and supports Learning Through Play.",
+      "title": "A calm learning environment for classroom braille education."
     },
     "links": {
+      "braillebridge_demo": "BrailleBridge demo",
       "blockly_editor": "Blockly editor",
       "braille_session": "Braille session",
       "braille_tables": "Braille tables",
@@ -128,7 +129,8 @@
       "sounds": "Sounds",
       "start_braille_session": "Start braille session",
       "start_mpop": "Start MPOP",
-      "teacher_dashboard": "Teacher Dashboard"
+      "teacher_dashboard": "Teacher Dashboard",
+      "translations": "Translations"
     },
     "loading": {
       "documentation": "Loading documentation.",
@@ -174,17 +176,118 @@
         "value": "Learning Through Play"
       },
       "display": {
-        "label": "Braille display",
-        "value": "USB or Bluetooth"
+        "label": "For teachers",
+        "value": "Prepare lessons"
       },
       "runtime": {
-        "label": "Runtime",
-        "value": "Browser and BrailleBridge"
+        "label": "Use",
+        "value": "Browser-based"
       }
     },
     "student_code": {
       "label": "Student code",
       "placeholder": "Enter your student code"
+    }
+  },
+  "demo": {
+    "braillebridge": {
+      "begin": "Begin",
+      "braille_unicode": "Braille Unicode",
+      "caret_cell_index": "Cell index",
+      "caret_off": "Caret off",
+      "caret_on": "Caret on",
+      "caret_text_index": "Text index",
+      "clear_display": "Clear",
+      "clear_log": "Clear log",
+      "connect": "Connect",
+      "connected": "connected",
+      "connecting": "connecting",
+      "controls": {
+        "caret": "Caret and cursor routing",
+        "editor_mode": "Editor mode",
+        "title": "Interactive commands"
+      },
+      "copy_log": "Copy log",
+      "cursor_routing": "Cursor routing",
+      "disconnect": "Disconnect",
+      "editor_off": "Editor mode off",
+      "editor_off_status": "editor off",
+      "editor_on": "Editor mode on",
+      "editor_on_status": "editor on",
+      "editor_unknown": "editor unknown",
+      "end": "End",
+      "event_ok": "Ok",
+      "event_type": "Event type",
+      "flow": {
+        "bridge": {
+          "text": "BrailleBridge receives WebSocket commands on localhost and translates them for the local runtime.",
+          "title": "BrailleBridge"
+        },
+        "browser": {
+          "text": "This page runs in the browser and sends commands such as text, caret, and editor mode.",
+          "title": "Browser"
+        },
+        "display": {
+          "text": "The braille display shows the line, sends keys back, and reports cursor routing.",
+          "title": "Braille display"
+        },
+        "sam": {
+          "text": "SAM is the communication bridge between BrailleBridge and the connected braille display.",
+          "title": "SAM"
+        }
+      },
+      "flow_title": "Communication flow",
+      "from_cell": "From cell",
+      "get_line": "Get line",
+      "incoming": {
+        "title": "Incoming events"
+      },
+      "insert_off": "Insert off",
+      "insert_off_status": "insert off",
+      "insert_on": "Insert on",
+      "insert_on_status": "insert on",
+      "insert_unknown": "insert unknown",
+      "key_to_send": "Key",
+      "log": {
+        "title": "WebSocket log"
+      },
+      "log_copied": "Log copied.",
+      "manual": {
+        "protocol_text": "The browser sends JSON to BrailleBridge. BrailleBridge sends status, brailleLine, cursor, chord, thumbKey, and editorKey events back.",
+        "protocol_title": "Protocol",
+        "setup_1": "Start BrailleBridge on the same computer as the browser.",
+        "setup_2": "Connect a braille display and check that SAM is active.",
+        "setup_3": "Open this page, click connect, and watch the status card.",
+        "setup_title": "Setup",
+        "title": "Extensive manual",
+        "try_1": "Enable editor mode to pass text and caret commands through.",
+        "try_2": "Send text, move the caret, and try caret visibility on and off.",
+        "try_3": "Use the cursor-routing button or keys on the display and inspect the incoming events.",
+        "try_title": "Try it"
+      },
+      "manual_button": "Manual",
+      "monitor": {
+        "title": "Live braille view"
+      },
+      "not_connected": "Not connected; command not sent.",
+      "offline": "offline",
+      "open_bridge": "Open BrailleBridge",
+      "page_title": "BrailleBridge demo",
+      "payload": "Payload",
+      "pretitle": "Public demo",
+      "ready": "Demo ready. Connect to BrailleBridge to start.",
+      "sample_text": "BrailleStudio demo",
+      "send_key": "Send key",
+      "send_text": "Send text",
+      "set_caret": "Set caret",
+      "source_text": "Source text",
+      "status": {
+        "title": "Connection status"
+      },
+      "subtitle": "Show developers live how the browser communicates with SAM and a braille display through BrailleBridge.",
+      "text_to_send": "Text",
+      "title": "BrailleBridge communication demo",
+      "ws_url": "WebSocket URL"
     }
   },
   "xapi": {

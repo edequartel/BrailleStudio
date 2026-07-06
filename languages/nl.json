@@ -113,10 +113,11 @@
       "powered_by": "Powered by Bartimeus en de Braille Expertise Groep"
     },
     "hero": {
-      "description": "BrailleStudio ondersteunt leerlingen, docenten en specialisten met korte activiteiten, directe feedback, sessiebeheer en koppeling met brailleleesregels via BrailleBridge.",
-      "title": "Braille oefenen en lessen bouwen in een rustige werkomgeving."
+      "description": "BrailleStudio helpt docenten om braillelessen klaar te zetten, leerlingen stap voor stap te begeleiden en voortgang overzichtelijk te volgen. De leeromgeving werkt browserbased en sluit aan bij Learning Through Play.",
+      "title": "Een rustige leeromgeving voor brailleonderwijs in de klas."
     },
     "links": {
+      "braillebridge_demo": "BrailleBridge demo",
       "blockly_editor": "Blockly editor",
       "braille_session": "Braille sessie",
       "braille_tables": "Brailletabellen",
@@ -128,7 +129,8 @@
       "sounds": "Klanken",
       "start_braille_session": "Braille sessie starten",
       "start_mpop": "MPOP starten",
-      "teacher_dashboard": "Teacher Dashboard"
+      "teacher_dashboard": "Teacher Dashboard",
+      "translations": "Vertalingen"
     },
     "loading": {
       "documentation": "Documentatie laden.",
@@ -174,17 +176,118 @@
         "value": "Learning Through Play"
       },
       "display": {
-        "label": "Brailleleesregel",
-        "value": "USB of Bluetooth"
+        "label": "Voor docenten",
+        "value": "Lessen klaarzetten"
       },
       "runtime": {
-        "label": "Runtime",
-        "value": "Browser en BrailleBridge"
+        "label": "Gebruik",
+        "value": "Browserbased"
       }
     },
     "student_code": {
       "label": "Leerlingcode",
       "placeholder": "Voer je leerlingcode in"
+    }
+  },
+  "demo": {
+    "braillebridge": {
+      "begin": "Begin",
+      "braille_unicode": "Braille Unicode",
+      "caret_cell_index": "Celindex",
+      "caret_off": "Caret uit",
+      "caret_on": "Caret aan",
+      "caret_text_index": "Tekstindex",
+      "clear_display": "Wissen",
+      "clear_log": "Log wissen",
+      "connect": "Verbinden",
+      "connected": "verbonden",
+      "connecting": "verbinden",
+      "controls": {
+        "caret": "Caret en cursor routing",
+        "editor_mode": "Editor mode",
+        "title": "Interactieve commando's"
+      },
+      "copy_log": "Log kopiëren",
+      "cursor_routing": "Cursor routing",
+      "disconnect": "Verbreken",
+      "editor_off": "Editor mode uit",
+      "editor_off_status": "editor uit",
+      "editor_on": "Editor mode aan",
+      "editor_on_status": "editor aan",
+      "editor_unknown": "editor onbekend",
+      "end": "Einde",
+      "event_ok": "Ok",
+      "event_type": "Eventtype",
+      "flow": {
+        "bridge": {
+          "text": "BrailleBridge ontvangt WebSocket-commando's op localhost en vertaalt die naar de lokale runtime.",
+          "title": "BrailleBridge"
+        },
+        "browser": {
+          "text": "Deze pagina draait in de browser en stuurt commando's zoals tekst, caret en editor mode.",
+          "title": "Browser"
+        },
+        "display": {
+          "text": "De brailleleesregel toont de regel, stuurt toetsen terug en geeft cursor routing door.",
+          "title": "Brailleleesregel"
+        },
+        "sam": {
+          "text": "SAM vormt de communicatiebrug tussen BrailleBridge en de aangesloten brailleleesregel.",
+          "title": "SAM"
+        }
+      },
+      "flow_title": "Communicatiestroom",
+      "from_cell": "Van cel",
+      "get_line": "Regel ophalen",
+      "incoming": {
+        "title": "Binnenkomende events"
+      },
+      "insert_off": "Insert uit",
+      "insert_off_status": "insert uit",
+      "insert_on": "Insert aan",
+      "insert_on_status": "insert aan",
+      "insert_unknown": "insert onbekend",
+      "key_to_send": "Toets",
+      "log": {
+        "title": "WebSocket log"
+      },
+      "log_copied": "Log gekopieerd.",
+      "manual": {
+        "protocol_text": "De browser stuurt JSON naar BrailleBridge. BrailleBridge stuurt status, brailleLine, cursor, chord, thumbKey en editorKey events terug.",
+        "protocol_title": "Protocol",
+        "setup_1": "Start BrailleBridge op dezelfde computer als de browser.",
+        "setup_2": "Sluit een brailleleesregel aan en controleer of SAM actief is.",
+        "setup_3": "Open deze pagina, klik op verbinden en kijk naar de statuskaart.",
+        "setup_title": "Voorbereiding",
+        "title": "Uitgebreide handleiding",
+        "try_1": "Zet editor mode aan om tekst- en caretcommando's door te geven.",
+        "try_2": "Stuur tekst, verplaats de caret en probeer caret zichtbaar aan en uit.",
+        "try_3": "Gebruik de cursor-routing knop of de toetsen op de leesregel en bekijk de inkomende events.",
+        "try_title": "Proberen"
+      },
+      "manual_button": "Handleiding",
+      "monitor": {
+        "title": "Live brailleweergave"
+      },
+      "not_connected": "Niet verbonden; commando niet verzonden.",
+      "offline": "offline",
+      "open_bridge": "Open BrailleBridge",
+      "page_title": "BrailleBridge demo",
+      "payload": "Payload",
+      "pretitle": "Publieke demo",
+      "ready": "Demo klaar. Verbind met BrailleBridge om te starten.",
+      "sample_text": "BrailleStudio demo",
+      "send_key": "Toets sturen",
+      "send_text": "Tekst sturen",
+      "set_caret": "Zet caret",
+      "source_text": "Brontekst",
+      "status": {
+        "title": "Verbindingsstatus"
+      },
+      "subtitle": "Laat ontwikkelaars live zien hoe de browser via BrailleBridge met SAM en een brailleleesregel communiceert.",
+      "text_to_send": "Tekst",
+      "title": "BrailleBridge communicatie-demo",
+      "ws_url": "WebSocket URL"
     }
   },
   "xapi": {
