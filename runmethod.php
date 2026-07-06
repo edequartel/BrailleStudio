@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/language.php';
+
 header('Content-Type: text/html; charset=utf-8');
 
 function h(string $value): string
@@ -458,7 +460,7 @@ $pagePayload = [
 ];
 ?>
 <!doctype html>
-<html lang="en">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -468,11 +470,11 @@ $pagePayload = [
   <link rel="manifest" href="/braillestudio/site.webmanifest">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></title>
+  <title><?= h($method['title'] ?? $methodId ?: t('runmethod.page_title_fallback')) ?></title>
   <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
-  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-1">
+  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-2">
   <style>
     body {
       min-height: 100vh;
@@ -904,7 +906,7 @@ $pagePayload = [
       <?php if (trim((string)($method['imageUrl'] ?? '')) !== ''): ?>
         <img
           src="<?= h(trim((string)$method['imageUrl'])) ?>"
-          alt="Method banner"
+          alt="<?= h(t('runmethod.method_banner_alt')) ?>"
           class="method-header-image"
         >
       <?php endif; ?>
@@ -915,8 +917,8 @@ $pagePayload = [
             <i class="ti ti-player-play" aria-hidden="true"></i>
           </span>
           <div class="min-w-0">
-            <div class="page-pretitle">Run method</div>
-            <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: 'Run Method') ?></h1>
+            <div class="page-pretitle"><?= h(t('runmethod.pretitle')) ?></div>
+            <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: t('runmethod.page_title_fallback')) ?></h1>
           </div>
         </div>
       </div>
@@ -929,7 +931,7 @@ $pagePayload = [
       </section>
       <section class="card">
         <div class="card-header">
-          <h2 class="card-title">Debug log</h2>
+          <h2 class="card-title"><?= h(t('runmethod.debug_log')) ?></h2>
         </div>
         <div class="card-body">
           <pre class="form-control debug-log mb-0" role="log"><?= h((string)json_encode($loadDiagnostics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?></pre>
@@ -944,12 +946,12 @@ $pagePayload = [
         <div id="scriptBrailleMonitorRow" class="lesson-monitor-host">
           <div id="scriptBrailleMonitorComponent"></div>
         </div>
-        <div class="thumb-row" aria-label="Thumb keys">
+        <div class="thumb-row" aria-label="<?= h(t('runmethod.aria.thumb_keys')) ?>">
           <div class="thumb-controls">
-            <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="Left thumb" title="Left thumb">&lt;&lt;</button>
-            <button id="simCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="Left middle thumb" title="Left middle thumb">&lt;</button>
-            <button id="simChord1Btn" class="btn btn-outline-primary" type="button" aria-label="Right middle thumb" title="Right middle thumb">&gt;</button>
-            <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="Right thumb" title="Right thumb">&gt;&gt;</button>
+            <button id="simThumbLeftBtn" class="btn btn-outline-primary" type="button" aria-label="<?= h(t('runmethod.aria.left_thumb')) ?>" title="<?= h(t('runmethod.aria.left_thumb')) ?>">&lt;&lt;</button>
+            <button id="simCursor5Btn" class="btn btn-outline-primary" type="button" aria-label="<?= h(t('runmethod.aria.left_middle_thumb')) ?>" title="<?= h(t('runmethod.aria.left_middle_thumb')) ?>">&lt;</button>
+            <button id="simChord1Btn" class="btn btn-outline-primary" type="button" aria-label="<?= h(t('runmethod.aria.right_middle_thumb')) ?>" title="<?= h(t('runmethod.aria.right_middle_thumb')) ?>">&gt;</button>
+            <button id="simThumbRightBtn" class="btn btn-outline-primary" type="button" aria-label="<?= h(t('runmethod.aria.right_thumb')) ?>" title="<?= h(t('runmethod.aria.right_thumb')) ?>">&gt;&gt;</button>
           </div>
           <section
             class="method-thumb-status thumb-status"
@@ -970,29 +972,29 @@ $pagePayload = [
         <div class="action-row">
           <button id="runSelectedStepBtn" class="btn btn-outline-primary" type="button">
             <i class="ti ti-player-play me-2" aria-hidden="true"></i>
-            Run step
+            <?= h(t('runmethod.buttons.run_step')) ?>
           </button>
           <button id="runCurrentBtn" class="btn btn-primary" type="button">
             <i class="ti ti-player-play me-2" aria-hidden="true"></i>
-            Run lesson
+            <?= h(t('runmethod.buttons.run_lesson')) ?>
           </button>
           <button id="runAllBtn" class="btn btn-outline-primary" type="button">
             <i class="ti ti-player-play me-2" aria-hidden="true"></i>
-            Run all
+            <?= h(t('runmethod.buttons.run_all')) ?>
           </button>
           <button id="stopRunBtn" class="btn btn-danger" type="button">
             <i class="ti ti-player-stop me-2" aria-hidden="true"></i>
-            Stop
+            <?= h(t('runmethod.buttons.stop')) ?>
           </button>
-          <button id="toggleRunnerBtn" type="button" class="btn btn-outline-secondary ms-auto">Unhide</button>
+          <button id="toggleRunnerBtn" type="button" class="btn btn-outline-secondary ms-auto"><?= h(t('runmethod.buttons.unhide')) ?></button>
         </div>
         <div id="runStatusBanner" class="status-banner">
-          Idle. Select a lesson or step to start.
+          <?= h(t('runmethod.js.idle_banner')) ?>
         </div>
         <div id="runnerPanel" class="hidden">
           <div class="run-panel">
-            <div class="fw-semibold mb-2">Lesson return values</div>
-            <div id="lessonReturnValues" class="return-values">No values yet.</div>
+            <div class="fw-semibold mb-2"><?= h(t('runmethod.lesson_return_values')) ?></div>
+            <div id="lessonReturnValues" class="return-values"><?= h(t('runmethod.js.no_values')) ?></div>
           </div>
         </div>
           </div>
@@ -1001,19 +1003,19 @@ $pagePayload = [
       <div class="lesson-grid">
         <section class="card list-panel">
           <div class="card-header">
-            <h2 class="card-title">Lessons</h2>
+            <h2 class="card-title"><?= h(t('runmethod.lessons')) ?></h2>
           </div>
           <div class="list-group list-group-flush list-scroll" id="lessonsList"></div>
         </section>
 
         <section class="card list-panel">
           <div class="card-header">
-            <h2 class="card-title">Steps</h2>
+            <h2 class="card-title"><?= h(t('runmethod.steps')) ?></h2>
           </div>
           <div class="card-body pb-3">
             <div class="instruction-panel">
-              <div class="fw-semibold mb-2">Instruction</div>
-              <div id="selectedStepInstruction" class="instruction-text">No instruction for the selected step.</div>
+              <div class="fw-semibold mb-2"><?= h(t('runmethod.instruction')) ?></div>
+              <div id="selectedStepInstruction" class="instruction-text"><?= h(t('runmethod.js.no_instruction')) ?></div>
             </div>
           </div>
           <div class="list-group list-group-flush list-scroll" id="stepsPreview"></div>
@@ -1022,11 +1024,11 @@ $pagePayload = [
 
       <section class="card">
         <div class="card-header">
-          <h2 class="card-title">Debug log</h2>
+          <h2 class="card-title"><?= h(t('runmethod.debug_log')) ?></h2>
           <div class="card-actions">
-            <button id="copyDebugLogBtn" type="button" class="btn btn-outline-secondary">Copy</button>
-            <button id="clearDebugLogBtn" type="button" class="btn btn-outline-secondary">Clear</button>
-            <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary">Unhidden</button>
+            <button id="copyDebugLogBtn" type="button" class="btn btn-outline-secondary"><?= h(t('runmethod.buttons.copy')) ?></button>
+            <button id="clearDebugLogBtn" type="button" class="btn btn-outline-secondary"><?= h(t('runmethod.buttons.clear')) ?></button>
+            <button id="toggleDebugLogBtn" type="button" class="btn btn-outline-secondary"><?= h(t('runmethod.buttons.unhidden')) ?></button>
           </div>
         </div>
         <div class="card-body">
@@ -1037,7 +1039,7 @@ $pagePayload = [
       <iframe
         id="lessonRunnerFrame"
         src="<?= h($defaultRunnerUrl) ?>"
-        title="Method runner"
+        title="<?= h(t('runmethod.method_runner')) ?>"
         allow="autoplay"
         style="position:absolute; width:1px; height:1px; border:0; opacity:0; pointer-events:none; left:-9999px; top:auto;"
       ></iframe>
@@ -1047,7 +1049,7 @@ $pagePayload = [
       <div class="card-body footer-row justify-content-between">
       <div class="fw-medium text-secondary"><?= h($methodId) ?></div>
       <div class="footer-row">
-        <span class="text-secondary">Powered by</span>
+        <span class="text-secondary"><?= h(t('runmethod.powered_by')) ?></span>
         <a href="https://www.bartimeus.nl" target="_blank" rel="noopener noreferrer">
           <img
             src="https://www.tastenbraille.com/braillestudio-data/assets/bartimeus.png"
@@ -1062,10 +1064,79 @@ $pagePayload = [
 
   <script>
     window.RunMethodBootstrap = <?= json_encode($pagePayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    window.RunMethodI18n = <?= json_encode([
+        'all_lessons' => t('runmethod.js.all_lessons'),
+        'already_active' => t('runmethod.js.already_active'),
+        'audio_stopped' => t('runmethod.js.audio_stopped'),
+        'badge_completed' => t('runmethod.js.badge_completed'),
+        'badge_failed' => t('runmethod.js.badge_failed'),
+        'badge_running' => t('runmethod.js.badge_running'),
+        'badge_stopped' => t('runmethod.js.badge_stopped'),
+        'badge_stopping' => t('runmethod.js.badge_stopping'),
+        'completed' => t('runmethod.js.completed'),
+        'hide' => t('runmethod.js.hide'),
+        'idle_banner' => t('runmethod.js.idle_banner'),
+        'lesson' => t('runmethod.js.lesson'),
+        'lesson_completed' => t('runmethod.js.lesson_completed'),
+        'lesson_completed_named' => t('runmethod.js.lesson_completed_named'),
+        'lesson_failed' => t('runmethod.js.lesson_failed'),
+        'lesson_failed_named' => t('runmethod.js.lesson_failed_named'),
+        'lesson_stopped' => t('runmethod.js.lesson_stopped'),
+        'lesson_stopped_named' => t('runmethod.js.lesson_stopped_named'),
+        'manual_step_run' => t('runmethod.js.manual_step_run'),
+        'no_external_variables' => t('runmethod.js.no_external_variables'),
+        'no_injected_inputs' => t('runmethod.js.no_injected_inputs'),
+        'no_instruction' => t('runmethod.js.no_instruction'),
+        'no_lesson_selected' => t('runmethod.js.no_lesson_selected'),
+        'no_lessons' => t('runmethod.js.no_lessons'),
+        'no_step_selected' => t('runmethod.js.no_step_selected'),
+        'no_steps' => t('runmethod.js.no_steps'),
+        'no_values' => t('runmethod.js.no_values'),
+        'not_running' => t('runmethod.js.not_running'),
+        'run' => t('runmethod.js.run'),
+        'run_all' => t('runmethod.js.run_all'),
+        'run_all_completed' => t('runmethod.js.run_all_completed'),
+        'run_all_failed' => t('runmethod.js.run_all_failed'),
+        'run_all_stopped' => t('runmethod.js.run_all_stopped'),
+        'run_completed' => t('runmethod.js.run_completed'),
+        'run_failed' => t('runmethod.js.run_failed'),
+        'run_failed_with_error' => t('runmethod.js.run_failed_with_error'),
+        'run_lesson' => t('runmethod.js.run_lesson'),
+        'run_step' => t('runmethod.js.run_step'),
+        'runner_active' => t('runmethod.js.runner_active'),
+        'runner_stopped' => t('runmethod.js.runner_stopped'),
+        'running' => t('runmethod.js.running'),
+        'running_all' => t('runmethod.js.running_all'),
+        'running_all_lessons' => t('runmethod.js.running_all_lessons'),
+        'running_lesson' => t('runmethod.js.running_lesson'),
+        'running_step' => t('runmethod.js.running_step'),
+        'step' => t('runmethod.js.step'),
+        'step_completed' => t('runmethod.js.step_completed'),
+        'step_completed_named' => t('runmethod.js.step_completed_named'),
+        'step_count' => t('runmethod.js.step_count'),
+        'step_failed' => t('runmethod.js.step_failed'),
+        'step_failed_named' => t('runmethod.js.step_failed_named'),
+        'step_stopped' => t('runmethod.js.step_stopped'),
+        'step_stopped_by_user' => t('runmethod.js.step_stopped_by_user'),
+        'step_stopped_named' => t('runmethod.js.step_stopped_named'),
+        'stop' => t('runmethod.js.stop'),
+        'stop_requested' => t('runmethod.js.stop_requested'),
+        'stopped' => t('runmethod.js.stopped'),
+        'stopped_error' => t('runmethod.js.stopped_error'),
+        'stopped_manual' => t('runmethod.js.stopped_manual'),
+        'stopping' => t('runmethod.js.stopping'),
+        'stopping_all' => t('runmethod.js.stopping_all'),
+        'stopping_lesson' => t('runmethod.js.stopping_lesson'),
+        'stopping_step' => t('runmethod.js.stopping_step'),
+        'unhide' => t('runmethod.js.unhide'),
+        'word' => t('runmethod.js.word'),
+        'empty_value' => t('runmethod.js.empty_value'),
+        'external_variables' => t('runmethod.js.external_variables'),
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-2"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};
@@ -1074,6 +1145,7 @@ $pagePayload = [
     const runnerUrl = String(bootstrap.runnerUrl || '');
     const runmethodScriptUrl = String(bootstrap.runmethodScriptUrl || '');
     const loadDiagnostics = Array.isArray(bootstrap.loadDiagnostics) ? bootstrap.loadDiagnostics : [];
+    const runMethodI18n = window.RunMethodI18n || {};
     const BRAILLE_MONITOR_PLACEHOLDER = 'Bartiméus Education';
 
     const lessonsList = document.getElementById('lessonsList');
@@ -1100,6 +1172,15 @@ $pagePayload = [
     const simCursor5Btn = document.getElementById('simCursor5Btn');
     const simChord1Btn = document.getElementById('simChord1Btn');
 
+    function i18n(key, params = {}) {
+      const fallback = String(key || '');
+      let text = String(runMethodI18n[key] || fallback);
+      Object.entries(params || {}).forEach(([name, value]) => {
+        text = text.split(`{${name}}`).join(String(value ?? ''));
+      });
+      return text;
+    }
+
     let selectedLessonIndex = lessons.length ? 0 : -1;
     let selectedStepIndex = 0;
     let isLessonRunning = false;
@@ -1123,7 +1204,7 @@ $pagePayload = [
     let currentRun = null;
     let lastRunBanner = {
       tone: 'idle',
-      text: 'Idle. Select a lesson or step to start.'
+      text: i18n('idle_banner')
     };
     const lessonStatuses = new Map();
     const stepStatuses = new Map();
@@ -1180,11 +1261,11 @@ $pagePayload = [
         failed: 'bg-danger-lt text-danger'
       };
       const labels = {
-        running: 'Running',
-        stopping: 'Stopping',
-        completed: 'Completed',
-        stopped: 'Stopped',
-        failed: 'Failed'
+        running: i18n('badge_running'),
+        stopping: i18n('badge_stopping'),
+        completed: i18n('badge_completed'),
+        stopped: i18n('badge_stopped'),
+        failed: i18n('badge_failed')
       };
       const title = message ? ` title="${escapeHtml(message)}"` : '';
       return `<span class="badge ${variants[normalized] || variants.stopped}"${title}>${labels[normalized] || escapeHtml(normalized)}</span>`;
@@ -1192,10 +1273,10 @@ $pagePayload = [
 
     function getRunModeLabel(mode) {
       const normalized = String(mode || '').trim().toLowerCase();
-      if (normalized === 'step') return 'step';
-      if (normalized === 'lesson') return 'lesson';
-      if (normalized === 'all') return 'all lessons';
-      return 'run';
+      if (normalized === 'step') return i18n('step');
+      if (normalized === 'lesson') return i18n('lesson');
+      if (normalized === 'all') return i18n('all_lessons');
+      return i18n('run');
     }
 
     function getCurrentRunStepIndex() {
@@ -1221,8 +1302,8 @@ $pagePayload = [
       if (runSelectedStepBtn) {
         runSelectedStepBtn.disabled = hasActiveRun;
         setIconButtonLabel(runSelectedStepBtn, 'ti-player-play', active?.mode === 'step'
-          ? (isStopping ? 'Stopping step...' : 'Running step...')
-          : 'Run step');
+          ? (isStopping ? i18n('stopping_step') : i18n('running_step'))
+          : i18n('run_step'));
         runSelectedStepBtn.className = active?.mode === 'step'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-outline-primary';
@@ -1230,8 +1311,8 @@ $pagePayload = [
       if (runCurrentBtn) {
         runCurrentBtn.disabled = hasActiveRun;
         setIconButtonLabel(runCurrentBtn, 'ti-player-play', active?.mode === 'lesson'
-          ? (isStopping ? 'Stopping lesson...' : 'Running lesson...')
-          : 'Run lesson');
+          ? (isStopping ? i18n('stopping_lesson') : i18n('running_lesson'))
+          : i18n('run_lesson'));
         runCurrentBtn.className = active?.mode === 'lesson'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-primary';
@@ -1239,22 +1320,22 @@ $pagePayload = [
       if (runAllBtn) {
         runAllBtn.disabled = hasActiveRun;
         setIconButtonLabel(runAllBtn, 'ti-player-play', active?.mode === 'all'
-          ? (isStopping ? 'Stopping all...' : 'Running all...')
-          : 'Run all');
+          ? (isStopping ? i18n('stopping_all') : i18n('running_all'))
+          : i18n('run_all'));
         runAllBtn.className = active?.mode === 'all'
           ? `btn ${isStopping ? 'btn-warning' : 'btn-primary'}`
           : 'btn btn-outline-primary';
       }
       if (stopRunBtn) {
         stopRunBtn.disabled = false;
-        setIconButtonLabel(stopRunBtn, 'ti-player-stop', isStopping ? 'Stopping...' : 'Stop');
+        setIconButtonLabel(stopRunBtn, 'ti-player-stop', isStopping ? i18n('stopping') : i18n('stop'));
         stopRunBtn.className = `btn ${isStopping ? 'btn-warning' : 'btn-danger'}`;
       }
 
       if (runStatusBanner) {
         if (!active && runnerActive) {
           runStatusBanner.className = 'status-banner is-running';
-          runStatusBanner.textContent = 'Runner is actief.';
+          runStatusBanner.textContent = i18n('runner_active');
         } else if (!active) {
           const tones = {
             idle: 'status-banner',
@@ -1265,21 +1346,21 @@ $pagePayload = [
             failed: 'status-banner is-failed'
           };
           runStatusBanner.className = tones[lastRunBanner.tone] || tones.idle;
-          runStatusBanner.textContent = lastRunBanner.text || 'Idle. Select a lesson or step to start.';
+          runStatusBanner.textContent = lastRunBanner.text || i18n('idle_banner');
         } else if (isStopping) {
           runStatusBanner.className = 'status-banner is-stopping';
-          runStatusBanner.textContent = `Stopping ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}`;
+          runStatusBanner.textContent = `${i18n('stopping')} ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}`;
         } else {
           runStatusBanner.className = 'status-banner is-running';
           const stepText = Number.isInteger(active.stepIndex) ? `, step ${active.stepIndex + 1}` : '';
-          runStatusBanner.textContent = `Running ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}${stepText}`;
+          runStatusBanner.textContent = `${i18n('running')} ${getRunModeLabel(active.mode)}${active.lessonTitle ? `: ${active.lessonTitle}` : ''}${stepText}`;
         }
       }
     }
 
     function startRunSession(mode, lesson = null, stepIndex = null) {
       if (currentRun && (currentRun.status === 'running' || currentRun.status === 'stopping')) {
-        throw new Error(`Another ${getRunModeLabel(currentRun.mode)} is already active`);
+        throw new Error(i18n('already_active', { mode: getRunModeLabel(currentRun.mode) }));
       }
       runSequence += 1;
       currentRun = {
@@ -1292,7 +1373,7 @@ $pagePayload = [
       };
       lastRunBanner = {
         tone: 'running',
-        text: `Running ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}${Number.isInteger(currentRun.stepIndex) ? `, step ${currentRun.stepIndex + 1}` : ''}`
+        text: `${i18n('running')} ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}${Number.isInteger(currentRun.stepIndex) ? `, step ${currentRun.stepIndex + 1}` : ''}`
       };
       renderRunControls();
       return currentRun;
@@ -1316,7 +1397,7 @@ $pagePayload = [
       currentRun.status = 'stopping';
       lastRunBanner = {
         tone: 'stopping',
-        text: `Stopping ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}`
+        text: `${i18n('stopping')} ${getRunModeLabel(currentRun.mode)}${currentRun.lessonTitle ? `: ${currentRun.lessonTitle}` : ''}`
       };
       renderRunControls();
       return true;
@@ -1328,7 +1409,7 @@ $pagePayload = [
       const isStopped = normalized === 'stopped';
       lastRunBanner = {
         tone: isError ? 'failed' : (isStopped ? 'stopped' : 'completed'),
-        text: label || (isError ? 'Run failed.' : (isStopped ? 'Run stopped.' : 'Run completed.'))
+        text: label || (isError ? i18n('run_failed') : (isStopped ? i18n('run_all_stopped') : i18n('run_completed')))
       };
       currentRun = null;
       renderRunControls();
@@ -1338,13 +1419,13 @@ $pagePayload = [
       const run = runSnapshot && typeof runSnapshot === 'object' ? runSnapshot : currentRun;
       if (!run || String(run.mode || '') !== 'step') return;
       if (run.lessonId && Number.isInteger(run.stepIndex)) {
-        setStepStatus(run.lessonId, run.stepIndex, 'stopped', 'Step stopped by user');
-        setLessonStatus(run.lessonId, 'stopped', 'Step stopped by user');
+        setStepStatus(run.lessonId, run.stepIndex, 'stopped', i18n('step_stopped_by_user'));
+        setLessonStatus(run.lessonId, 'stopped', i18n('step_stopped_by_user'));
       }
       renderLessonsList();
       renderCurrentLesson();
-      setLessonRunningState(false, 'Stopped');
-      finishRunSession('stopped', `Step stopped: ${run.lessonTitle || run.lessonId || 'step run'}`);
+      setLessonRunningState(false, i18n('stopped'));
+      finishRunSession('stopped', i18n('step_stopped_named', { title: run.lessonTitle || run.lessonId || i18n('run') }));
     }
 
     function showBrailleMonitorPlaceholder() {
@@ -1464,7 +1545,7 @@ $pagePayload = [
 
     function renderLessonReturnValues(entries = []) {
       if (!Array.isArray(entries) || !entries.length) {
-        lessonReturnValues.textContent = 'No values yet.';
+        lessonReturnValues.textContent = i18n('no_values');
         return;
       }
       lessonReturnValues.innerHTML = `
@@ -1487,13 +1568,13 @@ $pagePayload = [
     function renderDebugLogVisibility() {
       if (!statusBox || !toggleDebugLogBtn) return;
       statusBox.classList.toggle('hidden', !isDebugLogVisible);
-      toggleDebugLogBtn.textContent = isDebugLogVisible ? 'Hidden' : 'Unhidden';
+      toggleDebugLogBtn.textContent = isDebugLogVisible ? i18n('hide') : i18n('unhide');
     }
 
     function renderRunnerVisibility() {
       if (!runnerPanel || !toggleRunnerBtn) return;
       runnerPanel.classList.toggle('hidden', !isRunnerVisible);
-      toggleRunnerBtn.textContent = isRunnerVisible ? 'Hide' : 'Unhide';
+      toggleRunnerBtn.textContent = isRunnerVisible ? i18n('hide') : i18n('unhide');
       toggleRunnerBtn.className = 'btn btn-outline-secondary ms-auto';
     }
 
@@ -1733,13 +1814,13 @@ $pagePayload = [
       const selectedStep = steps[selectedStepIndex] || null;
       const meta = selectedStep ? getStepDisplayMeta(selectedStep) : null;
       const instruction = String(meta?.instruction || '').trim();
-      selectedStepInstruction.textContent = instruction || 'No instruction for the selected step.';
+      selectedStepInstruction.textContent = instruction || i18n('no_instruction');
     }
 
     function renderLessonsList() {
       lessonsList.innerHTML = '';
       if (!lessons.length) {
-        lessonsList.innerHTML = '<div class="empty"><p class="empty-title">No lessons found for this method.</p></div>';
+        lessonsList.innerHTML = `<div class="empty"><p class="empty-title">${escapeHtml(i18n('no_lessons'))}</p></div>`;
         return;
       }
       lessons.forEach((lesson, index) => {
@@ -1754,8 +1835,8 @@ $pagePayload = [
             ${getStatusBadgeMarkup(getLessonStatus(lesson.id).status, getLessonStatus(lesson.id).message)}
           </div>
           ${lessonDescription ? `<div class="item-meta">${escapeHtml(lessonDescription)}</div>` : ''}
-          <div class="item-meta">Word: ${lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index)}</div>
-          <div class="item-meta">${Array.isArray(lesson.steps) ? lesson.steps.length : 0} step(s)</div>
+          <div class="item-meta">${escapeHtml(i18n('word'))}: ${escapeHtml(lesson.basisWord || getBasisWord(lesson.basisRecord, lesson.basisIndex || index))}</div>
+          <div class="item-meta">${escapeHtml(i18n('step_count', { count: Array.isArray(lesson.steps) ? lesson.steps.length : 0 }))}</div>
         `;
         button.addEventListener('click', () => {
           selectedLessonIndex = index;
@@ -1769,7 +1850,7 @@ $pagePayload = [
     function renderCurrentLesson() {
       const lesson = getSelectedLesson();
       if (!lesson) {
-        stepsPreview.textContent = 'No steps.';
+        stepsPreview.textContent = i18n('no_steps');
         renderSelectedStepInstruction(null);
         renderLessonReturnValues([]);
         return;
@@ -1812,20 +1893,20 @@ $pagePayload = [
               </div>
               <div class="item-meta">${escapeHtml(item.id)}</div>
               ${item.description ? `<div class="item-meta">${escapeHtml(item.description)}</div>` : ''}
-              <div class="item-meta">${item.detail ? escapeHtml(item.detail) : 'No injected inputs.'}</div>
+              <div class="item-meta">${item.detail ? escapeHtml(item.detail) : escapeHtml(i18n('no_injected_inputs'))}</div>
               ${item.externalVariables.length ? `
-                <div class="external-vars" aria-label="External variables">
+                <div class="external-vars" aria-label="${escapeHtml(i18n('external_variables'))}">
                   ${item.externalVariables.map((variable) => `
                     <span class="external-var" title="${escapeHtml(variable.name)}">
                       <span class="external-var__name">${escapeHtml(variable.name)}</span>
-                      <span class="external-var__value">${escapeHtml(variable.value || '(empty)')}</span>
+                      <span class="external-var__value">${escapeHtml(variable.value || i18n('empty_value'))}</span>
                     </span>
                   `).join('')}
                 </div>
-              ` : '<div class="item-meta">No external variables.</div>'}
+              ` : `<div class="item-meta">${escapeHtml(i18n('no_external_variables'))}</div>`}
             </button>
           `).join('')}`
-        : '<div class="empty"><p class="empty-title">No steps.</p></div>';
+        : `<div class="empty"><p class="empty-title">${escapeHtml(i18n('no_steps'))}</p></div>`;
       stepsPreview.querySelectorAll('[data-step-index]').forEach((button) => {
         button.addEventListener('click', () => {
           selectedStepIndex = Number(button.getAttribute('data-step-index') || 0);
@@ -2285,8 +2366,8 @@ $pagePayload = [
 	    }
 
     async function runLessonStep(lesson, stepConfig, stepIndex, app = null) {
-      if (!lesson) throw new Error('No lesson selected');
-      if (!stepConfig) throw new Error('No step selected');
+      if (!lesson) throw new Error(i18n('no_lesson_selected'));
+      if (!stepConfig) throw new Error(i18n('no_step_selected'));
       const runnerApp = app || await waitForRunnerReady();
       void primeBrailleBridgeConnection(runnerApp, { timeoutMs: 1500, wait: false });
       const basisIndex = Number(lesson.basisIndex ?? -1);
@@ -2382,7 +2463,7 @@ $pagePayload = [
     }
 
     async function runLesson(lesson, options = {}) {
-      if (!lesson) throw new Error('No lesson selected');
+      if (!lesson) throw new Error(i18n('no_lesson_selected'));
       const manageSession = options?.manageSession !== false;
       if (manageSession) {
         startRunSession('lesson', lesson, 0);
@@ -2394,7 +2475,7 @@ $pagePayload = [
       const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
       selectedStepIndex = 0;
       clearStepStatuses(lesson.id);
-      setLessonStatus(lesson.id, 'running', `Lesson running: ${lesson.title || lesson.id}`);
+      setLessonStatus(lesson.id, 'running', `${i18n('running')} ${i18n('lesson')}: ${lesson.title || lesson.id}`);
       renderLessonsList();
       renderCurrentLesson();
       const displayedValues = [
@@ -2419,7 +2500,7 @@ $pagePayload = [
         updateCurrentRunStep(stepIndex);
         renderCurrentLesson();
         if (stopRequested) {
-          setLessonStatus(lesson.id, 'stopped', 'Lesson stopped by user');
+          setLessonStatus(lesson.id, 'stopped', i18n('lesson_stopped'));
           appendStatus('Lesson handmatig gestopt.', {
             lessonId: lesson.id,
             stepIndex
@@ -2427,7 +2508,7 @@ $pagePayload = [
           break;
         }
         const stepConfig = steps[stepIndex];
-        setStepStatus(lesson.id, stepIndex, 'running', `Running ${stepConfig.id}`);
+        setStepStatus(lesson.id, stepIndex, 'running', `${i18n('running')} ${stepConfig.id}`);
         renderCurrentLesson();
         appendStatus('Step gestart.', {
           lessonId: lesson.id,
@@ -2462,7 +2543,7 @@ $pagePayload = [
           previousStepIndex: stepIndex
         });
         if (stepFinishedStatus === 'stopped') {
-          setLessonStatus(lesson.id, 'stopped', 'Lesson stopped by user');
+          setLessonStatus(lesson.id, 'stopped', i18n('lesson_stopped'));
           renderLessonsList();
           appendStatus('Lesson run: stopped after current step.', {
             lessonId: lesson.id,
@@ -2471,7 +2552,7 @@ $pagePayload = [
           break;
         }
         if (result?.lessonCompletion) {
-          setLessonStatus(lesson.id, 'completed', 'Lesson completed');
+          setLessonStatus(lesson.id, 'completed', i18n('lesson_completed'));
           renderLessonsList();
           appendStatus('Lesson run: lesson completion detected.', {
             lessonId: lesson.id,
@@ -2499,20 +2580,20 @@ $pagePayload = [
       setLessonStatus(
         lesson.id,
         normalizedFinalStatus,
-        normalizedFinalStatus === 'completed' ? 'Lesson completed' : (normalizedFinalStatus === 'failed' ? 'Lesson failed' : 'Lesson stopped')
+        normalizedFinalStatus === 'completed' ? i18n('lesson_completed') : (normalizedFinalStatus === 'failed' ? i18n('lesson_failed') : i18n('lesson_stopped'))
       );
       renderLessonsList();
       displayedValues.push({ key: 'finalStatus', value: finalStatus });
       renderLessonReturnValues(displayedValues);
       if (manageSession) {
-        setLessonRunningState(false, normalizedFinalStatus === 'completed' ? 'Completed' : `Stopped (${finalStatus})`);
+        setLessonRunningState(false, normalizedFinalStatus === 'completed' ? i18n('completed') : `${i18n('stopped')} (${finalStatus})`);
         finishRunSession(
           normalizedFinalStatus,
           normalizedFinalStatus === 'completed'
-            ? `Lesson completed: ${lesson.title || lesson.id}`
+            ? i18n('lesson_completed_named', { title: lesson.title || lesson.id })
             : (normalizedFinalStatus === 'failed'
-              ? `Lesson failed: ${lesson.title || lesson.id}`
-              : `Lesson stopped: ${lesson.title || lesson.id}`)
+              ? i18n('lesson_failed_named', { title: lesson.title || lesson.id })
+              : i18n('lesson_stopped_named', { title: lesson.title || lesson.id }))
         );
       }
       stopRequested = false;
@@ -2523,17 +2604,17 @@ $pagePayload = [
       appendStatus('Run step knop ingedrukt.', getRunControlDebugSnapshot());
       try {
         const lesson = getSelectedLesson();
-        if (!lesson) throw new Error('No lesson selected');
+        if (!lesson) throw new Error(i18n('no_lesson_selected'));
         const steps = Array.isArray(lesson.steps) ? lesson.steps : [];
-        if (!steps[selectedStepIndex]) throw new Error('No step selected');
+        if (!steps[selectedStepIndex]) throw new Error(i18n('no_step_selected'));
         startRunSession('step', lesson, selectedStepIndex);
         appendStatus('Run step sessiestatus gestart.', getRunControlDebugSnapshot());
         stopRequested = false;
-        setLessonStatus(lesson.id, 'running', `Manual step run in ${lesson.title || lesson.id}`);
-        setStepStatus(lesson.id, selectedStepIndex, 'running', `Running ${steps[selectedStepIndex].id}`);
+        setLessonStatus(lesson.id, 'running', i18n('manual_step_run', { title: lesson.title || lesson.id }));
+        setStepStatus(lesson.id, selectedStepIndex, 'running', `${i18n('running')} ${steps[selectedStepIndex].id}`);
         renderLessonsList();
         renderCurrentLesson();
-        setLessonRunningState(true, `Running from step ${selectedStepIndex + 1}`);
+        setLessonRunningState(true, `${i18n('running')} ${i18n('step')} ${selectedStepIndex + 1}`);
         appendStatus('Run vanaf geselecteerde step gestart.', {
           lessonId: lesson.id,
           stepIndex: selectedStepIndex,
@@ -2573,13 +2654,13 @@ $pagePayload = [
           completion?.response?.feedback || completion?.status || ''
         );
         if (result?.lessonCompletion) {
-          setLessonStatus(lesson.id, 'completed', 'Lesson completed');
+          setLessonStatus(lesson.id, 'completed', i18n('lesson_completed'));
         } else if (finalStatus === 'failed') {
-          setLessonStatus(lesson.id, 'failed', 'Step failed');
+          setLessonStatus(lesson.id, 'failed', i18n('step_failed'));
         } else if (finalStatus === 'stopped') {
-          setLessonStatus(lesson.id, 'stopped', 'Step stopped');
+          setLessonStatus(lesson.id, 'stopped', i18n('step_stopped'));
         } else {
-          setLessonStatus(lesson.id, 'completed', 'Step completed');
+          setLessonStatus(lesson.id, 'completed', i18n('step_completed'));
         }
         renderLessonsList();
         renderCurrentLesson();
@@ -2592,14 +2673,14 @@ $pagePayload = [
         });
         displayedValues.push({ key: 'finalStatus', value: finalStatus });
         renderLessonReturnValues(displayedValues);
-        setLessonRunningState(false, finalStatus === 'completed' ? 'Step completed' : `Stopped (${finalStatus})`);
+        setLessonRunningState(false, finalStatus === 'completed' ? i18n('step_completed') : `${i18n('stopped')} (${finalStatus})`);
         finishRunSession(
           finalStatus === 'failed' ? 'failed' : (finalStatus === 'stopped' ? 'stopped' : 'completed'),
           finalStatus === 'completed'
-            ? `Step completed: ${stepConfig.title || stepConfig.id}`
+            ? i18n('step_completed_named', { title: stepConfig.title || stepConfig.id })
             : (finalStatus === 'failed'
-              ? `Step failed: ${stepConfig.title || stepConfig.id}`
-              : `Step stopped: ${stepConfig.title || stepConfig.id}`)
+              ? i18n('step_failed_named', { title: stepConfig.title || stepConfig.id })
+              : i18n('step_stopped_named', { title: stepConfig.title || stepConfig.id }))
         );
         appendStatus('Run vanaf geselecteerde step afgerond.', {
           lessonId: lesson.id,
@@ -2611,7 +2692,7 @@ $pagePayload = [
         });
         stopRequested = false;
       } catch (err) {
-        setLessonRunningState(false, 'Stopped (error)');
+        setLessonRunningState(false, i18n('stopped_error'));
         if (currentRun?.lessonId) {
           const failedLesson = getSelectedLesson();
           if (failedLesson?.id === currentRun.lessonId && Number.isInteger(currentRun.stepIndex)) {
@@ -2624,7 +2705,7 @@ $pagePayload = [
         renderLessonReturnValues([
           { key: 'error', value: err.message || String(err) }
         ]);
-        finishRunSession('failed', `Step run failed: ${err.message || String(err)}`);
+        finishRunSession('failed', i18n('run_failed_with_error', { error: err.message || String(err) }));
         appendStatus('Run vanaf geselecteerde step mislukt.', {
           error: err.message || String(err),
           stack: err?.stack || '',
@@ -2647,7 +2728,7 @@ $pagePayload = [
         const results = await runLesson(lesson);
         appendStatus('Current lesson afgerond.', { lessonId: lesson?.id || '', results });
       } catch (err) {
-        setLessonRunningState(false, 'Stopped (error)');
+        setLessonRunningState(false, i18n('stopped_error'));
         if (lesson?.id) {
           setLessonStatus(lesson.id, 'failed', err.message || String(err));
           renderLessonsList();
@@ -2656,7 +2737,7 @@ $pagePayload = [
         renderLessonReturnValues([
           { key: 'error', value: err.message || String(err) }
         ]);
-        finishRunSession('failed', `Lesson run failed: ${err.message || String(err)}`);
+        finishRunSession('failed', i18n('run_failed_with_error', { error: err.message || String(err) }));
         appendStatus('Run current lesson mislukt.', {
           error: err.message || String(err),
           runnerState: getRunnerDebugState()
@@ -2667,14 +2748,14 @@ $pagePayload = [
 
     async function runAllLessons() {
       startRunSession('all', null, null);
-      setLessonRunningState(true, 'Running all lessons');
+      setLessonRunningState(true, i18n('running_all_lessons'));
       stopRequested = false;
       appendStatus('Run all gestart.', { lessons: lessons.length });
       for (let index = 0; index < lessons.length; index += 1) {
         if (stopRequested) {
-          setLessonRunningState(false, 'Stopped (manual)');
+          setLessonRunningState(false, i18n('stopped_manual'));
           appendStatus('Run all handmatig gestopt.');
-          finishRunSession('stopped', 'Run all stopped.');
+          finishRunSession('stopped', i18n('run_all_stopped'));
           stopRequested = false;
           return;
         }
@@ -2685,7 +2766,7 @@ $pagePayload = [
           const lesson = lessons[index];
           const results = await runLesson(lesson, { manageSession: false });
         } catch (err) {
-          setLessonRunningState(false, 'Stopped (error)');
+          setLessonRunningState(false, i18n('stopped_error'));
           renderLessonReturnValues([
             { key: 'error', value: err.message || String(err) }
           ]);
@@ -2693,13 +2774,13 @@ $pagePayload = [
             lessonId: lessons[index]?.id || '',
             error: err.message || String(err)
           });
-          finishRunSession('failed', `Run all failed: ${err.message || String(err)}`);
+          finishRunSession('failed', i18n('run_all_failed', { error: err.message || String(err) }));
           stopRequested = false;
           return;
         }
       }
-      setLessonRunningState(false, 'Not running');
-      finishRunSession('completed', 'Run all completed.');
+      setLessonRunningState(false, i18n('not_running'));
+      finishRunSession('completed', i18n('run_all_completed'));
       stopRequested = false;
       appendStatus('Run all afgerond.');
     }
@@ -2717,10 +2798,10 @@ $pagePayload = [
         const runtime = getRunnerRuntimeSnapshot(app);
         if (!runtime?.isActive || typeof app?.stopProgram !== 'function') {
           if (audioStopped) {
-            setLessonRunningState(false, 'Audio stopped');
+            setLessonRunningState(false, i18n('audio_stopped'));
             lastRunBanner = {
               tone: 'stopped',
-              text: 'Audio stopped.'
+              text: i18n('audio_stopped')
             };
             renderRunControls();
             return;
@@ -2731,10 +2812,10 @@ $pagePayload = [
         }
         appendStatus('Directe runner-stop wordt aangeroepen.', getRunControlDebugSnapshot());
         await app.stopProgram();
-        setLessonRunningState(false, 'Stopped');
+        setLessonRunningState(false, i18n('stopped'));
         lastRunBanner = {
           tone: 'stopped',
-          text: 'Runner stopped.'
+          text: i18n('runner_stopped')
         };
         renderRunControls();
         appendStatus('Actieve runner rechtstreeks gestopt.', getRunControlDebugSnapshot());
@@ -2747,13 +2828,13 @@ $pagePayload = [
         runSnapshot,
         state: getRunControlDebugSnapshot()
       });
-      setLessonRunningState(true, 'Stopping');
+      setLessonRunningState(true, i18n('stopping'));
       if (currentRun.lessonId && Number.isInteger(getCurrentRunStepIndex())) {
-        setStepStatus(currentRun.lessonId, getCurrentRunStepIndex(), 'stopping', 'Stop requested');
+        setStepStatus(currentRun.lessonId, getCurrentRunStepIndex(), 'stopping', i18n('stop_requested'));
         renderCurrentLesson();
       }
       if (currentRun.lessonId) {
-        setLessonStatus(currentRun.lessonId, 'stopping', 'Stop requested');
+        setLessonStatus(currentRun.lessonId, 'stopping', i18n('stop_requested'));
         renderLessonsList();
       }
       try {
@@ -2770,7 +2851,7 @@ $pagePayload = [
         });
         finalizeStoppedStepRun(runSnapshot);
         if (runSnapshot.mode !== 'step') {
-          finishRunSession('stopped', 'Run stop requested.');
+          finishRunSession('stopped', i18n('stop_requested'));
         }
         return;
       }
@@ -2935,7 +3016,7 @@ $pagePayload = [
       renderMethodInfo();
       renderLessonsList();
       renderCurrentLesson();
-      setLessonRunningState(false, 'Not running');
+      setLessonRunningState(false, i18n('not_running'));
       renderDebugLogVisibility();
       renderRunnerVisibility();
       renderRunControls();

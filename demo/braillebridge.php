@@ -27,7 +27,7 @@ function demo_j(string $key, array $params = []): string
   <link rel="icon" href="<?= demo_h($assetBase) ?>/favicon.ico" sizes="any">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/tabler/icons-webfont/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-1">
+  <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-2">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braille-monitor/braillemonitor.css">
   <style>
     .demo-flow {
@@ -64,57 +64,52 @@ function demo_j(string $key, array $params = []): string
       white-space: pre-wrap;
       font-size: .82rem;
     }
-    .demo-status-panel .braillebridge-status__body {
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 1.25rem;
-    }
-    .demo-status-panel .braillebridge-status__main {
-      flex: 1 1 18rem;
-      align-items: flex-start;
-    }
-    .demo-status-panel .braillebridge-status__title {
-      overflow-wrap: normal;
-      word-break: normal;
-    }
-    .demo-status-panel .braillebridge-status__subtitle {
-      overflow: visible;
-      text-overflow: clip;
-      white-space: normal;
-    }
-    .demo-status-panel .braillebridge-status__meta {
-      flex: 1 1 26rem;
-      justify-content: flex-start;
-    }
-    .demo-status-panel .braillebridge-status__badge,
-    .demo-status-panel .braillebridge-status__action {
-      white-space: nowrap;
-    }
-    .demo-status-panel .braillebridge-status__incoming {
-      max-width: none;
-    }
-    .demo-status-panel .braillebridge-status__details {
-      grid-template-columns: repeat(4, minmax(10rem, 1fr));
-    }
     .demo-status-actions {
       display: flex;
       flex-wrap: wrap;
       gap: .5rem;
       align-items: end;
     }
+    .demo-connection-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: end;
+    }
+    .demo-bridge-popup {
+      flex: 0 0 auto;
+      min-height: 2.5rem;
+    }
+    .demo-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, max-content));
+      gap: .5rem;
+      align-items: center;
+    }
+    .demo-caret-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    .demo-caret-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      align-items: center;
+    }
     @media (max-width: 991.98px) {
       .demo-flow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-      .demo-status-panel .braillebridge-status__details {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .demo-caret-grid {
+        grid-template-columns: 1fr;
       }
     }
     @media (max-width: 575.98px) {
       .demo-flow {
         grid-template-columns: 1fr;
       }
-      .demo-status-panel .braillebridge-status__details {
+      .demo-mode-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -199,27 +194,41 @@ function demo_j(string $key, array $params = []): string
                 <h2 class="card-title"><?= demo_h(t('demo.braillebridge.status.title')) ?></h2>
               </div>
               <div class="card-body">
-                <div
-                  class="demo-status-panel mb-3"
-                  data-braillebridge-status
-                  data-expanded="true"
-                  data-popup="false"
-                  data-ws-url="ws://localhost:5000/ws"
-                  data-launch-url="braillebridge://"
-                  aria-label="BrailleBridge status"
-                ></div>
-                <div class="row g-3 align-items-end">
+                <div class="row g-3">
                   <div class="col-12 col-lg-7">
                     <label class="form-label" for="wsUrl"><?= demo_h(t('demo.braillebridge.ws_url')) ?></label>
-                    <input id="wsUrl" class="form-control font-monospace" type="text" value="ws://localhost:5000/ws">
-                  </div>
-                  <div class="col-12 col-lg-5">
-                    <div class="demo-status-actions">
-                      <button id="connectBtn" class="btn btn-primary" type="button"><?= demo_h(t('demo.braillebridge.connect')) ?></button>
-                      <button id="disconnectBtn" class="btn btn-outline-danger" type="button"><?= demo_h(t('demo.braillebridge.disconnect')) ?></button>
+                    <div class="demo-connection-toolbar">
+                      <div class="flex-fill">
+                        <input id="wsUrl" class="form-control font-monospace" type="text" value="ws://localhost:5000/ws">
+                      </div>
+                      <div
+                        class="demo-bridge-popup"
+                        data-braillebridge-status
+                        data-expanded="false"
+                        data-popup="true"
+                        data-ws-url="ws://localhost:5000/ws"
+                        data-launch-url="braillebridge://"
+                        data-auto-launch="true"
+                        aria-label="BrailleBridge status"
+                      ></div>
+                    </div>
+                    <div class="demo-status-actions mt-2" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
                       <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
                       <span id="editorBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.editor_unknown')) ?></span>
                       <span id="insertBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.insert_unknown')) ?></span>
+                    </div>
+                  </div>
+                  <div class="col-12 col-lg-5">
+                    <div class="demo-status-actions mb-3">
+                      <button id="connectBtn" class="btn btn-primary" type="button"><?= demo_h(t('demo.braillebridge.connect')) ?></button>
+                      <button id="disconnectBtn" class="btn btn-outline-danger" type="button"><?= demo_h(t('demo.braillebridge.disconnect')) ?></button>
+                    </div>
+                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.editor_mode')) ?></div>
+                    <div class="demo-mode-grid">
+                      <button id="editorOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.editor_on')) ?></button>
+                      <button id="editorOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.editor_off')) ?></button>
+                      <button id="insertOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.insert_on')) ?></button>
+                      <button id="insertOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.insert_off')) ?></button>
                     </div>
                   </div>
                 </div>
@@ -258,16 +267,7 @@ function demo_j(string $key, array $params = []): string
               </div>
               <div class="card-body">
                 <div class="row g-3">
-                  <div class="col-12 col-lg-4">
-                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.editor_mode')) ?></div>
-                    <div class="btn-list">
-                      <button id="editorOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.editor_on')) ?></button>
-                      <button id="editorOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.editor_off')) ?></button>
-                      <button id="insertOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.insert_on')) ?></button>
-                      <button id="insertOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.insert_off')) ?></button>
-                    </div>
-                  </div>
-                  <div class="col-12 col-lg-4">
+                  <div class="col-12 col-lg-6">
                     <label class="form-label" for="textInput"><?= demo_h(t('demo.braillebridge.text_to_send')) ?></label>
                     <input id="textInput" class="form-control" type="text" value="<?= demo_h(t('demo.braillebridge.sample_text')) ?>">
                     <div class="btn-list mt-2">
@@ -275,7 +275,7 @@ function demo_j(string $key, array $params = []): string
                       <button id="clearBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.clear_display')) ?></button>
                     </div>
                   </div>
-                  <div class="col-12 col-lg-4">
+                  <div class="col-12 col-lg-6">
                     <label class="form-label" for="keyInput"><?= demo_h(t('demo.braillebridge.key_to_send')) ?></label>
                     <select id="keyInput" class="form-select">
                       <option>Backspace</option>
@@ -293,27 +293,34 @@ function demo_j(string $key, array $params = []): string
 
                 <hr>
 
-                <div class="row g-3">
-                  <div class="col-12 col-md-3">
+                <div class="demo-caret-grid">
+                  <div>
                     <label class="form-label" for="caretTextIndex"><?= demo_h(t('demo.braillebridge.caret_text_index')) ?></label>
-                    <input id="caretTextIndex" class="form-control font-monospace" type="number" min="0" value="0">
-                  </div>
-                  <div class="col-12 col-md-3">
-                    <label class="form-label" for="caretCellIndex"><?= demo_h(t('demo.braillebridge.caret_cell_index')) ?></label>
-                    <input id="caretCellIndex" class="form-control font-monospace" type="number" min="0" value="0">
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.caret')) ?></div>
-                    <div class="btn-list">
+                    <input id="caretTextIndex" class="form-control font-monospace" type="number" min="0" value="0" aria-describedby="caretTextIndexHelp">
+                    <div id="caretTextIndexHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.caret_text_index_help')) ?></div>
+                    <div class="demo-caret-actions mt-2">
                       <button id="setCaretBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.set_caret')) ?></button>
-                      <button id="fromCellBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.from_cell')) ?></button>
-                      <button id="moveLeftBtn" class="btn btn-outline-secondary" type="button">-1</button>
-                      <button id="moveRightBtn" class="btn btn-outline-secondary" type="button">+1</button>
+                      <button id="moveLeftBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.move_left')) ?></button>
+                      <button id="moveRightBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.move_right')) ?></button>
                       <button id="beginBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.begin')) ?></button>
                       <button id="endBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.end')) ?></button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="form-label" for="caretCellIndex"><?= demo_h(t('demo.braillebridge.caret_cell_index')) ?></label>
+                    <input id="caretCellIndex" class="form-control font-monospace" type="number" min="0" value="0" aria-describedby="caretCellIndexHelp">
+                    <div id="caretCellIndexHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.caret_cell_index_help')) ?></div>
+                    <div class="demo-caret-actions mt-2">
+                      <button id="fromCellBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.from_cell')) ?></button>
+                      <button id="routingBtn" class="btn btn-outline-secondary" type="button" aria-describedby="cursorRoutingHelp"><?= demo_h(t('demo.braillebridge.cursor_routing')) ?></button>
+                    </div>
+                    <div id="cursorRoutingHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.cursor_routing_help')) ?></div>
+                  </div>
+                  <div>
+                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.caret_visibility')) ?></div>
+                    <div class="demo-caret-actions">
                       <button id="caretOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.caret_on')) ?></button>
                       <button id="caretOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.caret_off')) ?></button>
-                      <button id="routingBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.cursor_routing')) ?></button>
                     </div>
                   </div>
                 </div>
@@ -392,7 +399,7 @@ function demo_j(string $key, array $params = []): string
 </div>
 
 <script src="<?= demo_h($assetBase) ?>/tabler/core/dist/js/tabler.min.js"></script>
-<script src="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1"></script>
+<script src="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-2"></script>
 <script src="<?= demo_h($assetBase) ?>/components/braille-monitor/braillemonitor.js"></script>
 <script>
 (() => {
@@ -416,6 +423,7 @@ function demo_j(string $key, array $params = []): string
   const wsBadge = $('wsBadge');
   const editorBadge = $('editorBadge');
   const insertBadge = $('insertBadge');
+  const statusRoot = document.querySelector('[data-braillebridge-status]');
   const logEl = $('eventLog');
   const monitor = window.BrailleMonitor?.init
     ? window.BrailleMonitor.init({ containerId: 'brailleMonitor', showInfo: false })
@@ -447,6 +455,7 @@ function demo_j(string $key, array $params = []): string
   function open() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     reconnect = true;
+    syncStatusUrl();
     setWsState(false, labels.connecting);
     appendLog('WS connect', { url: wsUrl.value });
     try {
@@ -496,6 +505,15 @@ function demo_j(string $key, array $params = []): string
     ws.send(JSON.stringify(payload));
     appendLog('WS -> ' + label, payload);
     return true;
+  }
+
+  function syncStatusUrl() {
+    const nextUrl = wsUrl.value.trim() || 'ws://localhost:5000/ws';
+    if (!statusRoot) return;
+    statusRoot.dataset.wsUrl = nextUrl;
+    if (statusRoot.__brailleBridgeStatus?.options) {
+      statusRoot.__brailleBridgeStatus.options.wsUrl = nextUrl;
+    }
   }
 
   function intValue(id) {
@@ -553,6 +571,8 @@ function demo_j(string $key, array $params = []): string
   }
 
   $('connectBtn').addEventListener('click', open);
+  wsUrl.addEventListener('change', syncStatusUrl);
+  wsUrl.addEventListener('blur', syncStatusUrl);
   $('disconnectBtn').addEventListener('click', close);
   $('getLineBtn').addEventListener('click', () => send({ type: 'getBrailleLine' }, 'getBrailleLine'));
   $('editorOnBtn').addEventListener('click', () => { setEditorState(true); send({ type: 'command', command: 'setEditorMode', enabled: true }, 'setEditorMode'); });

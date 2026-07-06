@@ -140,7 +140,7 @@
               <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge" data-role="version">Versie onbekend</span>
               <span class="badge bg-secondary-lt text-secondary braillebridge-status__badge braillebridge-status__incoming" data-role="incoming">WS inkomend: geen</span>
               <button class="btn btn-sm btn-outline-primary braillebridge-status__action" type="button" data-role="start">Open BrailleBridge</button>
-              <button class="btn btn-sm btn-outline-secondary braillebridge-status__action" type="button" data-role="test">Controleer opnieuw</button>
+              <button class="btn btn-sm btn-outline-secondary braillebridge-status__action" type="button" data-role="test">Controleer communicatie</button>
               <button class="btn btn-sm btn-outline-secondary braillebridge-status__header-toggle" type="button" data-role="header-toggle" aria-label="BrailleBridge status sluiten" title="Samenvouwen">
                 <i class="ti ti-chevron-up" aria-hidden="true"></i>
               </button>
