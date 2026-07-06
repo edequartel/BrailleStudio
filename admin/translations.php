@@ -140,11 +140,54 @@ function tr_admin_json_encode(array $data): string
     return $json . "\n";
 }
 
+function tr_admin_backup_language(string $code): void
+{
+    $path = tr_admin_language_path($code);
+    if (!is_file($path)) {
+        return;
+    }
+
+    $backupDir = bs_language_dir() . '/backups';
+    if (!is_dir($backupDir) && !mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
+        throw new RuntimeException(t('admin.translations.errors.backup_failed'));
+    }
+
+    $backupPath = $backupDir . '/' . $code . '-' . date('Y-m-d-His') . '.json';
+    if (!copy($path, $backupPath)) {
+        throw new RuntimeException(t('admin.translations.errors.backup_failed'));
+    }
+}
+
+function tr_admin_validate_translation_tree(array $data, bool $root = true): void
+{
+    foreach ($data as $key => $value) {
+        $key = (string)$key;
+        if ($root && $key === '_meta') {
+            if (!is_array($value)) {
+                throw new RuntimeException(t('admin.translations.errors.invalid_translation_file'));
+            }
+            continue;
+        }
+        if ($key === '' || preg_match('/^[A-Za-z0-9_-]+$/', $key) !== 1) {
+            throw new RuntimeException(t('admin.translations.errors.invalid_translation_file'));
+        }
+        if (is_array($value)) {
+            tr_admin_validate_translation_tree($value, false);
+            continue;
+        }
+        if (!is_scalar($value) && $value !== null) {
+            throw new RuntimeException(t('admin.translations.errors.invalid_translation_file'));
+        }
+    }
+}
+
 function tr_admin_write_language(string $code, array $data): void
 {
     $path = tr_admin_language_path($code);
+    tr_admin_validate_translation_tree($data);
     $json = tr_admin_json_encode($data);
     json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+    tr_admin_backup_language($code);
 
     $handle = fopen($path, 'c');
     if ($handle === false) {
@@ -188,7 +231,11 @@ function tr_admin_valid_import_data(array $data, string $code): array
         throw new RuntimeException(t('admin.translations.errors.import_code_mismatch'));
     }
     $direction = strtolower((string)($meta['direction'] ?? 'ltr'));
+    $data['_meta']['code'] = $code;
+    $data['_meta']['name'] = trim((string)($meta['name'] ?? strtoupper($code))) ?: strtoupper($code);
+    $data['_meta']['native'] = trim((string)($meta['native'] ?? strtoupper($code))) ?: strtoupper($code);
     $data['_meta']['direction'] = $direction === 'rtl' ? 'rtl' : 'ltr';
+    tr_admin_validate_translation_tree($data);
     return $data;
 }
 
