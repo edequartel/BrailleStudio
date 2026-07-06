@@ -258,9 +258,9 @@
   margin-top: .125rem;
   color: var(--tblr-secondary);
   font-size: .875rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .braillebridge-status__meta {

@@ -472,7 +472,7 @@ $pagePayload = [
   <link rel="stylesheet" href="./tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="./tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="./components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
-  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
+  <link rel="stylesheet" href="./components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-1">
   <style>
     body {
       min-height: 100vh;
@@ -1065,7 +1065,7 @@ $pagePayload = [
   </script>
   <?php if ($errorMessage === ''): ?>
   <script src="./tabler/core/dist/js/tabler.min.js"></script>
-  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4"></script>
+  <script src="./components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1"></script>
   <script>
     const bootstrap = window.RunMethodBootstrap || {};
     const method = bootstrap.method || {};

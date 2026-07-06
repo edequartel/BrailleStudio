@@ -27,7 +27,7 @@ function demo_j(string $key, array $params = []): string
   <link rel="icon" href="<?= demo_h($assetBase) ?>/favicon.ico" sizes="any">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/tabler/icons-webfont/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.css?v=20260612-runtime-status-4">
+  <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-1">
   <link rel="stylesheet" href="<?= demo_h($assetBase) ?>/components/braille-monitor/braillemonitor.css">
   <style>
     .demo-flow {
@@ -392,7 +392,7 @@ function demo_j(string $key, array $params = []): string
 </div>
 
 <script src="<?= demo_h($assetBase) ?>/tabler/core/dist/js/tabler.min.js"></script>
-<script src="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4"></script>
+<script src="<?= demo_h($assetBase) ?>/components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1"></script>
 <script src="<?= demo_h($assetBase) ?>/components/braille-monitor/braillemonitor.js"></script>
 <script>
 (() => {

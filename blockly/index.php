@@ -107,7 +107,7 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
   <link rel="stylesheet" href="../tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="../tabler/icons-webfont/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../components/braille-monitor/braillemonitor.css?v=20260529-mode-label-1">
-  <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260526-popup-3">
+  <link rel="stylesheet" href="../components/braillebridge-status/braillebridge-status.css?v=20260706-popup-text-1">
 
   <style>
     :root {
@@ -1773,9 +1773,9 @@ $html = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES
       'https://www.tastenbraille.com/braillestudio/components/braille-monitor/braillemonitor.js?v=20260529-mode-label-1'
     ], { required: false });
     await loadScriptCandidates([
-        '../components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
-        '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4',
-        'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260612-runtime-status-4'
+        '../components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1',
+        '/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1',
+        'https://www.tastenbraille.com/braillestudio/components/braillebridge-status/braillebridge-status.js?v=20260706-popup-text-1'
     ], { required: false });
     await loadScript('./app.js?v=20260623-script-variable-delete-1');
   })().catch((err) => {
