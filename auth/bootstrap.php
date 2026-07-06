@@ -472,3 +472,5 @@ function bs_auth_logout(): void
     }
     $auth->destroySession();
 }
+
+require_once bs_auth_project_root() . '/includes/language.php';
