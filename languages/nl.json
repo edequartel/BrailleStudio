@@ -4,5 +4,292 @@
     "name": "Dutch",
     "native": "Nederlands",
     "direction": "ltr"
+  },
+  "common": {
+    "back": "Terug",
+    "back_home": "Terug naar home",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "no": "nee",
+    "save": "Opslaan",
+    "skip_to_content": "Naar hoofdinhoud",
+    "start": "Start",
+    "yes": "ja"
+  },
+  "errors": {
+    "session_expired": "De sessie is verlopen. Probeer opnieuw."
+  },
+  "auth": {
+    "page_title": "BrailleStudio Login",
+    "login": {
+      "button": "Inloggen",
+      "identifier": "E-mail of gebruikersnaam",
+      "password": "Wachtwoord",
+      "remember": "Ingelogd blijven",
+      "return_hint": "Na het inloggen ga je automatisch terug naar de pagina die je wilde openen.",
+      "subtitle": "Log in om beveiligde onderdelen van BrailleStudio te gebruiken.",
+      "title": "Inloggen"
+    },
+    "logout": {
+      "button": "Uitloggen"
+    },
+    "errors": {
+      "email_not_verified": "Dit account is nog niet bevestigd.",
+      "invalid_credentials": "Ongeldige gebruikersnaam of wachtwoord.",
+      "too_many_requests": "Te veel pogingen. Probeer later opnieuw."
+    },
+    "status": {
+      "logged_in_as": "Ingelogd als {display} ({role})."
+    }
+  },
+  "home": {
+    "documentation": {
+      "load_error": "Documentatie kon niet worden geladen.",
+      "manual_alt": "Handleiding",
+      "subtitle": "Snel overzicht voor gebruik en achtergrond.",
+      "tabs": {
+        "expertise": "Expertise",
+        "manual": "Handleiding",
+        "start": "Starten"
+      },
+      "title": "Documentatie",
+      "toggle": "Documentatie uitklappen"
+    },
+    "footer": {
+      "powered_by": "Powered by Bartimeus en de Braille Expertise Groep"
+    },
+    "hero": {
+      "description": "BrailleStudio ondersteunt leerlingen, docenten en specialisten met korte activiteiten, directe feedback, sessiebeheer en koppeling met brailleleesregels via BrailleBridge.",
+      "title": "Braille oefenen en lessen bouwen in een rustige werkomgeving."
+    },
+    "links": {
+      "blockly_editor": "Blockly editor",
+      "braille_session": "Braille sessie",
+      "braille_tables": "Brailletabellen",
+      "download": "Download",
+      "lesson_builder": "Lesson Builder",
+      "optimize_sounds": "Sounds optimaliseren",
+      "phonemes": "Fonemen",
+      "session_builder": "Session Builder",
+      "sounds": "Klanken",
+      "start_braille_session": "Braille sessie starten",
+      "start_mpop": "MPOP starten",
+      "teacher_dashboard": "Teacher Dashboard"
+    },
+    "loading": {
+      "documentation": "Documentatie laden.",
+      "message": "De leeromgeving wordt voorbereid.",
+      "page": "Pagina voorbereiden.",
+      "ready": "Alles staat klaar.",
+      "title": "BrailleStudio laden"
+    },
+    "modules": {
+      "blockly": {
+        "description": "Ontwikkel en beheer Blockly-activiteiten voor interactieve braillelessen.",
+        "title": "Blockly ontwikkelen"
+      },
+      "lessons": {
+        "description": "Bouw interactieve lessen, methodes en sessies voor begeleide brailletraining.",
+        "title": "Lessen maken"
+      },
+      "practice": {
+        "description": "Start brailleleesactiviteiten met woorden, verhalen, auditieve feedback en tactiele herkenning.",
+        "title": "Oefenen"
+      },
+      "public_mpop": {
+        "description": "Start direct de MPOP-brailleoefening."
+      },
+      "public_session": {
+        "description": "Open een braillesessie en verbind het apparaat via de sessiecode.",
+        "title": "Braille sessie"
+      },
+      "tools": {
+        "description": "Koppel leesregels, bekijk tabellen en gebruik hulpmiddelen voor testen en beheer.",
+        "title": "Tools"
+      }
+    },
+    "roles": {
+      "development": "Ontwikkeling",
+      "student": "Leerling",
+      "teacher": "Docent",
+      "technical": "Techniek"
+    },
+    "stats": {
+      "didactics": {
+        "label": "Didactiek",
+        "value": "Learning Through Play"
+      },
+      "display": {
+        "label": "Brailleleesregel",
+        "value": "USB of Bluetooth"
+      },
+      "runtime": {
+        "label": "Runtime",
+        "value": "Browser en BrailleBridge"
+      }
+    },
+    "student_code": {
+      "label": "Leerlingcode",
+      "placeholder": "Voer je leerlingcode in"
+    }
+  },
+  "xapi": {
+    "analysis": {
+      "action": "Analyse",
+      "activity_per_day": "Activiteit per dag",
+      "answers": "Antwoorden",
+      "avg_score_short": "Gem. score",
+      "count": "Aantal",
+      "difficult_letters": "Moeilijke letters",
+      "error_rate": "Foutpercentage",
+      "error_title": "Studentanalyse fout",
+      "errors_per_lesson": "Fouten per les",
+      "no_data": "Geen data voor deze student.",
+      "no_student_selected": "Geen student geselecteerd.",
+      "page_title": "Studentanalyse",
+      "score_per_lesson": "Score per les",
+      "score_percent": "Score %",
+      "subtitle": "xAPI analyse uit BrailleStudio",
+      "title": "Analyse student {student}",
+      "verbs": "xAPI verbs"
+    },
+    "dashboard": {
+      "all_students": "Alle studenten",
+      "analyze_student": "Analyseer deze student",
+      "answered_short": "antw.",
+      "average_score": "Gemiddelde score",
+      "completed": "klaar",
+      "confirm_delete_event": "Dit xAPI-event definitief verwijderen?",
+      "confirm_delete_visible": "Alle {count} zichtbare xAPI-events definitief verwijderen?",
+      "delete_visible": "Verwijder alle zichtbare events ({count})",
+      "deleted_events": "{count} xAPI-event(s) verwijderd.",
+      "errors": "Fouten",
+      "events": "xAPI events",
+      "failed": "failed",
+      "full_progress": "Volledige xAPI voortgang",
+      "full_progress_subtitle": "Alle opgehaalde statements voor deze selectie, maximaal 1000.",
+      "hints": "Hints",
+      "last_activity": "Laatste activiteit",
+      "no_statements": "Nog geen statements voor deze selectie.",
+      "passed": "passed",
+      "select_student": "Selecteer student",
+      "short_title": "Dashboard",
+      "started": "gestart",
+      "subtitle": "BrailleStudio xAPI voortgang",
+      "title": "Teacher dashboard",
+      "typed": "getypt"
+    },
+    "student_edit": {
+      "edit_title": "Student bewerken",
+      "name": "Naam",
+      "name_placeholder": "bijv. Tinus",
+      "page_title": "Student bewerken",
+      "student_code_placeholder": "bijv. STU001"
+    },
+    "students": {
+      "code": "Code",
+      "confirm_delete": "Student en alle xAPI-events verwijderen?",
+      "created_at": "Aangemaakt",
+      "empty": "Nog geen studenten gevonden.",
+      "error_title": "Studenten fout",
+      "inactive": "inactief",
+      "new_student": "Nieuwe student",
+      "student_code": "Studentcode",
+      "subtitle": "BrailleStudio xAPI studentenbeheer",
+      "supabase_error": "Supabase fout",
+      "title": "Studenten"
+    },
+    "table": {
+      "activity": "Activiteit",
+      "answer": "Antwoord",
+      "attempt": "poging",
+      "cell": "cel",
+      "correct": "correct",
+      "date": "Datum",
+      "full": "Volledig",
+      "good": "goed",
+      "letter": "letter",
+      "lesson": "les",
+      "method": "methode",
+      "na": "n.v.t.",
+      "student": "Student",
+      "success": "Succes",
+      "word_letter": "Woord / letter",
+      "wrong": "fout"
+    }
+  },
+  "settings": {
+    "braillemode": {
+      "hint": "Kies tussen 6-punts leesbraille en 8-punts computerbraille.",
+      "label": "Braillemodus",
+      "option": {
+        "computer": "Computerbraille (8 punten)",
+        "literacy": "Leesbraille (6 punten)"
+      }
+    },
+    "language": {
+      "hint": "Gebruikt door runner en BrailleMonitor.",
+      "label": "Taal",
+      "option": {
+        "en": "Engels (en)",
+        "nl": "Nederlands (nl)"
+      }
+    },
+    "method": {
+      "hint": "Kies de actieve lesmethode.",
+      "label": "Methode",
+      "option": {
+        "marechal": "Maréchal",
+        "mpop": "MPOP"
+      }
+    },
+    "sim": {
+      "hint": "Schakel BrailleMonitor-simulator in als BrailleBridge niet beschikbaar is.",
+      "label": "SSOC-simulator",
+      "toggle": "Simulator gebruiken"
+    },
+    "title": "Instellingen"
+  },
+  "ui": {
+    "saved": "Opgeslagen"
+  },
+  "users": {
+    "actions": {
+      "confirm_delete": "Deze gebruiker verwijderen?",
+      "create": "Aanmaken"
+    },
+    "create": {
+      "title": "Nieuwe gebruiker"
+    },
+    "errors": {
+      "delete_self": "Je kunt je eigen account hier niet verwijderen.",
+      "invalid_email": "Ongeldig e-mailadres.",
+      "invalid_password": "Ongeldig wachtwoord.",
+      "unknown_user": "Onbekende gebruiker.",
+      "user_exists": "Deze gebruiker bestaat al.",
+      "username_taken": "Deze gebruikersnaam is al in gebruik."
+    },
+    "fields": {
+      "email": "E-mail",
+      "new_password": "Nieuw wachtwoord",
+      "new_password_placeholder": "Leeg laten om niet te wijzigen",
+      "password": "Wachtwoord",
+      "role": "Rol",
+      "username": "Gebruikersnaam"
+    },
+    "notices": {
+      "created": "Gebruiker aangemaakt.",
+      "deleted": "Gebruiker verwijderd.",
+      "role_updated": "Rol bijgewerkt.",
+      "saved": "Gebruiker opgeslagen.",
+      "saved_with_password": "Gebruiker en wachtwoord opgeslagen."
+    },
+    "page_title": "Gebruikers - BrailleStudio",
+    "pretitle": "Admin",
+    "status": {
+      "active": "actief",
+      "verified": "geverifieerd"
+    },
+    "title": "Gebruikers"
   }
 }

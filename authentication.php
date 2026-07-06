@@ -20,7 +20,7 @@ $message = '';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = trim((string)($_POST['action'] ?? 'login'));
     if (!bs_auth_verify_csrf($_POST['csrf'] ?? null)) {
-        $error = 'De sessie is verlopen. Probeer opnieuw.';
+        $error = t('errors.session_expired');
     } elseif ($action === 'logout') {
         try {
             bs_auth_logout();
@@ -39,11 +39,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             header('Location: ' . ($returnTo !== '' ? $returnTo : $urlFor($appBase, 'index.php')));
             exit;
         } catch (\Delight\Auth\InvalidEmailException|\Delight\Auth\InvalidPasswordException|\Delight\Auth\UnknownUsernameException|\Delight\Auth\AmbiguousUsernameException $e) {
-            $error = 'Ongeldige gebruikersnaam of wachtwoord.';
+            $error = t('auth.errors.invalid_credentials');
         } catch (\Delight\Auth\EmailNotVerifiedException $e) {
-            $error = 'Dit account is nog niet bevestigd.';
+            $error = t('auth.errors.email_not_verified');
         } catch (\Delight\Auth\TooManyRequestsException $e) {
-            $error = 'Te veel pogingen. Probeer later opnieuw.';
+            $error = t('auth.errors.too_many_requests');
         } catch (Throwable $e) {
             $error = $e->getMessage();
         }
@@ -66,7 +66,7 @@ try {
 }
 
 if ($user !== null && $message === '') {
-    $message = 'Ingelogd als ' . $user['display'] . ' (' . $user['role'] . ').';
+    $message = t('auth.status.logged_in_as', ['display' => $user['display'], 'role' => $user['role']]);
 }
 ?>
 <!DOCTYPE html>
@@ -80,7 +80,7 @@ if ($user !== null && $message === '') {
   <link rel="manifest" href="/braillestudio/site.webmanifest">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BrailleStudio Login</title>
+  <title><?= $html(t('auth.page_title')) ?></title>
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/core/dist/css/tabler.min.css')) ?>">
   <link rel="stylesheet" href="<?= $htmlUrl($urlFor($appBase, 'tabler/icons-webfont/dist/tabler-icons.min.css')) ?>">
   <style>
@@ -122,8 +122,8 @@ if ($user !== null && $message === '') {
 
     <div class="card card-md">
       <div class="card-body">
-        <h1 class="h2 text-center mb-2">Inloggen</h1>
-        <p class="text-secondary text-center mb-4">Log in om beveiligde onderdelen van BrailleStudio te gebruiken.</p>
+        <h1 class="h2 text-center mb-2"><?= $html(t('auth.login.title')) ?></h1>
+        <p class="text-secondary text-center mb-4"><?= $html(t('auth.login.subtitle')) ?></p>
 
         <?php if ($error !== ''): ?>
           <div class="alert alert-danger" role="alert"><?= $html($error) ?></div>
@@ -138,20 +138,20 @@ if ($user !== null && $message === '') {
             <input type="hidden" name="returnTo" value="<?= $html($returnTo) ?>">
 
             <div class="mb-3">
-              <label class="form-label" for="authIdentifierInput">E-mail of gebruikersnaam</label>
+              <label class="form-label" for="authIdentifierInput"><?= $html(t('auth.login.identifier')) ?></label>
               <input id="authIdentifierInput" class="form-control" name="identifier" type="text" placeholder="naam@example.com" autocomplete="username" required>
             </div>
             <div class="mb-3">
-              <label class="form-label" for="authPasswordInput">Wachtwoord</label>
-              <input id="authPasswordInput" class="form-control" name="password" type="password" placeholder="Wachtwoord" autocomplete="current-password" required>
+              <label class="form-label" for="authPasswordInput"><?= $html(t('auth.login.password')) ?></label>
+              <input id="authPasswordInput" class="form-control" name="password" type="password" placeholder="<?= $html(t('auth.login.password')) ?>" autocomplete="current-password" required>
             </div>
             <label class="form-check mb-3">
               <input class="form-check-input" type="checkbox" name="remember" value="1">
-              <span class="form-check-label">Ingelogd blijven</span>
+              <span class="form-check-label"><?= $html(t('auth.login.remember')) ?></span>
             </label>
             <button class="btn btn-primary w-100" type="submit">
               <i class="ti ti-login me-2" aria-hidden="true"></i>
-              Inloggen
+              <?= $html(t('auth.login.button')) ?>
             </button>
           </form>
         <?php else: ?>
@@ -161,7 +161,7 @@ if ($user !== null && $message === '') {
             <input type="hidden" name="returnTo" value="<?= $html($returnTo) ?>">
             <button class="btn btn-outline-secondary w-100" type="submit">
               <i class="ti ti-logout me-2" aria-hidden="true"></i>
-              Uitloggen
+              <?= $html(t('auth.logout.button')) ?>
             </button>
           </form>
         <?php endif; ?>
@@ -169,10 +169,10 @@ if ($user !== null && $message === '') {
     </div>
 
     <div class="text-center text-secondary mt-3">
-      Na het inloggen ga je automatisch terug naar de pagina die je wilde openen.
+      <?= $html(t('auth.login.return_hint')) ?>
     </div>
     <div class="text-center mt-3">
-      <a class="btn btn-link" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>">Terug naar home</a>
+      <a class="btn btn-link" href="<?= $htmlUrl($urlFor($appBase, 'index.php')) ?>"><?= $html(t('common.back_home')) ?></a>
     </div>
   </div>
   </main>

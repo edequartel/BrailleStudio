@@ -11,7 +11,7 @@ try {
     $student = $_GET['student'] ?? '';
 
     if ($student === '') {
-        throw new RuntimeException('Geen student geselecteerd.');
+        throw new RuntimeException(t('xapi.analysis.no_student_selected'));
     }
 
     $query = 'xapi_statements?select=student_code,verb_display,lesson_id,success,score_raw,response,correct_response,duration_seconds,created_at,statement'
@@ -22,13 +22,13 @@ try {
     $res = sb_request('GET', $query);
 
     if (($res['status'] ?? 500) >= 400) {
-        throw new RuntimeException($res['raw'] ?? 'Supabase error');
+        throw new RuntimeException($res['raw'] ?? t('xapi.students.supabase_error'));
     }
 
     $rows = $res['data'] ?? [];
 
 } catch (Throwable $e) {
-    echo '<h1>Student analysis error</h1>';
+    echo '<h1>' . htmlspecialchars(t('xapi.analysis.error_title'), ENT_QUOTES, 'UTF-8') . '</h1>';
     echo '<pre>' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</pre>';
     exit;
 }
@@ -140,7 +140,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
 ?>
 
 <!doctype html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -150,7 +150,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
   <link rel="manifest" href="/braillestudio/site.webmanifest">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Studentanalyse</title>
+    <title><?= h(t('xapi.analysis.page_title')) ?></title>
 
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -174,12 +174,12 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
             <div class="container-xl">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h1 class="page-title">Analyse student <?= h((string)$student) ?></h1>
-                        <div class="text-secondary">xAPI analyse uit BrailleStudio</div>
+                        <h1 class="page-title"><?= h(t('xapi.analysis.title', ['student' => (string)$student])) ?></h1>
+                        <div class="text-secondary"><?= h(t('xapi.analysis.subtitle')) ?></div>
                     </div>
 
                     <a href="teacher-dashboard.php?student=<?= urlencode($student) ?>" class="btn btn-secondary">
-                        Terug
+                        <?= h(t('common.back')) ?>
                     </a>
                 </div>
             </div>
@@ -192,7 +192,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Events</div>
+                                <div class="text-secondary"><?= h(t('xapi.dashboard.events')) ?></div>
                                 <div class="h1"><?= $totalEvents ?></div>
                             </div>
                         </div>
@@ -201,7 +201,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Antwoorden</div>
+                                <div class="text-secondary"><?= h(t('xapi.analysis.answers')) ?></div>
                                 <div class="h1"><?= $answered ?></div>
                             </div>
                         </div>
@@ -210,7 +210,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Fouten</div>
+                                <div class="text-secondary"><?= h(t('xapi.dashboard.errors')) ?></div>
                                 <div class="h1"><?= $errors ?></div>
                             </div>
                         </div>
@@ -219,7 +219,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Hints</div>
+                                <div class="text-secondary"><?= h(t('xapi.dashboard.hints')) ?></div>
                                 <div class="h1"><?= $hints ?></div>
                             </div>
                         </div>
@@ -228,7 +228,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Gem. score</div>
+                                <div class="text-secondary"><?= h(t('xapi.analysis.avg_score_short')) ?></div>
                                 <div class="h1"><?= $avgScore ?>%</div>
                             </div>
                         </div>
@@ -237,7 +237,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-6 col-md-2">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Foutpercentage</div>
+                                <div class="text-secondary"><?= h(t('xapi.analysis.error_rate')) ?></div>
                                 <div class="h1"><?= $errorRate ?>%</div>
                             </div>
                         </div>
@@ -246,7 +246,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
 
                 <?php if ($totalEvents === 0): ?>
                     <div class="alert alert-warning">
-                        Geen data voor deze student.
+                        <?= h(t('xapi.analysis.no_data')) ?>
                     </div>
                 <?php endif; ?>
 
@@ -255,7 +255,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-12 col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">Activiteit per dag</h2>
+                                <h2 class="card-title"><?= h(t('xapi.analysis.activity_per_day')) ?></h2>
                             </div>
                             <div class="card-body">
                                 <canvas id="activityChart"></canvas>
@@ -266,7 +266,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-12 col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">Score per les</h2>
+                                <h2 class="card-title"><?= h(t('xapi.analysis.score_per_lesson')) ?></h2>
                             </div>
                             <div class="card-body">
                                 <canvas id="scoreChart"></canvas>
@@ -277,7 +277,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-12 col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">Fouten per les</h2>
+                                <h2 class="card-title"><?= h(t('xapi.analysis.errors_per_lesson')) ?></h2>
                             </div>
                             <div class="card-body">
                                 <canvas id="errorChart"></canvas>
@@ -288,7 +288,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-12 col-lg-6">
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">xAPI verbs</h2>
+                                <h2 class="card-title"><?= h(t('xapi.analysis.verbs')) ?></h2>
                             </div>
                             <div class="card-body">
                                 <canvas id="verbChart"></canvas>
@@ -299,7 +299,7 @@ $letterValues = array_slice(array_values($letterErrors), 0, 10);
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header">
-                                <h2 class="card-title">Moeilijke letters</h2>
+                                <h2 class="card-title"><?= h(t('xapi.analysis.difficult_letters')) ?></h2>
                             </div>
                             <div class="card-body">
                                 <canvas id="letterChart"></canvas>
@@ -382,11 +382,11 @@ function makeLineChart(id, labels, data, label) {
     });
 }
 
-makeLineChart('activityChart', dayLabels, dayValues, 'Events');
-makeBarChart('scoreChart', lessonLabels, lessonScores, 'Score %');
-makeBarChart('errorChart', lessonLabels, lessonErrors, 'Fouten');
-makeBarChart('verbChart', verbLabels, verbValues, 'Aantal');
-makeBarChart('letterChart', letterLabels, letterValues, 'Fouten');
+makeLineChart('activityChart', dayLabels, dayValues, <?= json_encode(t('xapi.dashboard.events'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
+makeBarChart('scoreChart', lessonLabels, lessonScores, <?= json_encode(t('xapi.analysis.score_percent'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
+makeBarChart('errorChart', lessonLabels, lessonErrors, <?= json_encode(t('xapi.dashboard.errors'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
+makeBarChart('verbChart', verbLabels, verbValues, <?= json_encode(t('xapi.analysis.count'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
+makeBarChart('letterChart', letterLabels, letterValues, <?= json_encode(t('xapi.dashboard.errors'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>);
 </script>
 
   <script src="/braillestudio/components/site-footer/site-footer.js?v=20260612-1"></script>

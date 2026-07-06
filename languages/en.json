@@ -4,5 +4,292 @@
     "name": "English",
     "native": "English",
     "direction": "ltr"
+  },
+  "common": {
+    "back": "Back",
+    "back_home": "Back to home",
+    "delete": "Delete",
+    "edit": "Edit",
+    "no": "no",
+    "save": "Save",
+    "skip_to_content": "Skip to main content",
+    "start": "Start",
+    "yes": "yes"
+  },
+  "errors": {
+    "session_expired": "The session has expired. Please try again."
+  },
+  "auth": {
+    "page_title": "BrailleStudio Login",
+    "login": {
+      "button": "Log in",
+      "identifier": "Email or username",
+      "password": "Password",
+      "remember": "Keep me logged in",
+      "return_hint": "After logging in, you will automatically return to the page you wanted to open.",
+      "subtitle": "Log in to use protected areas of BrailleStudio.",
+      "title": "Log in"
+    },
+    "logout": {
+      "button": "Log out"
+    },
+    "errors": {
+      "email_not_verified": "This account has not been confirmed yet.",
+      "invalid_credentials": "Invalid username or password.",
+      "too_many_requests": "Too many attempts. Please try again later."
+    },
+    "status": {
+      "logged_in_as": "Logged in as {display} ({role})."
+    }
+  },
+  "home": {
+    "documentation": {
+      "load_error": "Documentation could not be loaded.",
+      "manual_alt": "Manual",
+      "subtitle": "Quick overview for use and background.",
+      "tabs": {
+        "expertise": "Expertise",
+        "manual": "Manual",
+        "start": "Getting started"
+      },
+      "title": "Documentation",
+      "toggle": "Expand documentation"
+    },
+    "footer": {
+      "powered_by": "Powered by Bartimeus and the Braille Expertise Group"
+    },
+    "hero": {
+      "description": "BrailleStudio supports students, teachers, and specialists with short activities, direct feedback, session management, and braille display integration through BrailleBridge.",
+      "title": "Practice braille and build lessons in a calm workspace."
+    },
+    "links": {
+      "blockly_editor": "Blockly editor",
+      "braille_session": "Braille session",
+      "braille_tables": "Braille tables",
+      "download": "Download",
+      "lesson_builder": "Lesson Builder",
+      "optimize_sounds": "Optimize sounds",
+      "phonemes": "Phonemes",
+      "session_builder": "Session Builder",
+      "sounds": "Sounds",
+      "start_braille_session": "Start braille session",
+      "start_mpop": "Start MPOP",
+      "teacher_dashboard": "Teacher Dashboard"
+    },
+    "loading": {
+      "documentation": "Loading documentation.",
+      "message": "Preparing the learning environment.",
+      "page": "Preparing page.",
+      "ready": "Everything is ready.",
+      "title": "Loading BrailleStudio"
+    },
+    "modules": {
+      "blockly": {
+        "description": "Develop and manage Blockly activities for interactive braille lessons.",
+        "title": "Develop Blockly"
+      },
+      "lessons": {
+        "description": "Build interactive lessons, methods, and sessions for guided braille training.",
+        "title": "Create lessons"
+      },
+      "practice": {
+        "description": "Start braille reading activities with words, stories, audio feedback, and tactile recognition.",
+        "title": "Practice"
+      },
+      "public_mpop": {
+        "description": "Start the MPOP braille exercise directly."
+      },
+      "public_session": {
+        "description": "Open a braille session and connect the device with the session code.",
+        "title": "Braille session"
+      },
+      "tools": {
+        "description": "Connect braille displays, view tables, and use tools for testing and administration.",
+        "title": "Tools"
+      }
+    },
+    "roles": {
+      "development": "Development",
+      "student": "Student",
+      "teacher": "Teacher",
+      "technical": "Technical"
+    },
+    "stats": {
+      "didactics": {
+        "label": "Didactics",
+        "value": "Learning Through Play"
+      },
+      "display": {
+        "label": "Braille display",
+        "value": "USB or Bluetooth"
+      },
+      "runtime": {
+        "label": "Runtime",
+        "value": "Browser and BrailleBridge"
+      }
+    },
+    "student_code": {
+      "label": "Student code",
+      "placeholder": "Enter your student code"
+    }
+  },
+  "xapi": {
+    "analysis": {
+      "action": "Analysis",
+      "activity_per_day": "Activity per day",
+      "answers": "Answers",
+      "avg_score_short": "Avg. score",
+      "count": "Count",
+      "difficult_letters": "Difficult letters",
+      "error_rate": "Error rate",
+      "error_title": "Student analysis error",
+      "errors_per_lesson": "Errors per lesson",
+      "no_data": "No data for this student.",
+      "no_student_selected": "No student selected.",
+      "page_title": "Student analysis",
+      "score_per_lesson": "Score per lesson",
+      "score_percent": "Score %",
+      "subtitle": "xAPI analysis from BrailleStudio",
+      "title": "Student analysis {student}",
+      "verbs": "xAPI verbs"
+    },
+    "dashboard": {
+      "all_students": "All students",
+      "analyze_student": "Analyze this student",
+      "answered_short": "answ.",
+      "average_score": "Average score",
+      "completed": "done",
+      "confirm_delete_event": "Permanently delete this xAPI event?",
+      "confirm_delete_visible": "Permanently delete all {count} visible xAPI events?",
+      "delete_visible": "Delete all visible events ({count})",
+      "deleted_events": "{count} xAPI event(s) deleted.",
+      "errors": "Errors",
+      "events": "xAPI events",
+      "failed": "failed",
+      "full_progress": "Full xAPI progress",
+      "full_progress_subtitle": "All fetched statements for this selection, maximum 1000.",
+      "hints": "Hints",
+      "last_activity": "Last activity",
+      "no_statements": "No statements for this selection yet.",
+      "passed": "passed",
+      "select_student": "Select student",
+      "short_title": "Dashboard",
+      "started": "started",
+      "subtitle": "BrailleStudio xAPI progress",
+      "title": "Teacher dashboard",
+      "typed": "typed"
+    },
+    "student_edit": {
+      "edit_title": "Edit student",
+      "name": "Name",
+      "name_placeholder": "e.g. Tinus",
+      "page_title": "Edit student",
+      "student_code_placeholder": "e.g. STU001"
+    },
+    "students": {
+      "code": "Code",
+      "confirm_delete": "Delete student and all xAPI events?",
+      "created_at": "Created",
+      "empty": "No students found yet.",
+      "error_title": "Students error",
+      "inactive": "inactive",
+      "new_student": "New student",
+      "student_code": "Student code",
+      "subtitle": "BrailleStudio xAPI student management",
+      "supabase_error": "Supabase error",
+      "title": "Students"
+    },
+    "table": {
+      "activity": "Activity",
+      "answer": "Answer",
+      "attempt": "attempt",
+      "cell": "cell",
+      "correct": "correct",
+      "date": "Date",
+      "full": "Full",
+      "good": "good",
+      "letter": "letter",
+      "lesson": "lesson",
+      "method": "method",
+      "na": "n/a",
+      "student": "Student",
+      "success": "Success",
+      "word_letter": "Word / letter",
+      "wrong": "wrong"
+    }
+  },
+  "settings": {
+    "braillemode": {
+      "hint": "Choose between 6-dot literacy braille and 8-dot computer braille.",
+      "label": "Braille mode",
+      "option": {
+        "computer": "Computer braille (8 dots)",
+        "literacy": "Literacy braille (6 dots)"
+      }
+    },
+    "language": {
+      "hint": "Used by runner and BrailleMonitor.",
+      "label": "Language",
+      "option": {
+        "en": "English (en)",
+        "nl": "Dutch (nl)"
+      }
+    },
+    "method": {
+      "hint": "Select the active teaching method.",
+      "label": "Method",
+      "option": {
+        "marechal": "Maréchal",
+        "mpop": "MPOP"
+      }
+    },
+    "sim": {
+      "hint": "Enable BrailleMonitor simulator when BrailleBridge is unavailable.",
+      "label": "SSOC Simulator",
+      "toggle": "Use simulator"
+    },
+    "title": "Settings"
+  },
+  "ui": {
+    "saved": "Saved"
+  },
+  "users": {
+    "actions": {
+      "confirm_delete": "Delete this user?",
+      "create": "Create"
+    },
+    "create": {
+      "title": "New user"
+    },
+    "errors": {
+      "delete_self": "You cannot delete your own account here.",
+      "invalid_email": "Invalid email address.",
+      "invalid_password": "Invalid password.",
+      "unknown_user": "Unknown user.",
+      "user_exists": "This user already exists.",
+      "username_taken": "This username is already in use."
+    },
+    "fields": {
+      "email": "Email",
+      "new_password": "New password",
+      "new_password_placeholder": "Leave empty to keep unchanged",
+      "password": "Password",
+      "role": "Role",
+      "username": "Username"
+    },
+    "notices": {
+      "created": "User created.",
+      "deleted": "User deleted.",
+      "role_updated": "Role updated.",
+      "saved": "User saved.",
+      "saved_with_password": "User and password saved."
+    },
+    "page_title": "Users - BrailleStudio",
+    "pretitle": "Admin",
+    "status": {
+      "active": "active",
+      "verified": "verified"
+    },
+    "title": "Users"
   }
 }

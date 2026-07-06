@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!doctype html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="manifest" href="/braillestudio/site.webmanifest">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Student bewerken</title>
+    <title><?= h(t('xapi.student_edit.page_title')) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" class="card">
             <div class="card-header">
                 <h2 class="card-title">
-                    <?= $student ? 'Student bewerken' : 'Nieuwe student' ?>
+                    <?= h($student ? t('xapi.student_edit.edit_title') : t('xapi.students.new_student')) ?>
                 </h2>
             </div>
 
@@ -66,21 +66,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="id" value="<?= h($student['id'] ?? '') ?>">
 
                 <div class="mb-3">
-                    <label class="form-label">Studentcode</label>
+                    <label class="form-label"><?= h(t('xapi.students.student_code')) ?></label>
                     <input class="form-control"
                            name="student_code"
                            required
                            value="<?= h($student['student_code'] ?? '') ?>"
-                           placeholder="bijv. STU001">
+                           placeholder="<?= h(t('xapi.student_edit.student_code_placeholder')) ?>">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Naam</label>
+                    <label class="form-label"><?= h(t('xapi.student_edit.name')) ?></label>
                     <input class="form-control"
                            name="display_name"
                            required
                            value="<?= h($student['display_name'] ?? '') ?>"
-                           placeholder="bijv. Tinus">
+                           placeholder="<?= h(t('xapi.student_edit.name_placeholder')) ?>">
                 </div>
 
                 <label class="form-check">
@@ -88,13 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            type="checkbox"
                            name="active"
                         <?= !isset($student) || $student['active'] ? 'checked' : '' ?>>
-                    <span class="form-check-label">Actief</span>
+                    <span class="form-check-label"><?= h(t('users.status.active')) ?></span>
                 </label>
             </div>
 
             <div class="card-footer d-flex gap-2">
-                <a href="students.php" class="btn btn-secondary w-50">Terug</a>
-                <button class="btn btn-primary w-50">Opslaan</button>
+                <a href="students.php" class="btn btn-secondary w-50"><?= h(t('common.back')) ?></a>
+                <button class="btn btn-primary w-50"><?= h(t('common.save')) ?></button>
             </div>
         </form>
 

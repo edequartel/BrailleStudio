@@ -169,15 +169,15 @@ function statement_extension(array $row, string $name): mixed
 function display_value(mixed $value): string
 {
     if ($value === null || $value === '') return '—';
-    if ($value === true) return 'ja';
-    if ($value === false) return 'nee';
+    if ($value === true) return t('common.yes');
+    if ($value === false) return t('common.no');
     if (is_scalar($value)) return (string)$value;
     return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '—';
 }
 ?>
 
 <!doctype html>
-<html lang="nl">
+<html <?= bs_language_html_attrs() ?>>
 <head>
   <!-- Favicons for browsers, Apple devices, Android, and installed web apps -->
   <link rel="icon" href="/braillestudio/favicon.ico" sizes="any">
@@ -187,7 +187,7 @@ function display_value(mixed $value): string
   <link rel="manifest" href="/braillestudio/site.webmanifest">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Teacher dashboard</title>
+    <title><?= h(t('xapi.dashboard.title')) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css" rel="stylesheet">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://www.tastenbraille.com/braillestudio-data/opengraph/social-preview.png">
@@ -209,11 +209,11 @@ function display_value(mixed $value): string
             <div class="container-xl">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h1 class="page-title">Teacher dashboard</h1>
-                        <div class="text-secondary">BrailleStudio xAPI voortgang</div>
+                        <h1 class="page-title"><?= h(t('xapi.dashboard.title')) ?></h1>
+                        <div class="text-secondary"><?= h(t('xapi.dashboard.subtitle')) ?></div>
                     </div>
 
-                    <a href="students.php" class="btn btn-primary">Studenten</a>
+                    <a href="students.php" class="btn btn-primary"><?= h(t('xapi.students.title')) ?></a>
                 </div>
             </div>
         </div>
@@ -223,10 +223,10 @@ function display_value(mixed $value): string
 
                 <form method="get" class="card mb-3">
                     <div class="card-body">
-                        <label class="form-label">Selecteer student</label>
+                        <label class="form-label"><?= h(t('xapi.dashboard.select_student')) ?></label>
 
                         <select name="student" class="form-select" onchange="this.form.submit()">
-                            <option value="">Alle studenten</option>
+                            <option value=""><?= h(t('xapi.dashboard.all_students')) ?></option>
 
                             <?php foreach ($studentCodes as $studentCode): ?>
                                 <option value="<?= h((string)$studentCode) ?>"
@@ -239,7 +239,7 @@ function display_value(mixed $value): string
                         <?php if ($selectedStudent !== ''): ?>
                             <a class="btn btn-success w-100 mt-3"
                                href="student-analysis.php?student=<?= urlencode($selectedStudent) ?>">
-                                Analyseer deze student
+                                <?= h(t('xapi.dashboard.analyze_student')) ?>
                             </a>
                         <?php endif; ?>
                     </div>
@@ -247,7 +247,7 @@ function display_value(mixed $value): string
 
                 <?php if ((int)($_GET['deleted'] ?? 0) > 0): ?>
                     <div class="alert alert-success">
-                        <?= (int)$_GET['deleted'] ?> xAPI-event<?= (int)$_GET['deleted'] === 1 ? '' : 's' ?> verwijderd.
+                        <?= h(t('xapi.dashboard.deleted_events', ['count' => (string)(int)$_GET['deleted']])) ?>
                     </div>
                 <?php endif; ?>
 
@@ -255,7 +255,7 @@ function display_value(mixed $value): string
                     <div class="col-6 col-md-3">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">Studenten</div>
+                                <div class="text-secondary"><?= h(t('xapi.students.title')) ?></div>
                                 <div class="h1"><?= $totalStudents ?></div>
                             </div>
                         </div>
@@ -264,7 +264,7 @@ function display_value(mixed $value): string
                     <div class="col-6 col-md-3">
                         <div class="card card-sm">
                             <div class="card-body">
-                                <div class="text-secondary">xAPI events</div>
+                                <div class="text-secondary"><?= h(t('xapi.dashboard.events')) ?></div>
                                 <div class="h1"><?= $totalEvents ?></div>
                             </div>
                         </div>
@@ -288,7 +288,7 @@ function display_value(mixed $value): string
 
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between">
-                                            <span>Gemiddelde score</span>
+                                            <span><?= h(t('xapi.dashboard.average_score')) ?></span>
                                             <strong><?= $avg ?>%</strong>
                                         </div>
 
@@ -300,44 +300,44 @@ function display_value(mixed $value): string
                                     <div class="row text-center">
                                         <div class="col">
                                             <div class="h2"><?= $s['started'] ?></div>
-                                            <div class="text-secondary">gestart</div>
+                                            <div class="text-secondary"><?= h(t('xapi.dashboard.started')) ?></div>
                                         </div>
 
                                         <div class="col">
                                             <div class="h2"><?= $s['answered'] ?></div>
-                                            <div class="text-secondary">antw.</div>
+                                            <div class="text-secondary"><?= h(t('xapi.dashboard.answered_short')) ?></div>
                                         </div>
 
                                         <div class="col">
                                             <div class="h2"><?= $s['typed'] ?></div>
-                                            <div class="text-secondary">getypt</div>
+                                            <div class="text-secondary"><?= h(t('xapi.dashboard.typed')) ?></div>
                                         </div>
 
                                         <div class="col">
                                             <div class="h2"><?= $s['hints'] ?></div>
-                                            <div class="text-secondary">hints</div>
+                                            <div class="text-secondary"><?= h(t('xapi.dashboard.hints')) ?></div>
                                         </div>
 
                                         <div class="col">
                                             <div class="h2"><?= $s['completed'] ?></div>
-                                            <div class="text-secondary">klaar</div>
+                                            <div class="text-secondary"><?= h(t('xapi.dashboard.completed')) ?></div>
                                         </div>
                                     </div>
 
                                     <div class="d-flex gap-2 mt-3">
-                                        <span class="badge bg-green-lt">passed <?= $s['passed'] ?></span>
-                                        <span class="badge bg-red-lt">failed <?= $s['failed'] ?></span>
-                                        <span class="badge bg-orange-lt">fouten <?= $s['errors'] ?></span>
+                                        <span class="badge bg-green-lt"><?= h(t('xapi.dashboard.passed')) ?> <?= $s['passed'] ?></span>
+                                        <span class="badge bg-red-lt"><?= h(t('xapi.dashboard.failed')) ?> <?= $s['failed'] ?></span>
+                                        <span class="badge bg-orange-lt"><?= h(t('xapi.dashboard.errors')) ?> <?= $s['errors'] ?></span>
                                     </div>
 
                                     <a class="btn btn-outline-success w-100 mt-3"
                                        href="student-analysis.php?student=<?= urlencode((string)$code) ?>">
-                                        Analyse
+                                        <?= h(t('xapi.analysis.action')) ?>
                                     </a>
                                 </div>
 
                                 <div class="card-footer text-secondary">
-                                    Laatste activiteit: <?= h((string)$s['last']) ?>
+                                    <?= h(t('xapi.dashboard.last_activity')) ?>: <?= h((string)$s['last']) ?>
                                 </div>
                             </div>
                         </div>
@@ -347,18 +347,18 @@ function display_value(mixed $value): string
                 <div class="card mt-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div>
-                            <h2 class="card-title">Volledige xAPI voortgang</h2>
-                            <div class="card-subtitle">Alle opgehaalde statements voor deze selectie, maximaal 1000.</div>
+                            <h2 class="card-title"><?= h(t('xapi.dashboard.full_progress')) ?></h2>
+                            <div class="card-subtitle"><?= h(t('xapi.dashboard.full_progress_subtitle')) ?></div>
                         </div>
 
                         <?php if ($visibleEventIds): ?>
-                            <form method="post" onsubmit="return confirm('Alle <?= count($visibleEventIds) ?> zichtbare xAPI-events definitief verwijderen?');">
+                            <form method="post" onsubmit="return confirm('<?= h(t('xapi.dashboard.confirm_delete_visible', ['count' => (string)count($visibleEventIds)])) ?>');">
                                 <input type="hidden" name="action" value="delete_visible_events">
                                 <input type="hidden" name="event_ids" value="<?= h(json_encode($visibleEventIds)) ?>">
                                 <input type="hidden" name="return_student" value="<?= h((string)$selectedStudent) ?>">
                                 <input type="hidden" name="csrf" value="<?= h($deleteCsrfToken) ?>">
                                 <button type="submit" class="btn btn-danger">
-                                    Verwijder alle zichtbare events (<?= count($visibleEventIds) ?>)
+                                    <?= h(t('xapi.dashboard.delete_visible', ['count' => (string)count($visibleEventIds)])) ?>
                                 </button>
                             </form>
                         <?php endif; ?>
@@ -368,14 +368,14 @@ function display_value(mixed $value): string
                         <table class="table table-vcenter card-table">
                             <thead>
                             <tr>
-                                <th>Datum</th>
-                                <th>Student</th>
+                                <th><?= h(t('xapi.table.date')) ?></th>
+                                <th><?= h(t('xapi.table.student')) ?></th>
                                 <th>Verb</th>
-                                <th>Activiteit</th>
-                                <th>Woord / letter</th>
-                                <th>Antwoord</th>
+                                <th><?= h(t('xapi.table.activity')) ?></th>
+                                <th><?= h(t('xapi.table.word_letter')) ?></th>
+                                <th><?= h(t('xapi.table.answer')) ?></th>
                                 <th>Score</th>
-                                <th>Succes</th>
+                                <th><?= h(t('xapi.table.success')) ?></th>
                                 <th>Details</th>
                             </tr>
                             </thead>
@@ -402,42 +402,42 @@ function display_value(mixed $value): string
                                         <strong><?= h(display_value($r['activity_name'] ?? null)) ?></strong>
                                         <div class="text-secondary small">
                                             <?= h(display_value($r['activity_type'] ?? null)) ?> ·
-                                            les <?= h(display_value($r['lesson_id'] ?? null)) ?> ·
-                                            methode <?= h(display_value($r['method_id'] ?? null)) ?>
+                                            <?= h(t('xapi.table.lesson')) ?> <?= h(display_value($r['lesson_id'] ?? null)) ?> ·
+                                            <?= h(t('xapi.table.method')) ?> <?= h(display_value($r['method_id'] ?? null)) ?>
                                         </div>
                                     </td>
                                     <td>
                                         <strong><?= h(display_value($word)) ?></strong>
                                         <div class="text-secondary small">
-                                            letter <?= h(display_value($letter)) ?> · cel <?= h(display_value($brailleCell)) ?>
+                                            <?= h(t('xapi.table.letter')) ?> <?= h(display_value($letter)) ?> · <?= h(t('xapi.table.cell')) ?> <?= h(display_value($brailleCell)) ?>
                                         </div>
                                     </td>
                                     <td>
                                         <?= h(display_value($r['response'] ?? null)) ?>
                                         <div class="text-secondary small">
-                                            correct: <?= h(display_value($r['correct_response'] ?? null)) ?>
+                                            <?= h(t('xapi.table.correct')) ?>: <?= h(display_value($r['correct_response'] ?? null)) ?>
                                         </div>
                                     </td>
                                     <td>
                                         <?= h(display_value($r['score_raw'] ?? null)) ?>
                                         <div class="text-secondary small">
-                                            poging <?= h(display_value($attemptNumber)) ?> ·
+                                            <?= h(t('xapi.table.attempt')) ?> <?= h(display_value($attemptNumber)) ?> ·
                                             <?= h(display_value($r['duration_seconds'] ?? null)) ?> sec
                                         </div>
                                     </td>
                                     <td>
                                         <?php if ($success === true): ?>
-                                            <span class="badge bg-green">goed</span>
+                                            <span class="badge bg-green"><?= h(t('xapi.table.good')) ?></span>
                                         <?php elseif ($success === false): ?>
-                                            <span class="badge bg-red">fout</span>
+                                            <span class="badge bg-red"><?= h(t('xapi.table.wrong')) ?></span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary">n.v.t.</span>
+                                            <span class="badge bg-secondary"><?= h(t('xapi.table.na')) ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="d-flex gap-2 align-items-start">
                                             <details>
-                                                <summary class="btn btn-sm btn-outline-secondary">Volledig</summary>
+                                                <summary class="btn btn-sm btn-outline-secondary"><?= h(t('xapi.table.full')) ?></summary>
                                                 <dl class="mt-2 mb-2 small">
                                                     <dt>Statement ID</dt>
                                                     <dd><?= h(display_value($r['id'] ?? null)) ?></dd>
@@ -447,13 +447,13 @@ function display_value(mixed $value): string
                                                 <pre class="small bg-dark text-light p-2 rounded" style="min-width: 34rem; white-space: pre-wrap;"><?= h((string)$statementJson) ?></pre>
                                             </details>
 
-                                            <form method="post" onsubmit="return confirm('Dit xAPI-event definitief verwijderen?');">
+                                            <form method="post" onsubmit="return confirm('<?= h(t('xapi.dashboard.confirm_delete_event')) ?>');">
                                                 <input type="hidden" name="action" value="delete_event">
                                                 <input type="hidden" name="event_id" value="<?= h((string)($r['id'] ?? '')) ?>">
                                                 <input type="hidden" name="return_student" value="<?= h((string)$selectedStudent) ?>">
                                                 <input type="hidden" name="csrf" value="<?= h($deleteCsrfToken) ?>">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    Verwijderen
+                                                    <?= h(t('common.delete')) ?>
                                                 </button>
                                             </form>
                                         </div>
@@ -464,7 +464,7 @@ function display_value(mixed $value): string
                             <?php if (count($filteredRows) === 0): ?>
                                 <tr>
                                     <td colspan="9" class="text-secondary">
-                                        Nog geen statements voor deze selectie.
+                                        <?= h(t('xapi.dashboard.no_statements')) ?>
                                     </td>
                                 </tr>
                             <?php endif; ?>
