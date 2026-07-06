@@ -42,6 +42,19 @@
       "logged_in_as": "Logged in as {display} ({role})."
     }
   },
+  "admin": {
+    "translations": {
+      "dutch_source": "Dutch source text",
+      "key": "Translation key",
+      "language_selector": "Language",
+      "missing": "Missing",
+      "present": "Present",
+      "pretitle": "Admin",
+      "selected_translation": "Selected translation",
+      "status": "Status",
+      "title": "Translations"
+    }
+  },
   "home": {
     "documentation": {
       "load_error": "Documentation could not be loaded.",

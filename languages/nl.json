@@ -42,6 +42,19 @@
       "logged_in_as": "Ingelogd als {display} ({role})."
     }
   },
+  "admin": {
+    "translations": {
+      "dutch_source": "Nederlandse brontekst",
+      "key": "Vertalingssleutel",
+      "language_selector": "Taal",
+      "missing": "Ontbreekt",
+      "present": "Aanwezig",
+      "pretitle": "Admin",
+      "selected_translation": "Geselecteerde vertaling",
+      "status": "Status",
+      "title": "Vertalingen"
+    }
+  },
   "home": {
     "documentation": {
       "load_error": "Documentatie kon niet worden geladen.",
