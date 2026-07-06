@@ -193,12 +193,15 @@
     "braillebridge": {
       "begin": "Begin",
       "braille_unicode": "Braille Unicode",
+      "cell_position_help": "Gebruik dit om te laten zien wat er gebeurt als een cel op de brailleleesregel wordt gekozen.",
+      "cell_position_title": "Braillecel op de leesregel",
       "caret_cell_index": "Celindex",
       "caret_cell_index_help": "Nummer van de braillecel op de leesregel. Cel 0 is de eerste cel links.",
       "caret_off": "Caret uit",
       "caret_on": "Caret aan",
       "caret_text_index": "Tekstindex",
       "caret_text_index_help": "Positie in de tekststring. Index 0 staat vóór het eerste teken.",
+      "caret_visibility_help": "Laat zien of de caret/ cursor op de brailleleesregel zichtbaar of verborgen is.",
       "clear_display": "Wissen",
       "clear_log": "Log wissen",
       "connect": "Verbinden",
@@ -211,7 +214,7 @@
         "title": "Interactieve commando's"
       },
       "copy_log": "Log kopiëren",
-      "cursor_routing": "Simuleer cursor routing",
+      "cursor_routing": "Simuleer routingtoets",
       "cursor_routing_help": "Stuurt alsof de gebruiker de cursor-routing toets boven deze cel op de brailleleesregel indrukt.",
       "disconnect": "Verbreken",
       "editor_off": "Editor uit",
@@ -241,7 +244,7 @@
         }
       },
       "flow_title": "Communicatiestroom",
-      "from_cell": "Van cel",
+      "from_cell": "Zet caret vanaf cel",
       "get_line": "Regel ophalen",
       "incoming": {
         "title": "Binnenkomende events"
@@ -285,7 +288,7 @@
       "sample_text": "BrailleStudio demo",
       "send_key": "Toets sturen",
       "send_text": "Tekst sturen",
-      "set_caret": "Zet caret",
+      "set_caret": "Zet tekstcursor",
       "source_text": "Brontekst",
       "status": {
         "title": "Verbindingsstatus"
@@ -293,6 +296,8 @@
       "status_badges": "Status: verbinding, editor mode en insert mode",
       "subtitle": "Laat ontwikkelaars live zien hoe de browser via BrailleBridge met SAM en een brailleleesregel communiceert.",
       "text_to_send": "Tekst",
+      "text_position_help": "Gebruik dit om de cursor in de tekst te zetten of stap voor stap te verplaatsen.",
+      "text_position_title": "Tekstcursor in de browser",
       "title": "BrailleBridge communicatie-demo",
       "ws_url": "WebSocket URL"
     }

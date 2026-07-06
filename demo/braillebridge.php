@@ -88,8 +88,27 @@ function demo_j(string $key, array $params = []): string
     }
     .demo-caret-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 1rem;
+      align-items: stretch;
+    }
+    .demo-command-box {
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface-secondary);
+      padding: 1rem;
+      height: 100%;
+    }
+    .demo-command-title {
+      margin: 0 0 .35rem;
+      font-size: .95rem;
+      font-weight: 700;
+    }
+    .demo-command-help {
+      min-height: 2.75rem;
+      margin-bottom: .75rem;
+      color: var(--tblr-muted);
+      font-size: .875rem;
     }
     .demo-caret-actions {
       display: flex;
@@ -293,8 +312,11 @@ function demo_j(string $key, array $params = []): string
 
                 <hr>
 
+                <h3 class="h4 mb-3"><?= demo_h(t('demo.braillebridge.controls.caret')) ?></h3>
                 <div class="demo-caret-grid">
-                  <div>
+                  <div class="demo-command-box">
+                    <h4 class="demo-command-title"><?= demo_h(t('demo.braillebridge.text_position_title')) ?></h4>
+                    <div class="demo-command-help"><?= demo_h(t('demo.braillebridge.text_position_help')) ?></div>
                     <label class="form-label" for="caretTextIndex"><?= demo_h(t('demo.braillebridge.caret_text_index')) ?></label>
                     <input id="caretTextIndex" class="form-control font-monospace" type="number" min="0" value="0" aria-describedby="caretTextIndexHelp">
                     <div id="caretTextIndexHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.caret_text_index_help')) ?></div>
@@ -306,7 +328,9 @@ function demo_j(string $key, array $params = []): string
                       <button id="endBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.end')) ?></button>
                     </div>
                   </div>
-                  <div>
+                  <div class="demo-command-box">
+                    <h4 class="demo-command-title"><?= demo_h(t('demo.braillebridge.cell_position_title')) ?></h4>
+                    <div class="demo-command-help"><?= demo_h(t('demo.braillebridge.cell_position_help')) ?></div>
                     <label class="form-label" for="caretCellIndex"><?= demo_h(t('demo.braillebridge.caret_cell_index')) ?></label>
                     <input id="caretCellIndex" class="form-control font-monospace" type="number" min="0" value="0" aria-describedby="caretCellIndexHelp">
                     <div id="caretCellIndexHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.caret_cell_index_help')) ?></div>
@@ -316,8 +340,9 @@ function demo_j(string $key, array $params = []): string
                     </div>
                     <div id="cursorRoutingHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.cursor_routing_help')) ?></div>
                   </div>
-                  <div>
-                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.caret_visibility')) ?></div>
+                  <div class="demo-command-box">
+                    <h4 class="demo-command-title"><?= demo_h(t('demo.braillebridge.controls.caret_visibility')) ?></h4>
+                    <div class="demo-command-help"><?= demo_h(t('demo.braillebridge.caret_visibility_help')) ?></div>
                     <div class="demo-caret-actions">
                       <button id="caretOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.caret_on')) ?></button>
                       <button id="caretOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.caret_off')) ?></button>

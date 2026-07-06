@@ -193,12 +193,15 @@
     "braillebridge": {
       "begin": "Begin",
       "braille_unicode": "Braille Unicode",
+      "cell_position_help": "Use this to show what happens when a cell on the braille display is selected.",
+      "cell_position_title": "Braille display cell",
       "caret_cell_index": "Cell index",
       "caret_cell_index_help": "Number of the braille cell on the display. Cell 0 is the first cell on the left.",
       "caret_off": "Caret off",
       "caret_on": "Caret on",
       "caret_text_index": "Text index",
       "caret_text_index_help": "Position in the text string. Index 0 is before the first character.",
+      "caret_visibility_help": "Shows whether the caret/cursor is visible or hidden on the braille display.",
       "clear_display": "Clear",
       "clear_log": "Clear log",
       "connect": "Connect",
@@ -211,7 +214,7 @@
         "title": "Interactive commands"
       },
       "copy_log": "Copy log",
-      "cursor_routing": "Simulate cursor routing",
+      "cursor_routing": "Simulate routing key",
       "cursor_routing_help": "Sends the same event as pressing the cursor-routing key above this cell on the braille display.",
       "disconnect": "Disconnect",
       "editor_off": "Editor off",
@@ -241,7 +244,7 @@
         }
       },
       "flow_title": "Communication flow",
-      "from_cell": "From cell",
+      "from_cell": "Set caret from cell",
       "get_line": "Get line",
       "incoming": {
         "title": "Incoming events"
@@ -285,7 +288,7 @@
       "sample_text": "BrailleStudio demo",
       "send_key": "Send key",
       "send_text": "Send text",
-      "set_caret": "Set caret",
+      "set_caret": "Set text cursor",
       "source_text": "Source text",
       "status": {
         "title": "Connection status"
@@ -293,6 +296,8 @@
       "status_badges": "Status: connection, editor mode, and insert mode",
       "subtitle": "Show developers live how the browser communicates with SAM and a braille display through BrailleBridge.",
       "text_to_send": "Text",
+      "text_position_help": "Use this to place the cursor in the text or move it step by step.",
+      "text_position_title": "Text cursor in the browser",
       "title": "BrailleBridge communication demo",
       "ws_url": "WebSocket URL"
     }
