@@ -53,3 +53,10 @@ The page creates `/languages/{code}.json`. Adding a language outside the editor 
 - Add a navigation link for admins if the route should be discoverable from the dashboard.
 - Add a lightweight automated smoke test that loads the editor as an admin fixture and checks for `[[missing.key]]`.
 - Consider adding a restore-from-backup admin action if translation editing becomes frequent.
+
+## Verification
+
+- `php -l admin/translations.php`
+- `php -l auth/bootstrap.php`
+- JSON parse check for `languages/nl.json` and `languages/en.json`
+- Unauthenticated HTTP request to `/admin/translations.php` returns `302` to `/authentication.php?returnTo=/admin/translations.php`
