@@ -547,7 +547,7 @@ function e(string $value): string
                         <div>
                             <i class="ti ti-alert-circle alert-icon" aria-hidden="true"></i>
                         </div>
-                        <div>${<?= json_encode(t('home.documentation.load_error'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>}</div>
+                        <div><?= e(t('home.documentation.load_error')) ?></div>
                     </div>
                 </div>
             `;
