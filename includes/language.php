@@ -98,6 +98,16 @@ function bs_language_is_available(string $code): bool
     return isset($available[$code]);
 }
 
+function bs_language_fallback_code(): string
+{
+    $available = bs_language_available();
+    if (isset($available[BS_LANGUAGE_FALLBACK])) {
+        return BS_LANGUAGE_FALLBACK;
+    }
+
+    return array_key_first($available) ?? BS_LANGUAGE_FALLBACK;
+}
+
 function bs_language_match_browser(?string $header): ?string
 {
     $available = bs_language_available();
@@ -155,7 +165,7 @@ function bs_language_detect(): string
         bs_language_normalize_code((string)($_SESSION[BS_LANGUAGE_SESSION_KEY] ?? '')),
         bs_language_normalize_code((string)($_COOKIE[BS_LANGUAGE_COOKIE] ?? '')),
         bs_language_match_browser($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null) ?? '',
-        BS_LANGUAGE_FALLBACK,
+        bs_language_fallback_code(),
     ];
 
     foreach ($sources as $code) {
@@ -233,8 +243,9 @@ function bs_language_lookup(array $translations, string $key): ?string
 function t(string $key, array $params = []): string
 {
     $value = bs_language_lookup(bs_language_translations(bs_language_current()), $key);
-    if ($value === null && bs_language_current() !== BS_LANGUAGE_FALLBACK) {
-        $value = bs_language_lookup(bs_language_translations(BS_LANGUAGE_FALLBACK), $key);
+    $fallback = bs_language_fallback_code();
+    if ($value === null && bs_language_current() !== $fallback) {
+        $value = bs_language_lookup(bs_language_translations($fallback), $key);
     }
     if ($value === null) {
         $value = '[[' . $key . ']]';
