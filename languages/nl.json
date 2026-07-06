@@ -44,12 +44,43 @@
   },
   "admin": {
     "translations": {
+      "add_language": "Taal toevoegen",
+      "copy_dutch": "Nederlandse waarden kopiëren naar deze taal",
+      "direction": "Schrijfrichting",
       "dutch_source": "Nederlandse brontekst",
+      "edit_key": "Vertaling voor {key}",
+      "editor_for": "Vertalingen voor {code}",
+      "errors": {
+        "encode_failed": "JSON kon niet worden gemaakt.",
+        "import_code_mismatch": "De _meta.code in het importbestand komt niet overeen met de geselecteerde taal.",
+        "import_failed": "Importeren is mislukt.",
+        "import_too_large": "Het importbestand is te groot.",
+        "invalid_json": "Het bestand bevat geen geldige JSON.",
+        "invalid_language": "Ongeldige taalcode.",
+        "language_exists": "Deze taal bestaat al.",
+        "language_not_found": "Taalbestand niet gevonden.",
+        "lock_failed": "Het taalbestand kon niet worden vergrendeld.",
+        "meta_required": "Het importbestand moet _meta bevatten.",
+        "write_failed": "Het taalbestand kon niet worden opgeslagen."
+      },
+      "export_json": "JSON exporteren",
+      "import_button": "Importeren",
+      "import_export": "Importeren en exporteren",
+      "import_json": "JSON importeren",
       "key": "Vertalingssleutel",
+      "language_code": "Code",
+      "language_name": "Naam",
+      "language_native": "Eigen naam",
       "language_selector": "Taal",
       "missing": "Ontbreekt",
+      "notices": {
+        "imported": "{code}.json geïmporteerd.",
+        "language_added": "{code}.json toegevoegd.",
+        "saved": "{code}.json opgeslagen."
+      },
       "present": "Aanwezig",
       "pretitle": "Admin",
+      "save": "Opslaan",
       "selected_translation": "Geselecteerde vertaling",
       "status": "Status",
       "title": "Vertalingen"

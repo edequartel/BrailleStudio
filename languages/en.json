@@ -44,12 +44,43 @@
   },
   "admin": {
     "translations": {
+      "add_language": "Add language",
+      "copy_dutch": "Copy Dutch values into this language",
+      "direction": "Direction",
       "dutch_source": "Dutch source text",
+      "edit_key": "Translation for {key}",
+      "editor_for": "Translations for {code}",
+      "errors": {
+        "encode_failed": "JSON could not be created.",
+        "import_code_mismatch": "The _meta.code in the import file does not match the selected language.",
+        "import_failed": "Import failed.",
+        "import_too_large": "The import file is too large.",
+        "invalid_json": "The file does not contain valid JSON.",
+        "invalid_language": "Invalid language code.",
+        "language_exists": "This language already exists.",
+        "language_not_found": "Language file not found.",
+        "lock_failed": "The language file could not be locked.",
+        "meta_required": "The import file must contain _meta.",
+        "write_failed": "The language file could not be saved."
+      },
+      "export_json": "Export JSON",
+      "import_button": "Import",
+      "import_export": "Import and export",
+      "import_json": "Import JSON",
       "key": "Translation key",
+      "language_code": "Code",
+      "language_name": "Name",
+      "language_native": "Native name",
       "language_selector": "Language",
       "missing": "Missing",
+      "notices": {
+        "imported": "{code}.json imported.",
+        "language_added": "{code}.json added.",
+        "saved": "{code}.json saved."
+      },
       "present": "Present",
       "pretitle": "Admin",
+      "save": "Save",
       "selected_translation": "Selected translation",
       "status": "Status",
       "title": "Translations"
