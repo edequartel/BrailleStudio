@@ -152,12 +152,27 @@
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 1.5rem;
   padding-right: 3.75rem;
 }
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__body {
   display: flex;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__main {
+  flex: 1 1 28rem;
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__text {
+  min-width: min(28rem, 100%);
+}
+
+.braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__subtitle {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__details {
@@ -257,7 +272,9 @@
 }
 
 .braillebridge-status--popup:not(.is-collapsed) .braillebridge-status__meta {
-  max-width: 38rem;
+  flex: 1 1 30rem;
+  max-width: none;
+  justify-content: flex-start;
 }
 
 .braillebridge-status__badge {
