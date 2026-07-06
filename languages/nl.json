@@ -66,6 +66,9 @@
         "write_failed": "Het taalbestand kon niet worden opgeslagen."
       },
       "export_json": "JSON exporteren",
+      "changed": "Gewijzigd",
+      "filter_changed": "Alleen gewijzigde vertalingen",
+      "filter_missing": "Alleen ontbrekende vertalingen",
       "import_button": "Importeren",
       "import_export": "Importeren en exporteren",
       "import_json": "JSON importeren",
@@ -83,8 +86,13 @@
       "present": "Aanwezig",
       "pretitle": "Admin",
       "save": "Opslaan",
+      "search": "Zoeken",
+      "search_placeholder": "Zoek op sleutel of tekst",
       "selected_translation": "Geselecteerde vertaling",
+      "selected_only": "Alleen in geselecteerde taal",
+      "source_missing": "Ontbreekt in Nederlands",
       "status": "Status",
+      "summary": "{total} sleutels, {missing} ontbrekend, {changed} gewijzigd, {extra} alleen in deze taal.",
       "title": "Vertalingen"
     }
   },

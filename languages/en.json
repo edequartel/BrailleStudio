@@ -66,6 +66,9 @@
         "write_failed": "The language file could not be saved."
       },
       "export_json": "Export JSON",
+      "changed": "Changed",
+      "filter_changed": "Changed translations only",
+      "filter_missing": "Missing translations only",
       "import_button": "Import",
       "import_export": "Import and export",
       "import_json": "Import JSON",
@@ -83,8 +86,13 @@
       "present": "Present",
       "pretitle": "Admin",
       "save": "Save",
+      "search": "Search",
+      "search_placeholder": "Search by key or text",
       "selected_translation": "Selected translation",
+      "selected_only": "Only in selected language",
+      "source_missing": "Missing in Dutch",
       "status": "Status",
+      "summary": "{total} keys, {missing} missing, {changed} changed, {extra} only in this language.",
       "title": "Translations"
     }
   },

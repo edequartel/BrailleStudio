@@ -288,7 +288,7 @@ function bs_auth_base_url(): string
 {
     $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
     $scriptDir = $scriptDir === '.' ? '' : rtrim($scriptDir, '/');
-    $base = preg_replace('~/(?:api|lessonbuilder|authentication-api|session-api|blockly|tools|download|qr-api|phonemes-api|klanken)(?:/.*)?$~', '', $scriptDir) ?? '';
+    $base = preg_replace('~/(?:admin|api|lessonbuilder|authentication-api|session-api|blockly|tools|download|qr-api|phonemes-api|klanken)(?:/.*)?$~', '', $scriptDir) ?? '';
     return rtrim($base, '/');
 }
 

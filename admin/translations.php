@@ -326,6 +326,22 @@ $dutch = tr_admin_flatten(tr_admin_read_language('nl'));
 $selected = tr_admin_flatten(tr_admin_read_language($selectedLanguage));
 $allKeys = array_values(array_unique(array_merge(array_keys($dutch), array_keys($selected))));
 sort($allKeys, SORT_NATURAL);
+$missingCount = 0;
+$changedCount = 0;
+$selectedOnlyCount = 0;
+foreach ($allKeys as $key) {
+    $hasDutch = array_key_exists($key, $dutch);
+    $hasSelected = array_key_exists($key, $selected);
+    if (!$hasSelected || trim($selected[$key]) === '') {
+        $missingCount++;
+    }
+    if ($hasDutch && $hasSelected && (string)$dutch[$key] !== (string)$selected[$key]) {
+        $changedCount++;
+    }
+    if (!$hasDutch && $hasSelected) {
+        $selectedOnlyCount++;
+    }
+}
 ?>
 <!doctype html>
 <html <?= bs_language_html_attrs() ?>>
@@ -456,12 +472,42 @@ sort($allKeys, SORT_NATURAL);
           <input type="hidden" name="action" value="save">
           <input type="hidden" name="editor_lang" value="<?= tr_admin_h($selectedLanguage) ?>">
           <div class="card-header">
-            <h2 class="card-title"><?= tr_admin_h(t('admin.translations.editor_for', ['code' => $selectedLanguage])) ?></h2>
+            <div>
+              <h2 class="card-title"><?= tr_admin_h(t('admin.translations.editor_for', ['code' => $selectedLanguage])) ?></h2>
+              <div class="card-subtitle">
+                <?= tr_admin_h(t('admin.translations.summary', [
+                    'total' => (string)count($allKeys),
+                    'missing' => (string)$missingCount,
+                    'changed' => (string)$changedCount,
+                    'extra' => (string)$selectedOnlyCount,
+                ])) ?>
+              </div>
+            </div>
             <div class="card-actions">
               <button class="btn btn-primary" type="submit">
                 <i class="ti ti-device-floppy me-2" aria-hidden="true"></i>
                 <?= tr_admin_h(t('admin.translations.save')) ?>
               </button>
+            </div>
+          </div>
+          <div class="card-body border-bottom">
+            <div class="row g-3 align-items-end">
+              <div class="col-12 col-lg-6">
+                <label class="form-label" for="translationSearch"><?= tr_admin_h(t('admin.translations.search')) ?></label>
+                <input id="translationSearch" class="form-control" type="search" placeholder="<?= tr_admin_h(t('admin.translations.search_placeholder')) ?>">
+              </div>
+              <div class="col-12 col-lg-6">
+                <div class="d-flex flex-wrap gap-3">
+                  <label class="form-check mb-0">
+                    <input id="filterMissing" class="form-check-input" type="checkbox">
+                    <span class="form-check-label"><?= tr_admin_h(t('admin.translations.filter_missing')) ?></span>
+                  </label>
+                  <label class="form-check mb-0">
+                    <input id="filterChanged" class="form-check-input" type="checkbox">
+                    <span class="form-check-label"><?= tr_admin_h(t('admin.translations.filter_changed')) ?></span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
           <div class="table-responsive">
@@ -476,8 +522,20 @@ sort($allKeys, SORT_NATURAL);
               </thead>
               <tbody>
                 <?php foreach ($allKeys as $key): ?>
-                  <?php $missing = !array_key_exists($key, $selected) || trim($selected[$key]) === ''; ?>
-                  <tr>
+                  <?php
+                    $hasDutch = array_key_exists($key, $dutch);
+                    $hasSelected = array_key_exists($key, $selected);
+                    $missing = !$hasSelected || trim($selected[$key]) === '';
+                    $changed = $hasDutch && $hasSelected && (string)$dutch[$key] !== (string)$selected[$key];
+                    $selectedOnly = !$hasDutch && $hasSelected;
+                    $searchText = strtolower($key . ' ' . ($dutch[$key] ?? '') . ' ' . ($selected[$key] ?? ''));
+                  ?>
+                  <tr
+                    data-translation-row
+                    data-search="<?= tr_admin_h($searchText) ?>"
+                    data-missing="<?= $missing ? '1' : '0' ?>"
+                    data-changed="<?= $changed ? '1' : '0' ?>"
+                  >
                     <td><code><?= tr_admin_h($key) ?></code></td>
                     <td><?= tr_admin_h($dutch[$key] ?? '') ?></td>
                     <td>
@@ -491,8 +549,17 @@ sort($allKeys, SORT_NATURAL);
                     <td>
                       <?php if ($missing): ?>
                         <span class="badge bg-warning-lt"><?= tr_admin_h(t('admin.translations.missing')) ?></span>
+                      <?php elseif ($selectedOnly): ?>
+                        <span class="badge bg-purple-lt"><?= tr_admin_h(t('admin.translations.selected_only')) ?></span>
+                      <?php elseif (!$hasSelected): ?>
+                        <span class="badge bg-warning-lt"><?= tr_admin_h(t('admin.translations.missing')) ?></span>
+                      <?php elseif ($changed): ?>
+                        <span class="badge bg-blue-lt"><?= tr_admin_h(t('admin.translations.changed')) ?></span>
                       <?php else: ?>
                         <span class="badge bg-green-lt"><?= tr_admin_h(t('admin.translations.present')) ?></span>
+                      <?php endif; ?>
+                      <?php if (!$hasDutch): ?>
+                        <span class="badge bg-red-lt"><?= tr_admin_h(t('admin.translations.source_missing')) ?></span>
                       <?php endif; ?>
                     </td>
                   </tr>
@@ -512,5 +579,28 @@ sort($allKeys, SORT_NATURAL);
   </main>
 </div>
 <script src="../tabler/core/dist/js/tabler.min.js"></script>
+<script>
+  const searchInput = document.getElementById('translationSearch');
+  const missingInput = document.getElementById('filterMissing');
+  const changedInput = document.getElementById('filterChanged');
+  const rows = Array.from(document.querySelectorAll('[data-translation-row]'));
+
+  function applyTranslationFilters() {
+    const query = (searchInput?.value || '').trim().toLowerCase();
+    const missingOnly = Boolean(missingInput?.checked);
+    const changedOnly = Boolean(changedInput?.checked);
+
+    rows.forEach((row) => {
+      const matchesSearch = query === '' || String(row.dataset.search || '').includes(query);
+      const matchesMissing = !missingOnly || row.dataset.missing === '1';
+      const matchesChanged = !changedOnly || row.dataset.changed === '1';
+      row.hidden = !(matchesSearch && matchesMissing && matchesChanged);
+    });
+  }
+
+  searchInput?.addEventListener('input', applyTranslationFilters);
+  missingInput?.addEventListener('change', applyTranslationFilters);
+  changedInput?.addEventListener('change', applyTranslationFilters);
+</script>
 </body>
 </html>
