@@ -167,7 +167,7 @@ function demo_j(string $key, array $params = []): string
                 <i class="ti ti-plug-connected me-2" aria-hidden="true"></i>
                 <?= demo_h(t('demo.braillebridge.open_bridge')) ?>
               </a>
-              <a class="btn btn-outline-secondary" href="#manual">
+              <a class="btn btn-outline-secondary" href="<?= demo_h($assetBase) ?>/demo/braillebridge-handleiding.php">
                 <i class="ti ti-book me-2" aria-hidden="true"></i>
                 <?= demo_h(t('demo.braillebridge.manual_button')) ?>
               </a>
@@ -385,38 +385,6 @@ function demo_j(string $key, array $params = []): string
             </section>
           </div>
 
-          <div class="col-12">
-            <section class="card" id="manual">
-              <div class="card-header">
-                <h2 class="card-title"><?= demo_h(t('demo.braillebridge.manual.title')) ?></h2>
-              </div>
-              <div class="card-body">
-                <div class="row g-4">
-                  <div class="col-12 col-lg-4">
-                    <h3><?= demo_h(t('demo.braillebridge.manual.setup_title')) ?></h3>
-                    <ol>
-                      <li><?= demo_h(t('demo.braillebridge.manual.setup_1')) ?></li>
-                      <li><?= demo_h(t('demo.braillebridge.manual.setup_2')) ?></li>
-                      <li><?= demo_h(t('demo.braillebridge.manual.setup_3')) ?></li>
-                    </ol>
-                  </div>
-                  <div class="col-12 col-lg-4">
-                    <h3><?= demo_h(t('demo.braillebridge.manual.try_title')) ?></h3>
-                    <ol>
-                      <li><?= demo_h(t('demo.braillebridge.manual.try_1')) ?></li>
-                      <li><?= demo_h(t('demo.braillebridge.manual.try_2')) ?></li>
-                      <li><?= demo_h(t('demo.braillebridge.manual.try_3')) ?></li>
-                    </ol>
-                  </div>
-                  <div class="col-12 col-lg-4">
-                    <h3><?= demo_h(t('demo.braillebridge.manual.protocol_title')) ?></h3>
-                    <p><?= demo_h(t('demo.braillebridge.manual.protocol_text')) ?></p>
-                    <pre class="bg-dark text-light p-3 rounded"><code>{"type":"command","command":"editorInput","input":{"kind":"text","text":"demo"}}</code></pre>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
         </div>
       </div>
     </div>
