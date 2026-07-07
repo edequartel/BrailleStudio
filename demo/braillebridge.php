@@ -69,23 +69,12 @@ function demo_j(string $key, array $params = []): string
       flex-wrap: wrap;
       gap: .5rem;
       align-items: center;
+      justify-content: flex-end;
     }
     .demo-bridge-popup {
       flex: 0 0 auto;
       width: 3rem;
       min-height: 2.5rem;
-    }
-    .demo-monitor-status {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .5rem;
-      align-items: center;
-      justify-content: space-between;
-      border: var(--tblr-border-width) solid var(--tblr-border-color);
-      border-radius: var(--tblr-border-radius);
-      background: var(--tblr-bg-surface-secondary);
-      padding: .75rem;
-      margin-bottom: 1rem;
     }
     .demo-monitor-badges {
       display: flex;
@@ -231,6 +220,11 @@ function demo_j(string $key, array $params = []): string
               <div class="card-header">
                 <h2 class="card-title"><?= demo_h(t('demo.braillebridge.monitor.title')) ?></h2>
                 <div class="card-actions demo-monitor-actions">
+                  <div class="demo-monitor-badges" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
+                    <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
+                    <span id="editorBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.editor_unknown')) ?></span>
+                    <span id="insertBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.insert_unknown')) ?></span>
+                  </div>
                   <div
                     class="demo-bridge-popup"
                     data-braillebridge-status
@@ -246,14 +240,6 @@ function demo_j(string $key, array $params = []): string
               </div>
               <div class="card-body">
                 <input id="wsUrl" type="hidden" value="ws://localhost:5000/ws">
-                <div class="demo-monitor-status" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
-                  <div class="text-secondary small"><?= demo_h(t('demo.braillebridge.auto_connection_hint')) ?></div>
-                  <div class="demo-monitor-badges">
-                    <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
-                    <span id="editorBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.editor_unknown')) ?></span>
-                    <span id="insertBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.insert_unknown')) ?></span>
-                  </div>
-                </div>
                 <div id="brailleMonitor"></div>
               </div>
             </section>
