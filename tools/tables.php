@@ -97,6 +97,10 @@ if (is_file($countriesPath)) {
       font-weight: 600;
     }
 
+    .stat-card {
+      height: 100%;
+    }
+
     @media (max-width: 575.98px) {
       .country-chip {
         width: 100%;
@@ -188,7 +192,7 @@ if (is_file($countriesPath)) {
             </div>
 
             <div class="col-12 col-md-6 col-xl-3">
-              <div class="card">
+              <div class="card stat-card">
                 <div class="card-body">
                   <div class="subheader">Total tables</div>
                   <div class="h2 mb-0 font-monospace" id="totalCount">-</div>
@@ -196,7 +200,7 @@ if (is_file($countriesPath)) {
               </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-              <div class="card">
+              <div class="card stat-card">
                 <div class="card-body">
                   <div class="subheader">Matching filter</div>
                   <div class="h2 mb-0 font-monospace" id="filteredCount">-</div>
@@ -204,7 +208,7 @@ if (is_file($countriesPath)) {
               </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-              <div class="card">
+              <div class="card stat-card">
                 <div class="card-body">
                   <div class="subheader">Status</div>
                   <div class="mb-0 text-secondary" id="statusText">idle</div>
@@ -212,7 +216,7 @@ if (is_file($countriesPath)) {
               </div>
             </div>
             <div class="col-12 col-md-6 col-xl-3">
-              <div class="card">
+              <div class="card stat-card">
                 <div class="card-body">
                   <div class="subheader">Selected table</div>
                   <div class="selected-table-name" id="activeTableName">No table selected</div>
@@ -746,6 +750,50 @@ if (is_file($countriesPath)) {
         };
       }
 
+      function activeTableValueFromPayload(payload) {
+        if (payload === null || payload === undefined) return null;
+        if (typeof payload === "string") return payload.trim() || null;
+        if (typeof payload !== "object") return String(payload).trim() || null;
+        const directValue = payload.activeTable
+          ?? payload.ActiveTable
+          ?? payload.currentTable
+          ?? payload.CurrentTable
+          ?? payload.selectedTable
+          ?? payload.SelectedTable
+          ?? payload.brailleTable
+          ?? payload.BrailleTable
+          ?? payload.table
+          ?? payload.Table
+          ?? payload.fileName
+          ?? payload.FileName
+          ?? payload.filename
+          ?? payload.name
+          ?? payload.Name
+          ?? payload.current
+          ?? payload.active
+          ?? null;
+        if (directValue !== null && directValue !== undefined) return directValue;
+        return activeTableValueFromPayload(payload.data)
+          ?? activeTableValueFromPayload(payload.result)
+          ?? activeTableValueFromPayload(payload.currentTableInfo)
+          ?? activeTableValueFromPayload(payload.activeTableInfo)
+          ?? null;
+      }
+
+      async function readActiveTableResponse(resp) {
+        const raw = (await resp.text()).trim();
+        if (!raw) return null;
+        const contentType = resp.headers.get("content-type") || "";
+        if (contentType.includes("json") || /^[\[{"]/.test(raw)) {
+          try {
+            return activeTableValueFromPayload(JSON.parse(raw));
+          } catch (err) {
+            return raw;
+          }
+        }
+        return raw;
+      }
+
       function chip(label) {
         const span = document.createElement("span");
         span.className = "badge bg-secondary-lt me-1 mb-1";
@@ -864,6 +912,20 @@ if (is_file($countriesPath)) {
         }
         activeTableName.textContent = tableDisplayName(table);
         activeTableFile.textContent = table.FileName || table.fileName || table.filename || activeTableKey || "-";
+      }
+
+      async function loadActiveTable() {
+        try {
+          const resp = await fetchBridge("/brailletable");
+          if (!resp.ok) return null;
+          const activeTable = await readActiveTableResponse(resp);
+          if (activeTable) {
+            updateActiveTable(activeTable);
+          }
+          return activeTable;
+        } catch (err) {
+          return null;
+        }
       }
 
       function restoreSelectedState(rowEl, table) {
@@ -1026,6 +1088,7 @@ if (is_file($countriesPath)) {
           if (ok) {
             updateSelectedState(cardEl, table);
             updateActiveTable(table);
+            await loadActiveTable();
           }
         } catch (err) {
           setStatus("error setting table", "err");
@@ -1050,6 +1113,7 @@ if (is_file($countriesPath)) {
             renderCountryFilter();
           }
           updateActiveTable(normalized.activeTable || findActiveTableFromRows());
+          await loadActiveTable();
           totalCount.textContent = String(normalized.count ?? tables.length);
           setStatus("ok", "ok");
           render();
