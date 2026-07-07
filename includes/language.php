@@ -279,6 +279,54 @@ function bs_language_url(string $code): string
     return $path . ($queryString !== '' ? '?' . $queryString : '');
 }
 
+function bs_language_persistence_script(string $current): string
+{
+    static $rendered = false;
+    if ($rendered) {
+        return '';
+    }
+    $rendered = true;
+    $current = htmlspecialchars(bs_language_normalize_code($current), ENT_QUOTES, 'UTF-8');
+
+    return <<<HTML
+<script>
+(() => {
+  const currentLanguage = "{$current}";
+  if (!currentLanguage) return;
+  try {
+    window.localStorage?.setItem("bs_language", currentLanguage);
+  } catch {}
+
+  const shouldLocalize = (anchor, url) => {
+    if (!anchor || !url) return false;
+    if (anchor.hasAttribute("download")) return false;
+    if (anchor.target && anchor.target !== "_self") return false;
+    if (url.origin !== window.location.origin) return false;
+    if (!/^https?:$/.test(url.protocol)) return false;
+    if (url.pathname === window.location.pathname && url.hash && !url.search) return false;
+    return true;
+  };
+
+  document.addEventListener("click", (event) => {
+    const anchor = event.target?.closest?.("a[href]");
+    if (!anchor || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    let url;
+    try {
+      url = new URL(anchor.getAttribute("href"), window.location.href);
+    } catch {
+      return;
+    }
+    if (!shouldLocalize(anchor, url)) return;
+    if (!url.searchParams.has("lang")) {
+      url.searchParams.set("lang", currentLanguage);
+      anchor.href = url.toString();
+    }
+  }, true);
+})();
+</script>
+HTML;
+}
+
 function language_switcher(string $class = ''): string
 {
     $available = bs_language_available();
@@ -303,6 +351,7 @@ function language_switcher(string $class = ''): string
     }
 
     $html .= '</div></div>';
+    $html .= bs_language_persistence_script($current);
     return $html;
 }
 
