@@ -447,6 +447,8 @@ function demo_j(string $key, array $params = []): string
   const wsBadge = $('wsBadge');
   const editorBadge = $('editorBadge');
   const insertBadge = $('insertBadge');
+  const connectBtn = $('connectBtn');
+  const disconnectBtn = $('disconnectBtn');
   const statusRoot = document.querySelector('[data-braillebridge-status]');
   const logEl = $('eventLog');
   const monitor = window.BrailleMonitor?.init
@@ -464,6 +466,8 @@ function demo_j(string $key, array $params = []): string
   function setWsState(ok, text) {
     wsBadge.className = ok ? 'badge bg-success-lt' : 'badge bg-danger-lt';
     wsBadge.textContent = text;
+    connectBtn.disabled = ok || text === labels.connecting;
+    disconnectBtn.disabled = !ok && text !== labels.connecting;
   }
 
   function setEditorState(value) {
@@ -480,6 +484,7 @@ function demo_j(string $key, array $params = []): string
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     reconnect = true;
     syncStatusUrl();
+    resumeStatusWidget();
     setWsState(false, labels.connecting);
     appendLog('WS connect', { url: wsUrl.value });
     try {
@@ -518,7 +523,25 @@ function demo_j(string $key, array $params = []): string
     reconnect = false;
     if (ws) ws.close(1000, 'demo disconnect');
     ws = null;
+    pauseStatusWidget();
     setWsState(false, labels.offline);
+    appendLog('WS manual disconnect');
+  }
+
+  function pauseStatusWidget() {
+    const statusWidget = statusRoot?.__brailleBridgeStatus;
+    statusWidget?.stop?.();
+  }
+
+  function resumeStatusWidget() {
+    const statusWidget = statusRoot?.__brailleBridgeStatus;
+    if (!statusWidget) return;
+    statusWidget.options.autoLaunch = true;
+    if (statusWidget.stopped) {
+      statusWidget.start?.();
+    } else {
+      statusWidget.connectWebSocket?.();
+    }
   }
 
   function send(payload, label = payload.type || payload.command || 'message') {
@@ -592,10 +615,10 @@ function demo_j(string $key, array $params = []): string
     }
   }
 
-  $('connectBtn').addEventListener('click', open);
+  connectBtn.addEventListener('click', open);
   wsUrl.addEventListener('change', syncStatusUrl);
   wsUrl.addEventListener('blur', syncStatusUrl);
-  $('disconnectBtn').addEventListener('click', close);
+  disconnectBtn.addEventListener('click', close);
   $('getLineBtn').addEventListener('click', () => send({ type: 'getBrailleLine' }, 'getBrailleLine'));
   $('editorOnBtn').addEventListener('click', () => { setEditorState(true); send({ type: 'command', command: 'setEditorMode', enabled: true }, 'setEditorMode'); });
   $('editorOffBtn').addEventListener('click', () => { setEditorState(false); send({ type: 'command', command: 'setEditorMode', enabled: false }, 'setEditorMode'); });

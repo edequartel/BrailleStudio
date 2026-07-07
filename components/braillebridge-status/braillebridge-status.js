@@ -100,6 +100,7 @@
       this.lastStateLog = "";
       this.lastIncomingLabel = "WS inkomend: geen";
       this.wsMessageSeq = 0;
+      this.stopped = false;
       this.expanded = boolAttr(root.dataset.expanded || "false");
       this.popup = boolAttr(root.dataset.popup || "false");
       this.userToggled = false;
@@ -211,6 +212,7 @@
     }
 
     start() {
+      this.stopped = false;
       logStatus("init", {
         wsUrl: this.options.wsUrl,
         launchUrl: this.options.launchUrl,
@@ -221,6 +223,7 @@
     }
 
     stop() {
+      this.stopped = true;
       if (this.reconnectTimer) {
         global.clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -233,9 +236,15 @@
         try { this.ws.close(1000, "status component stopped"); } catch {}
         this.ws = null;
       }
+      this.httpOk = false;
+      this.setOffline("Handmatig verbroken");
     }
 
     connectWebSocket() {
+      if (this.stopped) {
+        logStatus("WS -> connect skipped", { reason: "status component stopped" });
+        return;
+      }
       if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
         logStatus("WS -> connect skipped", { reason: "already open or connecting" });
         return;
@@ -359,6 +368,11 @@
 
     handleWebSocketClose() {
       this.ws = null;
+      if (this.stopped) {
+        logStatus("WS <- close", { reason: "status component stopped" });
+        this.setOffline("Handmatig verbroken");
+        return;
+      }
       logStatus("WS <- close", {
         reconnectDelayMs: this.options.reconnectDelayMs
       });
@@ -370,11 +384,13 @@
     handleWebSocketError(err = null) {
       logStatus("WS <- error", { error: err?.message || String(err || "WebSocket fout") }, "warn");
       this.setOffline(err?.message || "WebSocket fout");
+      if (this.stopped) return;
       this.tryAutoLaunch(err?.message || "WebSocket fout");
       this.scheduleReconnect();
     }
 
     scheduleReconnect() {
+      if (this.stopped) return;
       if (this.reconnectTimer) return;
       logStatus("WS -> reconnect scheduled", { delayMs: this.options.reconnectDelayMs });
       this.reconnectTimer = global.setTimeout(() => {
@@ -448,6 +464,7 @@
     handleManualStart(event) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
+      this.stopped = false;
       this.launchAttemptedAt = 0;
       this.tryLaunch("manual start button");
       global.setTimeout(() => this.connectWebSocket(), this.options.launchDelayMs);
@@ -456,6 +473,7 @@
     async refresh(event = null) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
+      this.stopped = false;
       logStatus("test -> WebSocket reconnect", { wsUrl: this.options.wsUrl });
       if (this.ws) {
         try { this.ws.close(1000, "manual WebSocket test"); } catch {}
