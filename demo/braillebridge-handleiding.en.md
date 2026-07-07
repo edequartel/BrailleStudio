@@ -37,13 +37,15 @@ The launch link opens the local BrailleBridge app through the protocol registere
 
 ## WebSocket connection
 
-The WebSocket is the live two-way communication channel. The browser connects with:
+The WebSocket is the live two-way communication channel. The demo opens this connection automatically when the page loads. There is no separate `Connect` or `Disconnect` button: the status card monitors BrailleBridge availability and the demo socket retries when the connection drops.
+
+Internally, the browser connects with:
 
 ```js
 const ws = new WebSocket("ws://localhost:5000/ws");
 ```
 
-When the socket is open, the browser can send JSON messages. Each message is sent as a UTF-8 text frame. The demo does not send binary braille data; it sends ordinary JSON objects.
+When the socket is open, the browser can send JSON messages. Each message is sent as a UTF-8 text frame. The demo does not send binary braille data; it sends ordinary JSON objects. If the socket is not open yet, the command is not sent and this is shown in the log.
 
 Example:
 
@@ -250,17 +252,17 @@ There are three common error scenarios:
 
 The demo logs each step:
 
-- `WS connect`: the browser tries to connect.
+- `WS connect`: the browser tries to connect automatically.
 - `WS open`: the socket is open.
 - `WS -> ...`: the browser sends a command.
 - `WS <- JSON`: BrailleBridge sends an event back.
-- `WS close` or `WS error`: the connection was closed or failed.
+- `WS close` or `WS error`: the connection was closed or failed; the demo retries automatically.
 
 ## Practical test sequence
 
 1. Start BrailleBridge through `braillebridge://` or manually.
-2. Check whether `ws://localhost:5000/ws` connects.
-3. Click `Get line` and verify that a `brailleLine` event arrives.
+2. Open the demo and check whether the status card automatically connects to `ws://localhost:5000/ws`.
+3. Click `Get line` or wait for the automatic `getBrailleLine`, then verify that a `brailleLine` event arrives.
 4. Enable editor mode.
 5. Send text and check `sourceText`, `braille.unicodeText`, and `caret`.
 6. Move the caret by text index and then by cell index.

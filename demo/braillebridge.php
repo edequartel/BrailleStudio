@@ -75,7 +75,7 @@ function demo_j(string $key, array $params = []): string
     }
     .demo-status-grid {
       display: grid;
-      grid-template-columns: minmax(18rem, 1fr) auto auto;
+      grid-template-columns: minmax(18rem, 1fr) auto;
       gap: .75rem;
       align-items: end;
       max-width: 76rem;
@@ -89,12 +89,6 @@ function demo_j(string $key, array $params = []): string
       flex: 0 0 auto;
       width: 3rem;
       min-height: 2.5rem;
-    }
-    .demo-connect-actions {
-      display: flex;
-      gap: .5rem;
-      align-items: center;
-      white-space: nowrap;
     }
     .demo-status-badges {
       display: flex;
@@ -153,9 +147,6 @@ function demo_j(string $key, array $params = []): string
       }
       .demo-status-grid {
         grid-template-columns: 1fr;
-      }
-      .demo-connect-actions {
-        justify-content: flex-start;
       }
     }
     @media (max-width: 575.98px) {
@@ -255,6 +246,7 @@ function demo_j(string $key, array $params = []): string
                         <input id="wsUrl" class="form-control font-monospace" type="text" value="ws://localhost:5000/ws">
                       </div>
                     </div>
+                    <div class="form-hint mt-2"><?= demo_h(t('demo.braillebridge.auto_connection_hint')) ?></div>
                   </div>
                   <div
                     class="demo-bridge-popup"
@@ -266,10 +258,6 @@ function demo_j(string $key, array $params = []): string
                     data-auto-launch="true"
                     aria-label="BrailleBridge status"
                   ></div>
-                  <div class="demo-connect-actions">
-                    <button id="connectBtn" class="btn btn-primary" type="button"><?= demo_h(t('demo.braillebridge.connect')) ?></button>
-                    <button id="disconnectBtn" class="btn btn-outline-danger" type="button"><?= demo_h(t('demo.braillebridge.disconnect')) ?></button>
-                  </div>
                 </div>
                 <div class="demo-status-badges" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
                   <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
@@ -447,8 +435,6 @@ function demo_j(string $key, array $params = []): string
   const wsBadge = $('wsBadge');
   const editorBadge = $('editorBadge');
   const insertBadge = $('insertBadge');
-  const connectBtn = $('connectBtn');
-  const disconnectBtn = $('disconnectBtn');
   const statusRoot = document.querySelector('[data-braillebridge-status]');
   const logEl = $('eventLog');
   const monitor = window.BrailleMonitor?.init
@@ -466,8 +452,6 @@ function demo_j(string $key, array $params = []): string
   function setWsState(ok, text) {
     wsBadge.className = ok ? 'badge bg-success-lt' : 'badge bg-danger-lt';
     wsBadge.textContent = text;
-    connectBtn.disabled = ok || text === labels.connecting;
-    disconnectBtn.disabled = !ok && text !== labels.connecting;
   }
 
   function setEditorState(value) {
@@ -484,7 +468,6 @@ function demo_j(string $key, array $params = []): string
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
     reconnect = true;
     syncStatusUrl();
-    resumeStatusWidget();
     setWsState(false, labels.connecting);
     appendLog('WS connect', { url: wsUrl.value });
     try {
@@ -517,31 +500,6 @@ function demo_j(string $key, array $params = []): string
           : new TextDecoder().decode(event.data);
       handleMessage(text);
     });
-  }
-
-  function close() {
-    reconnect = false;
-    if (ws) ws.close(1000, 'demo disconnect');
-    ws = null;
-    pauseStatusWidget();
-    setWsState(false, labels.offline);
-    appendLog('WS manual disconnect');
-  }
-
-  function pauseStatusWidget() {
-    const statusWidget = statusRoot?.__brailleBridgeStatus;
-    statusWidget?.stop?.();
-  }
-
-  function resumeStatusWidget() {
-    const statusWidget = statusRoot?.__brailleBridgeStatus;
-    if (!statusWidget) return;
-    statusWidget.options.autoLaunch = true;
-    if (statusWidget.stopped) {
-      statusWidget.start?.();
-    } else {
-      statusWidget.connectWebSocket?.();
-    }
   }
 
   function send(payload, label = payload.type || payload.command || 'message') {
@@ -615,10 +573,8 @@ function demo_j(string $key, array $params = []): string
     }
   }
 
-  connectBtn.addEventListener('click', open);
   wsUrl.addEventListener('change', syncStatusUrl);
   wsUrl.addEventListener('blur', syncStatusUrl);
-  disconnectBtn.addEventListener('click', close);
   $('getLineBtn').addEventListener('click', () => send({ type: 'getBrailleLine' }, 'getBrailleLine'));
   $('editorOnBtn').addEventListener('click', () => { setEditorState(true); send({ type: 'command', command: 'setEditorMode', enabled: true }, 'setEditorMode'); });
   $('editorOffBtn').addEventListener('click', () => { setEditorState(false); send({ type: 'command', command: 'setEditorMode', enabled: false }, 'setEditorMode'); });
@@ -646,6 +602,7 @@ function demo_j(string $key, array $params = []): string
   setEditorState(undefined);
   setInsertState(undefined);
   appendLog(labels.ready);
+  open();
 })();
 </script>
 <script src="<?= demo_h($assetBase) ?>/components/site-footer/site-footer.js?v=20260612-1"></script>

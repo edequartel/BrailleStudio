@@ -37,13 +37,15 @@ De startlink opent de lokale BrailleBridge-app via het protocol dat op de comput
 
 ## WebSocket verbinding
 
-De WebSocket is het kanaal voor live tweewegcommunicatie. De browser maakt een verbinding met:
+De WebSocket is het kanaal voor live tweewegcommunicatie. De demo opent deze verbinding automatisch zodra de pagina geladen is. Er is daarom geen aparte knop `Verbinden` of `Verbreken`: de statuskaart bewaakt de beschikbaarheid van BrailleBridge en de demosocket probeert opnieuw te verbinden als de verbinding wegvalt.
+
+Intern maakt de browser verbinding met:
 
 ```js
 const ws = new WebSocket("ws://localhost:5000/ws");
 ```
 
-Zodra de socket open is, kan de browser JSON-berichten sturen. Elk bericht wordt als UTF-8 tekstframe verzonden. De demo verstuurt dus geen binaire brailledata, maar gewone JSON-objecten.
+Zodra de socket open is, kan de browser JSON-berichten sturen. Elk bericht wordt als UTF-8 tekstframe verzonden. De demo verstuurt dus geen binaire brailledata, maar gewone JSON-objecten. Als de socket nog niet open is, wordt het commando niet verzonden en zie je dat terug in de log.
 
 Voorbeeld:
 
@@ -250,17 +252,17 @@ Er zijn drie veelvoorkomende foutscenario's:
 
 De demo logt daarom elke stap:
 
-- `WS connect`: browser probeert te verbinden.
+- `WS connect`: browser probeert automatisch te verbinden.
 - `WS open`: socket is geopend.
 - `WS -> ...`: browser stuurt een command.
 - `WS <- JSON`: BrailleBridge stuurt een event terug.
-- `WS close` of `WS error`: verbinding is verbroken of mislukt.
+- `WS close` of `WS error`: verbinding is verbroken of mislukt; de demo probeert opnieuw te verbinden.
 
 ## Praktische testvolgorde
 
 1. Start BrailleBridge via `braillebridge://` of handmatig.
-2. Controleer of `ws://localhost:5000/ws` verbonden raakt.
-3. Klik op `Regel ophalen` en controleer of er een `brailleLine` event binnenkomt.
+2. Open de demo en controleer of de statuskaart automatisch verbinding opbouwt met `ws://localhost:5000/ws`.
+3. Klik op `Regel ophalen` of wacht op de automatische `getBrailleLine` en controleer of er een `brailleLine` event binnenkomt.
 4. Zet editor mode aan.
 5. Stuur tekst en controleer `sourceText`, `braille.unicodeText` en `caret`.
 6. Verplaats de caret met tekstindex en daarna met celindex.
