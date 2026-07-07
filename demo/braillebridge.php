@@ -80,15 +80,15 @@ function demo_j(string $key, array $params = []): string
       flex: 0 0 auto;
       min-height: 2.5rem;
     }
-    .demo-mode-grid {
+    .demo-interactive-mode-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, max-content));
-      gap: .5rem;
-      align-items: center;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      align-items: stretch;
     }
     .demo-caret-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1rem;
       align-items: stretch;
     }
@@ -121,6 +121,9 @@ function demo_j(string $key, array $params = []): string
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
       .demo-caret-grid {
+        grid-template-columns: 1fr;
+      }
+      .demo-interactive-mode-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -242,13 +245,6 @@ function demo_j(string $key, array $params = []): string
                       <button id="connectBtn" class="btn btn-primary" type="button"><?= demo_h(t('demo.braillebridge.connect')) ?></button>
                       <button id="disconnectBtn" class="btn btn-outline-danger" type="button"><?= demo_h(t('demo.braillebridge.disconnect')) ?></button>
                     </div>
-                    <div class="subheader mb-2"><?= demo_h(t('demo.braillebridge.controls.editor_mode')) ?></div>
-                    <div class="demo-mode-grid">
-                      <button id="editorOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.editor_on')) ?></button>
-                      <button id="editorOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.editor_off')) ?></button>
-                      <button id="insertOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.insert_on')) ?></button>
-                      <button id="insertOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.insert_off')) ?></button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -285,6 +281,30 @@ function demo_j(string $key, array $params = []): string
                 <h2 class="card-title"><?= demo_h(t('demo.braillebridge.controls.title')) ?></h2>
               </div>
               <div class="card-body">
+                <div class="demo-interactive-mode-grid mb-3">
+                  <div class="demo-command-box">
+                    <h3 class="demo-command-title"><?= demo_h(t('demo.braillebridge.controls.editor_mode')) ?></h3>
+                    <div class="demo-caret-actions">
+                      <button id="editorOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.editor_on')) ?></button>
+                      <button id="editorOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.editor_off')) ?></button>
+                    </div>
+                  </div>
+                  <div class="demo-command-box">
+                    <h3 class="demo-command-title"><?= demo_h(t('demo.braillebridge.controls.insert_mode')) ?></h3>
+                    <div class="demo-caret-actions">
+                      <button id="insertOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.insert_on')) ?></button>
+                      <button id="insertOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.insert_off')) ?></button>
+                    </div>
+                  </div>
+                  <div class="demo-command-box">
+                    <h3 class="demo-command-title"><?= demo_h(t('demo.braillebridge.controls.caret_visibility')) ?></h3>
+                    <div class="demo-caret-actions">
+                      <button id="caretOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.caret_on')) ?></button>
+                      <button id="caretOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.caret_off')) ?></button>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="row g-3">
                   <div class="col-12 col-lg-6">
                     <label class="form-label" for="textInput"><?= demo_h(t('demo.braillebridge.text_to_send')) ?></label>
@@ -339,14 +359,6 @@ function demo_j(string $key, array $params = []): string
                       <button id="routingBtn" class="btn btn-outline-secondary" type="button" aria-describedby="cursorRoutingHelp"><?= demo_h(t('demo.braillebridge.cursor_routing')) ?></button>
                     </div>
                     <div id="cursorRoutingHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.cursor_routing_help')) ?></div>
-                  </div>
-                  <div class="demo-command-box">
-                    <h4 class="demo-command-title"><?= demo_h(t('demo.braillebridge.controls.caret_visibility')) ?></h4>
-                    <div class="demo-command-help"><?= demo_h(t('demo.braillebridge.caret_visibility_help')) ?></div>
-                    <div class="demo-caret-actions">
-                      <button id="caretOnBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.caret_on')) ?></button>
-                      <button id="caretOffBtn" class="btn btn-outline-secondary" type="button"><?= demo_h(t('demo.braillebridge.caret_off')) ?></button>
-                    </div>
                   </div>
                 </div>
               </div>

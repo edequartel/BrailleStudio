@@ -211,6 +211,7 @@
         "caret": "Caret and cursor routing",
         "caret_visibility": "Caret visibility",
         "editor_mode": "Editor mode",
+        "insert_mode": "Insert mode",
         "title": "Interactive commands"
       },
       "copy_log": "Copy log",
