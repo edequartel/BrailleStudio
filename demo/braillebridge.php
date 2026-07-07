@@ -64,37 +64,34 @@ function demo_j(string $key, array $params = []): string
       white-space: pre-wrap;
       font-size: .82rem;
     }
-    .demo-status-actions {
+    .demo-monitor-actions {
       display: flex;
       flex-wrap: wrap;
       gap: .5rem;
-      align-items: end;
-    }
-    .demo-status-card-body {
-      padding-top: 1.25rem;
-    }
-    .demo-status-grid {
-      display: grid;
-      grid-template-columns: minmax(18rem, 1fr) auto;
-      gap: .75rem;
-      align-items: end;
-      max-width: 76rem;
-    }
-    .demo-connection-toolbar {
-      display: flex;
-      gap: .5rem;
-      align-items: stretch;
+      align-items: center;
     }
     .demo-bridge-popup {
       flex: 0 0 auto;
       width: 3rem;
       min-height: 2.5rem;
     }
-    .demo-status-badges {
+    .demo-monitor-status {
       display: flex;
       flex-wrap: wrap;
       gap: .5rem;
-      margin-top: .75rem;
+      align-items: center;
+      justify-content: space-between;
+      border: var(--tblr-border-width) solid var(--tblr-border-color);
+      border-radius: var(--tblr-border-radius);
+      background: var(--tblr-bg-surface-secondary);
+      padding: .75rem;
+      margin-bottom: 1rem;
+    }
+    .demo-monitor-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      align-items: center;
     }
     .demo-interactive-mode-grid {
       display: grid;
@@ -143,9 +140,6 @@ function demo_j(string $key, array $params = []): string
         grid-template-columns: 1fr;
       }
       .demo-interactive-mode-grid {
-        grid-template-columns: 1fr;
-      }
-      .demo-status-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -235,19 +229,8 @@ function demo_j(string $key, array $params = []): string
           <div class="col-12">
             <section class="card h-100">
               <div class="card-header">
-                <h2 class="card-title"><?= demo_h(t('demo.braillebridge.status.title')) ?></h2>
-              </div>
-              <div class="card-body demo-status-card-body">
-                <div class="demo-status-grid">
-                  <div>
-                    <label class="form-label" for="wsUrl"><?= demo_h(t('demo.braillebridge.ws_url')) ?></label>
-                    <div class="demo-connection-toolbar">
-                      <div class="flex-fill">
-                        <input id="wsUrl" class="form-control font-monospace" type="text" value="ws://localhost:5000/ws">
-                      </div>
-                    </div>
-                    <div class="form-hint mt-2"><?= demo_h(t('demo.braillebridge.auto_connection_hint')) ?></div>
-                  </div>
+                <h2 class="card-title"><?= demo_h(t('demo.braillebridge.monitor.title')) ?></h2>
+                <div class="card-actions demo-monitor-actions">
                   <div
                     class="demo-bridge-popup"
                     data-braillebridge-status
@@ -258,25 +241,19 @@ function demo_j(string $key, array $params = []): string
                     data-auto-launch="true"
                     aria-label="BrailleBridge status"
                   ></div>
-                </div>
-                <div class="demo-status-badges" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
-                  <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
-                  <span id="editorBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.editor_unknown')) ?></span>
-                  <span id="insertBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.insert_unknown')) ?></span>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div class="col-12">
-            <section class="card h-100">
-              <div class="card-header">
-                <h2 class="card-title"><?= demo_h(t('demo.braillebridge.monitor.title')) ?></h2>
-                <div class="card-actions">
                   <button id="getLineBtn" class="btn btn-outline-secondary btn-sm" type="button"><?= demo_h(t('demo.braillebridge.get_line')) ?></button>
                 </div>
               </div>
               <div class="card-body">
+                <input id="wsUrl" type="hidden" value="ws://localhost:5000/ws">
+                <div class="demo-monitor-status" aria-label="<?= demo_h(t('demo.braillebridge.status_badges')) ?>">
+                  <div class="text-secondary small"><?= demo_h(t('demo.braillebridge.auto_connection_hint')) ?></div>
+                  <div class="demo-monitor-badges">
+                    <span id="wsBadge" class="badge bg-danger-lt"><?= demo_h(t('demo.braillebridge.offline')) ?></span>
+                    <span id="editorBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.editor_unknown')) ?></span>
+                    <span id="insertBadge" class="badge bg-warning-lt"><?= demo_h(t('demo.braillebridge.insert_unknown')) ?></span>
+                  </div>
+                </div>
                 <div id="brailleMonitor"></div>
               </div>
             </section>
