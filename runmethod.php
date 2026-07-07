@@ -495,7 +495,7 @@ $pagePayload = [
     .method-header {
       position: relative;
       min-height: 96px;
-      overflow: hidden;
+      overflow: visible;
       border: var(--tblr-border-width) solid var(--tblr-border-color);
       border-radius: var(--tblr-border-radius-lg);
       background: var(--tblr-bg-surface);
@@ -506,6 +506,7 @@ $pagePayload = [
     .method-header-overlay {
       position: absolute;
       inset: 0;
+      border-radius: inherit;
     }
 
     .method-header-image {
@@ -534,6 +535,16 @@ $pagePayload = [
       display: flex;
       align-items: center;
       gap: .875rem;
+    }
+
+    .method-language-switcher {
+      flex: 0 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .method-language-switcher .dropdown-toggle {
+      white-space: nowrap;
     }
 
     .method-title {
@@ -879,6 +890,10 @@ $pagePayload = [
         flex-direction: column;
       }
 
+      .method-language-switcher {
+        align-self: flex-start;
+      }
+
       .lesson-grid {
         grid-template-columns: 1fr;
       }
@@ -921,7 +936,7 @@ $pagePayload = [
             <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: t('runmethod.page_title_fallback')) ?></h1>
           </div>
         </div>
-        <?= language_switcher() ?>
+        <?= language_switcher('method-language-switcher') ?>
       </div>
     </header>
 
