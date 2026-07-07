@@ -88,6 +88,15 @@ if (is_file($countriesPath)) {
       background: var(--tblr-bg-surface);
     }
 
+    .selected-table-name,
+    .selected-table-file {
+      overflow-wrap: anywhere;
+    }
+
+    .selected-table-name {
+      font-weight: 600;
+    }
+
     @media (max-width: 575.98px) {
       .country-chip {
         width: 100%;
@@ -178,7 +187,7 @@ if (is_file($countriesPath)) {
               </div>
             </div>
 
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6 col-xl-3">
               <div class="card">
                 <div class="card-body">
                   <div class="subheader">Total tables</div>
@@ -186,7 +195,7 @@ if (is_file($countriesPath)) {
                 </div>
               </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6 col-xl-3">
               <div class="card">
                 <div class="card-body">
                   <div class="subheader">Matching filter</div>
@@ -194,11 +203,20 @@ if (is_file($countriesPath)) {
                 </div>
               </div>
             </div>
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6 col-xl-3">
               <div class="card">
                 <div class="card-body">
                   <div class="subheader">Status</div>
-                  <div class="h2 mb-0 font-monospace text-secondary" id="statusText">idle</div>
+                  <div class="mb-0 text-secondary" id="statusText">idle</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+              <div class="card">
+                <div class="card-body">
+                  <div class="subheader">Selected table</div>
+                  <div class="selected-table-name" id="activeTableName">No table selected</div>
+                  <div class="selected-table-file small text-secondary font-monospace" id="activeTableFile">-</div>
                 </div>
               </div>
             </div>
@@ -244,6 +262,8 @@ if (is_file($countriesPath)) {
       const totalCount = el("totalCount");
       const filteredCount = el("filteredCount");
       const statusText = el("statusText");
+      const activeTableName = el("activeTableName");
+      const activeTableFile = el("activeTableFile");
       const tableList = el("tableList");
       const bridgeBaseBadge = el("bridgeBaseBadge");
 
@@ -259,6 +279,7 @@ if (is_file($countriesPath)) {
       let selectedTable = null;
       let selectedTableKey = "";
       let selectedTableElement = null;
+      let activeTableKey = "";
       let expandedTableKeys = new Set();
       const bridgeBaseUrls = [
         "http://localhost:5000",
@@ -608,17 +629,19 @@ if (is_file($countriesPath)) {
 
       function tableDisplayName(table) {
         if (table.DisplayName) return table.DisplayName;
+        if (table.displayName) return table.displayName;
+        const fileName = table.FileName || table.fileName || table.filename || "";
         const parts = [
           table._languageNames?.[0] || table.Language,
           table._countries?.[0] ? countryName(table._countries[0]) : "",
           table.Grade ? `grade ${table.Grade}` : "",
           table.Metadata?.type?.[0] && !table.Grade ? table.Metadata.type[0] : ""
         ].filter(Boolean);
-        return parts.length ? parts.join(" ") : (table.FileName || "Unnamed table");
+        return parts.length ? parts.join(" ") : (fileName || "Unnamed table");
       }
 
       function tableKey(table) {
-        return String(table?.FileName || tableDisplayName(table) || "").trim();
+        return String(table?.FileName || table?.fileName || table?.filename || tableDisplayName(table) || "").trim();
       }
 
       function tableFlags(table) {
@@ -665,7 +688,7 @@ if (is_file($countriesPath)) {
 
       function setStatus(text, state) {
         statusText.textContent = text;
-        statusText.className = "h2 mb-0 font-monospace";
+        statusText.className = "mb-0";
         if (state === "ok") {
           statusText.classList.add("text-success");
         } else if (state === "err") {
@@ -701,7 +724,8 @@ if (is_file($countriesPath)) {
         if (Array.isArray(data)) {
           return {
             count: data.length,
-            tables: data
+            tables: data,
+            activeTable: null
           };
         }
         const items = Array.isArray(data?.tables)
@@ -709,7 +733,16 @@ if (is_file($countriesPath)) {
           : (Array.isArray(data?.Tables) ? data.Tables : []);
         return {
           count: data?.count ?? data?.Count ?? items.length,
-          tables: items
+          tables: items,
+          activeTable: data?.activeTable
+            ?? data?.ActiveTable
+            ?? data?.currentTable
+            ?? data?.CurrentTable
+            ?? data?.selectedTable
+            ?? data?.SelectedTable
+            ?? data?.table
+            ?? data?.Table
+            ?? null
         };
       }
 
@@ -773,6 +806,64 @@ if (is_file($countriesPath)) {
         selectedTableElement = rowEl;
         if (rowEl) rowEl.classList.add("is-selected");
         useSelectedBtn.disabled = !selectedTable;
+      }
+
+      function tableFromActiveValue(value) {
+        if (!value) return null;
+        if (typeof value === "object") {
+          return value;
+        }
+        const needle = normalizeText(String(value));
+        return tables.find((table) => {
+          return [
+            table.FileName,
+            table.fileName,
+            table.filename,
+            table.DisplayName,
+            table.displayName,
+            table.Name,
+            table.TableName,
+            table.Id,
+            table.id
+          ].some((candidate) => normalizeText(candidate) === needle);
+        }) || { FileName: String(value), DisplayName: String(value) };
+      }
+
+      function findActiveTableFromRows() {
+        return tables.find((table) => Boolean(
+          table.Active
+          || table.active
+          || table.IsActive
+          || table.isActive
+          || table.Selected
+          || table.selected
+          || table.Current
+          || table.current
+        )) || null;
+      }
+
+      function updateActiveTable(tableOrValue) {
+        const table = tableFromActiveValue(tableOrValue);
+        if (!table) {
+          activeTableKey = "";
+          selectedTable = null;
+          selectedTableKey = "";
+          if (selectedTableElement) selectedTableElement.classList.remove("is-selected");
+          selectedTableElement = null;
+          useSelectedBtn.disabled = true;
+          activeTableName.textContent = "No table selected";
+          activeTableFile.textContent = "-";
+          return;
+        }
+        activeTableKey = tableKey(table);
+        const matchingTable = tables.find((candidate) => tableKey(candidate) === activeTableKey);
+        if (matchingTable) {
+          selectedTable = matchingTable;
+          selectedTableKey = activeTableKey;
+          useSelectedBtn.disabled = false;
+        }
+        activeTableName.textContent = tableDisplayName(table);
+        activeTableFile.textContent = table.FileName || table.fileName || table.filename || activeTableKey || "-";
       }
 
       function restoreSelectedState(rowEl, table) {
@@ -934,6 +1025,7 @@ if (is_file($countriesPath)) {
           setStatus(ok ? "table set" : `error ${resp.status}`, ok ? "ok" : "err");
           if (ok) {
             updateSelectedState(cardEl, table);
+            updateActiveTable(table);
           }
         } catch (err) {
           setStatus("error setting table", "err");
@@ -957,6 +1049,7 @@ if (is_file($countriesPath)) {
             enrichTables();
             renderCountryFilter();
           }
+          updateActiveTable(normalized.activeTable || findActiveTableFromRows());
           totalCount.textContent = String(normalized.count ?? tables.length);
           setStatus("ok", "ok");
           render();
@@ -964,6 +1057,7 @@ if (is_file($countriesPath)) {
           tables = [];
           totalCount.textContent = "-";
           filteredCount.textContent = "-";
+          updateActiveTable(null);
           tableList.innerHTML = "";
           setStatus("BrailleBridge niet bereikbaar", "err");
           bridgeBaseBadge.textContent = "localhost:5000 / 127.0.0.1:5000";
