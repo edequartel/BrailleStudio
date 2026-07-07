@@ -217,50 +217,11 @@ SAM zit tussen BrailleBridge en de brailleleesregel. De browser praat niet direc
 
 Deze waarden zijn belangrijk voor debugging. Ze laten zien uit welk SAM-bericht een event is opgebouwd. Voor de demo zijn ze vooral zichtbaar in het JSON-eventvenster, zodat ontwikkelaars kunnen controleren welke fysieke actie of runtimeactie tot een event leidde.
 
-Voorbeeld:
-
-```json
-{
-  "Type": "editorKey",
-  "Ok": true,
-  "Payload": {
-    "Key": "Backspace",
-    "Press": true
-  },
-  "Sam": {
-    "MsgType": 8,
-    "UnitId": 1,
-    "Strip": 0,
-    "Param": 2097152
-  }
-}
-```
-
 ## Editor mode en insert mode
 
 Editor mode bepaalt of BrailleBridge invoer als editorinteractie behandelt. Als editor mode uit staat, kan de browser wel verbonden zijn, maar worden tekst- en caretcommando's niet op dezelfde manier verwerkt.
 
 Insert mode bepaalt hoe nieuwe tekst in de bestaande regel wordt geplaatst. De demo toont beide statussen apart, omdat een WebSocketverbinding alleen niet genoeg zegt over de bewerkstatus.
-
-De demo kan editor mode aanzetten met:
-
-```json
-{
-  "type": "command",
-  "command": "setEditorMode",
-  "enabled": true
-}
-```
-
-En insert mode met:
-
-```json
-{
-  "type": "command",
-  "command": "setEditorInsertMode",
-  "enabled": true
-}
-```
 
 ## Cursor routing
 

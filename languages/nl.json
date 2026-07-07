@@ -273,6 +273,12 @@
         "try_title": "Proberen"
       },
       "manual_button": "Handleiding",
+      "manual_page": {
+        "back_to_demo": "Terug naar demo",
+        "page_title": "BrailleBridge handleiding",
+        "subtitle": "Technische uitleg over WebSocket, API en SSOC-communicatie.",
+        "title": "Handleiding"
+      },
       "monitor": {
         "title": "Live brailleweergave"
       },
@@ -468,6 +474,11 @@
     },
     "lesson_return_values": "Terugkeerwaarden van de les",
     "lessons": "Lessen",
+    "errors": {
+      "basis_file_load_failed": "Basisbestand kon niet geladen worden.",
+      "method_not_found": "Methode niet gevonden.",
+      "missing_method_id": "Methode-id ontbreekt. Gebruik runmethod.php?id=jouw-methode-id"
+    },
     "method_banner_alt": "Methodebanner",
     "method_runner": "Methoderunner",
     "page_title_fallback": "Methode uitvoeren",

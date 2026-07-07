@@ -273,6 +273,12 @@
         "try_title": "Try it"
       },
       "manual_button": "Manual",
+      "manual_page": {
+        "back_to_demo": "Back to demo",
+        "page_title": "BrailleBridge manual",
+        "subtitle": "Technical explanation of WebSocket, API, and SSOC communication.",
+        "title": "Manual"
+      },
       "monitor": {
         "title": "Live braille view"
       },
@@ -468,6 +474,11 @@
     },
     "lesson_return_values": "Lesson return values",
     "lessons": "Lessons",
+    "errors": {
+      "basis_file_load_failed": "The basis file could not be loaded.",
+      "method_not_found": "Method not found.",
+      "missing_method_id": "Missing method id. Use runmethod.php?id=your-method-id"
+    },
     "method_banner_alt": "Method banner",
     "method_runner": "Method runner",
     "page_title_fallback": "Run Method",

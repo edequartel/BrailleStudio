@@ -338,7 +338,7 @@ $loadDiagnostics[] = [
 ];
 
 if ($methodId === '') {
-    $errorMessage = 'Missing method id. Use runmethod.php?id=your-method-id';
+    $errorMessage = t('runmethod.errors.missing_method_id');
 } else {
     $method = read_local_method($methodId);
     $lessons = read_local_lessons_for_method($methodId);
@@ -397,7 +397,7 @@ if ($methodId === '') {
     }
 
     if (!$method) {
-        $errorMessage = 'Method not found.';
+        $errorMessage = t('runmethod.errors.method_not_found');
     } elseif (count($basisRecords) === 0) {
         $basisFile = trim((string)($method['basisFile'] ?? ''));
         $dataSource = trim((string)($method['dataSource'] ?? ''));
@@ -423,7 +423,7 @@ if ($methodId === '') {
             }
         }
         if (!is_array($basisData)) {
-            $errorMessage = 'Basisbestand kon niet geladen worden.';
+            $errorMessage = t('runmethod.errors.basis_file_load_failed');
         } else {
             $basisRecords = array_values($basisData);
         }
@@ -921,6 +921,7 @@ $pagePayload = [
             <h1 class="method-title"><?= h($method['title'] ?? $methodId ?: t('runmethod.page_title_fallback')) ?></h1>
           </div>
         </div>
+        <?= language_switcher() ?>
       </div>
     </header>
 

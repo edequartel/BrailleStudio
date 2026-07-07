@@ -7,7 +7,9 @@ $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
 $scriptDir = $scriptDir === '.' ? '' : rtrim($scriptDir, '/');
 $baseUrl = preg_replace('~/demo$~', '', $scriptDir) ?? '';
 $assetBase = ($baseUrl === '' ? '..' : $baseUrl);
-$markdownPath = __DIR__ . '/braillebridge-handleiding.md';
+$currentLanguage = bs_language_current();
+$markdownPath = __DIR__ . '/braillebridge-handleiding.' . $currentLanguage . '.md';
+$fallbackMarkdownPath = __DIR__ . '/braillebridge-handleiding.nl.md';
 
 function bridge_manual_h(string $value): string
 {
@@ -139,7 +141,9 @@ function bridge_manual_render_markdown(string $raw): string
     return implode("\n", $html);
 }
 
-$markdownRaw = is_file($markdownPath) ? (file_get_contents($markdownPath) ?: '') : '';
+$markdownRaw = is_file($markdownPath)
+    ? (file_get_contents($markdownPath) ?: '')
+    : (is_file($fallbackMarkdownPath) ? (file_get_contents($fallbackMarkdownPath) ?: '') : '');
 $contentHtml = bridge_manual_render_markdown($markdownRaw);
 ?>
 <!doctype html>
@@ -147,7 +151,7 @@ $contentHtml = bridge_manual_render_markdown($markdownRaw);
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BrailleBridge handleiding</title>
+  <title><?= bridge_manual_h(t('demo.braillebridge.manual_page.page_title')) ?></title>
   <link rel="icon" href="<?= bridge_manual_h($assetBase) ?>/favicon.ico" sizes="any">
   <link rel="stylesheet" href="<?= bridge_manual_h($assetBase) ?>/tabler/core/dist/css/tabler.min.css">
   <link rel="stylesheet" href="<?= bridge_manual_h($assetBase) ?>/tabler/icons-webfont/dist/tabler-icons.min.css">
@@ -230,7 +234,7 @@ $contentHtml = bridge_manual_render_markdown($markdownRaw);
         <?= language_switcher('me-2') ?>
         <a class="btn btn-outline-secondary" href="<?= bridge_manual_h($assetBase) ?>/demo/braillebridge.php">
           <i class="ti ti-arrow-left me-2" aria-hidden="true"></i>
-          Terug naar demo
+          <?= bridge_manual_h(t('demo.braillebridge.manual_page.back_to_demo')) ?>
         </a>
       </div>
     </div>
@@ -239,9 +243,9 @@ $contentHtml = bridge_manual_render_markdown($markdownRaw);
   <main class="page-wrapper">
     <div class="page-header d-print-none">
       <div class="container-xl">
-        <div class="page-pretitle">BrailleBridge demo</div>
-        <h1 class="page-title">Handleiding</h1>
-        <div class="text-secondary mt-2">Technische uitleg over WebSocket, API en SSOC-communicatie.</div>
+        <div class="page-pretitle"><?= bridge_manual_h(t('demo.braillebridge.page_title')) ?></div>
+        <h1 class="page-title"><?= bridge_manual_h(t('demo.braillebridge.manual_page.title')) ?></h1>
+        <div class="text-secondary mt-2"><?= bridge_manual_h(t('demo.braillebridge.manual_page.subtitle')) ?></div>
       </div>
     </div>
 
