@@ -290,16 +290,6 @@ function demo_j(string $key, array $params = []): string
               </div>
               <div class="card-body">
                 <div id="brailleMonitor"></div>
-                <div class="row g-3 mt-2">
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="latestSource"><?= demo_h(t('demo.braillebridge.source_text')) ?></label>
-                    <textarea id="latestSource" class="form-control font-monospace" rows="2" readonly></textarea>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <label class="form-label" for="latestBraille"><?= demo_h(t('demo.braillebridge.braille_unicode')) ?></label>
-                    <textarea id="latestBraille" class="form-control font-monospace" rows="2" readonly></textarea>
-                  </div>
-                </div>
               </div>
             </section>
           </div>
@@ -594,8 +584,6 @@ function demo_j(string $key, array $params = []): string
     if (String(type).toLowerCase() === 'brailleline') {
       const unicode = valueFrom(braille.unicodeText, braille.UnicodeText);
       const source = valueFrom(message.sourceText, message.SourceText);
-      $('latestSource').value = String(source || '');
-      $('latestBraille').value = String(unicode || '');
       monitor?.setBrailleUnicode?.(String(unicode || ''), String(source || ''), {
         caretPosition: Number.isInteger(caret.cellIndex) ? caret.cellIndex : meta.caretCellPosition,
         textCaretPosition: Number.isInteger(caret.textIndex) ? caret.textIndex : meta.caretTextPosition,
