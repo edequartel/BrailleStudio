@@ -262,7 +262,7 @@ The demo logs each step:
 
 1. Start BrailleBridge through `braillebridge://` or manually.
 2. Open the demo and check whether the status card automatically connects to `ws://localhost:5000/ws`.
-3. Click `Get line` or wait for the automatic `getBrailleLine`, then verify that a `brailleLine` event arrives.
+3. Verify that the automatic `getBrailleLine` produces a `brailleLine` event.
 4. Enable editor mode.
 5. Send text and check `sourceText`, `braille.unicodeText`, and `caret`.
 6. Move the caret by text index and then by cell index.

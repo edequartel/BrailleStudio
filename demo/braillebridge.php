@@ -235,7 +235,6 @@ function demo_j(string $key, array $params = []): string
                     data-auto-launch="true"
                     aria-label="BrailleBridge status"
                   ></div>
-                  <button id="getLineBtn" class="btn btn-outline-secondary btn-sm" type="button"><?= demo_h(t('demo.braillebridge.get_line')) ?></button>
                 </div>
               </div>
               <div class="card-body">
@@ -538,7 +537,6 @@ function demo_j(string $key, array $params = []): string
 
   wsUrl.addEventListener('change', syncStatusUrl);
   wsUrl.addEventListener('blur', syncStatusUrl);
-  $('getLineBtn').addEventListener('click', () => send({ type: 'getBrailleLine' }, 'getBrailleLine'));
   $('editorOnBtn').addEventListener('click', () => { setEditorState(true); send({ type: 'command', command: 'setEditorMode', enabled: true }, 'setEditorMode'); });
   $('editorOffBtn').addEventListener('click', () => { setEditorState(false); send({ type: 'command', command: 'setEditorMode', enabled: false }, 'setEditorMode'); });
   $('insertOnBtn').addEventListener('click', () => { setInsertState(true); send({ type: 'command', command: 'setEditorInsertMode', enabled: true }, 'setEditorInsertMode'); });

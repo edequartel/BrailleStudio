@@ -262,7 +262,7 @@ De demo logt daarom elke stap:
 
 1. Start BrailleBridge via `braillebridge://` of handmatig.
 2. Open de demo en controleer of de statuskaart automatisch verbinding opbouwt met `ws://localhost:5000/ws`.
-3. Klik op `Regel ophalen` of wacht op de automatische `getBrailleLine` en controleer of er een `brailleLine` event binnenkomt.
+3. Controleer of de automatische `getBrailleLine` een `brailleLine` event laat binnenkomen.
 4. Zet editor mode aan.
 5. Stuur tekst en controleer `sourceText`, `braille.unicodeText` en `caret`.
 6. Verplaats de caret met tekstindex en daarna met celindex.
