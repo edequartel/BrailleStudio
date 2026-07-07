@@ -116,6 +116,9 @@ function demo_j(string $key, array $params = []): string
       gap: .5rem;
       align-items: center;
     }
+    .demo-routing-help {
+      margin-top: .75rem;
+    }
     @media (max-width: 991.98px) {
       .demo-flow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -358,7 +361,7 @@ function demo_j(string $key, array $params = []): string
                       <button id="fromCellBtn" class="btn btn-outline-primary" type="button"><?= demo_h(t('demo.braillebridge.from_cell')) ?></button>
                       <button id="routingBtn" class="btn btn-outline-secondary" type="button" aria-describedby="cursorRoutingHelp"><?= demo_h(t('demo.braillebridge.cursor_routing')) ?></button>
                     </div>
-                    <div id="cursorRoutingHelp" class="form-hint"><?= demo_h(t('demo.braillebridge.cursor_routing_help')) ?></div>
+                    <div id="cursorRoutingHelp" class="form-hint demo-routing-help"><?= demo_h(t('demo.braillebridge.cursor_routing_help')) ?></div>
                   </div>
                 </div>
               </div>
