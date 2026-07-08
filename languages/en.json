@@ -142,11 +142,11 @@
     "modules": {
       "blockly": {
         "description": "Develop and manage Blockly activities for interactive braille lessons.",
-        "title": "Develop Blockly"
+        "title": "Develop"
       },
       "lessons": {
         "description": "Build interactive lessons, methods, and sessions for guided braille training.",
-        "title": "Create lessons"
+        "title": "Lessons"
       },
       "practice": {
         "description": "Start braille reading activities with words, stories, audio feedback, and tactile recognition.",

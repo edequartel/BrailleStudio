@@ -142,11 +142,11 @@
     "modules": {
       "blockly": {
         "description": "Ontwikkel en beheer Blockly-activiteiten voor interactieve braillelessen.",
-        "title": "Blockly ontwikkelen"
+        "title": "Ontwikkelen"
       },
       "lessons": {
         "description": "Bouw interactieve lessen, methodes en sessies voor begeleide brailletraining.",
-        "title": "Lessen maken"
+        "title": "Lessen"
       },
       "practice": {
         "description": "Start brailleleesactiviteiten met woorden, verhalen, auditieve feedback en tactiele herkenning.",

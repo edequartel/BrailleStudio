@@ -58,8 +58,6 @@ $modules = [
             ['label' => t('home.links.lesson_builder'), 'href' => $baseUrl . 'api/lessonbuilder/lessonbuilder.php', 'icon' => 'ti-list-details'],
             ['label' => t('home.links.session_builder'), 'href' => $baseUrl . 'api/session-api/admin.php', 'icon' => 'ti-users-group'],
             ['label' => t('home.links.blockly_editor'), 'href' => $baseUrl . 'blockly/index.php', 'icon' => 'ti-puzzle'],
-            ['label' => t('home.links.braillebridge_demo'), 'href' => $baseUrl . 'demo/braillebridge.php', 'icon' => 'ti-plug-connected'],
-            ['label' => t('home.links.translations'), 'href' => $baseUrl . 'admin/translations.php', 'icon' => 'ti-language'],
         ],
     ],
     [
@@ -70,7 +68,8 @@ $modules = [
         'theme' => 'purple',
         'roles' => $managerRoles,
         'links' => [
-            ['label' => 'BrailleBridge', 'href' => $baseUrl . 'tools/braillebridge-com.php', 'icon' => 'ti-plug-connected'],
+            ['label' => t('home.links.braillebridge_demo'), 'href' => $baseUrl . 'demo/braillebridge.php', 'icon' => 'ti-plug-connected'],
+            ['label' => t('home.links.translations'), 'href' => $baseUrl . 'admin/translations.php', 'icon' => 'ti-language'],
             ['label' => t('home.links.braille_tables'), 'href' => $baseUrl . 'tools/tables.php', 'icon' => 'ti-table'],
             ['label' => t('home.links.phonemes'), 'href' => $baseUrl . 'api/phonemes-api/index.php', 'icon' => 'ti-wave-saw-tool'],
             ['label' => t('home.links.optimize_sounds'), 'href' => $baseUrl . 'tools/optimize-sounds.php', 'icon' => 'ti-file-music'],
