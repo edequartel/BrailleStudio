@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/auth/bootstrap.php';
+
 function xapi_config_path(): string
 {
     $envPath = trim((string)(getenv('BRAILLESTUDIO_XAPI_CONFIG') ?: ($_SERVER['BRAILLESTUDIO_XAPI_CONFIG'] ?? $_ENV['BRAILLESTUDIO_XAPI_CONFIG'] ?? '')));
