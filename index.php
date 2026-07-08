@@ -202,6 +202,28 @@ function e(string $value): string
             min-height: 3.25rem;
         }
 
+        .module-card {
+            overflow: hidden;
+        }
+
+        .module-card .card-body {
+            flex: 0 0 auto;
+            padding-bottom: 1rem;
+        }
+
+        .module-card .list-group {
+            border-top: 1px solid var(--tblr-border-color);
+        }
+
+        .module-card .list-group-item-action {
+            transition: background-color .15s ease, color .15s ease;
+        }
+
+        .module-card .list-group-item-action:hover,
+        .module-card .list-group-item-action:focus {
+            background-color: var(--tblr-bg-surface-secondary);
+        }
+
         .doc-content {
             max-width: 72ch;
             line-height: 1.7;
@@ -360,7 +382,7 @@ function e(string $value): string
                     <div class="row row-cards row-cols-1 row-cols-md-<?= e((string) min(2, $moduleGridColumns)) ?> row-cols-xl-<?= e((string) $moduleGridColumns) ?>">
                         <?php foreach ($visibleModules as $module): ?>
                             <div class="col">
-                                <article class="card module-card h-100">
+                                <article class="card module-card">
                                     <div class="card-body">
                                         <div class="d-flex align-items-start mb-3">
                                             <span class="module-icon rounded bg-<?= e($module['theme']) ?>-lt text-<?= e($module['theme']) ?> me-3">
