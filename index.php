@@ -208,6 +208,7 @@ function e(string $value): string
 
         .module-card .card-body {
             flex: 0 0 auto;
+            min-height: 12rem;
             padding-bottom: 1rem;
         }
 
