@@ -208,8 +208,8 @@ function e(string $value): string
 
         .module-card .card-body {
             flex: 0 0 auto;
-            min-height: 12rem;
-            padding-bottom: 1rem;
+            min-height: 6rem;
+            padding-bottom: 1.25rem;
         }
 
         .module-card .list-group {
@@ -394,7 +394,6 @@ function e(string $value): string
                                                 <h3 class="card-title mb-0"><?= e($module['title']) ?></h3>
                                             </div>
                                         </div>
-                                        <p class="text-secondary mb-0"><?= e($module['description']) ?></p>
                                     </div>
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($module['links'] as $link): ?>
