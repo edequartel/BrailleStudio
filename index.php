@@ -110,6 +110,7 @@ $visibleModules = $authUser === null
 
 $moduleCount = count($visibleModules);
 $moduleGridColumns = max(1, min(4, $moduleCount));
+$canViewUsageStats = $authUser !== null && in_array($authUser['role'], $managerRoles, true);
 
 $stats = [
     ['label' => t('home.stats.display.label'), 'value' => t('home.stats.display.value'), 'icon' => 'ti-device-desktop'],
@@ -117,10 +118,134 @@ $stats = [
     ['label' => t('home.stats.didactics.label'), 'value' => t('home.stats.didactics.value'), 'icon' => 'ti-bulb'],
 ];
 
+function bs_site_usage_log_path(): string
+{
+    return __DIR__ . '/data/site-usage/opens.jsonl';
+}
+
+function bs_site_usage_now(): DateTimeImmutable
+{
+    return new DateTimeImmutable('now', new DateTimeZone('Europe/Amsterdam'));
+}
+
+function bs_site_usage_visitor_key(?array $authUser): string
+{
+    if ($authUser !== null && (int)($authUser['id'] ?? 0) > 0) {
+        return 'user:' . (int)$authUser['id'];
+    }
+
+    if (session_status() === PHP_SESSION_ACTIVE && session_id() !== '') {
+        return 'guest-session:' . substr(hash('sha256', session_id()), 0, 16);
+    }
+
+    $fallback = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    return 'guest:' . substr(hash('sha256', $fallback), 0, 16);
+}
+
+function bs_site_usage_log_open(?array $authUser): void
+{
+    $path = bs_site_usage_log_path();
+    $dir = dirname($path);
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        return;
+    }
+
+    $now = bs_site_usage_now();
+    $record = [
+        'openedAt' => $now->format(DateTimeInterface::ATOM),
+        'visitorKey' => bs_site_usage_visitor_key($authUser),
+        'display' => $authUser['display'] ?? 'Guest',
+        'email' => $authUser['email'] ?? '',
+        'role' => $authUser['role'] ?? 'public',
+        'path' => (string)($_SERVER['REQUEST_URI'] ?? 'index.php'),
+        'userAgent' => substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 240),
+    ];
+
+    $line = json_encode($record, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($line)) {
+        return;
+    }
+
+    $handle = @fopen($path, 'ab');
+    if (!is_resource($handle)) {
+        return;
+    }
+
+    try {
+        if (flock($handle, LOCK_EX)) {
+            fwrite($handle, $line . PHP_EOL);
+            fflush($handle);
+            flock($handle, LOCK_UN);
+        }
+    } finally {
+        fclose($handle);
+    }
+}
+
+function bs_site_usage_format_time(string $isoTime): string
+{
+    try {
+        return (new DateTimeImmutable($isoTime))->setTimezone(new DateTimeZone('Europe/Amsterdam'))->format('d-m-Y H:i');
+    } catch (Throwable $e) {
+        return $isoTime;
+    }
+}
+
+function bs_site_usage_stats(int $recentLimit = 10): array
+{
+    $path = bs_site_usage_log_path();
+    if (!is_file($path)) {
+        return [
+            'total' => 0,
+            'unique' => 0,
+            'lastOpenedAt' => '',
+            'recent' => [],
+        ];
+    }
+
+    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) {
+        return [
+            'total' => 0,
+            'unique' => 0,
+            'lastOpenedAt' => '',
+            'recent' => [],
+        ];
+    }
+
+    $total = 0;
+    $visitors = [];
+    $recent = [];
+    foreach ($lines as $line) {
+        $record = json_decode($line, true);
+        if (!is_array($record)) {
+            continue;
+        }
+
+        $total++;
+        $visitorKey = trim((string)($record['visitorKey'] ?? ''));
+        if ($visitorKey !== '') {
+            $visitors[$visitorKey] = true;
+        }
+        $recent[] = $record;
+    }
+
+    $recent = array_slice(array_reverse($recent), 0, $recentLimit);
+    return [
+        'total' => $total,
+        'unique' => count($visitors),
+        'lastOpenedAt' => (string)($recent[0]['openedAt'] ?? ''),
+        'recent' => $recent,
+    ];
+}
+
 function e(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
+
+bs_site_usage_log_open($authUser);
+$usageStats = $canViewUsageStats ? bs_site_usage_stats() : null;
 ?>
 <!doctype html>
 <html <?= bs_language_html_attrs() ?>>
@@ -421,6 +546,67 @@ function e(string $value): string
 
                     </div>
                 </section>
+
+                <?php if ($usageStats !== null): ?>
+                    <section class="mt-4" id="site-usage" aria-labelledby="site-usage-title">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title" id="site-usage-title">Website usage</h2>
+                                    <div class="card-subtitle">Local counter for homepage opens.</div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-sm-4">
+                                        <div class="subheader">Total opens</div>
+                                        <div class="h2 mb-0"><?= e(number_format((int)$usageStats['total'], 0, ',', '.')) ?></div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="subheader">Unique visitors</div>
+                                        <div class="h2 mb-0"><?= e(number_format((int)$usageStats['unique'], 0, ',', '.')) ?></div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="subheader">Last open</div>
+                                        <div class="h2 mb-0 fs-3"><?= e($usageStats['lastOpenedAt'] !== '' ? bs_site_usage_format_time((string)$usageStats['lastOpenedAt']) : '-') ?></div>
+                                    </div>
+                                </div>
+
+                                <?php if ($usageStats['recent'] === []): ?>
+                                    <p class="text-secondary mb-0">No opens logged yet.</p>
+                                <?php else: ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-vcenter card-table">
+                                            <thead>
+                                            <tr>
+                                                <th>When</th>
+                                                <th>Who</th>
+                                                <th>Role</th>
+                                                <th>Page</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <?php foreach ($usageStats['recent'] as $visit): ?>
+                                                <tr>
+                                                    <td class="text-nowrap"><?= e(bs_site_usage_format_time((string)($visit['openedAt'] ?? ''))) ?></td>
+                                                    <td>
+                                                        <div class="fw-semibold"><?= e((string)($visit['display'] ?? 'Guest')) ?></div>
+                                                        <?php if (trim((string)($visit['email'] ?? '')) !== ''): ?>
+                                                            <div class="text-secondary small"><?= e((string)$visit['email']) ?></div>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td><?= e((string)($visit['role'] ?? 'public')) ?></td>
+                                                    <td class="text-truncate" style="max-width: 18rem;"><?= e((string)($visit['path'] ?? '')) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </section>
+                <?php endif; ?>
 
                 <section class="mt-4" id="documentatie" aria-labelledby="documentatie-title">
                     <div class="card">
